@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ManuelAuth {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  tokensId  String   @unique
+  tokens    Tokens   @relation(fields: [tokensId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model GoogleAuth {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  googleToken String
+  tokensId    String   @unique
+  tokens      Tokens   @relation(fields: [tokensId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Tokens {
+  id           String      @id @default(uuid())
+  manuelAuth   ManuelAuth?
+  googleAuth   GoogleAuth?
+  refreshToken String
+  accessToken  String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  photo     String
+  nickName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
