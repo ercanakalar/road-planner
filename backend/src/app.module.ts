@@ -4,9 +4,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { NotificationModule } from './notification/notification.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AccessGuard } from './common/guards/access/access.guard';
+import { UserModule } from './user/user.module';
 
 @Module({
-  imports: [PrismaModule, NotificationModule, AuthModule],
+  imports: [PrismaModule, NotificationModule, AuthModule, UserModule],
   providers: [{ provide: APP_GUARD, useClass: AccessGuard }],
 })
 export class AppModule {}

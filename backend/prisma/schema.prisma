@@ -46,6 +46,20 @@ model Tokens {
   updatedAt                DateTime    @default(now()) @updatedAt
 }
 
+model Permit {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  users       User[]       @relation("UserPermit")
+  permissions Permission[] @relation("PermitPermissions")
+}
+
+model Permission {
+  id      String   @id @default(uuid())
+  name    String   @unique
+  permits Permit[] @relation("PermitPermissions")
+}
+
 model User {
   id         String      @id @default(uuid())
   email      String      @unique
@@ -56,6 +70,8 @@ model User {
   manuelAuth ManuelAuth?
   googleAuth GoogleAuth?
   tokens     Tokens[]
+  permit     Permit?     @relation("UserPermit", fields: [permitId], references: [id])
+  permitId   String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @default(now()) @updatedAt
 }

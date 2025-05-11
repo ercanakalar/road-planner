@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -9,7 +10,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   RefreshRequest,
@@ -20,6 +20,8 @@ import {
 import { Public } from 'src/common/decorators';
 import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard';
 import { RefreshGuard } from 'src/common/guards/refresh/refresh.guard';
+import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
+import { RequirePermission } from 'src/common/decorators/require-permission.decorator';
 
 @Controller('api/auth')
 export class AuthController {
@@ -44,7 +46,6 @@ export class AuthController {
   @Post('sign-out')
   @HttpCode(HttpStatus.OK)
   async signOut(@Body('refreshToken') refreshToken: string) {
-    console.log(refreshToken);
     return this.authService.signOut(refreshToken);
   }
 
@@ -70,6 +71,13 @@ export class AuthController {
     @Param('token') token: string,
   ) {
     return this.authService.resetPassword(resetPassword, token);
+  }
+
+  @UseGuards(PermissionsGuard)
+  @RequirePermission('ACCESS_DASHBOARD')
+  @Get('dashboard')
+  getDashboard() {
+    return { message: 'Welcome to the admin dashboard' };
   }
 
   // @Public()

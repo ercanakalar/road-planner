@@ -139,6 +139,7 @@ export class AuthService {
     });
 
     return {
+      userId: user.id,
       accessToken,
       refreshToken,
     };

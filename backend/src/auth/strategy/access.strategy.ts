@@ -18,7 +18,14 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
     });
   }
 
-  validate(payload: JwtPayload) {
-    return payload;
+  validate(req: any, payload: JwtPayload) {
+    const authHeader = req.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Authorization header is missing or malformed');
+    }
+
+    return {
+      ...payload,
+    };
   }
 }
