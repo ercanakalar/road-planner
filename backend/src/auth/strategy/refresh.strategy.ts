@@ -19,7 +19,13 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   }
 
   validate(req: any, payload: JwtPayload) {
-    const refreshToken = req.get('authorization').replace('Bearer', '').trim();
+    const authHeader = req.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Authorization header is missing or malformed');
+    }
+
+    const refreshToken = authHeader.replace('Bearer ', '').trim();
+
     return {
       ...payload,
       refreshToken,

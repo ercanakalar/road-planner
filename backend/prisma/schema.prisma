@@ -8,41 +8,54 @@ datasource db {
 }
 
 model ManuelAuth {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  tokensId  String   @unique
-  tokens    Tokens   @relation(fields: [tokensId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String   @db.VarChar(255)
+  confirmPassword String   @db.VarChar(255)
+  userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id])
+  token           Tokens?  @relation(fields: [tokenId], references: [id])
+  tokenId         String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 }
 
 model GoogleAuth {
   id          String   @id @default(uuid())
   email       String   @unique
   googleToken String
-  tokensId    String   @unique
-  tokens      Tokens   @relation(fields: [tokensId], references: [id])
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  token       Tokens?  @relation(fields: [tokenId], references: [id])
+  tokenId     String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Tokens {
-  id           String      @id @default(uuid())
-  manuelAuth   ManuelAuth?
-  googleAuth   GoogleAuth?
-  refreshToken String
-  accessToken  String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @default(now()) @updatedAt
+  id                       String      @id @default(uuid())
+  userId                   String
+  user                     User        @relation(fields: [userId], references: [id])
+  manuelAuth               ManuelAuth?
+  googleAuth               GoogleAuth?
+  refreshToken             String
+  accessToken              String
+  resetToken               String?     @unique
+  passwordResetTokenExpiry DateTime?
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @default(now()) @updatedAt
 }
 
 model User {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  photo     String
-  nickName  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id         String      @id @default(uuid())
+  email      String      @unique
+  firstName  String?
+  lastName   String?
+  photo      String?
+  nickName   String?
+  manuelAuth ManuelAuth?
+  googleAuth GoogleAuth?
+  tokens     Tokens[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
 }

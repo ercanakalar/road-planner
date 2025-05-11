@@ -1,27 +1,41 @@
 version: '3.8'
 
 services:
+  # backend-prod:
+  #   image: ercanakalar/road-map-backend
+  #   profiles: [prod]
   backend:
     build:
       context: ./backend
     ports:
-      - "3000:3000"
-    network_mode: "host"
+      - '3000:3000'
+    image: ercanakalar/road-map-backend
+    network_mode: 'host'
     depends_on:
       - test-db
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
+        - action: rebuild
+          path: ./backend/package.json
+    # profiles: [dev]
 
   test-db:
     image: postgres:latest
     container_name: road-map-db
     ports:
-      - "5434:5432"
+      - '5434:5432'
     # volumes:
     #   - road-map-db:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: road
+      POSTGRES_DB: roaddb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: road-map
-
 # volumes:
 #   road-map-db:
 

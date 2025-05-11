@@ -15,18 +15,6 @@ export class HelperService {
     private configService: ConfigService,
   ) {}
 
-  async toHashPassword(password: string) {
-    if (!password || typeof password !== 'string') {
-      throw new Error('Invalid password: Password must be a non-empty string.');
-    }
-
-    const salt = randomBytes(8).toString('hex');
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    const hashedPassword = buf.toString('hex');
-
-    return `${hashedPassword}.${salt}`;
-  }
-
   async comparePassword(
     storedPassword: string,
     suppliedPassword: string,
@@ -56,15 +44,53 @@ export class HelperService {
     return false;
   }
 
-  async createPasswordResetToken() {
-    const randomBuffer = randomBytes(32);
-    const passwordResetToken = randomBuffer.toString('hex');
+  async hashPasswordToken(token: string) {
+    const hash = createHash('sha256');
+    hash.update(token);
+    const hashedToken = hash.digest('hex');
+
+    return hashedToken;
+  }
+
+  async verifyPasswordResetToken(
+    token: string,
+    hashedPasswordResetToken: string,
+  ) {
+    const hash = createHash('sha256');
+    hash.update(token);
+    const hashedToken = hash.digest('hex');
+
+    return hashedToken === hashedPasswordResetToken;
+  }
+
+  async toHashPassword(password: string) {
+    if (!password || typeof password !== 'string') {
+      throw new Error('Invalid password: Password must be a non-empty string.');
+    }
+
+    const salt = randomBytes(10).toString('hex');
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    const hashedPassword = buf.toString('hex');
+
+    return `${hashedPassword}.${salt}`;
+  }
+
+  async createPasswordResetToken(email: string) {
+    const salt = randomBytes(10).toString('hex');
+    const buf = (await scryptAsync(email, salt, 64)) as Buffer;
+    const hashedPassword = buf.toString('hex');
+    const passwordResetToken = `${hashedPassword}.${salt}`;
 
     const hash = createHash('sha256');
     hash.update(passwordResetToken);
-    const newResetToken = hash.digest('hex');
+    const hashedResetToken = hash.digest('hex');
 
-    return { newResetToken };
+    const expiryDate = this.newDate(10);
+
+    return {
+      resetToken: hashedResetToken,
+      passwordResetTokenExpiry: expiryDate,
+    };
   }
 
   newDate(min: number): Date {
