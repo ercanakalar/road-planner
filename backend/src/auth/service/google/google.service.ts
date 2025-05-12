@@ -1,38 +1,53 @@
 import { Injectable } from '@nestjs/common';
-import { GoogleAuth, OAuth2Client } from 'google-auth-library';
+import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
-import * as path from 'path';
-import { HelperService } from 'src/auth/helper/helper.service';
+import { GoogleAuthClient } from 'src/auth/type/auth.types';
 
 @Injectable()
 export class GoogleService {
-  constructor(
-    private configService: ConfigService,
-    private helperService: HelperService,
-  ) {}
+  constructor(private config: ConfigService) {}
 
-  async getAuthClientData(
-    code: string,
-  ): Promise<{ email: string; refreshToken: string; accessToken: string }> {
-    const authClient = new OAuth2Client({
-      clientId: this.configService.get('GOOGLE_AUTH_CLIENT_ID'),
-      clientSecret: this.configService.get('GOOGLE_AUTH_CLIENT_SECRET'),
+  getAuthClient(): OAuth2Client {
+    return new OAuth2Client(
+      this.config.get('GOOGLE_CLIENT_ID'),
+      this.config.get('GOOGLE_CLIENT_SECRET'),
+      this.config.get('GOOGLE_REDIRECT_URL'),
+    );
+  }
+
+  async getAuthClientUrl() {
+    const authClient = this.getAuthClient();
+    const url = authClient.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: this.config.get('GOOGLE_SCOPES_API').split(','),
     });
-    const tokenData = await authClient.getToken(code);
-    const tokens = tokenData.tokens;
-    const refreshToken = tokens?.refresh_token || '';
-    const accessToken = tokens?.access_token || '';
+
+    return url;
+  }
+
+  async getAuthClientData(code: string): Promise<{
+    email: string;
+    refreshToken: string;
+    accessToken: string;
+  }> {
+    const authClient = this.getAuthClient();
+    const { tokens } = await authClient.getToken(code);
 
     authClient.setCredentials(tokens);
 
-    const googleAuth = new GoogleAuth({
-      authClient,
-      credentials: {
-        client_id: authClient._clientId,
-      },
+    const userInfoResponse = await authClient.request({
+      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+      method: 'GET',
     });
-    this.helperService.verifyGoogleAccessToken(accessToken);
-    return { email, refreshToken, accessToken };
+    console.log(userInfoResponse);
+
+    const userInfo = userInfoResponse.data as GoogleAuthClient;
+
+    return {
+      email: userInfo.email,
+      accessToken: tokens.access_token ?? '',
+      refreshToken: tokens.refresh_token ?? '',
+    };
   }
 }

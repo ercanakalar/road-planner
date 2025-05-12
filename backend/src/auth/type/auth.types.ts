@@ -1,3 +1,4 @@
+import { GoogleAuth } from 'google-auth-library';
 import { Request } from 'express';
 
 export type SignUpData = {
@@ -29,3 +30,12 @@ export type JwtPayload = {
 
 export type AccessTokenType = {};
 export type RefreshTokenType = {};
+
+export type GoogleAuthClient = {
+  email: string;
+  verified_email: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+};

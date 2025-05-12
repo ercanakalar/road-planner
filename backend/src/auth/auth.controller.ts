@@ -7,10 +7,11 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import {
   RefreshRequest,
   ResetPassword,
@@ -22,10 +23,18 @@ import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard
 import { RefreshGuard } from 'src/common/guards/refresh/refresh.guard';
 import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
 import { RequirePermission } from 'src/common/decorators/require-permission.decorator';
+import { GoogleService } from './service/google/google.service';
+import { AuthService } from './service/auth/auth.service';
+import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 
 @Controller('api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private googleService: GoogleService,
+    private configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('sign-up')
@@ -73,35 +82,35 @@ export class AuthController {
     return this.authService.resetPassword(resetPassword, token);
   }
 
+  @Public()
+  @Get('google')
+  @HttpCode(HttpStatus.OK)
+  async redirectToGoogle(@Res() res: Response) {
+    const url = await this.googleService.getAuthClientUrl();
+    res.redirect(url);
+    // return { url };
+  }
+
+  @Public()
+  @Get('google/callback')
+  @HttpCode(HttpStatus.OK)
+  async googleCallback(@Query('code') code: string) {
+    const { email, accessToken, refreshToken } =
+      await this.googleService.getAuthClientData(code);
+
+    await this.authService.signInWithGoogle(email, accessToken, refreshToken);
+
+    return {
+      email,
+      accessToken,
+      refreshToken,
+    };
+  }
+
   @UseGuards(PermissionsGuard)
   @RequirePermission('ACCESS_DASHBOARD')
   @Get('dashboard')
   getDashboard() {
     return { message: 'Welcome to the admin dashboard' };
   }
-
-  // @Public()
-  // @Post('verify-email')
-  // @HttpCode(HttpStatus.OK)
-  // async verifyEmail(@Body('email') email: string) {
-  //   return this.authService.verifyEmail(email);
-  // }
-  // @Public()
-  // @Post('verify-email-token')
-  // @HttpCode(HttpStatus.OK)
-  // async verifyEmailToken(@Body('token') token: string) {
-  //   return this.authService.verifyEmailToken(token);
-  // }
-  // @Public()
-  // @Post('verify-email-otp')
-  // @HttpCode(HttpStatus.OK)
-  // async verifyEmailOtp(@Body('otp') otp: string) {
-  //   return this.authService.verifyEmailOtp(otp);
-  // }
-  // @Public()
-  // @Post('verify-email-otp-token')
-  // @HttpCode(HttpStatus.OK)
-  // async verifyEmailOtpToken(@Body('token') token: string) {
-  //   return this.authService.verifyEmailOtpToken(token);
-  // }
 }
