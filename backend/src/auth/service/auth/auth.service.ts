@@ -6,9 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { HelperService } from './helper/helper.service';
-import { SignUpData, SignInData, ResetPassword } from './type/auth.types';
+import {
+  SignUpData,
+  SignInData,
+  ResetPassword,
+} from 'src/auth/type/auth.types';
 import { EmailService } from 'src/notification/email/email.service';
+import { HelperService } from 'src/auth/helper/helper.service';
 
 @Injectable()
 export class AuthService {
