@@ -8,47 +8,35 @@ datasource db {
 }
 
 model ManuelAuth {
-  id              String        @id @default(uuid())
-  email           String        @unique
-  password        String        @db.VarChar(255)
-  confirmPassword String        @db.VarChar(255)
-  userId          String?       @unique
-  user            User?         @relation(fields: [userId], references: [id])
-  token           ManuelTokens? @relation(fields: [tokenId], references: [id])
-  tokenId         String?       @unique
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String   @db.VarChar(255)
+  confirmPassword String   @db.VarChar(255)
+  userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id])
+  tokens          Tokens?  @relation(fields: [tokenId], references: [id])
+  tokenId         String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 }
 
 model GoogleAuth {
-  id        String        @id @default(uuid())
-  email     String        @unique
-  userId    String        @unique
-  user      User          @relation(fields: [userId], references: [id])
-  tokenId   String?       @unique
-  token     GoogleTokens? @relation(fields: [tokenId], references: [id])
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @default(now()) @updatedAt
+  id        String   @id @default(uuid())
+  email     String   @unique
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  tokenId   String?  @unique
+  tokens    Tokens?  @relation(fields: [tokenId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
-model ManuelTokens {
+model Tokens {
   id                       String      @id @default(uuid())
   userId                   String      @unique
   user                     User        @relation(fields: [userId], references: [id])
   manuelAuth               ManuelAuth?
-  refreshToken             String
-  accessToken              String
-  resetToken               String?     @unique
-  passwordResetTokenExpiry DateTime?
-  createdAt                DateTime    @default(now())
-  updatedAt                DateTime    @default(now()) @updatedAt
-}
-
-model GoogleTokens {
-  id                       String      @id @default(uuid())
-  userId                   String      @unique
-  user                     User        @relation(fields: [userId], references: [id])
-  googleAuth               GoogleAuth?
+  GoogleAuth               GoogleAuth?
   refreshToken             String
   accessToken              String
   resetToken               String?     @unique
@@ -72,18 +60,17 @@ model Permission {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  firstName    String?
-  lastName     String?
-  photo        String?
-  nickName     String?
-  manuelAuth   ManuelAuth?
-  googleAuth   GoogleAuth?
-  googleTokens GoogleTokens?
-  manuelTokens ManuelTokens?
-  permit       Permit?       @relation("UserPermit", fields: [permitId], references: [id])
-  permitId     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
+  id         String      @id @default(uuid())
+  email      String      @unique
+  firstName  String?
+  lastName   String?
+  photo      String?
+  nickName   String?
+  manuelAuth ManuelAuth?
+  googleAuth GoogleAuth?
+  tokens     Tokens?
+  permit     Permit?     @relation("UserPermit", fields: [permitId], references: [id])
+  permitId   String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
 }

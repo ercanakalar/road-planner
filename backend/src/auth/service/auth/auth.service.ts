@@ -74,7 +74,7 @@ export class AuthService {
         refreshTokenData: { email, userId: user.id },
       });
 
-    const tokens = await this.prisma.manuelTokens.create({
+    const tokens = await this.prisma.tokens.create({
       data: {
         accessToken,
         refreshToken,
@@ -133,7 +133,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    const token = await this.prisma.manuelTokens.findUnique({
+    const token = await this.prisma.tokens.findUnique({
       where: {
         id: user.manuelAuth.tokenId,
       },
@@ -152,7 +152,7 @@ export class AuthService {
         refreshTokenData: { email: user.email, userId: user.id },
       });
 
-    await this.prisma.manuelTokens.update({
+    await this.prisma.tokens.update({
       where: {
         id: token.id,
       },
@@ -200,7 +200,7 @@ export class AuthService {
       throw new NotFoundException('Token not found');
     }
 
-    await this.prisma.manuelTokens.update({
+    await this.prisma.tokens.update({
       where: {
         id: user?.manuelAuth?.tokenId || '',
       },
@@ -210,7 +210,7 @@ export class AuthService {
       },
     });
 
-    await this.prisma.googleTokens.update({
+    await this.prisma.tokens.update({
       where: {
         id: user?.googleAuth?.tokenId || '',
       },
@@ -253,7 +253,7 @@ export class AuthService {
         refreshTokenData: { email: user.email, userId: user.id },
       });
 
-    await this.prisma.manuelTokens.update({
+    await this.prisma.tokens.update({
       where: {
         id: user.manuelAuth.tokenId,
       },
@@ -293,7 +293,7 @@ export class AuthService {
     const { passwordResetTokenExpiry, resetToken } =
       await this.helperService.createPasswordResetToken(email);
 
-    await this.prisma.manuelTokens.update({
+    await this.prisma.tokens.update({
       where: { id: user.manuelAuth.tokenId },
       data: {
         resetToken,
@@ -320,7 +320,7 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordData: ResetPassword, token: string) {
-    const user = await this.prisma.manuelTokens.findUnique({
+    const user = await this.prisma.tokens.findUnique({
       where: {
         resetToken: token,
         passwordResetTokenExpiry: {
@@ -340,7 +340,7 @@ export class AuthService {
       resetPasswordData.password,
     );
 
-    await this.prisma.manuelTokens.update({
+    await this.prisma.tokens.update({
       where: { resetToken: token },
       data: {
         resetToken: null,
@@ -365,7 +365,9 @@ export class AuthService {
       where: { email },
       include: {
         googleAuth: {
-          include: { token: true },
+          include: {
+            tokens: true,
+          },
         },
       },
     });
@@ -377,7 +379,7 @@ export class AuthService {
         },
       });
 
-      const newToken = await this.prisma.googleTokens.create({
+      const newToken = await this.prisma.tokens.create({
         data: {
           userId: newUser.id,
           accessToken,
@@ -399,10 +401,10 @@ export class AuthService {
       };
     }
 
-    const tokenId = existingUser.googleAuth?.token?.id;
+    const tokenId = existingUser.googleAuth?.tokens?.id;
 
     if (tokenId) {
-      await this.prisma.googleTokens.update({
+      await this.prisma.tokens.update({
         where: { id: tokenId },
         data: {
           accessToken,
@@ -411,7 +413,7 @@ export class AuthService {
         },
       });
     } else {
-      const newToken = await this.prisma.googleTokens.create({
+      const newToken = await this.prisma.tokens.create({
         data: {
           userId: existingUser.id,
           accessToken,
