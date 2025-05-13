@@ -40,7 +40,6 @@ export class GoogleService {
       url: 'https://www.googleapis.com/oauth2/v2/userinfo',
       method: 'GET',
     });
-    console.log(userInfoResponse);
 
     const userInfo = userInfoResponse.data as GoogleAuthClient;
 

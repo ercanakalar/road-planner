@@ -39,34 +39,43 @@ export class AuthService {
         manuelAuth: true,
       },
     });
-    if (existingUser?.manuelAuth) {
+
+    if (existingUser !== null && existingUser?.manuelAuth !== null) {
       throw new BadRequestException('User already exists');
     }
 
-    const user = await this.prisma.user.update({
+    const manuelAuth = await this.prisma.manuelAuth.create({
+      data: {
+        email,
+        password: hashedPassword,
+        confirmPassword: hashedConfirmPassword,
+      },
+    });
+
+    if (!manuelAuth) {
+      throw new InternalServerErrorException('Failed to create user');
+    }
+    const user = await this.prisma.user.upsert({
       where: {
         email,
       },
-      data: {
+      update: {
         email,
         manuelAuth: {
-          connectOrCreate: {
-            where: {
-              email,
-            },
-            create: {
-              email,
-              password: hashedPassword,
-              confirmPassword: hashedConfirmPassword,
-            },
+          connect: {
+            id: manuelAuth.id,
+          },
+        },
+      },
+      create: {
+        email,
+        manuelAuth: {
+          connect: {
+            id: manuelAuth.id,
           },
         },
       },
     });
-
-    if (!user) {
-      throw new InternalServerErrorException('Failed to create user');
-    }
 
     const { accessToken, refreshToken } =
       await this.helperService.generateTokens({
@@ -74,18 +83,26 @@ export class AuthService {
         refreshTokenData: { email, userId: user.id },
       });
 
-    const tokens = await this.prisma.tokens.create({
-      data: {
+    const tokens = await this.prisma.tokens.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
         accessToken,
         refreshToken,
-        user: {
-          connect: {
-            email,
-          },
-        },
         manuelAuth: {
           connect: {
-            email,
+            id: manuelAuth.id,
+          },
+        },
+      },
+      create: {
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        manuelAuth: {
+          connect: {
+            id: manuelAuth.id,
           },
         },
       },
@@ -109,6 +126,17 @@ export class AuthService {
         email,
       },
       select: {
+        tokens: {
+          select: {
+            id: true,
+            manuelAuth: {
+              select: {
+                password: true,
+                tokenId: true,
+              },
+            },
+          },
+        },
         manuelAuth: {
           select: {
             password: true,
@@ -120,7 +148,7 @@ export class AuthService {
       },
     });
 
-    if (!user || !user.manuelAuth || !user.manuelAuth.tokenId) {
+    if (!user || !user.tokens?.id || !user.manuelAuth) {
       throw new NotFoundException('User not found');
     }
 
@@ -135,7 +163,7 @@ export class AuthService {
 
     const token = await this.prisma.tokens.findUnique({
       where: {
-        id: user.manuelAuth.tokenId,
+        userId: user.id,
       },
       select: {
         id: true,
@@ -377,6 +405,13 @@ export class AuthService {
         data: {
           email,
         },
+        include: {
+          googleAuth: {
+            include: {
+              tokens: true,
+            },
+          },
+        },
       });
 
       const newToken = await this.prisma.tokens.create({
@@ -403,28 +438,35 @@ export class AuthService {
 
     const tokenId = existingUser.googleAuth?.tokens?.id;
 
-    if (tokenId) {
-      await this.prisma.tokens.update({
-        where: { id: tokenId },
-        data: {
+    if (tokenId === undefined) {
+      const newToken = await this.prisma.tokens.upsert({
+        where: { userId: existingUser.id },
+        update: {
           accessToken,
           refreshToken,
           updatedAt: new Date(),
         },
-      });
-    } else {
-      const newToken = await this.prisma.tokens.create({
-        data: {
+        create: {
           userId: existingUser.id,
           accessToken,
           refreshToken,
         },
       });
 
-      await this.prisma.googleAuth.update({
-        where: { email },
+      await this.prisma.googleAuth.create({
         data: {
           tokenId: newToken.id,
+          email,
+          userId: existingUser.id,
+        },
+      });
+    } else {
+      await this.prisma.tokens.update({
+        where: { userId: existingUser.id },
+        data: {
+          accessToken,
+          refreshToken,
+          updatedAt: new Date(),
         },
       });
     }
