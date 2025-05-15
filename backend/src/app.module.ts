@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AccessGuard } from './common/guards/access/access.guard';
 import { UserModule } from './user/user.module';
 import { RoadModule } from './road/road.module';
+import { PermissionsModule } from './permissions/permissions.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { RoadModule } from './road/road.module';
     AuthModule,
     UserModule,
     RoadModule,
+    PermissionsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AccessGuard }],
 })
