@@ -65,7 +65,7 @@ model User {
   firstName  String?
   lastName   String?
   photo      String?
-  nickName   String?
+  nickName   String?     @unique
   manuelAuth ManuelAuth?
   googleAuth GoogleAuth?
   tokens     Tokens?
