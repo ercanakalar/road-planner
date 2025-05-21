@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '../type/auth.types';
+import { Request } from 'express';
 
 @Injectable()
 export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
@@ -18,14 +19,12 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
     });
   }
 
-  validate(req: any, payload: JwtPayload) {
+  validate(req: Request, payload: JwtPayload) {
     const authHeader = req.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new Error('Authorization header is missing or malformed');
     }
 
-    return {
-      ...payload,
-    };
+    return payload;
   }
 }

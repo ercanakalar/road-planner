@@ -5,10 +5,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { RoadService } from './services/road/road.service';
 import { RoadController } from './road.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { AccessStrategy } from 'src/auth/strategy/access.strategy';
 
 @Module({
   imports: [PrismaModule, ConfigModule.forRoot(), JwtModule.register({})],
   controllers: [RoadController],
-  providers: [RoadService],
+  providers: [RoadService, AccessStrategy],
 })
 export class RoadModule {}

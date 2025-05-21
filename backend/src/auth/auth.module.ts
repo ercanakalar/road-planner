@@ -6,7 +6,6 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailService } from 'src/notification/email/email.service';
 import { RefreshStrategy } from './strategy/refresh.strategy';
-import { AccessStrategy } from './strategy/access.strategy';
 import { GoogleService } from './service/google/google.service';
 import { AuthService } from './service/auth/auth.service';
 
@@ -17,7 +16,6 @@ import { AuthService } from './service/auth/auth.service';
     HelperService,
     EmailService,
     AuthService,
-    AccessStrategy,
     RefreshStrategy,
     GoogleService,
   ],
