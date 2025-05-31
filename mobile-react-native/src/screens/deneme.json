@@ -1,0 +1,145 @@
+[
+  {
+    "distance": { "text": "1 m", "value": 0 },
+    "duration": { "text": "1 min", "value": 0 },
+    "end_address": "Demirlibahçe, Plevne Cd. No:8, 06340 Mamak/Ankara, Türkiye",
+    "end_location": { "lat": 39.9373091, "lng": 32.8775837 },
+    "start_address": "Demirlibahçe, Plevne Cd. No:8, 06340 Mamak/Ankara, Türkiye",
+    "start_location": { "lat": 39.9373091, "lng": 32.8775837 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "1.7 km", "value": 1666 },
+    "duration": { "text": "5 mins", "value": 282 },
+    "end_address": "Fidanlık, Kurtuluş, Celal Bayar Blv., 06420 Çankaya/Ankara, Türkiye",
+    "end_location": { "lat": 39.92832689999999, "lng": 32.8654476 },
+    "start_address": "Demirlibahçe, Plevne Cd. No:8, 06340 Mamak/Ankara, Türkiye",
+    "start_location": { "lat": 39.9373091, "lng": 32.8775837 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "3.1 km", "value": 3149 },
+    "duration": { "text": "5 mins", "value": 304 },
+    "end_address": "Emniyet, Ankara Büyükşehir Belediyesi, Hipodrom Cd. No:06560, 06560 Yenimahalle/Ankara, Türkiye",
+    "end_location": { "lat": 39.9409097, "lng": 32.8377803 },
+    "start_address": "Fidanlık, Kurtuluş, Celal Bayar Blv., 06420 Çankaya/Ankara, Türkiye",
+    "start_location": { "lat": 39.92832689999999, "lng": 32.8654476 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "2.6 km", "value": 2617 },
+    "duration": { "text": "3 mins", "value": 172 },
+    "end_address": "Işınlar, İvedik Cd. 46/5, 06170 Yenimahalle/Ankara, Türkiye",
+    "end_location": { "lat": 39.9582255, "lng": 32.817237 },
+    "start_address": "Emniyet, Ankara Büyükşehir Belediyesi, Hipodrom Cd. No:06560, 06560 Yenimahalle/Ankara, Türkiye",
+    "start_location": { "lat": 39.9409097, "lng": 32.8377803 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "0.7 km", "value": 748 },
+    "duration": { "text": "2 mins", "value": 113 },
+    "end_address": "Gayret, İvedik Cd. No: 50, 06170 Yenimahalle/Ankara, Türkiye",
+    "end_location": { "lat": 39.9620882, "lng": 32.81105060000001 },
+    "start_address": "Işınlar, İvedik Cd. 46/5, 06170 Yenimahalle/Ankara, Türkiye",
+    "start_location": { "lat": 39.9582255, "lng": 32.817237 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "2.0 km", "value": 2048 },
+    "duration": { "text": "4 mins", "value": 225 },
+    "end_address": "25 Mart, Ahmet Ayık Park, Çınardibi Cd. 4 B, 06200 Yenimahalle/Ankara, Türkiye",
+    "end_location": { "lat": 39.9569244, "lng": 32.7950964 },
+    "start_address": "Gayret, İvedik Cd. No: 50, 06170 Yenimahalle/Ankara, Türkiye",
+    "start_location": { "lat": 39.9620882, "lng": 32.81105060000001 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "5.8 km", "value": 5755 },
+    "duration": { "text": "7 mins", "value": 399 },
+    "end_address": "Bahçekapı, Eşref Bitlis Kışlası, Fatih Sultan Mehmet Blv, 06797 Etimesgut/Ankara, Türkiye",
+    "end_location": { "lat": 39.945225, "lng": 32.7375667 },
+    "start_address": "25 Mart, Ahmet Ayık Park, Çınardibi Cd. 4 B, 06200 Yenimahalle/Ankara, Türkiye",
+    "start_location": { "lat": 39.9569244, "lng": 32.7950964 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "8.2 km", "value": 8246 },
+    "duration": { "text": "6 mins", "value": 385 },
+    "end_address": "Yeni Batı, İstanbul Yolu Metro İstasyonu, 06370 Yenimahalle/Ankara, Türkiye",
+    "end_location": { "lat": 39.9795356, "lng": 32.6588401 },
+    "start_address": "Bahçekapı, Eşref Bitlis Kışlası, Fatih Sultan Mehmet Blv, 06797 Etimesgut/Ankara, Türkiye",
+    "start_location": { "lat": 39.945225, "lng": 32.7375667 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  },
+  {
+    "distance": { "text": "14.5 km", "value": 14490 },
+    "duration": { "text": "13 mins", "value": 777 },
+    "end_address": "Saray OSB Mah, Hazerfan Ahmet Çelebi Bulvarı 3H9Q+7W No:23, 06980 Kahramankazan/Ankara, Türkiye",
+    "end_location": { "lat": 40.0689695, "lng": 32.5901234 },
+    "start_address": "Yeni Batı, İstanbul Yolu Metro İstasyonu, 06370 Yenimahalle/Ankara, Türkiye",
+    "start_location": { "lat": 39.9795356, "lng": 32.6588401 },
+    "traffic_speed_entry": [],
+    "via_waypoint": []
+  }
+]
+
+
+
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "resolutions": {
+    "react-native-reanimated": "3.3.0"
+  },
+  "dependencies": {
+    "@babel/plugin-transform-class-properties": "^7.25.7",
+    "@babel/plugin-transform-private-property-in-object": "^7.25.8",
+    "@mapbox/polyline": "^1.2.1",
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
+    "@react-navigation/stack": "^6.4.1",
+    "axios": "^1.7.7",
+    "expo": "~51.0.8",
+    "expo-status-bar": "~1.12.1",
+    "metro-react-native-babel-preset": "^0.77.0",
+    "react": "18.2.0",
+    "react-native": "^0.74.5",
+    "react-native-dotenv": "^3.4.11",
+    "react-native-geolocation-service": "^5.3.1",
+    "react-native-maps": "^1.14.0",
+    "react-native-maps-directions": "^1.9.0",
+    "react-native-permissions": "^5.0.0",
+    "react-native-reanimated": "^3.15.5",
+    "react-native-safe-area-context": "^4.10.5",
+    "react-native-screens": "^3.31.1",
+    "react-native-vector-icons": "^10.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/plugin-transform-private-methods": "^7.25.7",
+    "@types/expo": "^32.0.13",
+    "@types/mapbox__polyline": "^1.0.5",
+    "@types/react": "~18.2.45",
+    "@types/react-native-vector-icons": "^6.4.18",
+    "@types/react-navigation": "^3.0.8",
+    "typescript": "~5.3.3"
+  },
+  "private": true
+}
