@@ -1,14 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import React, { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-
-import { deleteStorage } from '../utils/localStorage';
+import localStorageService from 'services/localStorageService';
 
 const SettingsScreen = () => {
   useFocusEffect(
     useCallback(() => {
-      const run = async () => {
-        await deleteStorage('post');
+      const run = () => {
+        localStorageService.removeItem('post');
       };
       run();
     }, [])

@@ -96,8 +96,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
         if (address.length === 0) {
           address.push('No address found');
         }
-        console.log(address);
-
         const newWaypoint = {
           id: waypoints.length + 1,
           latitude: coordinate.latitude,
@@ -105,8 +103,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
           address: address[0],
           order: waypoints.length + 1
         };
-        console.log(newWaypoint);
-
         dispatch(addWaypoint(newWaypoint));
         const decodedPoints = decodePolyline(overviewPolyline);
         setRouteCoordinates(decodedPoints);

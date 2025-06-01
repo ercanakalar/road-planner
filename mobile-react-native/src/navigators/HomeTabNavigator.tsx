@@ -1,3 +1,4 @@
+import { Text, View } from 'react-native';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -6,11 +7,14 @@ import HomeScreen from 'screens/HomeScreen';
 import MapScreen from 'screens/MapScreen';
 import ChatScreen from 'screens/ChatScreen';
 import MenuScreen from 'screens/MenuScreen';
-import { Text, View } from 'react-native';
+import SignInScreen from 'screens/auth/SignInScreen';
+import { useAppSelector } from 'store/hook';
 
 const Tab = createBottomTabNavigator();
 
 const HomeTabNavigator = () => {
+  const data = useAppSelector((state) => state.auth);
+
   return (
     <Tab.Navigator
       initialRouteName='Home'
@@ -51,7 +55,7 @@ const HomeTabNavigator = () => {
         component={HomeScreen}
         options={{
           headerShown: true,
-          tabBarLabel: 'Ana sayfa',
+          tabBarLabel: 'Home',
           header: () => (
             <View
               style={{
@@ -63,7 +67,7 @@ const HomeTabNavigator = () => {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 20, color: 'white' }}>Ana Sayfa</Text>
+              <Text style={{ fontSize: 20, color: 'white' }}>Home</Text>
             </View>
           ),
         }}
@@ -71,7 +75,7 @@ const HomeTabNavigator = () => {
       <Tab.Screen
         name='Map'
         component={MapScreen}
-        options={{ tabBarLabel: 'Harita' }}
+        options={{ tabBarLabel: 'Map' }}
       />
       <Tab.Screen
         name='Chat'
@@ -89,14 +93,14 @@ const HomeTabNavigator = () => {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 20, color: 'white' }}>Sohbet</Text>
+              <Text style={{ fontSize: 20, color: 'white' }}>Chat</Text>
             </View>
           ),
         }}
       />
       <Tab.Screen
         name='Menu'
-        component={MenuScreen}
+        component={data.accessToken ? MenuScreen : SignInScreen}
         options={{
           headerShown: true,
           header: () => (
@@ -110,7 +114,7 @@ const HomeTabNavigator = () => {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 20, color: 'white' }}>Settings</Text>
+              <Text style={{ fontSize: 20, color: 'white' }}>Menu</Text>
             </View>
           ),
         }}

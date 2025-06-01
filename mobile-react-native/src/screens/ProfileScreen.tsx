@@ -1,36 +1,52 @@
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import React, { useCallback, useEffect } from 'react';
+import { Dimensions, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import React, { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { useGetUserQuery } from 'store/services/profileService';
+import { useAppSelector } from 'store/hook';
+import jwtService from 'services/jwtService';
 
-import GoToButton from '../components/GoToButton';
+const ProfileScreen = () => {
+  const [userId, setUserId] = React.useState<string | null>(null);
+  const data = useAppSelector((state) => state.auth);
 
-const screenHeight = Dimensions.get('screen');
-const ProfileScreen = ({ navigation }: any) => {
-  //   useEffect(() => {
-  //     const unsubscribe = navigation.addListener('focus', () => {
-  //       alert('Screen is focused');
-  //       // The screen is focused
-  //       // Call any action
-  //     });
+  const { data: profile, isLoading, error, refetch } = useGetUserQuery({ userId, token: data.accessToken }) as any;
 
-  //     // Return the function to unsubscribe from the event so it gets removed on unmount
-  //     return unsubscribe;
-  //   }, []);
   useFocusEffect(
     useCallback(() => {
-      console.log('Screen was focused');
-      // Do something when the screen is focused
+      const fetchAndSetUserId = async () => {
+        const decoded: any = await jwtService.decodeToken();
+        setUserId(decoded?.userId || null);
+        refetch();
+      };
+      fetchAndSetUserId();
       return () => {
         console.log('Screen was unfocused');
-        // Do something when the screen is unfocused
-        // Useful for cleanup functions
       };
-    }, [])
+    }, [refetch])
   );
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.textContainer}>Failed to load profile. Please try again.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.textContainer}>ProfileScreen</Text>
-      <GoToButton style={styles.textContainer} screenName='Home' />
+      <Text style={styles.textContainer}>Email: {profile?.email}</Text>
+      <Text style={styles.textContainer}>First Name: {profile?.firstName || 'N/A'}</Text>
+      <Text style={styles.textContainer}>Last Name: {profile?.lastName || 'N/A'}</Text>
     </View>
   );
 };
@@ -40,10 +56,12 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
   },
   textContainer: {
-    marginBottom: 100,
+    marginBottom: 10,
+    fontSize: 16,
   },
 });
