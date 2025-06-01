@@ -8,6 +8,7 @@ import { EmailService } from 'src/notification/email/email.service';
 import { RefreshStrategy } from './strategy/refresh.strategy';
 import { GoogleService } from './service/google/google.service';
 import { AuthService } from './service/auth/auth.service';
+import { AccessStrategy } from './strategy/access.strategy';
 
 @Module({
   imports: [PrismaModule, ConfigModule.forRoot(), JwtModule.register({})],
@@ -16,6 +17,7 @@ import { AuthService } from './service/auth/auth.service';
     HelperService,
     EmailService,
     AuthService,
+    AccessStrategy,
     RefreshStrategy,
     GoogleService,
   ],

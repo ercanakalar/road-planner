@@ -1,4 +1,3 @@
-import { GoogleAuth } from 'google-auth-library';
 import { Request } from 'express';
 
 export type SignUpData = {
@@ -15,6 +14,10 @@ export type SignInData = {
 export type ResetPassword = {
   password: string;
   confirmPassword: string;
+};
+
+export type RefreshData = {
+  refreshToken: string;
 };
 
 export interface RefreshRequest extends Request {

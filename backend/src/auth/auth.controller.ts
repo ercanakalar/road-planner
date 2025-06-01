@@ -8,12 +8,12 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
-  RefreshRequest,
+  RefreshData,
   ResetPassword,
   SignInData,
   SignUpData,
@@ -25,15 +25,12 @@ import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guar
 import { RequirePermission } from 'src/common/decorators/require-permission.decorator';
 import { GoogleService } from './service/google/google.service';
 import { AuthService } from './service/auth/auth.service';
-import { ConfigService } from '@nestjs/config';
-import { Response } from 'express';
 
 @Controller('api/auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private googleService: GoogleService,
-    private configService: ConfigService,
   ) {}
 
   @Public()
@@ -61,8 +58,8 @@ export class AuthController {
   @UseGuards(RefreshGuard)
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Req() req: RefreshRequest) {
-    return this.authService.refreshToken(req.user.refreshToken);
+  async refreshToken(@Body() refreshBody: RefreshData) {
+    return this.authService.refreshToken(refreshBody.refreshToken);
   }
 
   @Public()

@@ -55,6 +55,13 @@ export class AuthService {
     if (!manuelAuth) {
       throw new InternalServerErrorException('Failed to create user');
     }
+
+    const userPermit = await this.prisma.permit.findUnique({
+      where: {
+        name: 'USER',
+      },
+    });
+
     const user = await this.prisma.user.upsert({
       where: {
         email,
@@ -66,6 +73,11 @@ export class AuthService {
             id: manuelAuth.id,
           },
         },
+        permit: {
+          connect: {
+            id: userPermit?.id || '',
+          },
+        },
       },
       create: {
         email,
@@ -74,12 +86,28 @@ export class AuthService {
             id: manuelAuth.id,
           },
         },
+        permit: {
+          connect: {
+            id: userPermit?.id || '',
+          },
+        },
+      },
+      include: {
+        permit: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
 
     const { accessToken, refreshToken } =
       await this.helperService.generateTokens({
-        accessTokenData: { email, userId: user.id },
+        accessTokenData: {
+          email: user.email,
+          userId: user.id,
+          permissions: user.permit?.permissions,
+        },
         refreshTokenData: { email, userId: user.id },
       });
 
@@ -113,6 +141,7 @@ export class AuthService {
     }
 
     return {
+      message: 'You signup in successfully',
       accessToken,
       refreshToken,
     };
@@ -141,6 +170,11 @@ export class AuthService {
           select: {
             password: true,
             tokenId: true,
+          },
+        },
+        permit: {
+          include: {
+            permissions: true,
           },
         },
         email: true,
@@ -176,7 +210,11 @@ export class AuthService {
 
     const { accessToken, refreshToken } =
       await this.helperService.generateTokens({
-        accessTokenData: { email: user.email, userId: user.id },
+        accessTokenData: {
+          email: user.email,
+          userId: user.id,
+          permissions: user.permit?.permissions,
+        },
         refreshTokenData: { email: user.email, userId: user.id },
       });
 
@@ -191,6 +229,7 @@ export class AuthService {
     });
 
     return {
+      message: 'You signed in successfully',
       userId: user.id,
       accessToken,
       refreshToken,
@@ -266,6 +305,11 @@ export class AuthService {
             tokenId: true,
           },
         },
+        permit: {
+          include: {
+            permissions: true,
+          },
+        },
         email: true,
         id: true,
       },
@@ -275,11 +319,11 @@ export class AuthService {
       throw new NotFoundException('Token not found');
     }
 
-    const { accessToken, refreshToken: newRefreshToken } =
-      await this.helperService.generateTokens({
-        accessTokenData: { email: user.email, userId: user.id },
-        refreshTokenData: { email: user.email, userId: user.id },
-      });
+    const accessToken = await this.helperService.createAccessToken({
+      email: user.email,
+      userId: user.id,
+      permissions: user.permit?.permissions,
+    });
 
     await this.prisma.tokens.update({
       where: {
@@ -287,13 +331,13 @@ export class AuthService {
       },
       data: {
         accessToken,
-        refreshToken: newRefreshToken,
+        refreshToken,
       },
     });
 
     return {
       accessToken,
-      refreshToken: newRefreshToken,
+      refreshToken,
     };
   }
 
@@ -343,7 +387,8 @@ export class AuthService {
 
     return {
       message: 'Password reset token created successfully',
-      token: resetToken,
+      resetToken,
+      resetTokenUrl,
     };
   }
 
