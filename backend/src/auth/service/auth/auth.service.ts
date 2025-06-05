@@ -236,16 +236,13 @@ export class AuthService {
     };
   }
 
-  async signOut(refreshToken: string) {
-    const decoded = await this.helperService.verifyRefreshToken(refreshToken);
-
-    if (!decoded) {
-      throw new UnauthorizedException('Invalid refresh token');
+  async signOut(userId: string) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
     }
-
     const user = await this.prisma.user.findUnique({
       where: {
-        email: decoded.email,
+        id: userId,
       },
       select: {
         manuelAuth: {
@@ -263,29 +260,29 @@ export class AuthService {
       },
     });
 
-    if (!user?.manuelAuth?.tokenId) {
-      throw new NotFoundException('Token not found');
+    if (user?.manuelAuth?.tokenId) {
+      await this.prisma.tokens.update({
+        where: {
+          id: user?.manuelAuth?.tokenId || '',
+        },
+        data: {
+          accessToken: undefined,
+          refreshToken: undefined,
+        },
+      });
     }
 
-    await this.prisma.tokens.update({
-      where: {
-        id: user?.manuelAuth?.tokenId || '',
-      },
-      data: {
-        accessToken: undefined,
-        refreshToken: undefined,
-      },
-    });
-
-    await this.prisma.tokens.update({
-      where: {
-        id: user?.googleAuth?.tokenId || '',
-      },
-      data: {
-        accessToken: undefined,
-        refreshToken: undefined,
-      },
-    });
+    if (user?.googleAuth?.tokenId) {
+      await this.prisma.tokens.update({
+        where: {
+          id: user?.googleAuth?.tokenId || '',
+        },
+        data: {
+          accessToken: undefined,
+          refreshToken: undefined,
+        },
+      });
+    }
 
     return {
       message: 'Successfully signed out',

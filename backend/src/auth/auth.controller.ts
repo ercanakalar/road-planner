@@ -8,10 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import {
   RefreshData,
   ResetPassword,
@@ -25,6 +26,7 @@ import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guar
 import { RequirePermission } from 'src/common/decorators/require-permission.decorator';
 import { GoogleService } from './service/google/google.service';
 import { AuthService } from './service/auth/auth.service';
+import { AccessGuard } from 'src/common/guards/access/access.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -48,11 +50,15 @@ export class AuthController {
     return this.authService.signIn(signInData);
   }
 
-  @Public()
+  @UseGuards(AccessGuard)
   @Post('sign-out')
   @HttpCode(HttpStatus.OK)
-  async signOut(@Body('refreshToken') refreshToken: string) {
-    return this.authService.signOut(refreshToken);
+  async signOut(@Req() req: Request) {
+    if (!req.user || typeof (req.user as any).userId === 'undefined') {
+      throw new Error('User not authenticated');
+    }
+    const userId = (req.user as { userId: string }).userId;
+    return this.authService.signOut(userId);
   }
 
   @UseGuards(RefreshGuard)
