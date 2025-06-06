@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUser } from './type/user.type';
+import { ToastType } from 'src/common/type/status.type';
 
 @Injectable()
 export class UserService {
@@ -29,7 +30,12 @@ export class UserService {
         photo: body.photo,
       },
     });
-    return updated;
+    return {
+      status: ToastType.Success,
+      header: 'User Updated',
+      message: 'User updated successfully',
+      data: updated,
+    };
   }
 
   async getUserById(id: string) {
@@ -39,6 +45,11 @@ export class UserService {
       },
     });
 
-    return user;
+    return {
+      status: ToastType.Success,
+      header: 'User Fetched',
+      message: 'User fetched successfully',
+      data: user,
+    };
   }
 }

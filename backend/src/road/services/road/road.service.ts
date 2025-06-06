@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { ToastType } from 'src/common/type/status.type';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRoad, UpdateRoad } from 'src/road/type/road.type';
 
 @Injectable()
 export class RoadService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async createRoad(data: CreateRoad, userId: string) {
     const { title, description, waypoints } = data;
@@ -24,22 +25,22 @@ export class RoadService {
               order,
               ...(addressInfoId
                 ? {
-                  address: {
-                    connect: {
-                      id: addressInfoId,
+                    address: {
+                      connect: {
+                        id: addressInfoId,
+                      },
                     },
-                  },
-                }
+                  }
                 : {
-                  address: {
-                    create: {
-                      country: address?.country || '',
-                      province: address?.province || '',
-                      district: address?.district || '',
-                      address: address?.address || '',
+                    address: {
+                      create: {
+                        country: address?.country || '',
+                        province: address?.province || '',
+                        district: address?.district || '',
+                        address: address?.address || '',
+                      },
                     },
-                  },
-                }),
+                  }),
             };
           }),
         },
@@ -53,10 +54,15 @@ export class RoadService {
       },
       omit: {
         userId: true,
-      }
+      },
     });
 
-    return road;
+    return {
+      status: ToastType.Success,
+      header: 'Road Created',
+      message: 'Road created successfully',
+      data: road,
+    };
   }
 
   async getRoadById(id: string) {
@@ -73,7 +79,12 @@ export class RoadService {
       },
     });
 
-    return road;
+    return {
+      status: ToastType.Success,
+      header: 'Road Found',
+      message: 'Road found successfully',
+      data: road,
+    };
   }
 
   async getOwnRoads(userId: string) {
@@ -90,7 +101,12 @@ export class RoadService {
       },
     });
 
-    return roads;
+    return {
+      status: ToastType.Success,
+      header: 'Own Roads',
+      message: 'Own roads retrieved successfully',
+      data: roads,
+    };
   }
 
   async updateRoadById(id: string, data: UpdateRoad) {
@@ -120,20 +136,20 @@ export class RoadService {
             order,
             ...(addressInfoId
               ? {
-                address: {
-                  connect: { id: addressInfoId },
-                },
-              }
-              : address && {
-                address: {
-                  update: {
-                    country: address.country,
-                    province: address.province,
-                    district: address.district,
-                    address: address.address,
+                  address: {
+                    connect: { id: addressInfoId },
                   },
-                },
-              }),
+                }
+              : address && {
+                  address: {
+                    update: {
+                      country: address.country,
+                      province: address.province,
+                      district: address.district,
+                      address: address.address,
+                    },
+                  },
+                }),
           },
         });
       } else {
@@ -145,30 +161,37 @@ export class RoadService {
             road: { connect: { id } },
             ...(addressInfoId
               ? {
-                address: {
-                  connect: { id: addressInfoId },
-                },
-              }
-              : {
-                address: {
-                  create: {
-                    country: address?.country || '',
-                    province: address?.province || '',
-                    district: address?.district || '',
-                    address: address?.address || '',
+                  address: {
+                    connect: { id: addressInfoId },
                   },
-                },
-              }),
+                }
+              : {
+                  address: {
+                    create: {
+                      country: address?.country || '',
+                      province: address?.province || '',
+                      district: address?.district || '',
+                      address: address?.address || '',
+                    },
+                  },
+                }),
           },
         });
       }
     }
 
-    return this.prisma.road.findUnique({
+    const roads = this.prisma.road.findUnique({
       where: { id },
       include: {
         wayPoints: { include: { address: true } },
       },
     });
+
+    return {
+      status: ToastType.Success,
+      header: 'Road Updated',
+      message: 'Road updated successfully',
+      data: roads,
+    };
   }
 }

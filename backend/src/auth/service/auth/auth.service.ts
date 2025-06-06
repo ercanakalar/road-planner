@@ -1,3 +1,4 @@
+import { ToastType } from './../../../common/type/status.type';
 import {
   BadRequestException,
   Injectable,
@@ -141,6 +142,8 @@ export class AuthService {
     }
 
     return {
+      status: ToastType.Success,
+      header: 'Signup successful',
       message: 'You signup in successfully',
       accessToken,
       refreshToken,
@@ -229,6 +232,8 @@ export class AuthService {
     });
 
     return {
+      status: ToastType.Success,
+      header: 'Login successful',
       message: 'You signed in successfully',
       userId: user.id,
       accessToken,
@@ -285,6 +290,8 @@ export class AuthService {
     }
 
     return {
+      status: ToastType.Success,
+      header: 'Logout successful',
       message: 'Successfully signed out',
     };
   }
@@ -383,6 +390,8 @@ export class AuthService {
     }
 
     return {
+      status: ToastType.Success,
+      header: 'Password Reset Token Created',
       message: 'Password reset token created successfully',
       resetToken,
       resetTokenUrl,
@@ -423,7 +432,11 @@ export class AuthService {
       },
     });
 
-    return { message: 'Password has been reset successfully' };
+    return {
+      status: ToastType.Success,
+      header: 'Password Reset Successful',
+      message: 'Password has been reset successfully',
+    };
   }
 
   async signInWithGoogle(
@@ -473,6 +486,8 @@ export class AuthService {
       });
 
       return {
+        status: ToastType.Success,
+        header: 'Google Sign In Successful',
         message: 'New user created and signed in with Google',
         userId: newUser.id,
       };
@@ -514,6 +529,8 @@ export class AuthService {
     }
 
     return {
+      status: ToastType.Success,
+      header: 'Google Sign In Successful',
       message: 'User signed in with Google',
       userId: existingUser.id,
     };
