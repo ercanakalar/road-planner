@@ -1,5 +1,6 @@
 {
     "conventionalCommits.scopes": [
-        "Mobile-React-Native"
+        "Mobile-React-Native",
+        "Backend-NestJS:"
     ]
 }
