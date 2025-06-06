@@ -4,8 +4,8 @@ type ToastType = 'success' | 'error' | 'info';
 
 interface ShowNotificationOptions {
   type?: ToastType;
-  text1: string;
-  text2?: string;
+  header: string;
+  message?: string;
   visibilityTime?: number;
   position?: 'top' | 'bottom';
   topOffset?: number;
@@ -13,17 +13,17 @@ interface ShowNotificationOptions {
 
 export function showNotification({
   type = 'info',
-  text1,
-  text2,
+  header,
+  message,
   visibilityTime = 3000,
   position = 'top',
   topOffset = 50,
 }: ShowNotificationOptions) {
-  // ToastAndroid.show(text1, ToastAndroid.SHORT);
+  // ToastAndroid.show(header, ToastAndroid.SHORT);
   Toast.show({
     type,
-    text1,
-    text2,
+    text1: header,
+    text2: message,
     visibilityTime,
     position,
     autoHide: true,

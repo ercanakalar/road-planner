@@ -10,7 +10,6 @@ import { setUserId } from 'store/slices/authSlice';
 import jwtService from 'services/jwtService';
 
 import { UserProfile } from 'types/screens/profileScreenType';
-import { showNotification } from 'services/notificationService';
 
 const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const dispatch = useAppDispatch();
@@ -50,13 +49,13 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   );
 
   useEffect(() => {
-    if (data) {
+    if (data?.data) {
       setProfile({
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        email: data.email || '',
-        photo: data.photo || '',
-        nickName: data.nickName || '',
+        firstName: data.data.firstName || '',
+        lastName: data.data.lastName || '',
+        email: data.data.email || '',
+        photo: data.data.photo || '',
+        nickName: data.data.nickName || '',
       });
     }
   }, [data]);
@@ -74,7 +73,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     };
   }, [appState]);
 
-  const onChangeText = (field: keyof UserProfile) => (value: string) => {
+  const onChangeText = (field: string) => (value: string) => {
     setProfile((prev) => ({
       ...prev,
       [field]: value,
@@ -90,23 +89,10 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
           id: userId,
         },
       }).unwrap()
-      showNotification({
-        type: 'success',
-        text1: 'Profile updated successfully',
-        text2: 'Your profile has been updated.',
-        visibilityTime: 3000,
-        position: 'top',
-        topOffset: 50,
-      })
+
       navigation.goBack();
     } catch (error) {
-      showNotification({
-        type: 'error',
-        text1: 'Profile update failed',
-        text2: 'Please try again later.',
-        visibilityTime: 3000,
-        position: 'top',
-      })
+
     }
   };
 

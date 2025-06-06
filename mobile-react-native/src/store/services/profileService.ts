@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
+import { transformApiResponse } from 'store/bases/transformApiResponse';
 
 export const profileService = createApi({
   reducerPath: 'profileService',
@@ -64,7 +65,9 @@ export const profileService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (response: any) => response.data,
+      transformResponse: (res) => {
+        return transformApiResponse(res);
+      },
       transformErrorResponse: (error: any) => error,
     }),
   }),

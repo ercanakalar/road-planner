@@ -3,7 +3,6 @@ import { transformApiResponse } from 'store/bases/transformApiResponse';
 
 import createApi from '../middlewares/createApi';
 
-import localStorageService from 'services/localStorageService';
 import {
   SignInArgs,
   SignUpArgs,
@@ -59,7 +58,9 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: transformApiResponse,
+      transformResponse: (res) => {
+        return transformApiResponse(res);
+      },
     }),
     signIn: builder.mutation<any, SignInArgs>({
       query: (args: SignInArgs) => {
@@ -78,11 +79,8 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (response: any) => {
-        if (!response || !response.accessToken) {
-          throw new Error('Invalid sign-in response');
-        }
-        return response;
+      transformResponse: (res) => {
+        return transformApiResponse(res);
       },
     }),
     logout: builder.mutation<void, { accessToken: string }>({
@@ -100,10 +98,8 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (response: any) => {
-        localStorageService.removeItem('accessToken');
-        localStorageService.removeItem('refreshToken');
-        return response;
+      transformResponse: (res) => {
+        return transformApiResponse(res, 'logout');
       },
     }),
     validateRefreshToken: builder.mutation<any, ValidateRefreshTokenArgs>({
@@ -122,12 +118,6 @@ export const authenticationService = createApi({
       },
       extraOptions: {
         maxRetries: 0,
-      },
-      transformResponse: (response: any) => {
-        if (!response || !response.accessToken) {
-          throw new Error('Invalid sign-in response');
-        }
-        return response;
       },
     }),
   }),

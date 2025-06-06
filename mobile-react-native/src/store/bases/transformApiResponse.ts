@@ -1,19 +1,27 @@
+import localStorageService from 'services/localStorageService';
+import { showNotification } from 'services/notificationService';
+import { TokenType } from 'types/libs/auth';
+
 interface ApiResponse {
   Response: string;
   [key: string]: any;
 }
 
-export const transformApiResponse = <T extends ApiResponse>(data: T): T => {
-  if (
-    !data ||
-    typeof data !== 'object' ||
-    data.Response === 'False' ||
-    data.Error
-  ) {
-    throw new Error('Invalid or undefined data received from API');
+export const transformApiResponse = <T extends ApiResponse>(
+  data: T,
+  query?: string
+): T => {
+  if (query && query === 'logout') {
+    localStorageService.removeItem(TokenType.ACCESS_TOKEN);
+    localStorageService.removeItem(TokenType.REFRESH_TOKEN);
   }
-  if (data.errors) {
-    throw new Error(data.errors);
+
+  if (data?.message) {
+    showNotification({
+      type: data.status,
+      header: `${data.header}`,
+      message: `${data.message}`,
+    });
   }
   return data;
 };
