@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 
@@ -6,6 +6,10 @@ export const profileService = createApi({
   reducerPath: 'profileService',
   baseQuery: baseQuery(),
   tagTypes: ['Profile'],
+  keepUnusedDataFor: 60,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMountOrArgChange: true,
   endpoints: (builder: {
     mutation<TResponse, TRequest>(config: {
       query: (args: TRequest) => {
@@ -45,7 +49,25 @@ export const profileService = createApi({
         maxRetries: 0,
       },
     }),
+    updateUser: builder.mutation<any, any>({
+      query: (args: any) => {
+        return {
+          url: `/user/update`,
+          method: 'POST',
+          body: args.profile,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      extraOptions: {
+        maxRetries: 0,
+      },
+      transformResponse: (response: any) => response.data,
+      transformErrorResponse: (error: any) => error,
+    }),
   }),
 });
 
-export const { useGetUserQuery } = profileService;
+export const { useGetUserQuery, useUpdateUserMutation } = profileService;

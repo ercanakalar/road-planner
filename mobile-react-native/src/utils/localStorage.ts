@@ -1,16 +1,36 @@
 import * as SecureStore from 'expo-secure-store';
 
-const saveStorage = (key: string, value: string) => {
-  SecureStore.setItem(key, value);
+const saveStorage = async (key: string, value: string): Promise<void> => {
+  try {
+    await SecureStore.setItemAsync(key, value);
+  } catch (error) {
+    console.error(`Error saving to storage with key "${key}":`, error);
+  }
 };
 
-const getStorage = (key: string) => {
-  return SecureStore.getItem(key);
+const getStorage = async (key: string): Promise<string | null> => {
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch (error) {
+    console.error(`Error retrieving from storage with key "${key}":`, error);
+    return null;
+  }
 };
 
-const deleteStorage = async (key: string) => {
-  await SecureStore.deleteItemAsync(key);
-  return getStorage(key);
+const deleteStorage = async (key: string): Promise<void> => {
+  try {
+    await SecureStore.deleteItemAsync(key);
+  } catch (error) {
+    console.error(`Error deleting from storage with key "${key}":`, error);
+  }
 };
 
-export { saveStorage, getStorage, deleteStorage };
+const clearAllStorage = async (): Promise<void> => {
+  try {
+    console.warn('clearAllStorage is not fully supported by SecureStore.');
+  } catch (error) {
+    console.error('Error clearing all storage:', error);
+  }
+};
+
+export { saveStorage, getStorage, deleteStorage, clearAllStorage };

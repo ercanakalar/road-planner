@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, ActivityIndicator } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { NavigationProp } from '@react-navigation/native';
 
 import { useSignInMutation } from 'store/services/authenticationService';

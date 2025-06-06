@@ -1,6 +1,5 @@
-import { Text, } from 'react-native';
-import React, { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React from 'react';
+import { Text } from 'react-native';
 
 const HomeScreen = () => {
   return (

@@ -1,32 +1,44 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
-import localStorageService from 'services/localStorageService';
-import { logout } from 'store/slices/authSlice';
 import { useDispatch } from 'react-redux';
+
+import { logout, setUserId } from 'store/slices/authSlice';
 import { useAppSelector } from 'store/hook';
+import { useLogoutMutation } from 'store/services/authenticationService';
+
+import localStorageService from 'services/localStorageService';
 import jwtService from 'services/jwtService';
+
+import { TokenType } from 'types/libs/auth';
 
 const menuItems = [
   { title: 'Profile', screen: 'ProfileScreen' },
-  { title: 'Sign In', screen: 'SignInScreen' },
   { title: 'Settings', screen: 'SettingsScreen' },
 ];
 const MenuScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const dispatch = useDispatch();
-  const data = useAppSelector((state) => state.auth);
+  const { accessToken, userId } = useAppSelector((state) => state.auth);
+  const [logoutTrigger] = useLogoutMutation();
 
   useFocusEffect(
-    React.useCallback(() => {
-      const checkToken = async () => {
-        const isExpired = await jwtService.isTokenExpired();
-        if (isExpired) {
-          dispatch(logout(data));
-        }
+    useCallback(() => {
+      const fetchAndSetUserId = async () => {
+        if (userId) return
+        const decoded: any = await jwtService.decodeToken();
+        dispatch(setUserId(decoded?.userId));
       };
-      checkToken();
-    }, [dispatch, data])
+      fetchAndSetUserId();
+    }, [dispatch, userId, accessToken])
   );
+
+  const logoutUser = async () => {
+    const accessToken = await localStorageService.getItem(TokenType.ACCESS_TOKEN);
+    await logoutTrigger({ accessToken }).unwrap();
+    dispatch(logout({}));
+    navigation.navigate('Menu');
+  }
+
   return (
     <View style={styles.container}>
       {menuItems.map(item => (
@@ -38,11 +50,7 @@ const MenuScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       ))}
       <Button
         title="Logout"
-        onPress={async () => {
-          await localStorageService.removeItem('access_token');
-          await localStorageService.removeItem('refresh_token');
-          dispatch(logout(data));
-        }}
+        onPress={logoutUser}
       />
     </View>
   );

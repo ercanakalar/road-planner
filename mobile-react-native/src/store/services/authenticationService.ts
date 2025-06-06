@@ -1,24 +1,14 @@
 import baseQuery from 'store/bases/baseQuery';
-import createApi from '../middlewares/createApi';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
-import { transformApiErrorResponse } from 'store/bases/transformApiErrorResponse';
+
+import createApi from '../middlewares/createApi';
+
 import localStorageService from 'services/localStorageService';
-
-interface SignUpArgs {
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-interface SignInArgs {
-  email: string;
-  password: string;
-}
-
-interface ValidateRefreshTokenArgs {
-  refreshToken: string;
-  accessToken: string;
-}
+import {
+  SignInArgs,
+  SignUpArgs,
+  ValidateRefreshTokenArgs,
+} from '../../types/store/services/authenticationService-type';
 
 export const authenticationService = createApi({
   reducerPath: 'authenticationService',
@@ -95,6 +85,27 @@ export const authenticationService = createApi({
         return response;
       },
     }),
+    logout: builder.mutation<void, { accessToken: string }>({
+      query: (args: { accessToken: string }) => {
+        return {
+          url: '/auth/sign-out',
+          method: 'POST',
+          body: {},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      extraOptions: {
+        maxRetries: 0,
+      },
+      transformResponse: (response: any) => {
+        localStorageService.removeItem('accessToken');
+        localStorageService.removeItem('refreshToken');
+        return response;
+      },
+    }),
     validateRefreshToken: builder.mutation<any, ValidateRefreshTokenArgs>({
       query: (args: ValidateRefreshTokenArgs) => {
         return {
@@ -105,7 +116,7 @@ export const authenticationService = createApi({
           },
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.refreshToken}`,
+            Authorization: `Bearer ${args.accessToken}`,
           },
         };
       },
@@ -125,7 +136,8 @@ export const authenticationService = createApi({
 export const {
   useSignUpMutation,
   useSignInMutation,
-  useValidateRefreshTokenQuery,
+  useValidateRefreshTokenMutation,
+  useLogoutMutation,
 } = authenticationService;
 
 export default authenticationService;

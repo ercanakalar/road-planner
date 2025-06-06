@@ -1,42 +1,25 @@
 import { createSlice } from '@reduxjs/toolkit';
-import authenticationService from '../services/authenticationService';
-import { IAuthState } from 'types/store/auth-type';
 import { Slice, SliceCaseReducers } from '@reduxjs/toolkit';
-import localStorageService from 'services/localStorageService';
-import { TokenType } from 'types/libs/auth';
 
-const initialState: IAuthState = {
-  isLoading: false,
-  isLoggedIn: false,
-  accessToken: null,
-  refreshToken: null,
-  state: 'initial',
-  user: null,
-  errors: null,
-};
+import authenticationService from '../services/authenticationService';
 
-interface SetAuthAction {
-  payload: {
-    accessToken: string;
-    refreshToken: string;
-    user: any;
-  };
-}
+import {
+  IAuthState,
+  SetAuthAction,
+  authInitialState,
+} from 'types/store/auth-type';
 
 export const authSlice: Slice<
   IAuthState,
   SliceCaseReducers<IAuthState>
 > = createSlice({
   name: 'auth',
-  initialState,
+  initialState: authInitialState,
   reducers: {
     logout: (state: IAuthState) => {
-      localStorageService.removeItem(TokenType.ACCESS_TOKEN);
-      localStorageService.removeItem(TokenType.REFRESH_TOKEN);
       state.isLoggedIn = false;
       state.accessToken = null;
       state.refreshToken = null;
-      state.user = null;
       state.state = 'initial';
       state.errors = null;
     },
@@ -44,21 +27,23 @@ export const authSlice: Slice<
       state.isLoggedIn = false;
       state.accessToken = null;
       state.refreshToken = null;
-      state.user = null;
       state.state = 'initial';
       state.errors = null;
     },
+    setUserId: (state: IAuthState, action: { payload: string | null }) => {
+      state.userId = action.payload;
+    },
   },
   extraReducers: (builder: any) => {
-    const { signIn } = authenticationService.endpoints;
+    const { signIn, validateRefreshToken, logout } =
+      authenticationService.endpoints;
     builder
       .addMatcher(
         signIn.matchFulfilled,
         (state: IAuthState, action: SetAuthAction) => {
-          const { accessToken, refreshToken, user } = action.payload;
+          const { accessToken, refreshToken } = action.payload;
           state.accessToken = accessToken;
           state.refreshToken = refreshToken;
-          state.user = user;
           state.isLoggedIn = true;
           state.errors = null;
           state.state = 'authenticated';
@@ -69,9 +54,45 @@ export const authSlice: Slice<
         state.isLoggedIn = false;
         state.state = 'error';
       });
+    builder
+      .addMatcher(
+        logout.matchFulfilled,
+        (state: IAuthState, action: SetAuthAction) => {
+          state.accessToken = null;
+          state.refreshToken = null;
+          state.isLoggedIn = false;
+          state.errors = null;
+          state.state = 'authenticated';
+        }
+      )
+      .addMatcher(logout.matchRejected, (state: IAuthState, action: any) => {
+        state.errors = action?.error?.data || 'Unknown error';
+        state.isLoggedIn = false;
+        state.state = 'error';
+      });
+    builder
+      .addMatcher(
+        validateRefreshToken.matchFulfilled,
+        (state: IAuthState, action: SetAuthAction) => {
+          const { accessToken, refreshToken } = action.payload;
+          state.accessToken = accessToken;
+          state.refreshToken = refreshToken;
+          state.isLoggedIn = true;
+          state.errors = null;
+          state.state = 'authenticated';
+        }
+      )
+      .addMatcher(
+        validateRefreshToken.matchRejected,
+        (state: IAuthState, action: any) => {
+          state.errors = action?.error?.data || 'Unknown error';
+          state.isLoggedIn = false;
+          state.state = 'error';
+        }
+      );
   },
 });
 
-export const { logout, clearAuth } = authSlice.actions;
+export const { logout, clearAuth, setUserId } = authSlice.actions;
 
 export default authSlice.reducer;

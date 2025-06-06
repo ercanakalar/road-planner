@@ -24,8 +24,12 @@ class JwtService {
     if (!token) return true;
     const decoded = jwtDecode<JwtPayload>(token);
     if (!decoded || !decoded.exp) return true;
-    const now = Date.now() / 1000;
+    const now = Math.floor(Date.now() / 1000);
     return decoded.exp < now;
+  }
+  
+  async getAccessToken(): Promise<string | null> {
+    return await localStorageService.getItem(TokenType.ACCESS_TOKEN);
   }
 }
 

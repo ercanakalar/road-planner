@@ -1,19 +1,39 @@
 import { Text, View } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import HomeScreen from 'screens/HomeScreen';
-import MapScreen from 'screens/MapScreen';
-import ChatScreen from 'screens/ChatScreen';
-import MenuScreen from 'screens/MenuScreen';
-import SignInScreen from 'screens/auth/SignInScreen';
 import { useAppSelector } from 'store/hook';
+import { useValidateRefreshTokenMutation } from 'store/services/authenticationService';
+
+import localStorageService from 'services/localStorageService';
+
+import HomeScreen from 'screens/HomeScreen';
+import SignInScreen from 'screens/auth/SignInScreen';
+import MapScreen from 'screens/map/MapScreen';
+import ChatScreen from 'screens/chat/ChatScreen';
+import MenuScreen from 'screens/menu/MenuScreen';
+import { TokenType } from 'types/libs/auth';
 
 const Tab = createBottomTabNavigator();
 
 const HomeTabNavigator = () => {
-  const data = useAppSelector((state) => state.auth);
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
+  const [validateRefreshToken] = useValidateRefreshTokenMutation();
+
+  useEffect(() => {
+    const checkRefreshToken = async () => {
+      try {
+        const refreshToken = await localStorageService.getItem(TokenType.REFRESH_TOKEN);
+        const accessToken = await localStorageService.getItem(TokenType.ACCESS_TOKEN);
+        await validateRefreshToken({ accessToken, refreshToken }).unwrap();
+      } catch (error) {
+        console.error('Invalid refresh token', error);
+      }
+    };
+
+    checkRefreshToken();
+  }, [validateRefreshToken]);
 
   return (
     <Tab.Navigator
@@ -100,7 +120,7 @@ const HomeTabNavigator = () => {
       />
       <Tab.Screen
         name='Menu'
-        component={data.accessToken ? MenuScreen : SignInScreen}
+        component={isLoggedIn ? MenuScreen : SignInScreen}
         options={{
           headerShown: true,
           header: () => (

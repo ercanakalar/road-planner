@@ -1,11 +1,13 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+
 import HomeTabNavigator from './HomeTabNavigator';
-import AddWaypointScreen from '../screens/AddWaypointScreen';
-import MenuScreen from 'screens/MenuScreen';
-import ProfileScreen from 'screens/ProfileScreen';
+
 import SignUpScreen from 'screens/auth/SignUpScreen';
 import SignInScreen from 'screens/auth/SignInScreen';
+import AddWaypointScreen from 'screens/map/AddWaypointScreen';
+import ProfileScreen from 'screens/menu/profile/ProfileScreen';
+import MenuScreen from 'screens/menu/MenuScreen';
 
 const Stack = createStackNavigator();
 
