@@ -7,10 +7,12 @@ import authMiddleware from './middlewares/auth-middleware';
 import reducer from './reducer';
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
+import mapReducer from './slices/mapSlice';
 import { profileService } from './services/profileService';
 
 const rootReducer = combineReducers({
   ...reducer,
+  map: mapReducer,
   auth: authReducer,
   user: userReducer,
   [authenticationService.reducerPath]: authenticationService.reducer,

@@ -1,9 +1,12 @@
+import Container from 'components/Container';
 import React from 'react';
 import { Text } from 'react-native';
 
 const HomeScreen = () => {
   return (
-    <Text>HomeScreen</Text>
+    <Container>
+      <Text>HomeScreen</Text>
+    </Container>
   );
 };
 

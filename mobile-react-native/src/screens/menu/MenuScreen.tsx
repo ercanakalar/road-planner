@@ -11,6 +11,7 @@ import localStorageService from 'services/localStorageService';
 import jwtService from 'services/jwtService';
 
 import { TokenType } from 'types/libs/auth';
+import Container from 'components/Container';
 
 const menuItems = [
   { title: 'Profile', screen: 'ProfileScreen' },
@@ -40,19 +41,21 @@ const MenuScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   }
 
   return (
-    <View style={styles.container}>
-      {menuItems.map(item => (
+    <Container>
+      <View style={styles.container}>
+        {menuItems.map(item => (
+          <Button
+            key={item.screen}
+            title={item.title}
+            onPress={() => navigation.navigate(item.screen)}
+          />
+        ))}
         <Button
-          key={item.screen}
-          title={item.title}
-          onPress={() => navigation.navigate(item.screen)}
+          title="Logout"
+          onPress={logoutUser}
         />
-      ))}
-      <Button
-        title="Logout"
-        onPress={logoutUser}
-      />
-    </View>
+      </View>
+    </Container>
   );
 };
 

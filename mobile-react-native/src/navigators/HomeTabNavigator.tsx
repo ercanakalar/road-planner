@@ -8,11 +8,12 @@ import { useValidateRefreshTokenMutation } from 'store/services/authenticationSe
 
 import localStorageService from 'services/localStorageService';
 
-import HomeScreen from 'screens/HomeScreen';
-import SignInScreen from 'screens/auth/SignInScreen';
+import HomeScreen from 'screens/home/HomeScreen';
+import SignInScreen from 'screens/menu/auth/SignInScreen';
 import MapScreen from 'screens/map/MapScreen';
 import ChatScreen from 'screens/chat/ChatScreen';
 import MenuScreen from 'screens/menu/MenuScreen';
+
 import { TokenType } from 'types/libs/auth';
 
 const Tab = createBottomTabNavigator();
@@ -73,71 +74,19 @@ const HomeTabNavigator = () => {
       <Tab.Screen
         name='Home'
         component={HomeScreen}
-        options={{
-          headerShown: true,
-          tabBarLabel: 'Home',
-          header: () => (
-            <View
-              style={{
-                backgroundColor: 'gray',
-                padding: 15,
-                paddingTop: 50,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 20, color: 'white' }}>Home</Text>
-            </View>
-          ),
-        }}
       />
       <Tab.Screen
         name='Map'
         component={MapScreen}
-        options={{ tabBarLabel: 'Map' }}
+
       />
       <Tab.Screen
         name='Chat'
         component={ChatScreen}
-        options={{
-          headerShown: true,
-          header: () => (
-            <View
-              style={{
-                backgroundColor: 'gray',
-                padding: 15,
-                paddingTop: 50,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 20, color: 'white' }}>Chat</Text>
-            </View>
-          ),
-        }}
       />
       <Tab.Screen
         name='Menu'
         component={isLoggedIn ? MenuScreen : SignInScreen}
-        options={{
-          headerShown: true,
-          header: () => (
-            <View
-              style={{
-                backgroundColor: 'gray',
-                padding: 15,
-                paddingTop: 50,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 20, color: 'white' }}>Menu</Text>
-            </View>
-          ),
-        }}
       />
     </Tab.Navigator>
   );

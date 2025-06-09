@@ -2,5 +2,7 @@ node_modules/
 .expo/
 dist/
 
+src/constants/appConfig.ts
+
 .env
 .expo

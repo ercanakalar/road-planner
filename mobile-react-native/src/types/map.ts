@@ -28,4 +28,5 @@ export type MapState = {
   user: any;
   error: any;
   errors: any;
+  selectedWaypointId?: number; // Optional, can be used to track the selected waypoint
 };

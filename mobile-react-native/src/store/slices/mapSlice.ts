@@ -66,6 +66,14 @@ const initialState: MapState = {
         'Yeni Batı, İstanbul Yolu Metro İstasyonu, 06370 Yenimahalle/Ankara, Türkiye',
       order: 8,
     },
+    {
+      id: 9,
+      latitude: 40.0689064,
+      longitude: 32.5902646,
+      address:
+        'Saray OSB, Hazerfan Ahmet Çelebi Bulvarı 3H9Q+7W No:23, 06980 Kahramankazan/Ankara, Türkiye End Address',
+      order: 9,
+    },
   ],
   isLoading: false,
   state: 'initial',
@@ -84,10 +92,44 @@ export const mapSlice = createSlice({
     reOrder: (state: MapState, action: PayloadAction<Waypoint[]>) => {
       state.wayPoints = action.payload;
     },
+    updateLocation: (
+      state: MapState,
+      action: PayloadAction<{ id: number; latitude: number; longitude: number }>
+    ) => {
+      console.log('Updating location for waypoint:', action.payload);
+
+      const { id, latitude, longitude } = action.payload;
+      const waypoint = state.wayPoints.find((wp) => wp.id === id);
+      console.log(waypoint, 'waypoint found');
+
+      if (waypoint) {
+        waypoint.latitude = latitude;
+        waypoint.longitude = longitude;
+      }
+    },
+    setSelectedWaypointId: (
+      state: MapState,
+      action: PayloadAction<number | undefined>
+    ) => {
+      state.selectedWaypointId = action.payload;
+    },
+    deleteWaypoint: (state: MapState, action: PayloadAction<Waypoint>) => {
+      const idToDelete = action.payload.id;
+      state.wayPoints = state.wayPoints.filter((wp) => wp.id !== idToDelete);
+      if (state.selectedWaypointId === idToDelete) {
+        state.selectedWaypointId = undefined;
+      }
+    },
   },
   extraReducers: (builder) => {},
 });
 
-export const { addWaypoint, reOrder } = mapSlice.actions;
+export const {
+  addWaypoint,
+  reOrder,
+  updateLocation,
+  setSelectedWaypointId,
+  deleteWaypoint,
+} = mapSlice.actions;
 
 export default mapSlice.reducer;

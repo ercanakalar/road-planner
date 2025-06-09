@@ -3,7 +3,7 @@ import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 
 import DraggableList from 'components/DraggableList';
 
-const AddWaypointScreen = ({ navigation }: { navigation: any }) => {
+const EditWaypointScreen = ({ navigation }: { navigation: any }) => {
   const [latitude, setLatitude] = useState('39.957512');
   const [longitude, setLongitude] = useState('32.789962');
 
@@ -63,4 +63,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default AddWaypointScreen;
+export default EditWaypointScreen;

@@ -2,7 +2,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
   MapScreen: undefined;
-  AddWaypointScreen: undefined;
+  EditWaypointScreen: undefined;
+  ShowRouteByIdScreen: undefined
 };
 
 export type MapScreenNavigationProp = NativeStackNavigationProp<

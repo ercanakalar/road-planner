@@ -1,9 +1,12 @@
 import { Text } from 'react-native';
 import React from 'react';
+import Container from 'components/Container';
 
 const ChatScreen = () => {
   return (
-    <Text>ChatScreen</Text>
+    <Container>
+      <Text>ChatScreen</Text>
+    </Container>
   );
 };
 
