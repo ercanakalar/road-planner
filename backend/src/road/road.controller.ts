@@ -45,4 +45,14 @@ export class RoadController {
   async updateRoadById(@Body() body: UpdateRoad, @Param('id') id: string) {
     return this.roadService.updateRoadById(id, body);
   }
+
+  @UseGuards(RoadOwnerGuard)
+  @Post('/delete/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteRoadById(
+    @Param('id') id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.deleteRoadById(id, userId);
+  }
 }

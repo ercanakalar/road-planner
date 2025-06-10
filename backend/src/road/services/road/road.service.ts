@@ -17,11 +17,12 @@ export class RoadService {
         userId,
         wayPoints: {
           create: waypoints.map((waypoint) => {
-            const { lat, lon, order, address, addressInfoId } = waypoint;
+            const { latitude, longitude, order, address, addressInfoId } =
+              waypoint;
 
             return {
-              lat,
-              lon,
+              latitude,
+              longitude,
               order,
               ...(addressInfoId
                 ? {
@@ -120,8 +121,8 @@ export class RoadService {
     for (const waypoint of waypoints) {
       const {
         id: waypointId,
-        lat,
-        lon,
+        latitude,
+        longitude,
         order,
         address,
         addressInfoId,
@@ -131,8 +132,8 @@ export class RoadService {
         await this.prisma.wayPoints.update({
           where: { id: waypointId },
           data: {
-            lat,
-            lon,
+            latitude,
+            longitude,
             order,
             ...(addressInfoId
               ? {
@@ -155,8 +156,8 @@ export class RoadService {
       } else {
         await this.prisma.wayPoints.create({
           data: {
-            lat,
-            lon,
+            latitude,
+            longitude,
             order,
             road: { connect: { id } },
             ...(addressInfoId
@@ -192,6 +193,21 @@ export class RoadService {
       header: 'Road Updated',
       message: 'Road updated successfully',
       data: roads,
+    };
+  }
+
+  async deleteRoadById(id: string, userId: string) {
+    await this.prisma.road.deleteMany({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    return {
+      status: ToastType.Success,
+      header: 'Road Deleted',
+      message: 'Road deleted successfully',
     };
   }
 }

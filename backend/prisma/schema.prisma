@@ -89,8 +89,8 @@ model Road {
 
 model WayPoints {
   id            String      @id @default(uuid())
-  lat           Float
-  lon           Float
+  latitude      Float
+  longitude     Float
   order         Int
   roadId        String?
   road          Road?       @relation(fields: [roadId], references: [id])
