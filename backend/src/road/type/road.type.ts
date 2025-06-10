@@ -7,8 +7,8 @@ export class CreateAddress {
 
 export class CreateWaypoint {
   id?: string;
-  lat: number;
-  lon: number;
+  latitude: number;
+  longitude: number;
   order: number;
   type: 'start' | 'end' | 'waypoint';
   address?: CreateAddress;

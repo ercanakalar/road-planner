@@ -1,4 +1,4 @@
-import { Waypoint } from './map-screen-type';
+import { WaypointWithAddressAndId } from './map-screen-type';
 
 type RoadLocation = {
   lat: number;
@@ -22,7 +22,7 @@ export type RouteLeg = {
 };
 
 export type RoadState = {
-  wayPoints: Waypoint[];
+  roads: WaypointWithAddressAndId[];
   isLoading: boolean;
   state: string;
   user: any;

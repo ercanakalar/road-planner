@@ -23,7 +23,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ visible, options, onClose }) 
                             style={styles.menuItem}
                             onPress={() => {
                                 option.action();
-                                onClose(); // Close the menu after an action
+                                onClose();
                             }}
                         >
                             <Text style={styles.menuItemText}>{option.label}</Text>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     menu: {
-        width: 200,
+        width: "auto",
         backgroundColor: 'white',
         borderRadius: 10,
         padding: 10,

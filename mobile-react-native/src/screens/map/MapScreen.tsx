@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,38 +7,61 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { MapScreenProps } from 'types/map-screen-type';
 
 import Container from 'components/Container';
-import { useGetOwnRoadsMutation } from 'store/services/roadService';
+import { useDeleteRoadByIdMutation, useGetOwnRoadsQuery } from 'store/services/roadService';
 import { useAppSelector } from 'store/hook';
+import { showNotification } from 'services/notificationService';
 
 const MapScreen = ({ navigation }: MapScreenProps) => {
   const { accessToken } = useAppSelector((state) => state.auth);
-  const [getOwnRoads, { data, isLoading }] = useGetOwnRoadsMutation();
+  const { roads } = useAppSelector((state) => state.road);
+  const { refetch, isLoading } = useGetOwnRoadsQuery({ accessToken }, { skip: !accessToken });
+  const [deleteRoadById, { isLoading: isDeleting }] = useDeleteRoadByIdMutation();
 
-  const routes = data?.data || [];
+  const handleDeleteRoad = async (roadId: string) => {
+    if (!accessToken) return;
+    await deleteRoadById({ accessToken, roadId }).unwrap();
+    await refetch();
+  };
+  if (isLoading) {
+    return (
+      <Container>
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      </Container>
+    );
+  }
 
-  useEffect(() => {
-    getOwnRoads({ accessToken }).unwrap().catch(console.error);
-  }, [accessToken]);
+
+  const routes = React.useMemo(() => roads || [], [roads]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (accessToken) refetch?.();
+    }, [accessToken, refetch])
+  );
 
   return (
     <Container>
       <View style={styles.container}>
         <Text style={styles.heading}>My Routes</Text>
-
-        {isLoading ? (
-          <ActivityIndicator size='large' color='#007AFF' />
-        ) : routes.length === 0 ? (
-          <Text style={styles.emptyText}>
-            You haven't created any routes yet.
-          </Text>
+        {routes.length === 0 ? (
+          <Text style={styles.emptyText}>You haven't created any routes yet.</Text>
         ) : (
           <FlatList
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
             data={routes}
+            onRefresh={refetch}
+            refreshing={isLoading}
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={() => (
+              <Text style={styles.emptyText}>You haven't created any routes yet.</Text>
+            )}
             renderItem={({ item }) => (
               <View style={styles.routeCard}>
                 <Text style={styles.title}>{item.title}</Text>
@@ -47,9 +70,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                   <TouchableOpacity
                     style={styles.button}
                     onPress={() =>
-                      navigation.navigate('ShowRouteByIdScreen', {
-                        routeId: item.id,
-                      })
+                      navigation.navigate('ShowRouteByIdScreen', { routeId: item.id })
                     }
                   >
                     <Text style={styles.buttonText}>View</Text>
@@ -57,12 +78,16 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                   <TouchableOpacity
                     style={[styles.button, styles.editButton]}
                     onPress={() =>
-                      navigation.navigate('EditWaypointScreen', {
-                        routeId: item.id,
-                      })
+                      navigation.navigate('EditWaypointScreen', { routeId: item.id })
                     }
                   >
                     <Text style={styles.buttonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, { backgroundColor: '#FF3B30' }]}
+                    onPress={() => handleDeleteRoad(item.id)}
+                  >
+                    <Text style={styles.buttonText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -73,6 +98,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     </Container>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -127,6 +153,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+    fontSize: 14,
+    marginBottom: 12,
   },
 });
 
