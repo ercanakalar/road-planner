@@ -2,21 +2,25 @@ import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
 import { combineReducers } from '@reduxjs/toolkit';
-import authenticationService from './services/authenticationService';
+
+import { authenticationService } from './services/authenticationService';
+import { profileService } from './services/profileService';
+import { roadService } from './services/roadService';
+
 import authMiddleware from './middlewares/auth-middleware';
-import reducer from './reducer';
+
+
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
-import mapReducer from './slices/mapSlice';
-import { profileService } from './services/profileService';
+import roadReducer from './slices/roadSlice';
 
 const rootReducer = combineReducers({
-  ...reducer,
-  map: mapReducer,
   auth: authReducer,
   user: userReducer,
+  road: roadReducer,
   [authenticationService.reducerPath]: authenticationService.reducer,
   [profileService.reducerPath]: profileService.reducer,
+  [roadService.reducerPath]: roadService.reducer,
 });
 
 export const store = configureStore({
@@ -27,7 +31,8 @@ export const store = configureStore({
     })
       .prepend(authMiddleware.middleware)
       .concat(authenticationService.middleware)
-      .concat(profileService.middleware),
+      .concat(profileService.middleware)
+      .concat(roadService.middleware)
 });
 
 setupListeners(store.dispatch);

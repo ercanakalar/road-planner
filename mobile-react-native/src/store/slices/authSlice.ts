@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { Slice, SliceCaseReducers } from '@reduxjs/toolkit';
 
-import authenticationService from '../services/authenticationService';
+import { authenticationService } from '../services/authenticationService';
 
 import {
   IAuthState,

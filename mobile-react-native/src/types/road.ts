@@ -1,6 +1,6 @@
 import { Waypoint } from './map-screen-type';
 
-type MapLocation = {
+type RoadLocation = {
   lat: number;
   lng: number;
 };
@@ -14,19 +14,19 @@ export type RouteLeg = {
   distance: DistanceOrDuration;
   duration: DistanceOrDuration;
   end_address: string;
-  end_location: MapLocation;
+  end_location: RoadLocation;
   start_address: string;
-  start_location: MapLocation;
+  start_location: RoadLocation;
   traffic_speed_entry: any[];
   via_waypoint: any[];
 };
 
-export type MapState = {
+export type RoadState = {
   wayPoints: Waypoint[];
   isLoading: boolean;
   state: string;
   user: any;
   error: any;
   errors: any;
-  selectedWaypointId?: number; // Optional, can be used to track the selected waypoint
+  selectedWaypointId?: number;
 };

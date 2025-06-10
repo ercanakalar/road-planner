@@ -5,46 +5,58 @@ import MapView, { Polyline, Marker, LongPressEvent } from 'react-native-maps';
 import { Button } from 'react-native-paper';
 
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { addWaypoint, deleteWaypoint, setSelectedWaypointId, updateLocation } from 'store/slices/mapSlice';
+import { addWaypoint, deleteWaypoint, setSelectedWaypointId, updateLocation } from 'store/slices/roadSlice';
 
 import { showNotification } from 'services/notificationService';
 
-import { RouteCoordinate, Waypoint } from 'types/map-screen-type';
-import { RouteLeg } from 'types/map';
+import { RouteCoordinate, ShowRouteByIdScreenType, Waypoint } from 'types/map-screen-type';
+import { RouteLeg } from 'types/road';
 
 import appConfig from 'constants/appConfig';
 import { decodePolyline } from 'utils/decodePolyline';
 
+const routeCache = new Map<string, RouteCoordinate[]>();
+
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey
 
-const ShowRouteByIdScreen = ({ navigation }: { navigation: any }) => {
+const ShowRouteByIdScreen = ({ navigation, route }: ShowRouteByIdScreenType) => {
+    const { routeId } = route.params;
+        
     const dispatch = useAppDispatch();
-    const { wayPoints } = useAppSelector((state) => state.map);
-
+    const { wayPoints } = useAppSelector((state) => state.road);
+    
     const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
     const [clickedLocation, setClickedLocation] = useState<{ latitude: number, longitude: number } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isContextMenuVisible, setIsContextMenuVisible] = useState(false);
     const [marker, setMarker] = useState<Waypoint | undefined>(undefined);
-
+    console.log(wayPoints);
+    
     useEffect(() => {
-        fetchRoute();
+        if (wayPoints.length < 2) return;
+    
+        const timeout = setTimeout(() => {
+            fetchRoute();
+        }, 600); 
+    
+        return () => clearTimeout(timeout);
     }, [wayPoints]);
+    
 
     const fetchRoute = async () => {
         try {
             const waypointsString = wayPoints
-                .map((point) => `${point.latitude},${point.longitude}`)
-                .join('|');
-
-            const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${wayPoints[0].latitude},${wayPoints[0].longitude}&destination=${wayPoints?.at(-1)?.latitude},${wayPoints?.at(-1)?.longitude}&waypoints=${waypointsString}&key=${REACT_APP_MAP_API_KEY}`;
-
+            .slice(1, -1)
+            .map((point) => `${point.latitude},${point.longitude}`)
+            .join('|');
+          
+          const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${wayPoints[0].latitude},${wayPoints[0].longitude}&destination=${wayPoints.at(-1)?.latitude},${wayPoints.at(-1)?.longitude}&waypoints=optimize:true|${waypointsString}&key=${REACT_APP_MAP_API_KEY}`;
+          
             fetch(url)
-                .then((response) => response.json())
-                .then((data) => {
-                    const overviewPolyline = data.routes[0].overview_polyline.points;
-                    const locations = data.routes[0].legs.map((leg: RouteLeg) => leg.end_location);
+                .then(async (data) => {
+                    const res = await data.json()
+                    const overviewPolyline = res.routes[0].overview_polyline.points;
                     const decodedPoints = decodePolyline(overviewPolyline);
                     setRouteCoordinates(decodedPoints);
                 });
@@ -183,9 +195,9 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: any }) => {
                 ]}
                 onClose={() => setIsContextMenuVisible(false)}
             />
-
+{/* 
             <Button
-                onPress={() => navigation.navigate('ShowRouteByIdScreen')}
+                onPress={() => navigation.navigate('ShowRouteByIdScreen', {})}
             >
                 Route
             </Button>
@@ -193,7 +205,7 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: any }) => {
                 onPress={() => navigation.navigate('EditWaypointScreen')}
             >
                 Edit Route
-            </Button>
+            </Button> */}
         </View>
     );
 };

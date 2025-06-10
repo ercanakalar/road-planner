@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import { MapState } from 'types/map';
+import { RoadState } from 'types/road';
 import { Waypoint } from 'types/map-screen-type';
 
-const initialState: MapState = {
+const initialState: RoadState = {
   wayPoints: [
     {
       id: 1,
@@ -82,25 +82,22 @@ const initialState: MapState = {
   errors: null,
 };
 
-export const mapSlice = createSlice({
-  name: 'map',
+export const roadSlice = createSlice({
+  name: 'road',
   initialState,
   reducers: {
-    addWaypoint: (state: MapState, action: PayloadAction<Waypoint>) => {
+    addWaypoint: (state: RoadState, action: PayloadAction<Waypoint>) => {
       state.wayPoints.push(action.payload);
     },
-    reOrder: (state: MapState, action: PayloadAction<Waypoint[]>) => {
+    reOrder: (state: RoadState, action: PayloadAction<Waypoint[]>) => {
       state.wayPoints = action.payload;
     },
     updateLocation: (
-      state: MapState,
+      state: RoadState,
       action: PayloadAction<{ id: number; latitude: number; longitude: number }>
     ) => {
-      console.log('Updating location for waypoint:', action.payload);
-
       const { id, latitude, longitude } = action.payload;
       const waypoint = state.wayPoints.find((wp) => wp.id === id);
-      console.log(waypoint, 'waypoint found');
 
       if (waypoint) {
         waypoint.latitude = latitude;
@@ -108,12 +105,12 @@ export const mapSlice = createSlice({
       }
     },
     setSelectedWaypointId: (
-      state: MapState,
+      state: RoadState,
       action: PayloadAction<number | undefined>
     ) => {
       state.selectedWaypointId = action.payload;
     },
-    deleteWaypoint: (state: MapState, action: PayloadAction<Waypoint>) => {
+    deleteWaypoint: (state: RoadState, action: PayloadAction<Waypoint>) => {
       const idToDelete = action.payload.id;
       state.wayPoints = state.wayPoints.filter((wp) => wp.id !== idToDelete);
       if (state.selectedWaypointId === idToDelete) {
@@ -130,6 +127,6 @@ export const {
   updateLocation,
   setSelectedWaypointId,
   deleteWaypoint,
-} = mapSlice.actions;
+} = roadSlice.actions;
 
-export default mapSlice.reducer;
+export default roadSlice.reducer;

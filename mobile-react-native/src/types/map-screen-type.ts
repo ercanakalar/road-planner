@@ -1,15 +1,23 @@
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
   MapScreen: undefined;
-  EditWaypointScreen: undefined;
-  ShowRouteByIdScreen: undefined
+  HomeTabNavigator: undefined;
+  SignUpScreen: undefined;
+  SignInScreen: undefined;
+  ProfileScreen: undefined;
+  Menu: undefined;
+
+  ShowRouteByIdScreen: { routeId: string };
+  EditWaypointScreen: { routeId: string };
 };
 
 export type MapScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'MapScreen'
 >;
+
+export type ShowRouteByIdScreenType = NativeStackScreenProps<RootStackParamList, 'ShowRouteByIdScreen'>;
 
 export type MapScreenProps = {
   navigation: MapScreenNavigationProp;

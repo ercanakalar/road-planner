@@ -24,6 +24,7 @@ const RootNavigator = () => {
         name='EditWaypointScreen'
         component={EditWaypointScreen}
         options={{ title: 'Edit Waypoint' }}
+        initialParams={{ routeId: '0' }}
       />
       <Stack.Screen
         name='ProfileScreen'
@@ -44,11 +45,9 @@ const RootNavigator = () => {
         name='ShowRouteByIdScreen'
         component={ShowRouteByIdScreen}
         options={{ title: 'Route' }}
+        initialParams={{ routeId: '0' }}
       />
-      <Stack.Screen
-        name="Menu"
-        component={MenuScreen}
-      />
+      <Stack.Screen name='Menu' component={MenuScreen} />
     </Stack.Navigator>
   );
 };

@@ -130,4 +130,3 @@ export const {
   useLogoutMutation,
 } = authenticationService;
 
-export default authenticationService;

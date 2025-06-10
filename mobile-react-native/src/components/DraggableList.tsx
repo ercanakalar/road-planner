@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import DraggableFlatList, {
+  RenderItemParams,
+} from 'react-native-draggable-flatlist';
 
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { reOrder } from 'store/slices/mapSlice';
+import { reOrder } from 'store/slices/roadSlice';
 
-import { MapState } from 'types/map';
+import { RoadState } from 'types/road';
 import { Waypoint } from 'types/map-screen-type';
-
 
 const DraggableList = () => {
   const dispatch = useAppDispatch();
 
-  const waypoints = useAppSelector((state: { map: MapState }) => state.map.wayPoints);
+  const waypoints = useAppSelector(
+    (state: { road: RoadState }) => state.road.wayPoints
+  );
 
   const [data, setData] = useState<Waypoint[]>(waypoints);
 
@@ -36,7 +39,6 @@ const DraggableList = () => {
       order: index + 1,
     }));
     return newOrder;
-
   };
 
   return (
