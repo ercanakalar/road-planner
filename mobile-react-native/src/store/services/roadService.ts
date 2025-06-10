@@ -51,7 +51,25 @@ export const roadService = createApi({
                 maxRetries: 0,
             },
         }),
+        getRoadById: builder.query<any, { accessToken: string, routeId: string }>({
+            query: (args: any) => {
+                return {
+                    url: `/road/${args.routeId}`,
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${args.accessToken}`,
+                    },
+                };
+            },
+            extraOptions: {
+                maxRetries: 0,
+            },
+            transformResponse(response) {
+                return response.data
+            },
+        }),
     }),
 });
 
-export const { useGetOwnRoadsMutation } = roadService;
+export const { useGetOwnRoadsMutation, useGetRoadByIdQuery } = roadService;
