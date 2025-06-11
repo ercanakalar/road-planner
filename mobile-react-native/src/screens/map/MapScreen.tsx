@@ -19,9 +19,9 @@ import { showNotification } from 'services/notificationService';
 const MapScreen = ({ navigation }: MapScreenProps) => {
   const { accessToken } = useAppSelector((state) => state.auth);
   const { roads } = useAppSelector((state) => state.road);
-  const { refetch, isLoading } = useGetOwnRoadsQuery({ accessToken }, { skip: !accessToken });
-  const [deleteRoadById, { isLoading: isDeleting }] = useDeleteRoadByIdMutation();
-
+  const { refetch } = useGetOwnRoadsQuery({ accessToken }, { skip: !accessToken });
+  const [deleteRoadById, { isLoading }] = useDeleteRoadByIdMutation();
+  
   const handleDeleteRoad = async (roadId: string) => {
     if (!accessToken) return;
     await deleteRoadById({ accessToken, roadId }).unwrap();
