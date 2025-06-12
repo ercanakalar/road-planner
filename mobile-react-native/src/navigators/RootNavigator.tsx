@@ -3,12 +3,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import HomeTabNavigator from './HomeTabNavigator';
 
-import SignUpScreen from 'screens/menu/auth/SignUpScreen';
-import SignInScreen from 'screens/menu/auth/SignInScreen';
+import SignUpScreen from 'screens/profile/auth/SignUpScreen';
+import SignInScreen from 'screens/profile/auth/SignInScreen';
 import EditWaypointScreen from 'screens/map/EditWaypointScreen';
-import ProfileScreen from 'screens/menu/profile/ProfileScreen';
-import MenuScreen from 'screens/menu/MenuScreen';
 import ShowRouteByIdScreen from 'screens/map/ShowRouteByIdScreen';
+import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
+import ProfileScreen from 'screens/profile/ProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -27,9 +27,9 @@ const RootNavigator = () => {
         initialParams={{ routeId: '0' }}
       />
       <Stack.Screen
-        name='ProfileScreen'
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
+        name='ProfileDetailScreen'
+        component={ProfileDetailScreen}
+        options={{ title: 'Profile Detail' }}
       />
       <Stack.Screen
         name='SignUpScreen'
@@ -47,7 +47,7 @@ const RootNavigator = () => {
         options={{ title: 'Route' }}
         initialParams={{ routeId: '0' }}
       />
-      <Stack.Screen name='Menu' component={MenuScreen} />
+      <Stack.Screen name='Profile' component={ProfileScreen} />
     </Stack.Navigator>
   );
 };

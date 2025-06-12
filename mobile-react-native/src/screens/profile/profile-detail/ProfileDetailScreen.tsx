@@ -1,22 +1,21 @@
-import { StyleSheet, View, ScrollView, AppState, AppStateStatus, ActivityIndicator } from 'react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { NavigationProp } from '@react-navigation/native';
 import { TextInput, Button, Checkbox, Text } from 'react-native-paper';
 
-import { useGetUserQuery, useUpdateUserMutation } from 'store/services/profileService';
+import { useUpdateUserMutation } from 'store/services/profileService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { setUserId } from 'store/slices/authSlice';
 
-import jwtService from 'services/jwtService';
+import { updateUserProfile } from 'store/slices/userSlice';
+import { useAppStateGoBack } from 'hooks/useAppStateGoBack';
 
-import { UserProfile } from 'types/screens/profileScreenType';
-
-const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+const ProfileDetailScreen = ({ navigation, route }: { navigation: NavigationProp<any>; route: any }) => {
+  const { accessToken, userId } = route.params;
   const dispatch = useAppDispatch();
-  const { accessToken, userId } = useAppSelector((state) => state.auth);
-  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const { data, isLoading } = useAppSelector((state) => state.user);
 
   const [profile, setProfile] = useState({
+    id: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -24,54 +23,24 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     nickName: '',
   });
 
-  const [updateUser] = useUpdateUserMutation();
+  useAppStateGoBack(navigation);
 
-  const { data, isLoading, error, refetch } = useGetUserQuery(
-    { userId, token: accessToken },
-    { skip: !userId }
-  ) as { data?: UserProfile; isLoading: boolean; error: any; refetch: () => void };
+  const [updateUser] = useUpdateUserMutation();
   const [isCorporate, setIsCorporate] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchAndSetUserId = async () => {
-        if (!userId) {
-          const decoded: any = await jwtService.decodeToken();
-          dispatch(setUserId(decoded?.userId));
-        }
-      };
-      refetch();
-      fetchAndSetUserId();
-      return () => {
-        console.log('Screen was unfocused');
-      };
-    }, [userId, accessToken])
-  );
-
   useEffect(() => {
-    if (data?.data) {
+
+    if (data) {
       setProfile({
-        firstName: data.data.firstName || '',
-        lastName: data.data.lastName || '',
-        email: data.data.email || '',
-        photo: data.data.photo || '',
-        nickName: data.data.nickName || '',
+        id: data.id,
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        email: data.email || '',
+        photo: data.photo || '',
+        nickName: data.nickName || '',
       });
     }
   }, [data]);
-
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        refetch();
-      }
-      setAppState(nextAppState);
-    };
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => {
-      subscription.remove();
-    };
-  }, [appState]);
 
   const onChangeText = (field: string) => (value: string) => {
     setProfile((prev) => ({
@@ -82,6 +51,9 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
   const handleUpdateProfile = async () => {
     try {
+      dispatch(updateUserProfile({
+        ...profile
+      }))
       await updateUser({
         accessToken,
         profile: {
@@ -100,14 +72,6 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.textContainer}>Failed to load profile. Please try again.</Text>
       </View>
     );
   }
@@ -139,7 +103,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   );
 };
 
-export default ProfileScreen;
+export default ProfileDetailScreen;
 
 const styles = StyleSheet.create({
   container: {

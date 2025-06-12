@@ -5,6 +5,7 @@ type RootStackParamList = {
   Tab: undefined;
   Modal: undefined;
   Drawer: undefined;
+  ProfileScreen: { accessToken: string; userId: string };
 };
 
 export { RootStackParamList };

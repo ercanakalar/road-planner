@@ -1,6 +1,6 @@
 import { createListenerMiddleware, AnyAction } from '@reduxjs/toolkit';
 import localStorageService from 'services/localStorageService';
-import authenticationService from 'store/services/authenticationService';
+import { authenticationService } from 'store/services/authenticationService';
 import { TokenType } from 'types/libs/auth';
 
 interface ActionPayload {

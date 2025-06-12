@@ -1,5 +1,4 @@
-import { Text, View } from 'react-native';
-import React, { useEffect } from 'react';
+import React, { lazy, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -9,18 +8,23 @@ import { useValidateRefreshTokenMutation } from 'store/services/authenticationSe
 import localStorageService from 'services/localStorageService';
 
 import HomeScreen from 'screens/home/HomeScreen';
-import SignInScreen from 'screens/menu/auth/SignInScreen';
+import SignInScreen from 'screens/profile/auth/SignInScreen';
 import MapScreen from 'screens/map/MapScreen';
 import ChatScreen from 'screens/chat/ChatScreen';
-import MenuScreen from 'screens/menu/MenuScreen';
 
 import { TokenType } from 'types/libs/auth';
+import { useDispatch } from 'react-redux';
+import { setUserId } from 'store/slices/authSlice';
+import jwtService from 'services/jwtService';
+
+const ProfileScreen = lazy(() => import('screens/profile/ProfileScreen'));
 
 const Tab = createBottomTabNavigator();
 
 const HomeTabNavigator = () => {
   const { isLoggedIn } = useAppSelector((state) => state.auth);
   const [validateRefreshToken] = useValidateRefreshTokenMutation();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const checkRefreshToken = async () => {
@@ -36,6 +40,15 @@ const HomeTabNavigator = () => {
     checkRefreshToken();
   }, [validateRefreshToken]);
 
+  useEffect(() => {
+    const fetchAndSetUserId = async () => {
+      const decoded: any = await jwtService.decodeToken();
+      dispatch(setUserId(decoded?.userId));
+    };
+
+    fetchAndSetUserId();
+  }, [dispatch]);
+
   return (
     <Tab.Navigator
       initialRouteName='Home'
@@ -49,7 +62,7 @@ const HomeTabNavigator = () => {
             iconName = 'map-marker';
           } else if (route.name === 'Chat') {
             iconName = 'chat';
-          } else if (route.name === 'Menu') {
+          } else if (route.name === 'Profile') {
             iconName = 'menu';
           }
 
@@ -85,8 +98,8 @@ const HomeTabNavigator = () => {
         component={ChatScreen}
       />
       <Tab.Screen
-        name='Menu'
-        component={isLoggedIn ? MenuScreen : SignInScreen}
+        name='Profile'
+        component={isLoggedIn ? ProfileScreen : SignInScreen}
       />
     </Tab.Navigator>
   );
