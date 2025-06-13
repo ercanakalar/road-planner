@@ -1,14 +1,12 @@
-import React, { lazy, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { useAppSelector } from 'store/hook';
 import { useValidateRefreshTokenMutation } from 'store/services/authenticationService';
 
 import localStorageService from 'services/localStorageService';
 
 import HomeScreen from 'screens/home/HomeScreen';
-import SignInScreen from 'screens/profile/auth/SignInScreen';
 import MapScreen from 'screens/map/MapScreen';
 import ChatScreen from 'screens/chat/ChatScreen';
 
@@ -16,21 +14,23 @@ import { TokenType } from 'types/libs/auth';
 import { useDispatch } from 'react-redux';
 import { setUserId } from 'store/slices/authSlice';
 import jwtService from 'services/jwtService';
-
-const ProfileScreen = lazy(() => import('screens/profile/ProfileScreen'));
+import AuthGate from 'screens/profile/auth/AuthGateScreen';
 
 const Tab = createBottomTabNavigator();
 
 const HomeTabNavigator = () => {
-  const { isLoggedIn } = useAppSelector((state) => state.auth);
   const [validateRefreshToken] = useValidateRefreshTokenMutation();
   const dispatch = useDispatch();
 
   useEffect(() => {
     const checkRefreshToken = async () => {
       try {
-        const refreshToken = await localStorageService.getItem(TokenType.REFRESH_TOKEN);
-        const accessToken = await localStorageService.getItem(TokenType.ACCESS_TOKEN);
+        const refreshToken = await localStorageService.getItem(
+          TokenType.REFRESH_TOKEN
+        );
+        const accessToken = await localStorageService.getItem(
+          TokenType.ACCESS_TOKEN
+        );
         await validateRefreshToken({ accessToken, refreshToken }).unwrap();
       } catch (error) {
         console.error('Invalid refresh token', error);
@@ -84,23 +84,10 @@ const HomeTabNavigator = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen
-        name='Home'
-        component={HomeScreen}
-      />
-      <Tab.Screen
-        name='Map'
-        component={MapScreen}
-
-      />
-      <Tab.Screen
-        name='Chat'
-        component={ChatScreen}
-      />
-      <Tab.Screen
-        name='Profile'
-        component={isLoggedIn ? ProfileScreen : SignInScreen}
-      />
+      <Tab.Screen name='Home' component={HomeScreen} />
+      <Tab.Screen name='Map' component={MapScreen} />
+      <Tab.Screen name='Chat' component={ChatScreen} />
+      <Tab.Screen name='Profile' component={AuthGate} />
     </Tab.Navigator>
   );
 };

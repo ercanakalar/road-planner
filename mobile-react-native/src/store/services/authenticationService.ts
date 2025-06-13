@@ -120,6 +120,25 @@ export const authenticationService = createApi({
         maxRetries: 0,
       },
     }),
+    googleMobileSignIn: builder.mutation<any, { code: string }>({
+      query: (args) => {
+        console.log(args.code);
+        
+        return {
+          url: `/auth/google/callback?code=${args.code}`,
+          method: 'GET',
+          body: {},
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+      },
+      extraOptions: {
+        maxRetries: 0,
+      },
+      transformResponse: (res) => transformApiResponse(res),
+    }),
+
   }),
 });
 
@@ -128,5 +147,6 @@ export const {
   useSignInMutation,
   useValidateRefreshTokenMutation,
   useLogoutMutation,
+  useGoogleMobileSignInMutation
 } = authenticationService;
 
