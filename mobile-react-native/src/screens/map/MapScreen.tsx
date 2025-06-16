@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -9,36 +8,32 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { MapScreenProps } from 'types/map-screen-type';
+import {
+  MapScreenProps,
+  WaypointWithAddressAndId,
+} from 'types/map-screen-type';
 
 import Container from 'components/Container';
-import { useDeleteRoadByIdMutation, useGetOwnRoadsQuery } from 'store/services/roadService';
+import {
+  useDeleteRoadByIdMutation,
+  useGetOwnRoadsQuery,
+} from 'store/services/roadService';
 import { useAppSelector } from 'store/hook';
-import { showNotification } from 'services/notificationService';
 
 const MapScreen = ({ navigation }: MapScreenProps) => {
   const { accessToken } = useAppSelector((state) => state.auth);
-  const { roads } = useAppSelector((state) => state.road);
-  const { refetch } = useGetOwnRoadsQuery({ accessToken }, { skip: !accessToken });
+  const { data: roads, refetch } = useGetOwnRoadsQuery(
+    { accessToken },
+    { skip: !accessToken }
+  ) as { data: WaypointWithAddressAndId[]; refetch: () => void };
   const [deleteRoadById, { isLoading }] = useDeleteRoadByIdMutation();
-  
+  console.log(roads);
+
   const handleDeleteRoad = async (roadId: string) => {
     if (!accessToken) return;
     await deleteRoadById({ accessToken, roadId }).unwrap();
-    await refetch();
+    refetch();
   };
-  if (isLoading) {
-    return (
-      <Container>
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
-      </Container>
-    );
-  }
-
-
-  const routes = React.useMemo(() => roads || [], [roads]);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,17 +45,21 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     <Container>
       <View style={styles.container}>
         <Text style={styles.heading}>My Routes</Text>
-        {routes.length === 0 ? (
-          <Text style={styles.emptyText}>You haven't created any routes yet.</Text>
+        {roads && roads?.length === 0 ? (
+          <Text style={styles.emptyText}>
+            You haven't created any routes yet.
+          </Text>
         ) : (
           <FlatList
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
-            data={routes}
+            data={roads}
             onRefresh={refetch}
             refreshing={isLoading}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={() => (
-              <Text style={styles.emptyText}>You haven't created any routes yet.</Text>
+              <Text style={styles.emptyText}>
+                You haven't created any routes yet.
+              </Text>
             )}
             renderItem={({ item }) => (
               <View style={styles.routeCard}>
@@ -70,7 +69,9 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                   <TouchableOpacity
                     style={styles.button}
                     onPress={() =>
-                      navigation.navigate('ShowRouteByIdScreen', { routeId: item.id })
+                      navigation.navigate('ShowRouteByIdScreen', {
+                        routeId: item.id,
+                      })
                     }
                   >
                     <Text style={styles.buttonText}>View</Text>
@@ -78,7 +79,9 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                   <TouchableOpacity
                     style={[styles.button, styles.editButton]}
                     onPress={() =>
-                      navigation.navigate('EditWaypointScreen', { routeId: item.id })
+                      navigation.navigate('EditWaypointScreen', {
+                        routeId: item.id,
+                      })
                     }
                   >
                     <Text style={styles.buttonText}>Edit</Text>
@@ -98,7 +101,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     </Container>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

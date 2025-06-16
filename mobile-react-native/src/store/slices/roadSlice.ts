@@ -24,7 +24,7 @@ export const roadSlice = createSlice({
     addWaypoint: (state: RoadState, action: PayloadAction<Waypoint>) => {
       // state.wayPoints.push(action.payload);
     },
-    reOrder: (state: RoadState, action: PayloadAction<Waypoint[]>) => {
+    reOrder: (state: RoadState, action: PayloadAction<WaypointWithAddress[]>) => {
       // state.wayPoints = action.payload;
     },
     updateLocation: (
@@ -44,12 +44,12 @@ export const roadSlice = createSlice({
     ) => {
       state.selectedWaypointId = action.payload;
     },
-    deleteWaypoint: (state: RoadState, action: PayloadAction<Waypoint>) => {
-      // const idToDelete = action.payload.id;
-      // state.wayPoints = state.wayPoints.filter((wp) => wp.id !== idToDelete);
-      // if (state.selectedWaypointId === idToDelete) {
-      //   state.selectedWaypointId = undefined;
-      // }
+    deleteRoadById: (state: RoadState, action: PayloadAction<{
+      roadId: string
+    }>) => {
+      const idToDelete = action.payload.roadId;
+      state.roads = state.roads.filter((road) => road.id === idToDelete)
+      return state
     },
     setWaypoints: (state: RoadState, action: PayloadAction<Waypoint[]>) => {
       // state.wayPoints = action.payload;
@@ -58,20 +58,20 @@ export const roadSlice = createSlice({
   extraReducers: (builder) => {
     const { getOwnRoads, getRoadById } = roadService.endpoints;
     builder
-      .addMatcher(getOwnRoads.matchPending, (state) => {
-        state.isLoading = true;
-        state.state = 'loading';
-      })
-      .addMatcher(getOwnRoads.matchFulfilled, (state, action) => {
-        state.roads = action.payload as WaypointWithAddressAndId[];
-        state.isLoading = false;
-        state.state = 'loaded';
-      })
-      .addMatcher(getOwnRoads.matchRejected, (state, action) => {
-        state.isLoading = false;
-        state.state = 'error';
-        state.error = action.error.message || 'Failed to load roads';
-      })
+      // .addMatcher(getOwnRoads.matchPending, (state) => {
+      //   state.isLoading = true;
+      //   state.state = 'loading';
+      // })
+      // .addMatcher(getOwnRoads.matchFulfilled, (state, action) => {
+      //   state.roads = action.payload as WaypointWithAddressAndId[];
+      //   state.isLoading = false;
+      //   state.state = 'loaded';
+      // })
+      // .addMatcher(getOwnRoads.matchRejected, (state, action) => {
+      //   state.isLoading = false;
+      //   state.state = 'error';
+      //   state.error = action.error.message || 'Failed to load roads';
+      // })
       .addMatcher(getRoadById.matchPending, (state) => {
         state.isLoading = true;
         state.state = 'loading';
@@ -94,7 +94,7 @@ export const {
   reOrder,
   updateLocation,
   setSelectedWaypointId,
-  deleteWaypoint,
+  deleteRoadById,
   setWaypoints,
 } = roadSlice.actions;
 

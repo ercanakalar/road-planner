@@ -8,18 +8,22 @@ import { useAppDispatch, useAppSelector } from 'store/hook';
 import { reOrder } from 'store/slices/roadSlice';
 
 import { RoadState } from 'types/road';
-import { Waypoint } from 'types/map-screen-type';
+import { Waypoint, WaypointWithAddress } from 'types/map-screen-type';
 
 const DraggableList = () => {
   const dispatch = useAppDispatch();
 
-  const waypoints = useAppSelector(
-    (state: { road: RoadState }) => state.road.wayPoints
+  const waypoints = useAppSelector((state: { road: RoadState }) =>
+    state.road.roads.flatMap((road) => road.wayPoints)
   );
 
-  const [data, setData] = useState<Waypoint[]>(waypoints);
+  const [data, setData] = useState<WaypointWithAddress[]>(waypoints);
 
-  const renderItem = ({ item, drag, isActive }: RenderItemParams<Waypoint>) => {
+  const renderItem = ({
+    item,
+    drag,
+    isActive,
+  }: RenderItemParams<WaypointWithAddress>) => {
     return (
       <TouchableOpacity
         style={[
@@ -28,12 +32,12 @@ const DraggableList = () => {
         ]}
         onLongPress={drag}
       >
-        <Text style={styles.addressText}>{item.address}</Text>
+        <Text style={styles.addressText}>{item.address.address}</Text>
       </TouchableOpacity>
     );
   };
 
-  const updateOrder = (data: Waypoint[]) => {
+  const updateOrder = (data: WaypointWithAddress[]) => {
     const newOrder = data.map((item, index) => ({
       ...item,
       order: index + 1,

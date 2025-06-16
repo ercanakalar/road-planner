@@ -5,8 +5,8 @@ import HomeTabNavigator from './HomeTabNavigator';
 
 import SignUpScreen from 'screens/profile/auth/SignUpScreen';
 import SignInScreen from 'screens/profile/auth/SignInScreen';
-import EditWaypointScreen from 'screens/map/EditWaypointScreen';
-import ShowRouteByIdScreen from 'screens/map/ShowRouteByIdScreen';
+import EditWaypointScreen from 'screens/map/edit/EditWaypointScreen';
+import ShowRouteByIdScreen from 'screens/map/by-id/ShowRouteByIdScreen';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import ProfileScreen from 'screens/profile/ProfileScreen';
 
