@@ -77,27 +77,29 @@ model User {
 }
 
 model Road {
-  id          String      @id @default(uuid())
-  userId      String?
-  user        User?       @relation(fields: [userId], references: [id])
-  title       String
-  description String
-  wayPoints   WayPoints[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
+  id           String         @id @default(uuid())
+  userId       String?
+  user         User?          @relation(fields: [userId], references: [id])
+  title        String
+  description  String
+  wayPoints    WayPoints[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  FavoriteRoad FavoriteRoad[]
 }
 
 model WayPoints {
-  id            String      @id @default(uuid())
-  latitude      Float
-  longitude     Float
-  order         Int
-  roadId        String?
-  road          Road?       @relation(fields: [roadId], references: [id])
-  addressInfoId String
-  address       AddressInfo @relation(fields: [addressInfoId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @default(now()) @updatedAt
+  id               String             @id @default(uuid())
+  latitude         Float
+  longitude        Float
+  order            Int
+  roadId           String?
+  road             Road?              @relation(fields: [roadId], references: [id])
+  addressInfoId    String
+  address          AddressInfo        @relation(fields: [addressInfoId], references: [id])
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
+  FavoriteWaypoint FavoriteWaypoint[]
 }
 
 model AddressInfo {
@@ -107,4 +109,22 @@ model AddressInfo {
   district  String?
   address   String
   wayPoints WayPoints[]
+}
+
+model FavoriteWaypoint {
+  id          String    @id @default(uuid())
+  userId      String
+  wayPointsId String    @unique
+  waypoint    WayPoints @relation(fields: [wayPointsId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+}
+
+model FavoriteRoad {
+  id        String   @id @default(uuid())
+  userId    String
+  roadId    String   @unique
+  road      Road     @relation(fields: [roadId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -7,6 +7,7 @@ import { AccessGuard } from './common/guards/access/access.guard';
 import { UserModule } from './user/user.module';
 import { RoadModule } from './road/road.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PermissionsModule } from './permissions/permissions.module';
     UserModule,
     RoadModule,
     PermissionsModule,
+    FavoritesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AccessGuard }],
 })
