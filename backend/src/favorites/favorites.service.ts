@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AddFavoriteWaypoint } from './type/favorites.type';
+import { AddFavoriteRoad, AddFavoriteWaypoint } from './type/favorites.type';
 import { ToastType } from 'src/common/type/status.type';
 import { Prisma } from '@prisma/client';
 
@@ -24,7 +24,7 @@ export class FavoritesService {
       return {
         status: ToastType.Success,
         header: 'Favorite Added',
-        message: 'Favorite added successfully',
+        message: 'Favorite waypoint added successfully',
         data: favorite,
       };
     } catch (error) {
@@ -36,6 +36,44 @@ export class FavoritesService {
           status: ToastType.Warning,
           header: 'Already Favorited',
           message: 'This waypoint is already in your favorites',
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  async addFavoriteRoad(body: AddFavoriteRoad, userId: string) {
+    try {
+      const favorite = await this.prisma.favoriteRoad.create({
+        data: {
+          userId,
+          roadId: body.roadId,
+        },
+        include: {
+          road: {
+            include: {
+              wayPoints: true,
+            },
+          },
+        },
+      });
+
+      return {
+        status: ToastType.Success,
+        header: 'Favorite Added',
+        message: 'Favorite road added successfully',
+        data: favorite,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return {
+          status: ToastType.Warning,
+          header: 'Already Favorited',
+          message: 'This road is already in your favorites',
         };
       }
 
