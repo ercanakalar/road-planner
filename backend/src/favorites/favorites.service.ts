@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AddFavoriteRoad, AddFavoriteWaypoint } from './type/favorites.type';
+import {
+  AddFavoriteRoad,
+  AddFavoriteWaypoint,
+  RemoveFavoriteWaypoint,
+} from './type/favorites.type';
 import { ToastType } from 'src/common/type/status.type';
 import { Prisma } from '@prisma/client';
 
@@ -40,6 +44,35 @@ export class FavoritesService {
       }
 
       throw error;
+    }
+  }
+
+  async removeFavoriteWaypoint(body: RemoveFavoriteWaypoint, userId: string) {
+    try {
+      const deleted = await this.prisma.favoriteWaypoint.delete({
+        where: {
+          id: body.favoriteId,
+        },
+      });
+
+      return {
+        status: ToastType.Success,
+        header: 'Removed Favorite',
+        message: 'Favorite waypoint removed successfully',
+        data: deleted,
+      };
+    } catch (error) {
+      console.error('Delete error:', error);
+
+      return {
+        status: ToastType.Error,
+        header: 'Delete Failed',
+        message:
+          error.code === 'P2025'
+            ? 'Favorite waypoint not found or already deleted'
+            : 'An error occurred while deleting',
+        data: null,
+      };
     }
   }
 

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -10,7 +11,11 @@ import {
 
 import { FavoritesService } from './favorites.service';
 import { AccessGuard } from 'src/common/guards/access/access.guard';
-import { AddFavoriteRoad, AddFavoriteWaypoint } from './type/favorites.type';
+import {
+  AddFavoriteRoad,
+  AddFavoriteWaypoint,
+  RemoveFavoriteWaypoint,
+} from './type/favorites.type';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 
 @Controller('api/favorites')
@@ -25,6 +30,16 @@ export class FavoritesController {
     @GetUser('userId') userId: string,
   ) {
     return this.favoritesService.addFavoriteWaypoint(body, userId);
+  }
+
+  @UseGuards(AccessGuard)
+  @Delete('delete-waypoint')
+  @HttpCode(HttpStatus.OK)
+  async removeFavoriteWaypoint(
+    @Body() body: RemoveFavoriteWaypoint,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.favoritesService.removeFavoriteWaypoint(body, userId);
   }
 
   @UseGuards(AccessGuard)
