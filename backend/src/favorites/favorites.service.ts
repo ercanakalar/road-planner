@@ -80,4 +80,39 @@ export class FavoritesService {
       throw error;
     }
   }
+
+  async getAllFavorites(userId: string) {
+    try {
+      const [waypoints, roads] = await Promise.all([
+        this.prisma.favoriteWaypoint.findMany({
+          where: { userId },
+          include: { waypoint: true },
+        }),
+        this.prisma.favoriteRoad.findMany({
+          where: { userId },
+          include: {
+            road: {
+              include: {
+                wayPoints: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      return {
+        status: ToastType.Success,
+        header: 'All Favorites',
+        message: 'Get all favorites data successfully',
+        data: { waypoints, roads },
+      };
+    } catch (error) {
+      console.error('Error getting favorites:', error);
+      return {
+        status: ToastType.Error,
+        header: 'Error',
+        message: 'Failed to retrieve favorite data',
+      };
+    }
+  }
 }

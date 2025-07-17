@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -34,5 +35,12 @@ export class FavoritesController {
     @GetUser('userId') userId: string,
   ) {
     return this.favoritesService.addFavoriteRoad(body, userId);
+  }
+
+  @UseGuards(AccessGuard)
+  @Get('')
+  @HttpCode(HttpStatus.OK)
+  async getAllFavorites(@GetUser('userId') userId: string) {
+    return this.favoritesService.getAllFavorites(userId);
   }
 }
