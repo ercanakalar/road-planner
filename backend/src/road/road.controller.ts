@@ -13,6 +13,7 @@ import { RoadService } from './services/road/road.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { CreateRoad, UpdateRoad } from './type/road.type';
 import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
+import { Public } from 'src/common/decorators';
 
 @Controller('api/road')
 export class RoadController {
@@ -54,5 +55,22 @@ export class RoadController {
     @GetUser('userId') userId: string,
   ) {
     return this.roadService.deleteRoadById(id, userId);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Get('/share/:id')
+  @HttpCode(HttpStatus.OK)
+  async shareRoadByIdWithToken(
+    @Param('id') id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.shareRoadByIdWithToken(id, userId);
+  }
+
+  @Public()
+  @Post('/share/:token')
+  @HttpCode(HttpStatus.OK)
+  async routeToSharedRoad(@Param('token') token: string) {
+    return this.roadService.routeToSharedRoad(token);
   }
 }

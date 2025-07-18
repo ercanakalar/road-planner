@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ToastType } from 'src/common/type/status.type';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRoad, UpdateRoad } from 'src/road/type/road.type';
+import { HelperService } from '../helper/helper.service';
 
 @Injectable()
 export class RoadService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+    private helperService: HelperService,
+  ) {}
 
   async createRoad(data: CreateRoad, userId: string) {
     const { title, description, waypoints } = data;
@@ -209,5 +215,27 @@ export class RoadService {
       header: 'Road Deleted',
       message: 'Road deleted successfully',
     };
+  }
+
+  async shareRoadByIdWithToken(id: string, userId: string) {
+    const token = await this.helperService.generateTokenForShareRoad(id);
+    const url = `${this.config.get<string>('FRONTEND_URL')}/share/${token}`;
+    return url;
+  }
+
+  async routeToSharedRoad(token: string) {
+    const payload = await this.helperService.decodeTokenForShareRoad(token);
+    return await this.prisma.road.findUnique({
+      where: {
+        id: payload.id,
+      },
+      include: {
+        wayPoints: {
+          include: {
+            address: true,
+          },
+        },
+      },
+    });
   }
 }
