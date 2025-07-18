@@ -4,7 +4,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AddFavoriteRoad,
   AddFavoriteWaypoint,
-  RemoveFavoriteWaypoint,
+  RemoveFavorite,
 } from './type/favorites.type';
 import { ToastType } from 'src/common/type/status.type';
 import { Prisma } from '@prisma/client';
@@ -47,7 +47,7 @@ export class FavoritesService {
     }
   }
 
-  async removeFavoriteWaypoint(body: RemoveFavoriteWaypoint, userId: string) {
+  async removeFavoriteWaypoint(body: RemoveFavorite) {
     try {
       const deleted = await this.prisma.favoriteWaypoint.delete({
         where: {
@@ -111,6 +111,35 @@ export class FavoritesService {
       }
 
       throw error;
+    }
+  }
+
+  async removeFavoriteRoad(body: RemoveFavorite) {
+    try {
+      const deleted = await this.prisma.favoriteRoad.delete({
+        where: {
+          id: body.favoriteId,
+        },
+      });
+
+      return {
+        status: ToastType.Success,
+        header: 'Removed Favorite',
+        message: 'Favorite waypoint removed successfully',
+        data: deleted,
+      };
+    } catch (error) {
+      console.error('Delete error:', error);
+
+      return {
+        status: ToastType.Error,
+        header: 'Delete Failed',
+        message:
+          error.code === 'P2025'
+            ? 'Favorite waypoint not found or already deleted'
+            : 'An error occurred while deleting',
+        data: null,
+      };
     }
   }
 
