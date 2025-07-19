@@ -26,3 +26,15 @@ export class UpdateRoad {
   description: string;
   waypoints: CreateWaypoint[];
 }
+
+export class AddWaypointToRoad {
+  latitude: number;
+  longitude: number;
+  order: number;
+  address: {
+    address: string;
+    country: string;
+    district: string;
+    province: string;
+  };
+}

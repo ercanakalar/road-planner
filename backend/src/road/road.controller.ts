@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { RoadService } from './services/road/road.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
-import { CreateRoad, UpdateRoad } from './type/road.type';
+import { AddWaypointToRoad, CreateRoad, UpdateRoad } from './type/road.type';
 import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
 import { Public } from 'src/common/decorators';
 
@@ -72,5 +72,15 @@ export class RoadController {
   @HttpCode(HttpStatus.OK)
   async routeToSharedRoad(@Param('token') token: string) {
     return this.roadService.routeToSharedRoad(token);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Post('/add-waypoint/:id')
+  @HttpCode(HttpStatus.OK)
+  async addWaypointToRoad(
+    @Body() body: AddWaypointToRoad,
+    @Param('id') id: string,
+  ) {
+    return this.roadService.addWaypointToRoad(body, id);
   }
 }

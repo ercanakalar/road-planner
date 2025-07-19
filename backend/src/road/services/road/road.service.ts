@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ToastType } from 'src/common/type/status.type';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateRoad, UpdateRoad } from 'src/road/type/road.type';
+import {
+  AddWaypointToRoad,
+  CreateRoad,
+  UpdateRoad,
+} from 'src/road/type/road.type';
 import { HelperService } from '../helper/helper.service';
 
 @Injectable()
@@ -81,6 +85,9 @@ export class RoadService {
         wayPoints: {
           include: {
             address: true,
+          },
+          orderBy: {
+            order: 'asc',
           },
         },
       },
@@ -237,5 +244,37 @@ export class RoadService {
         },
       },
     });
+  }
+
+  async addWaypointToRoad(body: AddWaypointToRoad, roadId: string) {
+    const data = await this.prisma.$transaction(async (prisma) => {
+      const address = await prisma.addressInfo.create({
+        data: {
+          country: body.address.country,
+          province: body.address.province,
+          district: body.address.district,
+          address: body.address.address,
+        },
+      });
+
+      const waypoint = await prisma.wayPoints.create({
+        data: {
+          latitude: body.latitude,
+          longitude: body.longitude,
+          order: body.order,
+          road: { connect: { id: roadId } },
+          address: { connect: { id: address.id } },
+        },
+      });
+
+      return waypoint;
+    });
+
+    return {
+      status: ToastType.Success,
+      header: 'Add Waypoint',
+      message: 'Waypoint added successfully',
+      data,
+    };
   }
 }
