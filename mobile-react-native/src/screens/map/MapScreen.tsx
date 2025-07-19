@@ -27,7 +27,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     { skip: !accessToken }
   ) as { data: WaypointWithAddressAndId[]; refetch: () => void };
   const [deleteRoadById, { isLoading }] = useDeleteRoadByIdMutation();
-  console.log(roads);
 
   const handleDeleteRoad = async (roadId: string) => {
     if (!accessToken) return;

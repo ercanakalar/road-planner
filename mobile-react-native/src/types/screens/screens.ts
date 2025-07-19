@@ -1,4 +1,6 @@
 type RootStackParamList = {
+  MapScreen: {};
+  ShowRouteByIdScreen: { routeId: string };
   Home: { post?: string };
   CreatePost: undefined;
   Details: { itemId?: number; otherParam?: string };
@@ -6,6 +8,7 @@ type RootStackParamList = {
   Modal: undefined;
   Drawer: undefined;
   ProfileScreen: { accessToken: string; userId: string };
+  EditWaypointScreen: { routeId: string; accessToken?: string };
 };
 
 export { RootStackParamList };

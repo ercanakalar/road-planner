@@ -1,20 +1,9 @@
-import { WayPoints } from './../../../backend/node_modules/.prisma/client/index.d';
 import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-
-export type RootStackParamList = {
-  MapScreen: undefined;
-  HomeTabNavigator: undefined;
-  SignUpScreen: undefined;
-  SignInScreen: undefined;
-  ProfileScreen: undefined;
-  Menu: undefined;
-
-  ShowRouteByIdScreen: { routeId: string };
-  EditWaypointScreen: { routeId: string };
-};
+import { RootStackParamList } from './screens/screens';
+import { RouteProp } from '@react-navigation/native';
 
 export type MapScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -22,6 +11,11 @@ export type MapScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 export type ShowRouteByIdScreenType = NativeStackScreenProps<
+  RootStackParamList,
+  'ShowRouteByIdScreen'
+>;
+
+export type ShowRouteByIdRouteProp = RouteProp<
   RootStackParamList,
   'ShowRouteByIdScreen'
 >;

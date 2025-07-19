@@ -95,6 +95,36 @@ export const roadService = createApi({
       },
       transformErrorResponse: (error: any) => error,
     }),
+    updateRoadById: builder.mutation<
+      any,
+      {
+        accessToken: string;
+        routeId: string;
+        waypoints: any;
+        title: string;
+        description: string;
+      }
+    >({
+      query: (args: any) => {
+        return {
+          url: `/road/update/${args.routeId}`,
+          method: 'PUT',
+          body: {
+            waypoints: args.waypoints,
+            title: args.title,
+            description: args.description,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res) => {
+        return transformApiResponse(res);
+      },
+      transformErrorResponse: (error: any) => error,
+    }),
   }),
 });
 
@@ -102,4 +132,5 @@ export const {
   useGetOwnRoadsQuery,
   useGetRoadByIdQuery,
   useDeleteRoadByIdMutation,
+  useUpdateRoadByIdMutation,
 } = roadService;

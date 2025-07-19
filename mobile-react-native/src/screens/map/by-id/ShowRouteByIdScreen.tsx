@@ -10,12 +10,10 @@ import {
 } from 'react-native';
 import { useGetRoadByIdQuery } from 'store/services/roadService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import MapView, { Polyline, Marker, LongPressEvent } from 'react-native-maps';
 import ContextMenu from 'components/ContextMenu';
 import {
-  addWaypoint,
-  deleteWaypoint,
   setSelectedWaypointId,
   setWaypoints,
   updateLocation,
@@ -23,10 +21,9 @@ import {
 import { decodePolyline } from 'utils/decodePolyline';
 import { showNotification } from 'services/notificationService';
 import appConfig from 'constants/appConfig';
-import { RootStackParamList, RouteCoordinate, Waypoint, WaypointWithAddress } from 'types/map-screen-type';
+import { RouteCoordinate, ShowRouteByIdRouteProp, Waypoint, WaypointWithAddress } from 'types/map-screen-type';
 
-type ShowRouteByIdRouteProp = RouteProp<RootStackParamList, 'ShowRouteByIdScreen'>;
-const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
+const REACT_APP_MAP_API_KEY = appConfig.mapApiKey
 
 const ShowRouteByIdScreen = () => {
   const { accessToken } = useAppSelector((state) => state.auth);
@@ -116,21 +113,27 @@ const ShowRouteByIdScreen = () => {
       .then((res) => res.json())
       .then((json) => {
         const address = json.routes?.[0]?.legs?.[0]?.end_address || 'New Location';
+        const addArr = address.split(",")
         const newWaypoint = {
-          id: orderedWaypoints.length + 1,
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
-          address: address,
+          address: {
+            country: addArr.at(-1),
+            province: addArr.at(-2).split(' ').at(-1).split('/').at(-1),
+            district: addArr.at(-2).split(' ').at(-1).split('/').at(-2),
+            address: address
+          },
           order: orderedWaypoints.length + 1,
         };
-        dispatch(addWaypoint(newWaypoint));
+        console.log(newWaypoint);
+
+        // dispatch(addWaypoint({ routeId, newWaypoint }));
         setIsContextMenuVisible(false);
       });
   }, [clickedLocation, orderedWaypoints.length, dispatch]);
 
   const handleDeleteWaypoint = useCallback(() => {
     if (marker) {
-      dispatch(deleteWaypoint(marker));
       setIsContextMenuVisible(false);
     }
   }, [marker, dispatch]);

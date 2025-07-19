@@ -1,60 +1,75 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import DraggableFlatList, {
   RenderItemParams,
 } from 'react-native-draggable-flatlist';
 
-import { useAppDispatch, useAppSelector } from 'store/hook';
-import { reOrder } from 'store/slices/roadSlice';
+import { useAppSelector } from 'store/hook';
+import { useGetRoadByIdQuery, useUpdateRoadByIdMutation } from 'store/services/roadService';
 
-import { RoadState } from 'types/road';
-import { Waypoint, WaypointWithAddress } from 'types/map-screen-type';
+import { WaypointWithAddress, WaypointWithAddressAndId } from 'types/map-screen-type';
 
-const DraggableList = () => {
-  const dispatch = useAppDispatch();
+const DraggableList = ({ routeId }: { routeId: string }) => {
+  const [updateRoadById] = useUpdateRoadByIdMutation();
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
 
-  const waypoints = useAppSelector((state: { road: RoadState }) =>
-    state.road.roads.flatMap((road) => road.wayPoints)
-  );
+  const { data } = useGetRoadByIdQuery({ accessToken, routeId });
 
-  const [data, setData] = useState<WaypointWithAddress[]>(waypoints);
+  const road = data as WaypointWithAddressAndId;
+
+  const [waypoints, setWaypoints] = useState<WaypointWithAddress[]>(road?.wayPoints || []);
+
+  useEffect(() => {
+    if (road?.wayPoints) {
+      setWaypoints(road.wayPoints);
+    }
+  }, [road?.wayPoints]);
+
+  if (!road) return <View style={styles.container}><Text>Loading...</Text></View>;
+  if (!waypoints || waypoints.length === 0) {
+    return <View style={styles.container}><Text>No waypoints available.</Text></View>;
+  }
 
   const renderItem = ({
     item,
     drag,
     isActive,
-  }: RenderItemParams<WaypointWithAddress>) => {
-    return (
-      <TouchableOpacity
-        style={[
-          styles.item,
-          { backgroundColor: isActive ? 'green' : '#e0e0e0' },
-        ]}
-        onLongPress={drag}
-      >
-        <Text style={styles.addressText}>{item.address.address}</Text>
-      </TouchableOpacity>
-    );
-  };
+  }: RenderItemParams<WaypointWithAddress>) => (
+    <TouchableOpacity
+      style={[
+        styles.item,
+        { backgroundColor: isActive ? 'green' : '#e0e0e0' },
+      ]}
+      onLongPress={drag}
+    >
+      <Text style={styles.addressText}>{item.address.address}</Text>
+    </TouchableOpacity>
+  );
 
-  const updateOrder = (data: WaypointWithAddress[]) => {
-    const newOrder = data.map((item, index) => ({
+  const updateOrder = (newData: WaypointWithAddress[]) => {
+    const newOrder = newData.map((item, index) => ({
       ...item,
       order: index + 1,
     }));
-    return newOrder;
+    setWaypoints(newOrder);
+    updateRoadById({
+      accessToken,
+      routeId,
+      title: road?.title,
+      description: road?.description,
+      waypoints: newOrder,
+    }).unwrap();
   };
 
   return (
     <View style={styles.container}>
       <DraggableFlatList
-        data={data}
+        data={waypoints}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         onDragEnd={({ data }) => {
-          const updatedData = updateOrder(data);
-          setData(updatedData);
-          dispatch(reOrder(updatedData));
+          updateOrder(data);
+          setWaypoints(data);
         }}
       />
     </View>

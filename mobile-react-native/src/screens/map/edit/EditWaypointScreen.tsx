@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 
 import DraggableList from 'components/DraggableList';
+import { RouteProp, useRoute } from '@react-navigation/core';
+import { RootStackParamList } from 'types/screens/screens';
+
+type EditWaypointScreenProp = RouteProp<RootStackParamList, 'EditWaypointScreen'>;
 
 const EditWaypointScreen = ({ navigation }: { navigation: any }) => {
+  const route = useRoute<EditWaypointScreenProp>();
+  const routeId = (route.params && 'routeId' in route.params) ? (route.params as { routeId: string }).routeId : '';
   const [latitude, setLatitude] = useState('39.957512');
   const [longitude, setLongitude] = useState('32.789962');
 
@@ -23,8 +29,7 @@ const EditWaypointScreen = ({ navigation }: { navigation: any }) => {
   };
   return (
     <View style={styles.container}>
-
-      <DraggableList />
+      <DraggableList routeId={routeId} />
       <View style={styles.addWaypointContainer}>
         <TextInput
           style={styles.input}
