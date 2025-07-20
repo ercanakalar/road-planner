@@ -1,9 +1,9 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, GestureResponderEvent } from 'react-native';
 
 interface ContextMenuProps {
     visible: boolean;
-    options: { label: string; action: () => void }[];
+    options: { label: string; action: (event: GestureResponderEvent) => void }[];
     onClose: () => void;
 }
 
@@ -21,8 +21,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ visible, options, onClose }) 
                         <TouchableOpacity
                             key={index}
                             style={styles.menuItem}
-                            onPress={() => {
-                                option.action();
+                            onPress={(e) => {
+                                option.action(e);
                                 onClose();
                             }}
                         >

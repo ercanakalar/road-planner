@@ -1,6 +1,6 @@
 type RootStackParamList = {
   MapScreen: {};
-  ShowRouteByIdScreen: { routeId: string };
+  ShowRouteByIdScreen: { routeId: string; accessToken: string };
   Home: { post?: string };
   CreatePost: undefined;
   Details: { itemId?: number; otherParam?: string };

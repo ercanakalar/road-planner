@@ -25,7 +25,7 @@ export type MapScreenProps = {
 };
 
 export type Waypoint = {
-  id: number;
+  id: string;
   latitude: number;
   longitude: number;
   address: string;

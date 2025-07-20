@@ -38,3 +38,18 @@ export class AddWaypointToRoad {
     province: string;
   };
 }
+export class DeleteWaypointWithRoadId {
+  waypointId: string;
+}
+export type UpdateWaypointWithRoadId = {
+  waypointId: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+  address: {
+    address: string;
+    country: string;
+    district: string;
+    province: string;
+  };
+};

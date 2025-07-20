@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -11,7 +12,13 @@ import {
 } from '@nestjs/common';
 import { RoadService } from './services/road/road.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
-import { AddWaypointToRoad, CreateRoad, UpdateRoad } from './type/road.type';
+import {
+  AddWaypointToRoad,
+  CreateRoad,
+  DeleteWaypointWithRoadId,
+  UpdateRoad,
+  UpdateWaypointWithRoadId,
+} from './type/road.type';
 import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
 import { Public } from 'src/common/decorators';
 
@@ -60,11 +67,8 @@ export class RoadController {
   @UseGuards(RoadOwnerGuard)
   @Get('/share/:id')
   @HttpCode(HttpStatus.OK)
-  async shareRoadByIdWithToken(
-    @Param('id') id: string,
-    @GetUser('userId') userId: string,
-  ) {
-    return this.roadService.shareRoadByIdWithToken(id, userId);
+  async shareRoadByIdWithToken(@Param('id') id: string) {
+    return this.roadService.shareRoadByIdWithToken(id);
   }
 
   @Public()
@@ -82,5 +86,22 @@ export class RoadController {
     @Param('id') id: string,
   ) {
     return this.roadService.addWaypointToRoad(body, id);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Delete('/delete-waypoint/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteWaypointWithRoadId(
+    @Body() body: DeleteWaypointWithRoadId,
+    @Param('id') id: string,
+  ) {
+    return this.roadService.deleteWaypointWithRoadId(body, id);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Put('/update-waypoint/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateWaypointWithRoadId(@Body() body: UpdateWaypointWithRoadId) {
+    return this.roadService.updateWaypointWithRoadId(body);
   }
 }

@@ -79,14 +79,6 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   });
   const goToSettings = () => navigation.navigate('SettingsScreen');
 
-  // if (!data) {
-  //   return (
-  //     <View style={styles.loaderContainer}>
-  //       <Text style={styles.loadingText}>No user data found</Text>
-  //     </View>
-  //   );
-  // }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>

@@ -5,7 +5,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AddWaypointToRoad,
   CreateRoad,
+  DeleteWaypointWithRoadId,
   UpdateRoad,
+  UpdateWaypointWithRoadId,
 } from 'src/road/type/road.type';
 import { HelperService } from '../helper/helper.service';
 
@@ -224,7 +226,7 @@ export class RoadService {
     };
   }
 
-  async shareRoadByIdWithToken(id: string, userId: string) {
+  async shareRoadByIdWithToken(id: string) {
     const token = await this.helperService.generateTokenForShareRoad(id);
     const url = `${this.config.get<string>('FRONTEND_URL')}/share/${token}`;
     return url;
@@ -275,6 +277,57 @@ export class RoadService {
       header: 'Add Waypoint',
       message: 'Waypoint added successfully',
       data,
+    };
+  }
+
+  async deleteWaypointWithRoadId(
+    body: DeleteWaypointWithRoadId,
+    roadId: string,
+  ) {
+    const { waypointId } = body;
+
+    await this.prisma.wayPoints.delete({
+      where: {
+        id: waypointId,
+        roadId,
+      },
+    });
+
+    return {
+      status: ToastType.Success,
+      header: 'Delete Waypoint',
+      message: 'Waypoint deleted successfully',
+    };
+  }
+
+  async updateWaypointWithRoadId(body: UpdateWaypointWithRoadId) {
+    const { waypointId, latitude, longitude, order, address } = body;
+
+    const updatedWaypoint = await this.prisma.$transaction(async (prisma) => {
+      return await prisma.wayPoints.update({
+        where: { id: waypointId },
+        data: {
+          latitude,
+          longitude,
+          order,
+          address: {
+            update: {
+              country: address.country,
+              province: address.province,
+              district: address.district,
+              address: address.address,
+            },
+          },
+        },
+        include: { address: true },
+      });
+    });
+
+    return {
+      status: ToastType.Success,
+      header: 'Update Waypoint',
+      message: 'Waypoint updated successfully',
+      data: updatedWaypoint,
     };
   }
 }

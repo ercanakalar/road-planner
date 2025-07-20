@@ -28,5 +28,5 @@ export type RoadState = {
   user: any;
   error: any;
   errors: any;
-  selectedWaypointId?: number;
+  selectedWaypointId?: string;
 };

@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
+import { WaypointWithAddressAndId } from 'types/map-screen-type';
 
 export const roadService = createApi({
   reducerPath: 'roadService',
@@ -57,7 +58,10 @@ export const roadService = createApi({
       transformErrorResponse: (error: any) => error,
     }),
 
-    getRoadById: builder.query<any, { accessToken: string; routeId: string }>({
+    getRoadById: builder.query<
+      WaypointWithAddressAndId,
+      { accessToken: string; routeId: string }
+    >({
       query: (args: any) => {
         return {
           url: `/road/${args.routeId}`,
@@ -114,6 +118,9 @@ export const roadService = createApi({
             title: args.title,
             description: args.description,
           },
+          param: {
+            id: args.routeId,
+          },
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
@@ -125,6 +132,128 @@ export const roadService = createApi({
       },
       transformErrorResponse: (error: any) => error,
     }),
+
+    addWaypoint: builder.mutation<
+      any,
+      {
+        accessToken: string;
+        routeId: string;
+        waypoint: {
+          latitude: number;
+          longitude: number;
+          address: {
+            country: any;
+            province: any;
+            district: any;
+            address: any;
+          };
+          order: number;
+        };
+      }
+    >({
+      query: (args: any) => {
+        return {
+          url: `/road/add-waypoint/${args.routeId}`,
+          method: 'POST',
+          body: {
+            longitude: args.waypoint.longitude,
+            latitude: args.waypoint.latitude,
+            order: args.waypoint.order,
+            address: {
+              country: args.waypoint.address.country,
+              province: args.waypoint.address.province,
+              district: args.waypoint.address.district,
+              address: args.waypoint.address.address,
+            },
+          },
+          param: {
+            id: args.routeId,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res) => {
+        return transformApiResponse(res.data);
+      },
+      transformErrorResponse: (error: any) => error,
+    }),
+    deleteWaypointByRoadId: builder.mutation<
+      any,
+      { accessToken: string; routeId: string; waypointId: string }
+    >({
+      query: (args: any) => {
+        return {
+          url: `/road/delete-waypoint/${args.routeId}`,
+          method: 'DELETE',
+          body: {
+            waypointId: args.waypointId,
+          },
+          param: {
+            id: args.routeId,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res) => {
+        return transformApiResponse(res.data);
+      },
+      transformErrorResponse: (error: any) => error,
+    }),
+    updateWaypointByRoadId: builder.mutation<
+      any,
+      {
+        accessToken: string;
+        routeId: string;
+        waypointId: string;
+        waypoint: {
+          latitude: number;
+          longitude: number;
+          address: {
+            country: any;
+            province: any;
+            district: any;
+            address: any;
+          };
+          order: number;
+        };
+      }
+    >({
+      query: (args: any) => {
+        return {
+          url: `/road/update-waypoint/${args.routeId}`,
+          method: 'PUT',
+          body: {
+            waypointId: args.waypointId,
+            longitude: args.waypoint.longitude,
+            latitude: args.waypoint.latitude,
+            order: args.waypoint.order,
+            address: {
+              country: args.waypoint.address.country,
+              province: args.waypoint.address.province,
+              district: args.waypoint.address.district,
+              address: args.waypoint.address.address,
+            },
+          },
+          param: {
+            id: args.routeId,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res) => {
+        return transformApiResponse(res.data);
+      },
+      transformErrorResponse: (error: any) => error,
+    }),
   }),
 });
 
@@ -133,4 +262,7 @@ export const {
   useGetRoadByIdQuery,
   useDeleteRoadByIdMutation,
   useUpdateRoadByIdMutation,
+  useAddWaypointMutation,
+  useDeleteWaypointByRoadIdMutation,
+  useUpdateWaypointByRoadIdMutation,
 } = roadService;

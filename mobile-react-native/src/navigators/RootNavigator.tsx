@@ -45,7 +45,7 @@ const RootNavigator = () => {
         name='ShowRouteByIdScreen'
         component={ShowRouteByIdScreen}
         options={{ title: 'Route' }}
-        initialParams={{ routeId: '0' }}
+        initialParams={{ routeId: '0', accessToken: '' }}
       />
       <Stack.Screen name='Profile' component={ProfileScreen} />
     </Stack.Navigator>

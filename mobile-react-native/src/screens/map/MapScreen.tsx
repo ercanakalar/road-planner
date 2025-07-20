@@ -70,6 +70,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                     onPress={() =>
                       navigation.navigate('ShowRouteByIdScreen', {
                         routeId: item.id,
+                        accessToken: accessToken ?? ''
                       })
                     }
                   >

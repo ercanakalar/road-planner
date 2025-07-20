@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Text,
   View,
@@ -7,67 +7,73 @@ import {
   ScrollView,
   Dimensions,
   SafeAreaView,
+  GestureResponderEvent,
 } from 'react-native';
-import { useGetRoadByIdQuery } from 'store/services/roadService';
-import { useAppDispatch, useAppSelector } from 'store/hook';
-import { useRoute } from '@react-navigation/native';
-import MapView, { Polyline, Marker, LongPressEvent } from 'react-native-maps';
-import ContextMenu from 'components/ContextMenu';
 import {
-  setSelectedWaypointId,
-  setWaypoints,
-  updateLocation,
-} from 'store/slices/roadSlice';
+  useAddWaypointMutation,
+  useDeleteWaypointByRoadIdMutation,
+  useGetRoadByIdQuery,
+  useUpdateWaypointByRoadIdMutation,
+} from 'store/services/roadService';
+import { useRoute } from '@react-navigation/native';
+import MapView, { Polyline, Marker } from 'react-native-maps';
+import ContextMenu from 'components/ContextMenu';
+
 import { decodePolyline } from 'utils/decodePolyline';
 import { showNotification } from 'services/notificationService';
 import appConfig from 'constants/appConfig';
-import { RouteCoordinate, ShowRouteByIdRouteProp, Waypoint, WaypointWithAddress } from 'types/map-screen-type';
+import {
+  RouteCoordinate,
+  ShowRouteByIdRouteProp,
+  WaypointWithAddress,
+  WaypointWithAddressAndId,
+} from 'types/map-screen-type';
 
-const REACT_APP_MAP_API_KEY = appConfig.mapApiKey
+const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
 const ShowRouteByIdScreen = () => {
-  const { accessToken } = useAppSelector((state) => state.auth);
-  const { roads } = useAppSelector((state) => state.road);
   const route = useRoute<ShowRouteByIdRouteProp>();
-  const { routeId } = route.params;
-  const dispatch = useAppDispatch();
+  const { routeId, accessToken } = route.params;
 
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
   const [clickedLocation, setClickedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | undefined>(undefined);
   const [isContextMenuVisible, setIsContextMenuVisible] = useState(false);
-  const [marker, setMarker] = useState<Waypoint | undefined>(undefined);
+  const [marker, setMarker] = useState<WaypointWithAddress | undefined>(undefined);
 
-  const { data, isLoading, isError }: any = useGetRoadByIdQuery({ accessToken, routeId });
+  const { data, isLoading, refetch } = useGetRoadByIdQuery({ accessToken, routeId }) as {
+    data?: WaypointWithAddressAndId;
+    isLoading: boolean;
+    refetch: () => void;
+  };
 
-  const orderedWaypoints = useMemo(
-    () => [...(data?.wayPoints || [])].sort((a, b) => a.order - b.order),
-    [data?.wayPoints]
-  );
+  const [addWaypoint] = useAddWaypointMutation();
+  const [deleteWaypointByRoadId] = useDeleteWaypointByRoadIdMutation();
+  const [updateWaypoint] = useUpdateWaypointByRoadIdMutation();
 
-  useEffect(() => {
-    if (
-      orderedWaypoints?.length !== roads?.length ||
-      !orderedWaypoints.every((wp, i) => wp.id === roads[i]?.id)
-    ) {
-      dispatch(setWaypoints(orderedWaypoints));
+  const lastRouteHashRef = useRef<string | null>(null);
+  const routeCacheRef = useRef<Map<string, RouteCoordinate[]>>(new Map());
+
+  const getWaypointHash = (wps: WaypointWithAddress[]) =>
+    wps.map(wp => `${wp.latitude},${wp.longitude}`).join('|');
+
+  const fetchRoute = async (waypoints: WaypointWithAddress[]) => {
+    const hash = getWaypointHash(waypoints);
+
+    if (lastRouteHashRef.current === hash) return;
+    if (routeCacheRef.current.has(hash)) {
+      setRouteCoordinates(routeCacheRef.current.get(hash)!);
+      lastRouteHashRef.current = hash;
+      return;
     }
-  }, [orderedWaypoints, roads, dispatch]);
 
-  useEffect(() => {
-    if (orderedWaypoints.length >= 2) {
-      const timeout = setTimeout(() => fetchRoute(), 500);
-      return () => clearTimeout(timeout);
-    }
-  }, [orderedWaypoints]);
-
-  const fetchRoute = useCallback(async () => {
     try {
-      const wpString = orderedWaypoints.slice(1, -1)
+      const wpString = waypoints.slice(1, -1)
         .map((p) => `${p.latitude},${p.longitude}`)
         .join('|');
-      const origin = `${orderedWaypoints[0].latitude},${orderedWaypoints[0].longitude}`;
-      const destination = `${orderedWaypoints.at(-1)?.latitude},${orderedWaypoints.at(-1)?.longitude}`;
+      const origin = `${waypoints[0].latitude},${waypoints[0].longitude}`;
+      const destination = `${waypoints.at(-1)?.latitude},${waypoints.at(-1)?.longitude}`;
 
       const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&waypoints=optimize:true|${wpString}&key=${REACT_APP_MAP_API_KEY}`;
 
@@ -75,6 +81,9 @@ const ShowRouteByIdScreen = () => {
       const points = res.routes[0]?.overview_polyline?.points;
       if (!points) throw new Error();
       const decoded = decodePolyline(points);
+
+      routeCacheRef.current.set(hash, decoded);
+      lastRouteHashRef.current = hash;
       setRouteCoordinates(decoded);
     } catch {
       showNotification({
@@ -83,28 +92,40 @@ const ShowRouteByIdScreen = () => {
         message: 'Failed to fetch directions.',
       });
     }
-  }, [orderedWaypoints]);
+  };
 
-  const handleMapPress = useCallback((event: LongPressEvent) => {
+  useEffect(() => {
+    if (data?.wayPoints && data.wayPoints.length >= 2) {
+      fetchRoute(data.wayPoints);
+    }
+  }, [data?.wayPoints]);
+
+  if (isLoading || !data || !data.wayPoints || data.wayPoints.length === 0) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text>Loading route...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const handleMapPress = (event: any) => {
+    if (marker && isDragging) {
+      return;
+    }
     const { coordinate } = event.nativeEvent;
-    const pressed = orderedWaypoints.find(
+    const pressed = data.wayPoints.find(
       (wp) =>
         Math.abs(wp.latitude - coordinate.latitude) < 0.0001 &&
         Math.abs(wp.longitude - coordinate.longitude) < 0.0001
     );
 
-    if (pressed) {
-      setMarker(pressed);
-      dispatch(setSelectedWaypointId(pressed.id));
-    } else {
-      setClickedLocation(coordinate);
-      setMarker(undefined);
-    }
-
+    setMarker(pressed || undefined);
+    setClickedLocation(pressed ? null : coordinate);
     setIsContextMenuVisible(true);
-  }, [orderedWaypoints, dispatch]);
+  };
 
-  const handleAddWaypoint = useCallback(() => {
+  const handleAddWaypoint = () => {
     if (!clickedLocation) return;
 
     const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${clickedLocation.latitude},${clickedLocation.longitude}&destination=${clickedLocation.latitude},${clickedLocation.longitude}&waypoints=${clickedLocation.latitude},${clickedLocation.longitude}&key=${REACT_APP_MAP_API_KEY}`;
@@ -113,7 +134,7 @@ const ShowRouteByIdScreen = () => {
       .then((res) => res.json())
       .then((json) => {
         const address = json.routes?.[0]?.legs?.[0]?.end_address || 'New Location';
-        const addArr = address.split(",")
+        const addArr = address.split(',');
         const newWaypoint = {
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
@@ -121,51 +142,105 @@ const ShowRouteByIdScreen = () => {
             country: addArr.at(-1),
             province: addArr.at(-2).split(' ').at(-1).split('/').at(-1),
             district: addArr.at(-2).split(' ').at(-1).split('/').at(-2),
-            address: address
+            address: address,
           },
-          order: orderedWaypoints.length + 1,
+          order: data.wayPoints.length + 1,
         };
-        console.log(newWaypoint);
-
-        // dispatch(addWaypoint({ routeId, newWaypoint }));
+        addWaypoint({ accessToken, routeId, waypoint: newWaypoint })
+          .unwrap()
+          .then(() => refetch());
         setIsContextMenuVisible(false);
       });
-  }, [clickedLocation, orderedWaypoints.length, dispatch]);
+  };
 
-  const handleDeleteWaypoint = useCallback(() => {
+  const handleDeleteWaypoint = () => {
+    if (!marker) return;
+
+    setIsContextMenuVisible(false);
+    deleteWaypointByRoadId({
+      accessToken,
+      routeId,
+      waypointId: marker.id,
+    })
+      .unwrap()
+      .then(() => refetch());
+  };
+
+  const handleNavigateToWaypoint = () => {
     if (marker) {
+      setSelectedMarkerId(marker.id);
+      setIsDragging(true);
       setIsContextMenuVisible(false);
     }
-  }, [marker, dispatch]);
+  };
 
-  const handleNavigateToWaypoint = useCallback(() => {
-    setIsDragging(true);
-  }, []);
+  // const handleMarkerDragEnd = (event: any, waypointId: string) => {
+  //   const { latitude, longitude } = event.nativeEvent.coordinate;
 
-  const handleMarkerDragEnd = useCallback((event: any) => {
-    if (marker && !isContextMenuVisible) {
-      const { coordinate } = event.nativeEvent;
-      dispatch(updateLocation({ id: marker.id, latitude: coordinate.latitude, longitude: coordinate.longitude }));
-      setIsDragging(false);
-    }
-  }, [marker, isContextMenuVisible, dispatch]);
+  //   if (!selectedMarkerId || selectedMarkerId !== waypointId) return;
 
-  const WaypointCard = React.memo(({ wp, index }: { wp: WaypointWithAddress; index: number }) => (
-    <View key={wp.id} style={styles.card}>
-      <Text style={styles.cardTitle}>
-        {index + 1}. {wp.address?.address}
-      </Text>
-      <Text style={styles.cardText}>
-        {wp.address?.district}, {wp.address?.province}
-      </Text>
-      <Text style={styles.cardText}>
-        📍 {wp.latitude.toFixed(4)}, {wp.longitude.toFixed(4)}
-      </Text>
-    </View>
-  ));
+  //   console.log('Updated location:', latitude, longitude);
 
-  if (isLoading) return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
-  if (isError || !data) return <Text style={styles.error}>Failed to load route data.</Text>;
+  //   setIsDragging(false);
+  //   setSelectedMarkerId(undefined);
+  //   setMarker(undefined);
+  // };
+  const handleMarkerDragEnd = (event: any, waypointId: string) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+
+    if (!selectedMarkerId || selectedMarkerId !== waypointId) return;
+
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=${latitude},${longitude}&waypoints=${latitude},${longitude}&key=${REACT_APP_MAP_API_KEY}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((json) => {
+        const address = json.routes?.[0]?.legs?.[0]?.end_address || 'New Location';
+        const addArr = address.split(',');
+
+        const updatedWaypoint = {
+          latitude,
+          longitude,
+          address: {
+            country: addArr.at(-1)?.trim(),
+            province: addArr.at(-2)?.split(' ').at(-1)?.split('/')?.at(-1)?.trim(),
+            district: addArr.at(-2)?.split(' ').at(-1)?.split('/')?.at(-2)?.trim(),
+            address,
+          },
+          order: marker?.order || 0,
+        };
+
+        updateWaypoint({
+          accessToken,
+          routeId,
+          waypointId,
+          waypoint: updatedWaypoint,
+        })
+          .unwrap()
+          .then(() => {
+            setIsDragging(false);
+            setSelectedMarkerId(undefined);
+            setMarker(undefined);
+            refetch();
+          });
+      })
+      .catch(() => {
+        showNotification({
+          type: 'error',
+          header: 'Error',
+          message: 'Failed to update waypoint location.',
+        });
+      });
+  };
+
+
+
+  const contextMenuOptions = [
+    ...(marker?.id
+      ? [{ label: '🗑 Delete Waypoint', action: handleDeleteWaypoint }]
+      : [{ label: '➕ Add Waypoint', action: handleAddWaypoint }]),
+    { label: '🧭 Navigate to Waypoint', action: handleNavigateToWaypoint },
+  ];
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -175,15 +250,15 @@ const ShowRouteByIdScreen = () => {
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: orderedWaypoints[0].latitude,
-          longitude: orderedWaypoints[0].longitude,
+          latitude: data.wayPoints[0].latitude,
+          longitude: data.wayPoints[0].longitude,
           latitudeDelta: 0.1,
           longitudeDelta: 0.1,
         }}
         onLongPress={handleMapPress}
         scrollEnabled={!isDragging}
       >
-        {orderedWaypoints.map((waypoint) => (
+        {data.wayPoints.map((waypoint) => (
           <Marker
             key={waypoint.id}
             coordinate={{
@@ -193,13 +268,18 @@ const ShowRouteByIdScreen = () => {
             title={waypoint.address.address}
             description={`${waypoint.address.district}, ${waypoint.address.province}`}
             draggable={isDragging}
-            onDragEnd={handleMarkerDragEnd}
+            onDragEnd={(e) => handleMarkerDragEnd(e, waypoint.id)}
+            pinColor={selectedMarkerId === waypoint.id ? 'orange' : undefined}
+
           />
         ))}
 
         {routeCoordinates.length > 0 && (
           <Polyline
-            coordinates={routeCoordinates.map(p => ({ latitude: p.latitude, longitude: p.longitude }))}
+            coordinates={routeCoordinates.map(p => ({
+              latitude: p.latitude,
+              longitude: p.longitude,
+            }))}
             strokeWidth={4}
             strokeColor="blue"
           />
@@ -208,24 +288,33 @@ const ShowRouteByIdScreen = () => {
 
       <ContextMenu
         visible={isContextMenuVisible}
-        options={[
-          ...(marker?.id
-            ? [{ label: '🗑 Delete Waypoint', action: handleDeleteWaypoint }]
-            : [{ label: '➕ Add Waypoint', action: handleAddWaypoint }]),
-          { label: '🧭 Navigate to Waypoint', action: handleNavigateToWaypoint },
-        ]}
+        options={contextMenuOptions}
         onClose={() => setIsContextMenuVisible(false)}
       />
 
       <ScrollView style={styles.scrollView}>
         <Text style={styles.subheading}>Waypoints:</Text>
-        {orderedWaypoints.map((wp, index) => (
+        {data.wayPoints.map((wp, index) => (
           <WaypointCard key={wp.id} wp={wp} index={index} />
         ))}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const WaypointCard = React.memo(({ wp, index }: { wp: WaypointWithAddress; index: number }) => (
+  <View style={styles.card}>
+    <Text style={styles.cardTitle}>
+      {index + 1}. {wp.address?.address}
+    </Text>
+    <Text style={styles.cardText}>
+      {wp.address?.district}, {wp.address?.province}
+    </Text>
+    <Text style={styles.cardText}>
+      📍 {wp.latitude.toFixed(4)}, {wp.longitude.toFixed(4)}
+    </Text>
+  </View>
+));
 
 const styles = StyleSheet.create({
   map: {
@@ -275,11 +364,6 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 14,
     color: '#333',
-  },
-  error: {
-    color: 'red',
-    padding: 16,
-    fontSize: 16,
   },
 });
 
