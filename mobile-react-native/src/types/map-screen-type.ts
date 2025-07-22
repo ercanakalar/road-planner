@@ -20,6 +20,11 @@ export type ShowRouteByIdRouteProp = RouteProp<
   'ShowRouteByIdScreen'
 >;
 
+export type EditWaypointScreenProp = RouteProp<
+  RootStackParamList,
+  'EditWaypointScreen'
+>;
+
 export type MapScreenProps = {
   navigation: MapScreenNavigationProp;
 };

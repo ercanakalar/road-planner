@@ -4,16 +4,16 @@ import { WaypointWithAddress } from 'types/map-screen-type';
 
 type Props = {
   wp: WaypointWithAddress;
-  index: number;
+  order: number;
   onEdit?: () => void;
   onDelete?: () => void;
 };
 
-const WaypointCard = ({ wp, index, onEdit, onDelete }: Props) => {
+const WaypointCard = ({ wp, order, onEdit, onDelete }: Props) => {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>
-        {index + 1}. {wp.address?.address}
+        {order}. {wp.address?.address}
       </Text>
       <Text style={styles.cardText}>
         {wp.address?.district}, {wp.address?.province}

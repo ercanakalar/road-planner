@@ -259,7 +259,7 @@ const ShowRouteByIdScreen = () => {
           renderItem={({ item }) => (
             <WaypointCard
               wp={item}
-              index={item.order}
+              order={item.order}
               onEdit={() => {
                 setSelectedMarkerId(item.id);
                 setIsDragging(true);
