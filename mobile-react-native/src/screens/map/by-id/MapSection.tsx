@@ -1,69 +1,53 @@
 import React from 'react';
-import MapView, { Polyline, Marker } from 'react-native-maps';
-import { StyleSheet, Dimensions } from 'react-native';
-import { LongPressEvent } from 'react-native-maps';
-import { WaypointWithAddress, RouteCoordinate } from 'types/map-screen-type';
-type Props = {
-    waypoints: WaypointWithAddress[];
-    isDragging: boolean;
-    selectedMarkerId?: string;
-    routeCoordinates: RouteCoordinate[];
-    handleMarkerDragEnd: (event: any, waypointId: string) => void;
-    onMapPress: (event: LongPressEvent) => void;
-};
+import { View } from 'react-native';
+import MapView, { LongPressEvent, Marker, Polyline } from 'react-native-maps';
+import { WaypointWithAddress } from 'types/map-screen-type';
+
+interface MapSectionProps {
+  waypoints: WaypointWithAddress[];
+  routeCoordinates: { latitude: number; longitude: number }[];
+  selectedMarkerId?: string;
+  isDragging?: boolean;
+  handleMarkerDragEnd?: (event: any, waypointId: string) => void;
+  onMapLongPress: (event: LongPressEvent) => void;
+}
 
 export const MapSection = ({
-    waypoints,
-    isDragging,
-    selectedMarkerId,
-    routeCoordinates,
-    handleMarkerDragEnd,
-    onMapPress
-}: Props) => {
-    return (
-        <MapView
-            style={styles.map}
-            initialRegion={{
-                latitude: waypoints[0].latitude,
-                longitude: waypoints[0].longitude,
-                latitudeDelta: 0.1,
-                longitudeDelta: 0.1,
-            }}
-            scrollEnabled={!isDragging}
-            onLongPress={(event) => onMapPress(event)}
-        >
-            {waypoints.map((waypoint) => (
-                <Marker
-                    key={waypoint.id}
-                    coordinate={{
-                        latitude: waypoint.latitude,
-                        longitude: waypoint.longitude,
-                    }}
-                    title={waypoint.address.address}
-                    description={`${waypoint.address.district}, ${waypoint.address.province}`}
-                    draggable={isDragging}
-                    onDragEnd={(e) => handleMarkerDragEnd(e, waypoint.id)}
-                    pinColor={selectedMarkerId === waypoint.id ? 'orange' : undefined}
-                />
-            ))}
-
-            {routeCoordinates.length > 0 && (
-                <Polyline
-                    coordinates={routeCoordinates.map((p) => ({
-                        latitude: p.latitude,
-                        longitude: p.longitude,
-                    }))}
-                    strokeWidth={4}
-                    strokeColor="blue"
-                />
-            )}
-        </MapView>
-    );
+  waypoints,
+  routeCoordinates,
+  selectedMarkerId,
+  isDragging,
+  handleMarkerDragEnd,
+  onMapLongPress,
+}: MapSectionProps) => {
+  return (
+    <View style={{ flex: 1 }} pointerEvents='box-none'>
+      <MapView
+        style={{ flex: 1 }}
+        onLongPress={onMapLongPress}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        initialRegion={{
+          latitude: waypoints[0]?.latitude || 0,
+          longitude: waypoints[0]?.longitude || 0,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
+        }}
+      >
+        {waypoints.map((wp) => (
+          <Marker
+            key={wp.id}
+            coordinate={{ latitude: wp.latitude, longitude: wp.longitude }}
+            draggable={isDragging && selectedMarkerId === wp.id}
+            onDragEnd={(e) => handleMarkerDragEnd?.(e, wp.id)}
+          />
+        ))}
+        <Polyline
+          coordinates={routeCoordinates}
+          strokeColor='blue'
+          strokeWidth={3}
+        />
+      </MapView>
+    </View>
+  );
 };
-
-const styles = StyleSheet.create({
-    map: {
-        width: Dimensions.get('window').width,
-        height: Dimensions.get('window').height * 0.45,
-    },
-});
