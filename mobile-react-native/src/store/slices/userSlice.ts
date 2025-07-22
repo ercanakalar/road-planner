@@ -36,33 +36,6 @@ const userSlice = createSlice({
     },
   },
   extraReducers: (builder: any) => {
-    // const { getUser, updateUser } = profileService.endpoints;
-    // builder
-    //   .addMatcher(getUser.matchFulfilled, (state: UserState, action: any) => {
-    //     // console.log('User data fetched:', action.payload);
-    //     state.data = action.payload.data;
-    //     state.isLoading = false;
-    //     state.error = null;
-    //   })
-    //   .addMatcher(getUser.matchRejected, (state: UserState, action: any) => {
-    //     console.error('Error fetching user data:', action.error);
-    //     state.isLoading = false;
-    //     state.error = action.error.message || 'Failed to fetch user data';
-    //   })
-    //   .addMatcher(
-    //     updateUser.matchFulfilled,
-    //     (state: UserState, action: any) => {
-    //       // console.log('User data updated:', action.payload);
-    //       state.data = action.payload.data;
-    //       state.isLoading = false;
-    //       state.error = null;
-    //     }
-    //   )
-    //   .addMatcher(updateUser.matchRejected, (state: UserState, action: any) => {
-    //     console.error('Error fetching user data:', action.error);
-    //     state.isLoading = false;
-    //     state.error = action.error.message || 'Failed to fetch user data';
-    //   });
   },
 });
 

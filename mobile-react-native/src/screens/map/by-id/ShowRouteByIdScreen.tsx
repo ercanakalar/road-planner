@@ -20,6 +20,7 @@ import WaypointCard from './WaypointCard';
 import appConfig from 'constants/appConfig';
 import { showNotification } from 'services/notificationService';
 import { LongPressEvent } from 'react-native-maps';
+import WaypointListWithActions from 'components/WaypointListWithActions';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
@@ -247,36 +248,12 @@ const ShowRouteByIdScreen = () => {
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={['20%', '40%', '90%']}
-        index={1}
+        index={2}
         enablePanDownToClose={false}
         enableContentPanningGesture={!isDragging}
         enableHandlePanningGesture={!isDragging}
       >
-        <BottomSheetFlatList<WaypointWithAddress>
-          data={data.wayPoints}
-          keyboardShouldPersistTaps='handled'
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <WaypointCard
-              wp={item}
-              order={item.order}
-              onEdit={() => {
-                setSelectedMarkerId(item.id);
-                setIsDragging(true);
-              }}
-              onDelete={() => {
-                deleteWaypointByRoadId({
-                  accessToken,
-                  routeId,
-                  waypointId: item.id,
-                })
-                  .unwrap()
-                  .then(() => refetch());
-              }}
-            />
-          )}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-        />
+        <WaypointListWithActions routeId={routeId} style={{ flex: 1 }} />
       </BottomSheet>
     </>
   );
