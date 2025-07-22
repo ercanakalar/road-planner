@@ -66,6 +66,7 @@ export type WaypointWithAddress = {
   roadId: string;
   addressInfoId: string;
   address: WaypointAddress;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,3 +1,5 @@
+import { WaypointWithAddress } from 'types/map-screen-type';
+
 type RootStackParamList = {
   MapScreen: {};
   ShowRouteByIdScreen: { routeId: string; accessToken: string };
@@ -8,7 +10,11 @@ type RootStackParamList = {
   Modal: undefined;
   Drawer: undefined;
   ProfileScreen: { accessToken: string; userId: string };
-  EditWaypointScreen: { routeId: string; accessToken?: string };
+  EditWaypointScreen: {
+    routeId: string;
+    accessToken?: string;
+    waypoint: WaypointWithAddress;
+  };
 };
 
 export { RootStackParamList };

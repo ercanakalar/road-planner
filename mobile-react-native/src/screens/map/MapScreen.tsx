@@ -77,16 +77,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                     <Text style={styles.buttonText}>View</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.button, styles.editButton]}
-                    onPress={() =>
-                      navigation.navigate('EditWaypointScreen', {
-                        routeId: item.id,
-                      })
-                    }
-                  >
-                    <Text style={styles.buttonText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#FF3B30' }]}
                     onPress={() => handleDeleteRoad(item.id)}
                   >
@@ -148,9 +138,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-  },
-  editButton: {
-    backgroundColor: '#FF9500',
   },
   buttonText: {
     color: 'white',

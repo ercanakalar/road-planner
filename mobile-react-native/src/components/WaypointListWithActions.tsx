@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
 import DraggableFlatList, {
   RenderItemParams,
 } from 'react-native-draggable-flatlist';
+import { NavigationProp } from '@react-navigation/native';
 import { useAppSelector } from 'store/hook';
 import {
   useGetRoadByIdQuery,
@@ -23,29 +23,22 @@ import {
 
 type Props = {
   routeId: string;
-  style?: ViewStyle;
+  style: ViewStyle;
+  navigation: NavigationProp<any>
 };
+const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
 
-const WaypointListWithActions = ({ routeId, style }: Props) => {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const [updateRoadById] = useUpdateRoadByIdMutation();
   const [deleteWaypoint] = useDeleteWaypointByRoadIdMutation();
   const { data, refetch } = useGetRoadByIdQuery({ accessToken, routeId });
   const road = data as WaypointWithAddressAndId;
-  const [waypoints, setWaypoints] = useState<WaypointWithAddress[]>([]);
-
-  useEffect(() => {
-    if (road?.wayPoints) {
-      setWaypoints(road.wayPoints);
-    }
-  }, [road?.wayPoints]);
 
   const updateOrder = (newData: WaypointWithAddress[]) => {
     const newOrder = newData.map((item, index) => ({
       ...item,
       order: index + 1,
     }));
-    setWaypoints(newOrder);
     updateRoadById({
       accessToken,
       routeId,
@@ -61,6 +54,15 @@ const WaypointListWithActions = ({ routeId, style }: Props) => {
     deleteWaypoint({ accessToken, routeId, waypointId: id })
       .unwrap()
       .then(() => refetch());
+  };
+
+  const onEdit = (item: WaypointWithAddress) => {
+    navigation.navigate('EditWaypointScreen', {
+      waypoint: item,
+      routeId,
+      accessToken
+    });
+    console.log('Edit waypoint:', item);
   };
 
   const renderItem = ({
@@ -82,16 +84,22 @@ const WaypointListWithActions = ({ routeId, style }: Props) => {
           <Text style={styles.subtitle}>
             {item.address?.district}, {item.address?.province}
           </Text>
-          <Text style={styles.coordinates}>
-            📍 {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-          </Text>
+
         </View>
-        <TouchableOpacity
-          onPress={() => handleDelete(item.id)}
-          style={styles.deleteButton}
-        >
-          <Text style={styles.deleteText}>🗑</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            onPress={() => onEdit(item)}
+            style={styles.button}
+          >
+            <Text>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDelete(item.id)}
+            style={styles.button}
+          >
+            <Text>🗑</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Pressable>
   );
@@ -99,7 +107,7 @@ const WaypointListWithActions = ({ routeId, style }: Props) => {
   return (
     <View style={[styles.container, style]}>
       <DraggableFlatList
-        data={waypoints}
+        data={road?.wayPoints || []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         onDragEnd={({ data }) => updateOrder(data)}
@@ -165,12 +173,12 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 4,
   },
-  deleteButton: {
-    padding: 6,
-    marginLeft: 12,
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 8,
   },
-  deleteText: {
-    fontSize: 18,
-    color: '#ff3b30',
+  button: {
+    padding: 6,
   },
 });

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { SafeAreaView, ActivityIndicator, Text, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { NavigationProp, useRoute } from '@react-navigation/native';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import {
   useAddWaypointMutation,
   useDeleteWaypointByRoadIdMutation,
@@ -16,7 +16,6 @@ import {
   WaypointWithAddress,
   WaypointWithAddressAndId,
 } from 'types/map-screen-type';
-import WaypointCard from './WaypointCard';
 import appConfig from 'constants/appConfig';
 import { showNotification } from 'services/notificationService';
 import { LongPressEvent } from 'react-native-maps';
@@ -24,7 +23,7 @@ import WaypointListWithActions from 'components/WaypointListWithActions';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
-const ShowRouteByIdScreen = () => {
+const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute<ShowRouteByIdRouteProp>();
   const { routeId, accessToken } = route.params;
 
@@ -247,14 +246,24 @@ const ShowRouteByIdScreen = () => {
       </SafeAreaView>
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={['20%', '40%', '90%']}
-        index={2}
+        snapPoints={['10%', '40%', '90%']}
+        index={1}
         enablePanDownToClose={false}
         enableContentPanningGesture={!isDragging}
         enableHandlePanningGesture={!isDragging}
       >
-        <WaypointListWithActions routeId={routeId} style={{ flex: 1 }} />
+        <BottomSheetScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
+          <WaypointListWithActions
+            navigation={navigation}
+            routeId={routeId}
+            style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          />
+        </BottomSheetScrollView>
       </BottomSheet>
+
     </>
   );
 };

@@ -8,6 +8,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import RootNavigator from 'navigators/RootNavigator';
 
 import store from 'store';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 
 LogBox.ignoreAllLogs();
 
@@ -15,10 +19,12 @@ function App() {
   return (
     <Provider store={store}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <NavigationContainer>
-          <RootNavigator />
-          <Toast />
-        </NavigationContainer>
+        <BottomSheetModalProvider>
+          <NavigationContainer>
+            <RootNavigator />
+            <Toast />
+          </NavigationContainer>
+        </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </Provider>
   );
