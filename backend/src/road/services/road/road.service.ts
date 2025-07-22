@@ -196,7 +196,7 @@ export class RoadService {
       }
     }
 
-    const roads = this.prisma.road.findUnique({
+    const road = await this.prisma.road.findUnique({
       where: { id },
       include: {
         wayPoints: { include: { address: true } },
@@ -207,7 +207,7 @@ export class RoadService {
       status: ToastType.Success,
       header: 'Road Updated',
       message: 'Road updated successfully',
-      data: roads,
+      data: road,
     };
   }
 
@@ -293,10 +293,29 @@ export class RoadService {
       },
     });
 
+    const remainingWaypoints = await this.prisma.wayPoints.findMany({
+      where: { roadId },
+      orderBy: { order: 'asc' },
+    });
+
+    const reordered = remainingWaypoints.map((wp, index) => ({
+      id: wp.id,
+      order: index + 1,
+    }));
+
+    const updatePromises = reordered.map((wp) =>
+      this.prisma.wayPoints.update({
+        where: { id: wp.id },
+        data: { order: wp.order },
+      }),
+    );
+
+    await Promise.all(updatePromises);
+
     return {
       status: ToastType.Success,
       header: 'Delete Waypoint',
-      message: 'Waypoint deleted successfully',
+      message: 'Waypoint deleted and order updated successfully',
     };
   }
 
