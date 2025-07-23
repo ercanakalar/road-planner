@@ -14,23 +14,48 @@ import {
 } from 'types/map-screen-type';
 
 import Container from 'components/Container';
+import { useAppSelector } from 'store/hook';
 import {
   useDeleteRoadByIdMutation,
   useGetOwnRoadsQuery,
 } from 'store/services/roadService';
-import { useAppSelector } from 'store/hook';
+import {
+  useAddFavoriteRoadMutation,
+  useRemoveFavoriteRoadMutation,
+} from 'store/services/favoriteService';
 
 const MapScreen = ({ navigation }: MapScreenProps) => {
   const { accessToken } = useAppSelector((state) => state.auth);
+
   const { data: roads, refetch } = useGetOwnRoadsQuery(
     { accessToken },
     { skip: !accessToken }
   ) as { data: WaypointWithAddressAndId[]; refetch: () => void };
+
   const [deleteRoadById, { isLoading }] = useDeleteRoadByIdMutation();
+  const [addFavoriteRoad] = useAddFavoriteRoadMutation();
+  const [removeFavoriteRoad] = useRemoveFavoriteRoadMutation();
 
   const handleDeleteRoad = async (roadId: string) => {
     if (!accessToken) return;
     await deleteRoadById({ accessToken, roadId }).unwrap();
+    refetch();
+  };
+
+  const handleToggleFavorite = async (road: WaypointWithAddressAndId) => {
+    if (!accessToken) return;
+    const favorite = road.favoriteRoad;
+    if (favorite) {
+      await removeFavoriteRoad({
+        accessToken,
+        favoriteId: favorite.id,
+      }).unwrap();
+    } else {
+      await addFavoriteRoad({
+        accessToken,
+        roadId: road.id,
+      }).unwrap();
+    }
     refetch();
   };
 
@@ -44,33 +69,40 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     <Container>
       <View style={styles.container}>
         <Text style={styles.heading}>My Routes</Text>
-        {roads && roads?.length === 0 ? (
+
+        {roads?.length === 0 ? (
           <Text style={styles.emptyText}>
             You haven't created any routes yet.
           </Text>
         ) : (
           <FlatList
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
             data={roads}
-            onRefresh={refetch}
             refreshing={isLoading}
+            onRefresh={refetch}
             keyExtractor={(item) => item.id}
-            ListEmptyComponent={() => (
-              <Text style={styles.emptyText}>
-                You haven't created any routes yet.
-              </Text>
-            )}
+            contentContainerStyle={{ paddingBottom: 16 }}
             renderItem={({ item }) => (
               <View style={styles.routeCard}>
-                <Text style={styles.title}>{item.title}</Text>
+                <View style={styles.headerRow}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleToggleFavorite(item)}
+                    style={styles.favoriteButton}
+                  >
+                    <Text style={{ fontSize: 18 }}>
+                      {item.favoriteRoad ? '⭐' : '☆'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.desc}>{item.description}</Text>
+
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={styles.button}
                     onPress={() =>
                       navigation.navigate('ShowRouteByIdScreen', {
                         routeId: item.id,
-                        accessToken: accessToken ?? ''
+                        accessToken: accessToken ?? '',
                       })
                     }
                   >
@@ -119,15 +151,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     marginBottom: 12,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  favoriteButton: {
+    padding: 4,
+  },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
   },
   desc: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 10,
   },
   actions: {
     flexDirection: 'row',
@@ -142,12 +182,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: '600',
-  },
-  error: {
-    color: 'red',
-    textAlign: 'center',
-    fontSize: 14,
-    marginBottom: 12,
   },
 });
 

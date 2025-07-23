@@ -69,6 +69,7 @@ export type WaypointWithAddress = {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  favoriteWaypoint: FavoriteWaypoint;
 };
 
 export type WaypointWithAddressAndId = {
@@ -77,6 +78,23 @@ export type WaypointWithAddressAndId = {
   title: string;
   description: string;
   userId: string;
+  createdAt: string;
+  updatedAt: string;
+  favoriteRoad: FavoriteRoad;
+};
+
+type FavoriteWaypoint = {
+  id: string;
+  userId: string;
+  wayPointsId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type FavoriteRoad = {
+  id: string;
+  userId: string;
+  roadId: string;
   createdAt: string;
   updatedAt: string;
 };

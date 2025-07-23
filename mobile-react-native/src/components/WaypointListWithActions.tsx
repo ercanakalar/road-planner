@@ -20,56 +20,64 @@ import {
   WaypointWithAddress,
   WaypointWithAddressAndId,
 } from 'types/map-screen-type';
+import {
+  useAddFavoriteWaypointMutation,
+  useRemoveFavoriteWaypointMutation,
+} from 'store/services/favoriteService';
 
 type Props = {
   routeId: string;
   style: ViewStyle;
-  navigation: NavigationProp<any>
+  navigation: NavigationProp<any>;
 };
-const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
 
+const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
+
   const [updateRoadById] = useUpdateRoadByIdMutation();
   const [deleteWaypoint] = useDeleteWaypointByRoadIdMutation();
-  const { data, refetch } = useGetRoadByIdQuery({ accessToken, routeId });
-  const road = data as WaypointWithAddressAndId;
+  const [addFavoriteWaypoint] = useAddFavoriteWaypointMutation();
+  const [removeFavoriteWaypoint] = useRemoveFavoriteWaypointMutation();
 
-  const updateOrder = (newData: WaypointWithAddress[]) => {
+  const { data, refetch } = useGetRoadByIdQuery({ accessToken, routeId }) as {
+    data: WaypointWithAddressAndId;
+    refetch: () => void;
+  };
+
+  const updateOrder = async (newData: WaypointWithAddress[]) => {
     const newOrder = newData.map((item, index) => ({
       ...item,
       order: index + 1,
     }));
-    updateRoadById({
+    await updateRoadById({
       accessToken,
       routeId,
-      title: road?.title,
-      description: road?.description,
+      title: data?.title,
+      description: data?.description,
       waypoints: newOrder,
-    })
-      .unwrap()
-      .then(() => refetch());
+    }).unwrap();
+    refetch();
   };
 
-  const handleDelete = (id: string) => {
-    deleteWaypoint({ accessToken, routeId, waypointId: id })
-      .unwrap()
-      .then(() => refetch());
+  const handleDelete = async (id: string) => {
+    await deleteWaypoint({ accessToken, routeId, waypointId: id }).unwrap();
+    refetch();
   };
 
-  const onEdit = (item: WaypointWithAddress) => {
-    navigation.navigate('EditWaypointScreen', {
-      waypoint: item,
-      routeId,
-      accessToken
-    });
-    console.log('Edit waypoint:', item);
+  const toggleFavorite = async (waypoint: WaypointWithAddress) => {
+    try {
+      if (waypoint.favoriteWaypoint) {
+        await removeFavoriteWaypoint({ accessToken, favoriteId: waypoint.favoriteWaypoint.id }).unwrap();
+      } else {
+        await addFavoriteWaypoint({ accessToken, waypointId: waypoint.id }).unwrap();
+      }
+      refetch();
+    } catch (error) {
+      console.warn('Favorite toggle failed:', error);
+    }
   };
 
-  const renderItem = ({
-    item,
-    drag,
-    isActive,
-  }: RenderItemParams<WaypointWithAddress>) => (
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<WaypointWithAddress>) => (
     <Pressable
       onLongPress={drag}
       disabled={isActive}
@@ -84,19 +92,12 @@ const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
           <Text style={styles.subtitle}>
             {item.address?.district}, {item.address?.province}
           </Text>
-
         </View>
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            onPress={() => onEdit(item)}
-            style={styles.button}
-          >
-            <Text>✏️</Text>
+          <TouchableOpacity onPress={() => toggleFavorite(item)} style={styles.button}>
+            <Text style={styles.favoriteIcon}>{item.favoriteWaypoint ? '⭐' : '☆'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDelete(item.id)}
-            style={styles.button}
-          >
+          <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.button}>
             <Text>🗑</Text>
           </TouchableOpacity>
         </View>
@@ -107,7 +108,7 @@ const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
   return (
     <View style={[styles.container, style]}>
       <DraggableFlatList
-        data={road?.wayPoints || []}
+        data={data?.wayPoints || []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         onDragEnd={({ data }) => updateOrder(data)}
@@ -168,11 +169,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  coordinates: {
-    fontSize: 13,
-    color: '#888',
-    marginTop: 4,
-  },
   actionRow: {
     flexDirection: 'row',
     gap: 8,
@@ -180,5 +176,9 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 6,
+  },
+  favoriteIcon: {
+    fontSize: 18,
+    color: '#FFD700',
   },
 });
