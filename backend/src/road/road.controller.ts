@@ -37,8 +37,11 @@ export class RoadController {
 
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
-  async getRoadById(@Param('id') id: string) {
-    return this.roadService.getRoadById(id);
+  async getRoadById(
+    @Param('id') id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.getRoadById(id, userId);
   }
 
   @Post('/own-roads')

@@ -78,7 +78,7 @@ export class RoadService {
     };
   }
 
-  async getRoadById(id: string) {
+  async getRoadById(id: string, userId: string) {
     const road = await this.prisma.road.findUnique({
       where: {
         id,
@@ -87,6 +87,11 @@ export class RoadService {
         wayPoints: {
           include: {
             address: true,
+            favoriteWaypoint: {
+              where: {
+                userId,
+              },
+            },
           },
           orderBy: {
             order: 'asc',
@@ -112,6 +117,11 @@ export class RoadService {
         wayPoints: {
           include: {
             address: true,
+          },
+        },
+        favoriteRoad: {
+          where: {
+            userId,
           },
         },
       },
