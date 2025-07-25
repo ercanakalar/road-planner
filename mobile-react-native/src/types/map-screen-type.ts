@@ -4,6 +4,7 @@ import {
 } from '@react-navigation/native-stack';
 import { RootStackParamList } from './screens/screens';
 import { RouteProp } from '@react-navigation/native';
+import { WaypointOption } from './transport-type';
 
 export type MapScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -98,3 +99,7 @@ type FavoriteRoad = {
   createdAt: string;
   updatedAt: string;
 };
+
+export interface WaypointOptionsProps {
+  onOptionSelect: (option: WaypointOption) => void;
+}

@@ -9,6 +9,7 @@ import RootNavigator from 'navigators/RootNavigator';
 
 import store from 'store';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -19,12 +20,17 @@ function App() {
   return (
     <Provider store={store}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <BottomSheetModalProvider>
-          <NavigationContainer>
-            <RootNavigator />
-            <Toast />
-          </NavigationContainer>
-        </BottomSheetModalProvider>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <BottomSheetModalProvider>
+            <NavigationContainer>
+              <RootNavigator />
+              <Toast />
+            </NavigationContainer>
+          </BottomSheetModalProvider>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Provider>
   );

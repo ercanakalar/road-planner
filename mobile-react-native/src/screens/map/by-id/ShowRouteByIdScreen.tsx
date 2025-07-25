@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { SafeAreaView, ActivityIndicator, Text, View } from 'react-native';
-import { NavigationProp, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import {
   useAddWaypointMutation,
@@ -18,12 +18,14 @@ import {
 } from 'types/map-screen-type';
 import appConfig from 'constants/appConfig';
 import { showNotification } from 'services/notificationService';
-import { LongPressEvent } from 'react-native-maps';
-import WaypointListWithActions from 'components/WaypointListWithActions';
+import MapView, { LongPressEvent } from 'react-native-maps';
+import EnhancedRouteView from './WaypointOptions';
+import { TransportMode, WaypointOption } from 'types/transport-type';
+import PlacesSearchBar from 'components/PlacesSearchBar';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
-const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
+const ShowRouteByIdScreen = () => {
   const route = useRoute<ShowRouteByIdRouteProp>();
   const { routeId, accessToken } = route.params;
 
@@ -40,6 +42,9 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }
   const [marker, setMarker] = useState<WaypointWithAddress | undefined>(
     undefined
   );
+  const [selectedMode, setSelectedMode] = useState<TransportMode>('driving');
+  const [selectedPair, setSelectedPair] = useState<WaypointWithAddress[]>([]);
+  const mapRef = useRef<MapView>(null);
 
   const { data, isLoading, refetch } = useGetRoadByIdQuery({
     accessToken,
@@ -194,6 +199,26 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }
       });
   };
 
+  const handleWaypointOptionSelect = (
+    option: WaypointOption,
+    waypointId: string
+  ) => {
+    switch (option) {
+      case 'edit':
+        console.log('Edit waypoint', waypointId);
+        break;
+      case 'departure':
+        console.log('Set as departure', waypointId);
+        break;
+      case 'share':
+        console.log('Share waypoint', waypointId);
+        break;
+      case 'favorite':
+        console.log('Toggle favorite', waypointId);
+        break;
+    }
+  };
+
   const contextMenuOptions = [
     ...(marker?.id
       ? [{ label: '🗑 Delete Waypoint', action: handleDeleteWaypoint }]
@@ -215,19 +240,24 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }
   return (
     <>
       <SafeAreaView style={{ flex: 1 }}>
-        <View
-          style={{
-            padding: 16,
-            backgroundColor: '#fff',
-            borderBottomWidth: 1,
-            borderColor: '#eee',
+        <PlacesSearchBar
+          onPlaceSelected={(location, address) => {
+            mapRef.current?.animateToRegion(
+              {
+                latitude: location.lat,
+                longitude: location.lng,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              },
+              1000
+            );
+
+            setClickedLocation({
+              latitude: location.lat,
+              longitude: location.lng,
+            });
           }}
-        >
-          <Text style={{ fontSize: 20, fontWeight: '600' }}>{data.title}</Text>
-          <Text style={{ fontSize: 14, color: '#777', marginTop: 4 }}>
-            {data.description}
-          </Text>
-        </View>
+        />
 
         <MapSection
           waypoints={data.wayPoints}
@@ -256,14 +286,15 @@ const ShowRouteByIdScreen = ({ navigation }: { navigation: NavigationProp<any> }
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 24 }}
         >
-          <WaypointListWithActions
-            navigation={navigation}
-            routeId={routeId}
-            style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          <EnhancedRouteView
+            waypoints={data.wayPoints}
+            selectedMode={selectedMode}
+            onModeChange={setSelectedMode}
+            onOptionSelect={handleWaypointOptionSelect}
+            onPairChange={setSelectedPair}
           />
         </BottomSheetScrollView>
       </BottomSheet>
-
     </>
   );
 };

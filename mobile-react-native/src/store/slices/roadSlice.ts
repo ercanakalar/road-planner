@@ -35,7 +35,7 @@ export const roadSlice = createSlice({
       }>
     ) => {
       const idToDelete = action.payload.roadId;
-      state.roads = state.roads.filter((road) => road.id === idToDelete);
+      state.roads = state.roads?.filter((road) => road.id === idToDelete);
       return state;
     },
   },
