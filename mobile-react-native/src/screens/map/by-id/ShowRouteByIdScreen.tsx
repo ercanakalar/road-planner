@@ -22,6 +22,10 @@ import MapView, { LongPressEvent } from 'react-native-maps';
 import EnhancedRouteView from './WaypointOptions';
 import { TransportMode, WaypointOption } from 'types/transport-type';
 import PlacesSearchBar from 'components/PlacesSearchBar';
+import {
+  useAddFavoriteWaypointMutation,
+  useRemoveFavoriteWaypointMutation,
+} from 'store/services/favoriteService';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
@@ -58,6 +62,9 @@ const ShowRouteByIdScreen = () => {
   const [addWaypoint] = useAddWaypointMutation();
   const [deleteWaypointByRoadId] = useDeleteWaypointByRoadIdMutation();
   const [updateWaypoint] = useUpdateWaypointByRoadIdMutation();
+  const [addFavoriteWaypoint] = useAddFavoriteWaypointMutation();
+  const [removeFavoriteWaypoint] = useRemoveFavoriteWaypointMutation();
+  const [deleteWaypoint] = useDeleteWaypointByRoadIdMutation();
 
   const { routeCoordinates, fetchRoute } = useRouteManager();
 
@@ -201,22 +208,48 @@ const ShowRouteByIdScreen = () => {
 
   const handleWaypointOptionSelect = (
     option: WaypointOption,
-    waypointId: string
+    waypoint: WaypointWithAddress
   ) => {
     switch (option) {
       case 'edit':
-        console.log('Edit waypoint', waypointId);
+        console.log('Edit waypoint', waypoint);
         break;
       case 'departure':
-        console.log('Set as departure', waypointId);
+        console.log('Set as departure', waypoint);
         break;
       case 'share':
-        console.log('Share waypoint', waypointId);
+        console.log('Share waypoint', waypoint);
         break;
       case 'favorite':
-        console.log('Toggle favorite', waypointId);
+        console.log('awdawd');
+
+        toggleFavorite(waypoint);
         break;
     }
+  };
+
+  const toggleFavorite = async (waypoint: WaypointWithAddress) => {
+    try {
+      if (waypoint.favoriteWaypoint) {
+        await removeFavoriteWaypoint({
+          accessToken,
+          favoriteId: waypoint.favoriteWaypoint.id,
+        }).unwrap();
+      } else {
+        await addFavoriteWaypoint({
+          accessToken,
+          waypointId: waypoint.id,
+        }).unwrap();
+      }
+      refetch();
+    } catch (error) {
+      console.warn('Favorite toggle failed:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteWaypoint({ accessToken, routeId, waypointId: id }).unwrap();
+    refetch();
   };
 
   const contextMenuOptions = [
@@ -260,6 +293,7 @@ const ShowRouteByIdScreen = () => {
         />
 
         <MapSection
+          ref={mapRef}
           waypoints={data.wayPoints}
           isDragging={isDragging}
           selectedMarkerId={selectedMarkerId}

@@ -5,7 +5,7 @@ export type TransportMode =
   | 'driving'
   | 'walking'
   | 'transit';
-export type WaypointOption = 'edit' | 'departure' | 'share' | 'favorite';
+export type WaypointOption = 'edit' | 'departure' | 'share' | 'favorite' | "delete";
 
 export interface TransportSelectorProps {
   selected: TransportMode;

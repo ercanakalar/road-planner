@@ -10,6 +10,7 @@ interface MapSectionProps {
   isDragging?: boolean;
   handleMarkerDragEnd?: (event: any, waypointId: string) => void;
   onMapLongPress: (event: LongPressEvent) => void;
+  ref: any;
 }
 
 export const MapSection = ({
@@ -19,10 +20,12 @@ export const MapSection = ({
   isDragging,
   handleMarkerDragEnd,
   onMapLongPress,
+  ref,
 }: MapSectionProps) => {
   return (
     <View style={{ flex: 1 }} pointerEvents='box-none'>
       <MapView
+        ref={ref}
         style={{ flex: 1 }}
         onLongPress={onMapLongPress}
         showsUserLocation={true}

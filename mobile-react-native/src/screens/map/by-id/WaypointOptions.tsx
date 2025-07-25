@@ -31,6 +31,7 @@ const WaypointOptions: React.FC<WaypointOptionsProps> = ({
       <MaterialIcons name='edit' size={20} color='#333' />
       <Text style={styles.optionText}>Edit</Text>
     </TouchableOpacity>
+
     <TouchableOpacity
       style={styles.optionBtn}
       onPress={() => onOptionSelect('departure')}
@@ -38,12 +39,21 @@ const WaypointOptions: React.FC<WaypointOptionsProps> = ({
       <MaterialIcons name='flag' size={20} color='#333' />
       <Text style={styles.optionText}>Set Departure</Text>
     </TouchableOpacity>
+
     <TouchableOpacity
       style={styles.optionBtn}
       onPress={() => onOptionSelect('share')}
     >
       <MaterialIcons name='share' size={20} color='#333' />
       <Text style={styles.optionText}>Share</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.optionBtn}
+      onPress={() => onOptionSelect('delete')}
+    >
+      <MaterialIcons name='delete' size={20} color='#c00' />
+      <Text style={[styles.optionText, { color: '#c00' }]}>Delete</Text>
     </TouchableOpacity>
   </View>
 );
@@ -82,7 +92,10 @@ const TransportSelector: React.FC<TransportSelectorProps> = ({
 
 interface EnhancedRouteViewProps {
   waypoints: WaypointWithAddress[];
-  onOptionSelect: (option: WaypointOption, waypointId: string) => void;
+  onOptionSelect: (
+    option: WaypointOption,
+    waypoint: WaypointWithAddress
+  ) => void;
   selectedMode: TransportMode;
   onModeChange: (mode: TransportMode) => void;
   onPairChange: (pair: any[]) => void;
@@ -160,7 +173,8 @@ const EnhancedRouteView: React.FC<EnhancedRouteViewProps> = ({
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => onOptionSelect('favorite', item.id)}
+                  style={{ zIndex: 99999 }}
+                  onPress={() => onOptionSelect('favorite', item)}
                 >
                   <Ionicons
                     name={item.favoriteWaypoint ? 'star' : 'star-outline'}
@@ -170,7 +184,7 @@ const EnhancedRouteView: React.FC<EnhancedRouteViewProps> = ({
                 </TouchableOpacity>
               </View>
               <WaypointOptions
-                onOptionSelect={(opt) => onOptionSelect(opt, item.id)}
+                onOptionSelect={(opt) => onOptionSelect(opt, item)}
               />
             </TouchableOpacity>
           )}
@@ -214,17 +228,6 @@ const styles = StyleSheet.create({
   addressWrap: { flex: 1 },
   address: { fontWeight: '600', color: '#111' },
   subAddress: { color: '#666' },
-  optionRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-    justifyContent: 'space-between',
-  },
-  optionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  optionText: { color: '#444', fontSize: 13 },
   transportRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -259,6 +262,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+  },
+  optionBtn: {
+    alignItems: 'center',
+  },
+  optionText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#333',
   },
 });
 
