@@ -6,7 +6,19 @@ export const transportModes: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
 }[] = [
-  { key: 'car', icon: 'car', label: 'Car' },
-  { key: 'public', icon: 'subway', label: 'Public Transport' },
-  { key: 'walk', icon: 'walk', label: 'Walking' },
+  {
+    key: 'walking',
+    icon: 'walk',
+    label: 'Walking',
+  },
+  {
+    key: 'driving',
+    icon: 'car-sport',
+    label: 'Driving',
+  },
+  {
+    key: 'transit',
+    icon: 'train',
+    label: 'Transit',
+  },
 ];

@@ -103,3 +103,7 @@ type FavoriteRoad = {
 export interface WaypointOptionsProps {
   onOptionSelect: (option: WaypointOption) => void;
 }
+
+export interface EnhancedWaypointListProps {
+  routeId: string;
+}

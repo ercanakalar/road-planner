@@ -1,269 +1,31 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { SafeAreaView, ActivityIndicator, Text, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React  from 'react';
+import { SafeAreaView, ActivityIndicator, Text } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import {
-  useAddWaypointMutation,
-  useDeleteWaypointByRoadIdMutation,
-  useGetRoadByIdQuery,
-  useUpdateWaypointByRoadIdMutation,
-} from 'store/services/roadService';
-import { useRouteManager } from 'hooks/useRouteManager';
-import { MapSection } from './MapSection';
-import ContextMenu from 'components/ContextMenu';
-import {
-  ShowRouteByIdRouteProp,
-  WaypointWithAddress,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
-import appConfig from 'constants/appConfig';
-import { showNotification } from 'services/notificationService';
-import MapView, { LongPressEvent } from 'react-native-maps';
-import EnhancedRouteView from './WaypointOptions';
-import { TransportMode, WaypointOption } from 'types/transport-type';
-import PlacesSearchBar from 'components/PlacesSearchBar';
-import {
-  useAddFavoriteWaypointMutation,
-  useRemoveFavoriteWaypointMutation,
-} from 'store/services/favoriteService';
 
-const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
+import PlacesSearchBar from 'components/PlacesSearchBar';
+import ContextMenu from 'components/ContextMenu';
+import EnhancedWaypointList from 'components/EnhancedWaypointList';
+import { MapSection } from './MapSection';
+import useMapLogic from 'hooks/useMapLogic';
 
 const ShowRouteByIdScreen = () => {
-  const route = useRoute<ShowRouteByIdRouteProp>();
-  const { routeId, accessToken } = route.params;
-
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const [clickedLocation, setClickedLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [selectedMarkerId, setSelectedMarkerId] = useState<string | undefined>(
-    undefined
-  );
-  const [isContextMenuVisible, setIsContextMenuVisible] = useState(false);
-  const [marker, setMarker] = useState<WaypointWithAddress | undefined>(
-    undefined
-  );
-  const [selectedMode, setSelectedMode] = useState<TransportMode>('driving');
-  const [selectedPair, setSelectedPair] = useState<WaypointWithAddress[]>([]);
-  const mapRef = useRef<MapView>(null);
-
-  const { data, isLoading, refetch } = useGetRoadByIdQuery({
-    accessToken,
+  const {
     routeId,
-  }) as {
-    data: WaypointWithAddressAndId;
-    isLoading: boolean;
-    refetch: () => void;
-  };
+    mapRef,
+    bottomSheetRef,
+    isLoading,
+    data,
+    isDragging,
+    contextMenuProps,
+    markerLogic,
+    onPlaceSelected,
+    handleMarkerDragEnd,
+    handleMapLongPress,
+  } = useMapLogic();
 
-  const [addWaypoint] = useAddWaypointMutation();
-  const [deleteWaypointByRoadId] = useDeleteWaypointByRoadIdMutation();
-  const [updateWaypoint] = useUpdateWaypointByRoadIdMutation();
-  const [addFavoriteWaypoint] = useAddFavoriteWaypointMutation();
-  const [removeFavoriteWaypoint] = useRemoveFavoriteWaypointMutation();
-  const [deleteWaypoint] = useDeleteWaypointByRoadIdMutation();
-
-  const { routeCoordinates, fetchRoute } = useRouteManager();
-
-  useEffect(() => {
-    if (data?.wayPoints && data.wayPoints.length >= 2) {
-      fetchRoute(data.wayPoints);
-    }
-  }, [data?.wayPoints]);
-
-  const handleMapLongPress = (event: LongPressEvent) => {
-    if (marker && isDragging) return;
-
-    bottomSheetRef.current?.collapse();
-    const { coordinate } = event.nativeEvent;
-    const pressed = data.wayPoints.find(
-      (wp) =>
-        Math.abs(wp.latitude - coordinate.latitude) < 0.0001 &&
-        Math.abs(wp.longitude - coordinate.longitude) < 0.0001
-    );
-
-    setMarker(pressed || undefined);
-    setClickedLocation(pressed ? null : coordinate);
-    setIsContextMenuVisible(true);
-  };
-
-  const handleAddWaypoint = () => {
-    if (!clickedLocation) return;
-
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${clickedLocation.latitude},${clickedLocation.longitude}&destination=${clickedLocation.latitude},${clickedLocation.longitude}&waypoints=${clickedLocation.latitude},${clickedLocation.longitude}&key=${REACT_APP_MAP_API_KEY}`;
-
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        const address =
-          json.routes?.[0]?.legs?.[0]?.end_address || 'New Location';
-        const addArr = address.split(',');
-        const newWaypoint = {
-          latitude: clickedLocation.latitude,
-          longitude: clickedLocation.longitude,
-          address: {
-            country: addArr.at(-1)?.trim(),
-            province: addArr
-              .at(-2)
-              ?.split(' ')
-              .at(-1)
-              ?.split('/')
-              .at(-1)
-              ?.trim(),
-            district: addArr
-              .at(-2)
-              ?.split(' ')
-              .at(-1)
-              ?.split('/')
-              .at(-2)
-              ?.trim(),
-            address,
-          },
-          order: data.wayPoints.length + 1,
-        };
-        addWaypoint({ accessToken, routeId, waypoint: newWaypoint })
-          .unwrap()
-          .then(() => refetch());
-        setIsContextMenuVisible(false);
-      });
-  };
-
-  const handleDeleteWaypoint = () => {
-    if (!marker) return;
-    setIsContextMenuVisible(false);
-    deleteWaypointByRoadId({ accessToken, routeId, waypointId: marker.id })
-      .unwrap()
-      .then(() => refetch());
-  };
-
-  const handleNavigateToWaypoint = () => {
-    if (marker) {
-      setSelectedMarkerId(marker.id);
-      setIsDragging(true);
-      setIsContextMenuVisible(false);
-    }
-  };
-
-  const handleMarkerDragEnd = (event: any, waypointId: string) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    if (!selectedMarkerId || selectedMarkerId !== waypointId) return;
-
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=${latitude},${longitude}&waypoints=${latitude},${longitude}&key=${REACT_APP_MAP_API_KEY}`;
-
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        const address =
-          json.routes?.[0]?.legs?.[0]?.end_address || 'New Location';
-        const addArr = address.split(',');
-        const updatedWaypoint = {
-          latitude,
-          longitude,
-          address: {
-            country: addArr.at(-1)?.trim(),
-            province: addArr
-              .at(-2)
-              ?.split(' ')
-              .at(-1)
-              ?.split('/')
-              ?.at(-1)
-              ?.trim(),
-            district: addArr
-              .at(-2)
-              ?.split(' ')
-              .at(-1)
-              ?.split('/')
-              ?.at(-2)
-              ?.trim(),
-            address,
-          },
-          order: marker?.order || 0,
-        };
-
-        updateWaypoint({
-          accessToken,
-          routeId,
-          waypointId,
-          waypoint: updatedWaypoint,
-        })
-          .unwrap()
-          .then(() => {
-            setIsDragging(false);
-            setSelectedMarkerId(undefined);
-            setMarker(undefined);
-            refetch();
-          });
-      })
-      .catch(() => {
-        showNotification({
-          type: 'error',
-          header: 'Error',
-          message: 'Failed to update waypoint location.',
-        });
-      });
-  };
-
-  const handleWaypointOptionSelect = (
-    option: WaypointOption,
-    waypoint: WaypointWithAddress
-  ) => {
-    switch (option) {
-      case 'edit':
-        console.log('Edit waypoint', waypoint);
-        break;
-      case 'departure':
-        console.log('Set as departure', waypoint);
-        break;
-      case 'share':
-        console.log('Share waypoint', waypoint);
-        break;
-      case 'favorite':
-        console.log('awdawd');
-
-        toggleFavorite(waypoint);
-        break;
-    }
-  };
-
-  const toggleFavorite = async (waypoint: WaypointWithAddress) => {
-    try {
-      if (waypoint.favoriteWaypoint) {
-        await removeFavoriteWaypoint({
-          accessToken,
-          favoriteId: waypoint.favoriteWaypoint.id,
-        }).unwrap();
-      } else {
-        await addFavoriteWaypoint({
-          accessToken,
-          waypointId: waypoint.id,
-        }).unwrap();
-      }
-      refetch();
-    } catch (error) {
-      console.warn('Favorite toggle failed:', error);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteWaypoint({ accessToken, routeId, waypointId: id }).unwrap();
-    refetch();
-  };
-
-  const contextMenuOptions = [
-    ...(marker?.id
-      ? [{ label: '🗑 Delete Waypoint', action: handleDeleteWaypoint }]
-      : [{ label: '➕ Add Waypoint', action: handleAddWaypoint }]),
-    { label: '🧭 Navigate to Waypoint', action: handleNavigateToWaypoint },
-  ];
-
-  if (isLoading || !data || !data.wayPoints || data.wayPoints.length === 0) {
+  if (isLoading || !data?.wayPoints?.length) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-      >
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size='large' color='#007AFF' />
         <Text>Loading route...</Text>
       </SafeAreaView>
@@ -273,60 +35,29 @@ const ShowRouteByIdScreen = () => {
   return (
     <>
       <SafeAreaView style={{ flex: 1 }}>
-        <PlacesSearchBar
-          onPlaceSelected={(location, address) => {
-            mapRef.current?.animateToRegion(
-              {
-                latitude: location.lat,
-                longitude: location.lng,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              },
-              1000
-            );
-
-            setClickedLocation({
-              latitude: location.lat,
-              longitude: location.lng,
-            });
-          }}
-        />
-
+        <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
         <MapSection
           ref={mapRef}
           waypoints={data.wayPoints}
           isDragging={isDragging}
-          selectedMarkerId={selectedMarkerId}
-          routeCoordinates={routeCoordinates}
+          selectedMarkerId={markerLogic.selectedMarkerId}
+          routeCoordinates={markerLogic.routeCoordinates}
           handleMarkerDragEnd={handleMarkerDragEnd}
           onMapLongPress={handleMapLongPress}
         />
-
-        <ContextMenu
-          visible={isContextMenuVisible}
-          options={contextMenuOptions}
-          onClose={() => setIsContextMenuVisible(false)}
-        />
+        <ContextMenu {...contextMenuProps} />
       </SafeAreaView>
+
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={['10%', '40%', '90%']}
-        index={1}
+        snapPoints={['20%', '40%', '60%', '80%']}
+        index={0}
         enablePanDownToClose={false}
         enableContentPanningGesture={!isDragging}
         enableHandlePanningGesture={!isDragging}
       >
-        <BottomSheetScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        >
-          <EnhancedRouteView
-            waypoints={data.wayPoints}
-            selectedMode={selectedMode}
-            onModeChange={setSelectedMode}
-            onOptionSelect={handleWaypointOptionSelect}
-            onPairChange={setSelectedPair}
-          />
+        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <EnhancedWaypointList routeId={routeId} />
         </BottomSheetScrollView>
       </BottomSheet>
     </>

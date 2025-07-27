@@ -13,13 +13,15 @@ import authMiddleware from './middlewares/auth-middleware';
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import roadReducer from './slices/roadSlice';
-import { favoriteSlice } from './slices/favoriteSlice';
+import mapReducer from './slices/mapSlice';
+import favoriteReducer from './slices/favoriteSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
   road: roadReducer,
-  favorite: favoriteSlice,
+  map: mapReducer,
+  favorite: favoriteReducer,
   [authenticationService.reducerPath]: authenticationService.reducer,
   [profileService.reducerPath]: profileService.reducer,
   [roadService.reducerPath]: roadService.reducer,

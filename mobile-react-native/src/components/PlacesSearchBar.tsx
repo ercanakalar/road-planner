@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   TextInput,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import appConfig from 'constants/appConfig';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
@@ -21,6 +22,7 @@ const PlacesSearchBar = ({
 }) => {
   const [input, setInput] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   const handleSearch = async (text: string) => {
     setInput(text);
@@ -63,14 +65,29 @@ const PlacesSearchBar = ({
     }
   };
 
+  const clearInput = () => {
+    setInput('');
+    setPredictions([]);
+    inputRef.current?.focus();
+  };
+
   return (
     <View style={styles.container}>
-      <TextInput
-        placeholder='Search here...'
-        value={input}
-        onChangeText={handleSearch}
-        style={styles.input}
-      />
+      <View style={styles.inputWrapper}>
+        <TextInput
+          ref={inputRef}
+          placeholder='Search here...'
+          value={input}
+          onChangeText={handleSearch}
+          style={styles.input}
+        />
+        {input.length > 0 && (
+          <TouchableOpacity onPress={clearInput} style={styles.clearBtn}>
+            <Ionicons name='close-circle' size={20} color='#999' />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={predictions}
         keyExtractor={(item) => item.place_id}
@@ -91,25 +108,33 @@ const PlacesSearchBar = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
+    top: 5,
     left: 16,
     right: 16,
-    zIndex: 999,
+    zIndex: 2,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 4,
     elevation: 5,
   },
-  input: {
-    height: 44,
-    paddingHorizontal: 12,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 6,
+    paddingHorizontal: 8,
+    height: 44,
+  },
+  input: {
+    flex: 1,
     fontSize: 16,
   },
+  clearBtn: {
+    padding: 4,
+  },
   results: {
-    marginTop: 2,
+    marginTop: 4,
   },
   resultItem: {
     paddingVertical: 8,

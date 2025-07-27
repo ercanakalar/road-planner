@@ -1,24 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+
 import {
   WaypointOptionsProps,
-  WaypointWithAddress,
 } from 'types/map-screen-type';
-import { transportModes } from 'constants/transportMods';
-import {
-  TransportMode,
-  TransportSelectorProps,
-  WaypointOption,
-} from 'types/transport-type';
 
 const WaypointOptions: React.FC<WaypointOptionsProps> = ({
   onOptionSelect,
@@ -58,141 +49,7 @@ const WaypointOptions: React.FC<WaypointOptionsProps> = ({
   </View>
 );
 
-const TransportSelector: React.FC<TransportSelectorProps> = ({
-  selected,
-  onChange,
-}) => (
-  <View style={styles.transportRow}>
-    {transportModes.map((mode) => (
-      <TouchableOpacity
-        key={mode.key}
-        style={[
-          styles.transportBtn,
-          selected === mode.key && styles.activeTransport,
-        ]}
-        onPress={() => onChange(mode.key)}
-      >
-        <Ionicons
-          name={mode.icon}
-          size={20}
-          color={selected === mode.key ? 'white' : '#555'}
-        />
-        <Text
-          style={[
-            styles.transportText,
-            selected === mode.key && styles.activeText,
-          ]}
-        >
-          {mode.label}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-);
-
-interface EnhancedRouteViewProps {
-  waypoints: WaypointWithAddress[];
-  onOptionSelect: (
-    option: WaypointOption,
-    waypoint: WaypointWithAddress
-  ) => void;
-  selectedMode: TransportMode;
-  onModeChange: (mode: TransportMode) => void;
-  onPairChange: (pair: any[]) => void;
-}
-
-const EnhancedRouteView: React.FC<EnhancedRouteViewProps> = ({
-  waypoints,
-  onOptionSelect,
-  selectedMode,
-  onModeChange,
-  onPairChange,
-}) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPair, setSelectedPair] = useState<string[]>([]);
-
-  const filteredWaypoints = waypoints?.filter((w) =>
-    w.address.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const toggleSelection = (id: string) => {
-    setSelectedPair((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((item) => item !== id);
-      } else {
-        return prev.length < 2 ? [...prev, id] : [prev[1], id];
-      }
-    });
-  };
-
-  const isPairSelected = selectedPair.length === 2;
-
-  useEffect(() => {
-    if (isPairSelected) {
-      const pair = waypoints?.filter((w) => selectedPair.includes(w.id));
-      onPairChange(pair);
-    } else {
-      onPairChange([]);
-    }
-  }, [selectedPair]);
-
-  return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <BottomSheetScrollView contentContainerStyle={{ padding: 16 }}>
-        {isPairSelected && (
-          <View style={styles.privacyModeWrap}>
-            <Text style={styles.privacyText}>Mode for selected pair:</Text>
-            <TransportSelector
-              selected={selectedMode}
-              onChange={onModeChange}
-            />
-          </View>
-        )}
-
-        {!isPairSelected && (
-          <TransportSelector selected={selectedMode} onChange={onModeChange} />
-        )}
-
-        <FlatList
-          data={filteredWaypoints}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.card,
-                selectedPair.includes(item.id) && styles.cardSelected,
-              ]}
-              onPress={() => toggleSelection(item.id)}
-            >
-              <View style={styles.row}>
-                <Text style={styles.index}>{item.order}</Text>
-                <View style={styles.addressWrap}>
-                  <Text style={styles.address}>{item.address.address}</Text>
-                  <Text style={styles.subAddress}>
-                    {item.address.district}, {item.address.province}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={{ zIndex: 99999 }}
-                  onPress={() => onOptionSelect('favorite', item)}
-                >
-                  <Ionicons
-                    name={item.favoriteWaypoint ? 'star' : 'star-outline'}
-                    size={20}
-                    color={item.favoriteWaypoint ? '#f5c518' : '#aaa'}
-                  />
-                </TouchableOpacity>
-              </View>
-              <WaypointOptions
-                onOptionSelect={(opt) => onOptionSelect(opt, item)}
-              />
-            </TouchableOpacity>
-          )}
-        />
-      </BottomSheetScrollView>
-    </SafeAreaView>
-  );
-};
+export default WaypointOptions
 
 const styles = StyleSheet.create({
   searchBarContainer: {
@@ -278,4 +135,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EnhancedRouteView;

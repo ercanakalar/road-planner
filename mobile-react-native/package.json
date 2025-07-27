@@ -23,6 +23,7 @@
     "react": "19.0.0",
     "react-native": "0.79.2",
     "react-native-draggable-flatlist": "^4.0.3",
+    "react-native-gesture-handler": "^2.27.2",
     "react-native-maps": "1.20.1",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "~3.17.4",
@@ -40,6 +41,7 @@
     "@types/react-native-maps": "^0.24.1",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-redux": "^7.1.34",
+    "metro-react-native-babel-preset": "^0.77.0",
     "typescript": "~5.8.3"
   },
   "private": true
