@@ -26,8 +26,6 @@ import { TransportMode, WaypointOption } from 'types/transport-type';
 import WaypointOptions from 'screens/map/by-id/WaypointOptions';
 import appConfig from 'constants/appConfig';
 import { secondsToHour } from 'utils/secondsToHour';
-import Animated from 'react-native-reanimated';
-import { useActiveScaleAnimation } from 'hooks/useActiveScaleAnimation';
 
 const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
@@ -128,35 +126,32 @@ const EnhancedWaypointList: React.FC<EnhancedWaypointListProps> = ({
     }, [selectedMode, selectedPair, data?.wayPoints]);
 
     const renderItem = ({ item, drag, isActive }: RenderItemParams<WaypointWithAddress>) => {
-        const animatedStyle = useActiveScaleAnimation(isActive);
 
         return (
-            <Animated.View style={animatedStyle}>
-                <Pressable
-                    onLongPress={drag}
-                    disabled={isActive}
-                    style={[styles.card, isActive && styles.cardActive, selectedPair.includes(item.id) && styles.cardSelected]}
-                    onPress={() => toggleSelection(item.id)}
-                >
-                    <View style={styles.row}>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{item.order}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.title}>{item.address?.address}</Text>
-                            <Text style={styles.subtitle}>{item.address?.district}, {item.address?.province}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => toggleFavorite(item)}>
-                            <Ionicons
-                                name={item.favoriteWaypoint ? 'star' : 'star-outline'}
-                                size={20}
-                                color={item.favoriteWaypoint ? '#f5c518' : '#aaa'}
-                            />
-                        </TouchableOpacity>
+            <Pressable
+                onLongPress={drag}
+                disabled={isActive}
+                style={[styles.card, isActive && styles.cardActive, selectedPair.includes(item.id) && styles.cardSelected]}
+                onPress={() => toggleSelection(item.id)}
+            >
+                <View style={styles.row}>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.order}</Text>
                     </View>
-                    <WaypointOptions onOptionSelect={(opt) => handleOptionSelect(opt, item)} />
-                </Pressable>
-            </Animated.View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.title}>{item.address?.address}</Text>
+                        <Text style={styles.subtitle}>{item.address?.district}, {item.address?.province}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => toggleFavorite(item)}>
+                        <Ionicons
+                            name={item.favoriteWaypoint ? 'star' : 'star-outline'}
+                            size={20}
+                            color={item.favoriteWaypoint ? '#f5c518' : '#aaa'}
+                        />
+                    </TouchableOpacity>
+                </View>
+                <WaypointOptions onOptionSelect={(opt) => handleOptionSelect(opt, item)} />
+            </Pressable>
         )
     };
 

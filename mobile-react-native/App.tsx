@@ -11,9 +11,6 @@ import store from 'store';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
-
 LogBox.ignoreAllLogs();
 
 function App() {
