@@ -71,6 +71,10 @@ export type WaypointWithAddress = {
   createdAt: string;
   updatedAt: string;
   favoriteWaypoint: FavoriteWaypoint;
+  isFavorite: boolean;
+  favorites: Array<{
+    id: string;
+  }>;
 };
 
 export type WaypointWithAddressAndId = {
@@ -82,6 +86,10 @@ export type WaypointWithAddressAndId = {
   createdAt: string;
   updatedAt: string;
   favoriteRoad: FavoriteRoad;
+  isFavorite: boolean;
+  favorites: Array<{
+    id: string;
+  }>;
 };
 
 type FavoriteWaypoint = {

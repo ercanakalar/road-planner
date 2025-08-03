@@ -77,8 +77,8 @@ const EnhancedWaypointList: React.FC<EnhancedWaypointListProps> = ({
 
     const toggleFavorite = async (waypoint: WaypointWithAddress) => {
         try {
-            if (waypoint.favoriteWaypoint) {
-                await removeFavoriteWaypoint({ accessToken, favoriteId: waypoint.favoriteWaypoint.id }).unwrap();
+            if (waypoint.favorites.length > 0) {
+                await removeFavoriteWaypoint({ accessToken, favoriteId: waypoint.favorites[0].id }).unwrap();
             } else {
                 await addFavoriteWaypoint({ accessToken, waypointId: waypoint.id }).unwrap();
             }
@@ -144,9 +144,9 @@ const EnhancedWaypointList: React.FC<EnhancedWaypointListProps> = ({
                     </View>
                     <TouchableOpacity onPress={() => toggleFavorite(item)}>
                         <Ionicons
-                            name={item.favoriteWaypoint ? 'star' : 'star-outline'}
+                            name={item.isFavorite ? 'star' : 'star-outline'}
                             size={20}
-                            color={item.favoriteWaypoint ? '#f5c518' : '#aaa'}
+                            color={item.isFavorite ? '#f5c518' : '#aaa'}
                         />
                     </TouchableOpacity>
                 </View>

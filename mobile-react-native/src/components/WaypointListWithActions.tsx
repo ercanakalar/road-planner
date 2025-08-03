@@ -65,9 +65,11 @@ const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
   };
 
   const toggleFavorite = async (waypoint: WaypointWithAddress) => {
+    console.log(waypoint);
+    
     try {
-      if (waypoint.favoriteWaypoint) {
-        await removeFavoriteWaypoint({ accessToken, favoriteId: waypoint.favoriteWaypoint.id }).unwrap();
+      if (waypoint.isFavorite) {
+        await removeFavoriteWaypoint({ accessToken, favoriteId: waypoint.favorites[0].id }).unwrap();
       } else {
         await addFavoriteWaypoint({ accessToken, waypointId: waypoint.id }).unwrap();
       }
@@ -95,7 +97,7 @@ const WaypointListWithActions = ({ routeId, style, navigation }: Props) => {
         </View>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={() => toggleFavorite(item)} style={styles.button}>
-            <Text style={styles.favoriteIcon}>{item.favoriteWaypoint ? '⭐' : '☆'}</Text>
+            <Text style={styles.favoriteIcon}>{item.isFavorite ? '⭐' : '☆'}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.button}>
             <Text>🗑</Text>

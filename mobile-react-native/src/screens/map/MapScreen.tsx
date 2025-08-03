@@ -44,11 +44,11 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
 
   const handleToggleFavorite = async (road: WaypointWithAddressAndId) => {
     if (!accessToken) return;
-    const favorite = road.favoriteRoad;
+    const favorite = road.isFavorite;
     if (favorite) {
       await removeFavoriteRoad({
         accessToken,
-        favoriteId: favorite.id,
+        favoriteId: road.favorites[0].id,
       }).unwrap();
     } else {
       await addFavoriteRoad({
@@ -90,7 +90,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
                     style={styles.favoriteButton}
                   >
                     <Text style={{ fontSize: 18 }}>
-                      {item.favoriteRoad ? '⭐' : '☆'}
+                      {item.isFavorite ? '⭐' : '☆'}
                     </Text>
                   </TouchableOpacity>
                 </View>
