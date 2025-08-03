@@ -13,8 +13,8 @@ model ManuelAuth {
   password        String   @db.VarChar(255)
   confirmPassword String   @db.VarChar(255)
   userId          String?  @unique
-  user            User?    @relation(fields: [userId], references: [id])
-  tokens          Tokens?  @relation(fields: [tokenId], references: [id])
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tokens          Tokens?  @relation(fields: [tokenId], references: [id], onDelete: SetNull)
   tokenId         String?  @unique
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
@@ -24,9 +24,9 @@ model GoogleAuth {
   id        String   @id @default(uuid())
   email     String   @unique
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenId   String?  @unique
-  tokens    Tokens?  @relation(fields: [tokenId], references: [id])
+  tokens    Tokens?  @relation(fields: [tokenId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
@@ -34,7 +34,7 @@ model GoogleAuth {
 model Tokens {
   id                       String      @id @default(uuid())
   userId                   String      @unique
-  user                     User        @relation(fields: [userId], references: [id])
+  user                     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   manuelAuth               ManuelAuth?
   GoogleAuth               GoogleAuth?
   refreshToken             String
@@ -60,46 +60,50 @@ model Permission {
 }
 
 model User {
-  id         String      @id @default(uuid())
-  email      String      @unique
-  firstName  String?
-  lastName   String?
-  photo      String?
-  nickName   String?     @unique
-  manuelAuth ManuelAuth?
-  googleAuth GoogleAuth?
-  tokens     Tokens?
-  permitId   String?
-  permit     Permit?     @relation("UserPermit", fields: [permitId], references: [id])
-  road       Road[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @default(now()) @updatedAt
+  id                String             @id @default(uuid())
+  email             String             @unique
+  firstName         String?
+  lastName          String?
+  photo             String?
+  nickName          String?            @unique
+  manuelAuth        ManuelAuth?
+  googleAuth        GoogleAuth?
+  tokens            Tokens?
+  permitId          String?
+  permit            Permit?            @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
+  road              Road[]
+  favoriteRoads     FavoriteRoad[]
+  favoriteWaypoints FavoriteWaypoint[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
 }
 
 model Road {
-  id           String        @id @default(uuid())
+  id           String         @id @default(uuid())
   userId       String?
-  user         User?         @relation(fields: [userId], references: [id])
+  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   title        String
   description  String
   wayPoints    WayPoints[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  favoriteRoad FavoriteRoad?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  favoriteRoad FavoriteRoad[]
 }
 
 model WayPoints {
-  id               String            @id @default(uuid())
+  id               String             @id @default(uuid())
   latitude         Float
   longitude        Float
   order            Int
   roadId           String?
-  road             Road?             @relation(fields: [roadId], references: [id])
+  road             Road?              @relation(fields: [roadId], references: [id], onDelete: SetNull)
   addressInfoId    String
-  address          AddressInfo       @relation(fields: [addressInfoId], references: [id])
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @default(now()) @updatedAt
-  favoriteWaypoint FavoriteWaypoint?
+  address          AddressInfo        @relation(fields: [addressInfoId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
+  favoriteWaypoint FavoriteWaypoint[]
+
+  @@index([roadId, order])
 }
 
 model AddressInfo {
@@ -111,20 +115,40 @@ model AddressInfo {
   wayPoints WayPoints[]
 }
 
-model FavoriteWaypoint {
-  id          String    @id @default(uuid())
-  userId      String
-  wayPointsId String    @unique
-  waypoint    WayPoints @relation(fields: [wayPointsId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
-}
-
 model FavoriteRoad {
-  id        String   @id @default(uuid())
-  userId    String
-  roadId    String   @unique
-  road      Road     @relation(fields: [roadId], references: [id])
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+
+  roadId           String?
+  road             Road?              @relation(fields: [roadId], references: [id], onDelete: SetNull)
+  favoriteWaypoint FavoriteWaypoint[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, roadId])
+}
+
+model FavoriteWaypoint {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  waypointId String?
+  waypoint   WayPoints? @relation(fields: [waypointId], references: [id], onDelete: SetNull)
+
+  latitude  Float?
+  longitude Float?
+  order     Int?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  favoriteRoad   FavoriteRoad? @relation(fields: [favoriteRoadId], references: [id])
+  favoriteRoadId String?
+
+  @@unique([userId, waypointId])
 }

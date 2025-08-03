@@ -52,8 +52,11 @@ export class FavoritesController {
   @UseGuards(AccessGuard)
   @Delete('remove-road')
   @HttpCode(HttpStatus.OK)
-  async removeFavoriteRoad(@Body() body: RemoveFavorite) {
-    return this.favoritesService.removeFavoriteRoad(body);
+  async removeFavoriteRoad(
+    @Body() body: RemoveFavorite,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.favoritesService.removeFavoriteRoad(body, userId);
   }
 
   @UseGuards(AccessGuard)

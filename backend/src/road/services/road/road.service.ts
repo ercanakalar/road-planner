@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ToastType } from 'src/common/type/status.type';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -22,52 +22,43 @@ export class RoadService {
   async createRoad(data: CreateRoad, userId: string) {
     const { title, description, waypoints } = data;
 
-    const road = await this.prisma.road.create({
-      data: {
-        title,
-        description,
-        userId,
-        wayPoints: {
-          create: waypoints.map((waypoint) => {
-            const { latitude, longitude, order, address, addressInfoId } =
-              waypoint;
+    const road = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.road.create({
+        data: { title, description, userId },
+        omit: { userId: true },
+      });
 
-            return {
-              latitude,
-              longitude,
-              order,
-              ...(addressInfoId
-                ? {
-                    address: {
-                      connect: {
-                        id: addressInfoId,
-                      },
+      for (const wp of waypoints ?? []) {
+        const { latitude, longitude, order, address, addressInfoId } = wp;
+
+        await tx.wayPoints.create({
+          data: {
+            latitude,
+            longitude,
+            order,
+            road: { connect: { id: created.id } },
+            ...(addressInfoId
+              ? { address: { connect: { id: addressInfoId } } }
+              : {
+                  address: {
+                    create: {
+                      country: address?.country || '',
+                      province: address?.province || '',
+                      district: address?.district || '',
+                      address: address?.address || '',
                     },
-                  }
-                : {
-                    address: {
-                      create: {
-                        country: address?.country || '',
-                        province: address?.province || '',
-                        district: address?.district || '',
-                        address: address?.address || '',
-                      },
-                    },
-                  }),
-            };
-          }),
-        },
-      },
-      include: {
-        wayPoints: {
-          include: {
-            address: true,
+                  },
+                }),
           },
+        });
+      }
+
+      return tx.road.findUnique({
+        where: { id: created.id },
+        include: {
+          wayPoints: { include: { address: true }, orderBy: { order: 'asc' } },
         },
-      },
-      omit: {
-        userId: true,
-      },
+      });
     });
 
     return {
@@ -80,31 +71,39 @@ export class RoadService {
 
   async getRoadById(id: string, userId: string) {
     const road = await this.prisma.road.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
       include: {
         wayPoints: {
           include: {
             address: true,
             favoriteWaypoint: {
-              where: {
-                userId,
-              },
+              where: { userId },
+              select: { id: true },
             },
           },
-          orderBy: {
-            order: 'asc',
-          },
+          orderBy: { order: 'asc' },
+        },
+        favoriteRoad: {
+          where: { userId },
+          select: { id: true },
         },
       },
     });
+
+    const shaped = road && {
+      ...road,
+      isFavorite: road.favoriteRoad.length > 0,
+      wayPoints: road.wayPoints.map((wp) => ({
+        ...wp,
+        isFavorite: wp.favoriteWaypoint.length > 0,
+      })),
+    };
 
     return {
       status: ToastType.Success,
       header: 'Road Found',
       message: 'Road found successfully',
-      data: road,
+      data: shaped,
     };
   }
 
@@ -120,113 +119,157 @@ export class RoadService {
           },
         },
         favoriteRoad: {
-          where: {
-            userId,
-          },
+          where: { userId },
+          select: { id: true },
         },
       },
     });
+
+    const shaped = roads.map((road) => ({
+      ...road,
+      isFavorite: road.favoriteRoad.length > 0,
+      wayPoints: road.wayPoints.map((wp) => ({
+        ...wp,
+      })),
+    }));
 
     return {
       status: ToastType.Success,
       header: 'Own Roads',
       message: 'Own roads retrieved successfully',
-      data: roads,
+      data: shaped,
     };
   }
 
   async updateRoadById(id: string, data: UpdateRoad) {
-    const { title, description, waypoints } = data;
+    const { title, description, waypoints = [] } = data;
 
-    await this.prisma.road.update({
-      where: { id },
-      data: { title, description },
-    });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.road.update({
+        where: { id },
+        data: { title, description },
+      });
 
-    for (const waypoint of waypoints) {
-      const {
-        id: waypointId,
-        latitude,
-        longitude,
-        order,
-        address,
-        addressInfoId,
-      } = waypoint;
+      const existing = await tx.wayPoints.findMany({
+        where: { roadId: id },
+        select: { id: true },
+      });
+      const existingIds = new Set(existing.map((w) => w.id));
 
-      if (waypointId) {
-        await this.prisma.wayPoints.update({
-          where: { id: waypointId },
-          data: {
-            latitude,
-            longitude,
-            order,
-            ...(addressInfoId
-              ? {
-                  address: {
-                    connect: { id: addressInfoId },
-                  },
-                }
-              : address && {
-                  address: {
-                    update: {
-                      country: address.country,
-                      province: address.province,
-                      district: address.district,
-                      address: address.address,
+      const keepIds: string[] = [];
+
+      for (const wp of waypoints) {
+        const {
+          id: waypointId,
+          latitude,
+          longitude,
+          order,
+          address,
+          addressInfoId,
+        } = wp;
+
+        if (waypointId && existingIds.has(waypointId)) {
+          await tx.wayPoints.update({
+            where: { id: waypointId },
+            data: {
+              latitude,
+              longitude,
+              order,
+              ...(addressInfoId
+                ? { address: { connect: { id: addressInfoId } } }
+                : address && {
+                    address: {
+                      update: {
+                        country: address.country ?? '',
+                        province: address.province ?? '',
+                        district: address.district ?? '',
+                        address: address.address ?? '',
+                      },
                     },
-                  },
-                }),
-          },
-        });
-      } else {
-        await this.prisma.wayPoints.create({
-          data: {
-            latitude,
-            longitude,
-            order,
-            road: { connect: { id } },
-            ...(addressInfoId
-              ? {
-                  address: {
-                    connect: { id: addressInfoId },
-                  },
-                }
-              : {
-                  address: {
-                    create: {
-                      country: address?.country || '',
-                      province: address?.province || '',
-                      district: address?.district || '',
-                      address: address?.address || '',
+                  }),
+            },
+          });
+          keepIds.push(waypointId);
+        } else {
+          const created = await tx.wayPoints.create({
+            data: {
+              latitude,
+              longitude,
+              order,
+              road: { connect: { id } },
+              ...(addressInfoId
+                ? { address: { connect: { id: addressInfoId } } }
+                : {
+                    address: {
+                      create: {
+                        country: address?.country || '',
+                        province: address?.province || '',
+                        district: address?.district || '',
+                        address: address?.address || '',
+                      },
                     },
-                  },
-                }),
+                  }),
+            },
+            select: { id: true },
+          });
+          keepIds.push(created.id);
+        }
+      }
+
+      if (existingIds.size > 0) {
+        await tx.wayPoints.deleteMany({
+          where: {
+            roadId: id,
+            id: { notIn: keepIds },
           },
         });
       }
-    }
 
-    const road = await this.prisma.road.findUnique({
-      where: { id },
-      include: {
-        wayPoints: { include: { address: true } },
-      },
+      return tx.road.findUnique({
+        where: { id },
+        include: {
+          wayPoints: { include: { address: true }, orderBy: { order: 'asc' } },
+        },
+      });
     });
 
     return {
       status: ToastType.Success,
       header: 'Road Updated',
       message: 'Road updated successfully',
-      data: road,
+      data: updated,
     };
   }
 
   async deleteRoadById(id: string, userId: string) {
-    await this.prisma.road.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const road = await tx.road.findFirst({
+        where: { id, userId },
+        select: { id: true },
+      });
+      if (!road) return;
+
+      const wps = await tx.wayPoints.findMany({
+        where: { roadId: id },
+        select: { id: true, addressInfoId: true },
+      });
+
+      await tx.favoriteWaypoint.deleteMany({
+        where: { waypointId: { in: wps.map((w) => w.id) } },
+      });
+
+      await tx.wayPoints.deleteMany({ where: { roadId: id } });
+
+      const addressIds = wps
+        .map((w) => w.addressInfoId)
+        .filter(Boolean) as string[];
+      if (addressIds.length) {
+        await tx.addressInfo.deleteMany({
+          where: { id: { in: addressIds } },
+        });
+      }
+
+      await tx.road.delete({ where: { id } });
     });
 
     return {
@@ -296,31 +339,32 @@ export class RoadService {
   ) {
     const { waypointId } = body;
 
-    await this.prisma.wayPoints.delete({
-      where: {
-        id: waypointId,
-        roadId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const wp = await tx.wayPoints.findUnique({
+        where: { id: waypointId },
+        select: { roadId: true },
+      });
+      console.log(wp);
+
+      if (!wp || wp.roadId !== roadId)
+        throw new NotFoundException('Waypoint not found for this road');
+      await tx.wayPoints.delete({ where: { id: waypointId } });
+
+      const remaining = await tx.wayPoints.findMany({
+        where: { roadId },
+        orderBy: { order: 'asc' },
+        select: { id: true },
+      });
+
+      await Promise.all(
+        remaining.map((wp, index) =>
+          tx.wayPoints.update({
+            where: { id: wp.id },
+            data: { order: index + 1 },
+          }),
+        ),
+      );
     });
-
-    const remainingWaypoints = await this.prisma.wayPoints.findMany({
-      where: { roadId },
-      orderBy: { order: 'asc' },
-    });
-
-    const reordered = remainingWaypoints.map((wp, index) => ({
-      id: wp.id,
-      order: index + 1,
-    }));
-
-    const updatePromises = reordered.map((wp) =>
-      this.prisma.wayPoints.update({
-        where: { id: wp.id },
-        data: { order: wp.order },
-      }),
-    );
-
-    await Promise.all(updatePromises);
 
     return {
       status: ToastType.Success,

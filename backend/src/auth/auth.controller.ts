@@ -91,7 +91,6 @@ export class AuthController {
   async redirectToGoogle(@Res() res: Response) {
     const url = await this.googleService.getAuthClientUrl();
     res.redirect(url);
-    // return { url };
   }
 
   @Public()
