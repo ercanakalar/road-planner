@@ -1,41 +1,59 @@
 version: '3.8'
 
 services:
-  # backend-prod:
-  #   image: ercanakalar/road-map-backend
-  #   profiles: [prod]
   backend:
     build:
       context: ./backend
+    image: ercanakalar/road-map-backend
+    container_name: road-map-backend
     ports:
       - '3000:3000'
-    image: ercanakalar/road-map-backend
-    network_mode: 'host'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:road-map@test-db:5432/roaddb?schema=public
+      DATABASE_HOST: test-db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: roaddb
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: road-map
     depends_on:
       - test-db
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./backend
-          target: /app
-          ignore:
-            - node_modules/
-            - dist/
-        - action: rebuild
-          path: ./backend/package.json
-    # profiles: [dev]
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:dev
 
   test-db:
     image: postgres:latest
     container_name: road-map-db
     ports:
       - '5434:5432'
-    # volumes:
-    #   - road-map-db:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: roaddb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: road-map
-# volumes:
-#   road-map-db:
+    volumes:
+      - road-map-db:/var/lib/postgresql/data
 
+  mobile:
+    build:
+      context: ./mobile-react-native
+    image: ercanakalar/road-map-mobile
+    container_name: road-map-mobile
+    ports:
+      - '8081:8081'
+      - '19000:19000'
+      - '19001:19001'
+      - '19002:19002'
+    environment:
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      REACT_NATIVE_PACKAGER_HOSTNAME: 192.168.1.104
+    volumes:
+      - ./mobile-react-native:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    command: npx expo start --tunnel
+
+volumes:
+  road-map-db:

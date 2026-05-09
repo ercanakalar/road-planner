@@ -189,22 +189,28 @@ export class FavoritesService {
           select: { id: true, roadId: true },
         });
 
-        if (!favorite) {
-          throw new NotFoundException('Favorite road not found');
-        }
+        if (favorite?.roadId) {
+          const wpIds = await tx.wayPoints.findMany({
+            where: { roadId: favorite.roadId },
+            select: { id: true },
+          });
 
-        const wpIds = await tx.wayPoints.findMany({
-          where: { roadId: favorite.roadId },
-          select: { id: true },
-        });
+          if (wpIds.length > 0) {
+            await tx.favoriteWaypoint.deleteMany({
+              where: { userId, favoriteRoadId: favorite.id },
+            });
+          }
 
-        if (wpIds.length > 0) {
-          await tx.favoriteWaypoint.deleteMany({
-            where: { userId, favoriteRoadId: favorite.id },
+          await tx.road.update({
+            where: { id: favorite.roadId },
+            data: { favoriteRoad: { disconnect: { id: favorite.id } } },
           });
         }
+        const res = await tx.favoriteRoad.delete({
+          where: { id: favorite?.id },
+        });
 
-        return await tx.favoriteRoad.delete({ where: { id: favorite.id } });
+        return res;
       });
 
       return {

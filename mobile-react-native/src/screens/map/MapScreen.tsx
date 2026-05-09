@@ -29,7 +29,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
 
   const { data: roads, refetch } = useGetOwnRoadsQuery(
     { accessToken },
-    { skip: !accessToken }
+    { skip: !accessToken },
   ) as { data: WaypointWithAddressAndId[]; refetch: () => void };
 
   const [deleteRoadById, { isLoading }] = useDeleteRoadByIdMutation();
@@ -48,8 +48,8 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     if (favorite) {
       await removeFavoriteRoad({
         accessToken,
-        favoriteId: road.favorites[0].id,
-      }).unwrap();
+        favoriteId: road.favoriteRoad.id,
+      });
     } else {
       await addFavoriteRoad({
         accessToken,
@@ -62,7 +62,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
   useFocusEffect(
     useCallback(() => {
       if (accessToken) refetch?.();
-    }, [accessToken, refetch])
+    }, [accessToken, refetch]),
   );
 
   return (

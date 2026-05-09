@@ -79,15 +79,16 @@ model User {
 }
 
 model Road {
-  id           String         @id @default(uuid())
-  userId       String?
-  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  title        String
-  description  String
-  wayPoints    WayPoints[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @default(now()) @updatedAt
-  favoriteRoad FavoriteRoad[]
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title       String
+  description String
+  wayPoints   WayPoints[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+
+  favoriteRoad FavoriteRoad? @relation("RoadFavoriteRoad")
 }
 
 model WayPoints {
@@ -123,8 +124,8 @@ model FavoriteRoad {
   title       String
   description String
 
-  roadId           String?
-  road             Road?              @relation(fields: [roadId], references: [id], onDelete: SetNull)
+  roadId           String?            @unique
+  road             Road?              @relation("RoadFavoriteRoad", fields: [roadId], references: [id], onDelete: SetNull)
   favoriteWaypoint FavoriteWaypoint[]
 
   createdAt DateTime @default(now())

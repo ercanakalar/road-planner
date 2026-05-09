@@ -92,7 +92,7 @@ export class RoadService {
 
     const shaped = road && {
       ...road,
-      isFavorite: road.favoriteRoad.length > 0,
+      isFavorite: !!road.favoriteRoad,
       wayPoints: road.wayPoints.map((wp) => ({
         ...wp,
         isFavorite: wp.favoriteWaypoint.length > 0,
@@ -127,7 +127,7 @@ export class RoadService {
 
     const shaped = roads.map((road) => ({
       ...road,
-      isFavorite: road.favoriteRoad.length > 0,
+      isFavorite: !!road.favoriteRoad,
       wayPoints: road.wayPoints.map((wp) => ({
         ...wp,
       })),

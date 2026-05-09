@@ -24,17 +24,13 @@ const HomeTabNavigator = () => {
 
   useEffect(() => {
     const checkRefreshToken = async () => {
-      try {
-        const refreshToken = await localStorageService.getItem(
-          TokenType.REFRESH_TOKEN
-        );
-        const accessToken = await localStorageService.getItem(
-          TokenType.ACCESS_TOKEN
-        );
-        await validateRefreshToken({ accessToken, refreshToken }).unwrap();
-      } catch (error) {
-        console.error('Invalid refresh token', error);
-      }
+      const refreshToken = await localStorageService.getItem(
+        TokenType.REFRESH_TOKEN,
+      );
+      const accessToken = await localStorageService.getItem(
+        TokenType.ACCESS_TOKEN,
+      );
+      await validateRefreshToken({ accessToken, refreshToken }).unwrap();
     };
 
     checkRefreshToken();

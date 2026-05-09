@@ -11,10 +11,10 @@ RUN apt-get update -y && apt-get install -y \
 # Copy only necessary files for installing dependencies
 COPY package*.json ./
 COPY .env ./
-COPY /prisma/* ./prisma/
+COPY prisma ./prisma/
 
-RUN npx prisma generate
 RUN npm install
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy the rest of the application
 COPY . .
