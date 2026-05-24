@@ -9,8 +9,14 @@ import { useAppDispatch, useAppSelector } from 'store/hook';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { useAppStateGoBack } from 'hooks/useAppStateGoBack';
 
-const ProfileDetailScreen = ({ navigation, route }: { navigation: NavigationProp<any>; route: any }) => {
-  const { accessToken, userId } = route.params;
+const ProfileDetailScreen = ({
+  navigation,
+  route,
+}: {
+  navigation: NavigationProp<any>;
+  route: any;
+}) => {
+  const { accessToken } = route.params;
   const dispatch = useAppDispatch();
   const { data, isLoading } = useAppSelector((state) => state.user);
 
@@ -29,7 +35,6 @@ const ProfileDetailScreen = ({ navigation, route }: { navigation: NavigationProp
   const [isCorporate, setIsCorporate] = useState(false);
 
   useEffect(() => {
-
     if (data) {
       setProfile({
         id: data.id,
@@ -51,37 +56,60 @@ const ProfileDetailScreen = ({ navigation, route }: { navigation: NavigationProp
 
   const handleUpdateProfile = async () => {
     try {
-      dispatch(updateUserProfile({
-        ...profile
-      }))
+      dispatch(
+        updateUserProfile({
+          ...profile,
+        }),
+      );
+
       await updateUser({
         accessToken,
-        profile: {
-          ...profile,
-          id: userId,
-        },
-      }).unwrap()
+        ...profile,
+      }).unwrap();
 
       navigation.goBack();
-    } catch (error) {
-
-    }
+    } catch (error) { }
   };
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size='large' color='#0000ff' />
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <TextInput label="First Name" value={profile?.firstName} onChangeText={onChangeText('firstName')} mode="outlined" style={styles.input} />
-      <TextInput label="Last Name" value={profile?.lastName} onChangeText={onChangeText('lastName')} mode="outlined" style={styles.input} />
-      <TextInput label="Email" value={profile?.email} disabled editable={false} mode="outlined" style={styles.input} />
-      <TextInput label="Nick Name" value={profile?.nickName} onChangeText={onChangeText('nickName')} mode="outlined" style={styles.input} />
+      <TextInput
+        label='First Name'
+        value={profile?.firstName}
+        onChangeText={onChangeText('firstName')}
+        mode='outlined'
+        style={styles.input}
+      />
+      <TextInput
+        label='Last Name'
+        value={profile?.lastName}
+        onChangeText={onChangeText('lastName')}
+        mode='outlined'
+        style={styles.input}
+      />
+      <TextInput
+        label='Email'
+        value={profile?.email}
+        disabled
+        editable={false}
+        mode='outlined'
+        style={styles.input}
+      />
+      <TextInput
+        label='Nick Name'
+        value={profile?.nickName}
+        onChangeText={onChangeText('nickName')}
+        mode='outlined'
+        style={styles.input}
+      />
       {/* <TextInput label="Phone Number" value={profile?.lastName} onChangeText={onChangeText('phone')} mode="outlined" style={styles.input} /> */}
 
       <View style={styles.checkboxRow}>
@@ -89,11 +117,13 @@ const ProfileDetailScreen = ({ navigation, route }: { navigation: NavigationProp
           status={isCorporate ? 'checked' : 'unchecked'}
           onPress={() => setIsCorporate(!isCorporate)}
         />
-        <Text style={styles.checkText}>I want to be informed about opportunities for workplace shopping.</Text>
+        <Text style={styles.checkText}>
+          I want to be informed about opportunities for workplace shopping.
+        </Text>
       </View>
 
       <Button
-        mode="contained"
+        mode='contained'
         onPress={handleUpdateProfile}
         style={styles.updateButton}
       >

@@ -14,7 +14,7 @@ export class RoadOwnerGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     const user = req.user;
-    const roadId = req.params.id;
+    const roadId = req.params.id || req.query.id;
 
     if (!user || !roadId) {
       throw new ForbiddenException('Missing user or road ID');

@@ -15,6 +15,9 @@ type RootStackParamList = {
     accessToken?: string;
     waypoint: WaypointWithAddress;
   };
+  FavoriteRoutes: undefined;
+  SettingsScreen: undefined;
+  AllRoutes: undefined;
 };
 
 export { RootStackParamList };

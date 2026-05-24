@@ -7,35 +7,44 @@ import { ToastType } from 'src/common/type/status.type';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async updateUser(body: UpdateUser) {
-    const existNickName = await this.prisma.user.findFirst({
-      where: {
-        nickName: body.nickName,
-        NOT: {
-          id: body.id,
-        },
-      },
-    });
+  async updateUser(body: UpdateUser, userId: string) {
+    try {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const nickName = await tx.user.findUnique({
+          where: {
+            nickName: body.nickName,
+            NOT: {
+              id: userId,
+            },
+          },
+        });
 
-    if (existNickName) throw new ConflictException('This Nick Name in use!');
+        if (nickName) {
+          throw new ConflictException('This Nick Name in use!');
+        }
 
-    const updated = await this.prisma.user.update({
-      where: {
-        id: body.id,
-      },
-      data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        nickName: body.nickName,
-        photo: body.photo,
-      },
-    });
-    return {
-      status: ToastType.Success,
-      header: 'User Updated',
-      message: 'User updated successfully',
-      data: updated,
-    };
+        return tx.user.update({
+          where: {
+            id: userId,
+          },
+          data: {
+            ...body,
+          },
+        });
+      });
+
+      return {
+        status: ToastType.Success,
+        header: 'User Updated',
+        message: 'User updated successfully',
+        data: updated,
+      };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw error;
+    }
   }
 
   async getUserById(id: string) {

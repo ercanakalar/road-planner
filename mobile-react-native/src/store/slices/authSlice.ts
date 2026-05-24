@@ -16,7 +16,7 @@ export const authSlice: Slice<
   name: 'auth',
   initialState: authInitialState,
   reducers: {
-    logout: (state: IAuthState) => {
+    logout: (state) => {
       state.isLoggedIn = false;
       state.accessToken = null;
       state.refreshToken = null;
@@ -47,7 +47,7 @@ export const authSlice: Slice<
           state.isLoggedIn = true;
           state.errors = null;
           state.state = 'authenticated';
-        }
+        },
       )
       .addMatcher(signIn.matchRejected, (state: IAuthState, action: any) => {
         state.errors = action?.error?.data || 'Unknown error';
@@ -63,7 +63,7 @@ export const authSlice: Slice<
           state.isLoggedIn = false;
           state.errors = null;
           state.state = 'authenticated';
-        }
+        },
       )
       .addMatcher(logout.matchRejected, (state: IAuthState, action: any) => {
         state.errors = action?.error?.data || 'Unknown error';
@@ -80,7 +80,7 @@ export const authSlice: Slice<
           state.isLoggedIn = true;
           state.errors = null;
           state.state = 'authenticated';
-        }
+        },
       )
       .addMatcher(
         validateRefreshToken.matchRejected,
@@ -88,7 +88,7 @@ export const authSlice: Slice<
           state.errors = action?.error?.data || 'Unknown error';
           state.isLoggedIn = false;
           state.state = 'error';
-        }
+        },
       );
   },
 });

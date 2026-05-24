@@ -102,9 +102,12 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Put('/update-waypoint/:id')
+  @Put('/update-waypoint/:waypointId')
   @HttpCode(HttpStatus.OK)
-  async updateWaypointWithRoadId(@Body() body: UpdateWaypointWithRoadId) {
-    return this.roadService.updateWaypointWithRoadId(body);
+  async updateWaypointWithRoadId(
+    @Body() body: UpdateWaypointWithRoadId,
+    @Param('waypointId') waypointId: string,
+  ) {
+    return this.roadService.updateWaypointWithRoadId(body, waypointId);
   }
 }

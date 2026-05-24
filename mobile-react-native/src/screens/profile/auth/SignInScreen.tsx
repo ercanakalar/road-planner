@@ -43,26 +43,25 @@ const SignInScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
     }
 
     try {
-      const response = (await signIn(signInForm).unwrap()) as SignInResponse;
+      const response = ((await signIn(signInForm).unwrap()) as SignInResponse);
       dispatch(setUserId(response.userId));
       await localStorageService.setItem(
         TokenType.ACCESS_TOKEN,
-        response.accessToken
+        response.accessToken,
       );
       await localStorageService.setItem(
         TokenType.REFRESH_TOKEN,
-        response.refreshToken
+        response.refreshToken,
       );
-      navigation.navigate('HomeTabNavigator');
+
       setError('');
+      navigation.navigate('HomeTabNavigator', { screen: 'Home' });
     } catch {
       setError('Sign-in failed. Please check your credentials.');
     }
   };
 
   const handleGoogleSignIn = async () => {
-    console.log('awd');
-    
     await googleMobileSignIn({
       code: 'awda',
     });

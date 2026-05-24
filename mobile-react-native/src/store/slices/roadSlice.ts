@@ -16,6 +16,7 @@ const initialState: RoadState = {
   user: null,
   error: null,
   errors: null,
+  selectedWaypointId: undefined,
 };
 
 export const roadSlice = createSlice({
@@ -24,7 +25,7 @@ export const roadSlice = createSlice({
   reducers: {
     setSelectedWaypointId: (
       state: RoadState,
-      action: PayloadAction<string | undefined>
+      action: PayloadAction<string | undefined>,
     ) => {
       state.selectedWaypointId = action.payload;
     },
@@ -32,16 +33,39 @@ export const roadSlice = createSlice({
       state: RoadState,
       action: PayloadAction<{
         roadId: string;
-      }>
+      }>,
     ) => {
       const idToDelete = action.payload.roadId;
-      state.roads = state.roads?.filter((road) => road.id === idToDelete);
-      return state;
+      state.roads = state.roads?.filter((road) => road.id !== idToDelete);
+    },
+    addRoad: (state: RoadState, action: PayloadAction<any>) => {
+      state.roads.push(action.payload);
+    },
+    updateRoad: (state: RoadState, action: PayloadAction<any>) => {
+      const index = state.roads.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.roads[index] = action.payload;
+      }
+    },
+    favoriteRoad: (state: RoadState, action: PayloadAction<any>) => {
+      const index = state.roads.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.roads[index] = {
+          ...state.roads[index],
+          isFavorite: !state.roads[index].isFavorite,
+        };
+      }
     },
   },
   extraReducers: (builder) => {},
 });
 
-export const { setSelectedWaypointId, deleteRoadById } = roadSlice.actions;
+export const {
+  setSelectedWaypointId,
+  deleteRoadById,
+  addRoad,
+  updateRoad,
+  favoriteRoad,
+} = roadSlice.actions;
 
 export default roadSlice.reducer;

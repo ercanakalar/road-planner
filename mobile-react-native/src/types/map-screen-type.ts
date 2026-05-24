@@ -70,11 +70,7 @@ export type WaypointWithAddress = {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  favoriteWaypoint: FavoriteWaypoint;
-  isFavorite: boolean;
-  favorites: Array<{
-    id: string;
-  }>;
+  favoriteWaypoints: FavoriteWaypoint[];
 };
 
 export type WaypointWithAddressAndId = {
@@ -85,7 +81,7 @@ export type WaypointWithAddressAndId = {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  favoriteRoad: FavoriteRoad;
+  favoriteRoads: FavoriteRoad[];
   isFavorite: boolean;
   favorites: Array<{
     id: string;
@@ -110,8 +106,5 @@ type FavoriteRoad = {
 
 export interface WaypointOptionsProps {
   onOptionSelect: (option: WaypointOption) => void;
-}
-
-export interface EnhancedWaypointListProps {
-  routeId: string;
+  item: WaypointWithAddress;
 }

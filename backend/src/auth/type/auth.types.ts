@@ -3,7 +3,6 @@ import { Request } from 'express';
 export type SignUpData = {
   email: string;
   password: string;
-  confirmPassword: string;
 };
 
 export type SignInData = {

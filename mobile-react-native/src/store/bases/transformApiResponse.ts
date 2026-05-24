@@ -2,26 +2,28 @@ import localStorageService from 'services/localStorageService';
 import { showNotification } from 'services/notificationService';
 import { TokenType } from 'types/libs/auth';
 
-interface ApiResponse {
-  Response: string;
-  [key: string]: any;
+interface ApiResponse<T = any> {
+  status?: string;
+  message?: string;
+  header?: string;
+  data?: T;
 }
-
-export const transformApiResponse = <T extends ApiResponse>(
-  data: T,
-  query?: string
+export const transformApiResponse = <T>(
+  response: ApiResponse<T>,
+  query?: string,
 ): T => {
-  if (query && query === 'logout') {
+  if (query === 'logout') {
     localStorageService.removeItem(TokenType.ACCESS_TOKEN);
     localStorageService.removeItem(TokenType.REFRESH_TOKEN);
   }
 
-  if (data?.message) {
+  if (response?.message) {
     showNotification({
-      type: data.status,
-      header: `${data.header}`,
-      message: `${data.message}`,
+      type: response.status as any,
+      header: response.header ?? '',
+      message: response.message,
     });
   }
-  return data;
+
+  return response.data as T;
 };

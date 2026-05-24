@@ -10,7 +10,7 @@ import { favoriteService } from './services/favoriteService';
 
 import authMiddleware from './middlewares/auth-middleware';
 
-import authReducer from './slices/authSlice';
+import authReducer, { authSlice } from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import roadReducer from './slices/roadSlice';
 import mapReducer from './slices/mapSlice';
@@ -32,9 +32,10 @@ export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
+      immutableCheck: false,
       serializableCheck: false,
     })
-      .prepend(authMiddleware.middleware)
+      .concat(authMiddleware.middleware)
       .concat(authenticationService.middleware)
       .concat(profileService.middleware)
       .concat(roadService.middleware)

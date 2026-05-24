@@ -10,6 +10,7 @@ import {
 
 import { UserService } from './user.service';
 import { UpdateUser } from './type/user.type';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
 
 @Controller('api/user')
 export class UserController {
@@ -17,8 +18,11 @@ export class UserController {
 
   @Post('/update')
   @HttpCode(HttpStatus.OK)
-  async updateUser(@Body() body: UpdateUser) {
-    return this.userService.updateUser(body);
+  async updateUser(
+    @Body() body: UpdateUser,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.userService.updateUser(body, userId);
   }
 
   @Get('/:id')

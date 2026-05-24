@@ -7,7 +7,6 @@ import { useValidateRefreshTokenMutation } from 'store/services/authenticationSe
 import localStorageService from 'services/localStorageService';
 
 import HomeScreen from 'screens/home/HomeScreen';
-import MapScreen from 'screens/map/MapScreen';
 import ChatScreen from 'screens/chat/ChatScreen';
 
 import { TokenType } from 'types/libs/auth';
@@ -15,6 +14,7 @@ import { useDispatch } from 'react-redux';
 import { setUserId } from 'store/slices/authSlice';
 import jwtService from 'services/jwtService';
 import AuthGate from 'screens/profile/auth/AuthGateScreen';
+import MapScreen from 'screens/map/MapScreen';
 
 const Tab = createBottomTabNavigator();
 

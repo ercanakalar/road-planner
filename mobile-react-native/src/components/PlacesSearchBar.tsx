@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import appConfig from 'constants/appConfig';
@@ -14,11 +15,13 @@ const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
 
 const PlacesSearchBar = ({
   onPlaceSelected,
+  onLayoutChange,
 }: {
   onPlaceSelected: (
     location: { lat: number; lng: number },
-    address: string
+    address: string,
   ) => void;
+  onLayoutChange?: (bottom: number) => void;
 }) => {
   const [input, setInput] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
@@ -34,8 +37,8 @@ const PlacesSearchBar = ({
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-          text
-        )}&key=${REACT_APP_MAP_API_KEY}`
+          text,
+        )}&key=${REACT_APP_MAP_API_KEY}`,
       );
       const data = await response.json();
       if (data.status === 'OK') {
@@ -51,7 +54,7 @@ const PlacesSearchBar = ({
   const handleSelect = async (placeId: string, description: string) => {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${REACT_APP_MAP_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${REACT_APP_MAP_API_KEY}`,
       );
       const data = await response.json();
       if (data.status === 'OK') {
@@ -72,7 +75,13 @@ const PlacesSearchBar = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(e: LayoutChangeEvent) => {
+        const { y, height } = e.nativeEvent.layout;
+        onLayoutChange?.(y + height);
+      }}
+    >
       <View style={styles.inputWrapper}>
         <TextInput
           ref={inputRef}

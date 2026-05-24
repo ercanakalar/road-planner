@@ -7,43 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────────────────────
+// AUTH MODELS
+// ─────────────────────────────────────────────────────────────
+
 model ManuelAuth {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  password        String   @db.VarChar(255)
-  confirmPassword String   @db.VarChar(255)
-  userId          String?  @unique
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  tokens          Tokens?  @relation(fields: [tokenId], references: [id], onDelete: SetNull)
-  tokenId         String?  @unique
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String    @db.VarChar(255)
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokens    Tokens?   @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  tokenId   String?   @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
 }
 
 model GoogleAuth {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenId   String?  @unique
-  tokens    Tokens?  @relation(fields: [tokenId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id        String    @id @default(uuid())
+  email     String    @unique
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokenId   String?   @unique
+  tokens    Tokens?   @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
 }
 
 model Tokens {
   id                       String      @id @default(uuid())
   userId                   String      @unique
-  user                     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                     User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   manuelAuth               ManuelAuth?
-  GoogleAuth               GoogleAuth?
-  refreshToken             String
-  accessToken              String
+  googleAuth               GoogleAuth?
+  // Nullable — signOut sonrası null yapılır, bu kasıtlı
+  refreshToken             String?
+  accessToken              String?
   resetToken               String?     @unique
   passwordResetTokenExpiry DateTime?
   createdAt                DateTime    @default(now())
-  updatedAt                DateTime    @default(now()) @updatedAt
+  updatedAt                DateTime    @updatedAt
+  deletedAt                DateTime?
+
+  @@index([resetToken])
+  @@index([deletedAt])
 }
+
+// ─────────────────────────────────────────────────────────────
+// PERMISSION MODELS
+// ─────────────────────────────────────────────────────────────
 
 model Permit {
   id          String       @id @default(uuid())
@@ -51,13 +69,27 @@ model Permit {
   description String?
   users       User[]       @relation("UserPermit")
   permissions Permission[] @relation("PermitPermissions")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model Permission {
-  id      String   @id @default(uuid())
-  name    String   @unique
-  permits Permit[] @relation("PermitPermissions")
+  id        String    @id @default(uuid())
+  name      String    @unique
+  permits   Permit[]  @relation("PermitPermissions")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
 }
+
+// ─────────────────────────────────────────────────────────────
+// USER MODEL
+// ─────────────────────────────────────────────────────────────
 
 model User {
   id                String             @id @default(uuid())
@@ -71,85 +103,111 @@ model User {
   tokens            Tokens?
   permitId          String?
   permit            Permit?            @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
-  road              Road[]
+  roads             Road[]
   favoriteRoads     FavoriteRoad[]
   favoriteWaypoints FavoriteWaypoint[]
   createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now()) @updatedAt
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  @@index([email])
+  @@index([nickName])
+  @@index([deletedAt])
 }
+
+// ─────────────────────────────────────────────────────────────
+// ROAD & WAYPOINT MODELS
+// ─────────────────────────────────────────────────────────────
 
 model Road {
-  id          String      @id @default(uuid())
-  userId      String?
-  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  title       String
-  description String
-  wayPoints   WayPoints[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
+  id            String         @id @default(uuid())
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title         String
+  description   String
+  wayPoints     WayPoint[]
+  favoriteRoads FavoriteRoad[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
 
-  favoriteRoad FavoriteRoad? @relation("RoadFavoriteRoad")
+  @@index([userId])
+  @@index([deletedAt])
+  @@index([userId, deletedAt])
 }
 
-model WayPoints {
-  id               String             @id @default(uuid())
-  latitude         Float
-  longitude        Float
-  order            Int
-  roadId           String?
-  road             Road?              @relation(fields: [roadId], references: [id], onDelete: SetNull)
-  addressInfoId    String
-  address          AddressInfo        @relation(fields: [addressInfoId], references: [id], onDelete: Cascade)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @default(now()) @updatedAt
-  favoriteWaypoint FavoriteWaypoint[]
+model WayPoint {
+  id        String  @id @default(uuid())
+  latitude  Float
+  longitude Float
+  order     Int
+  roadId    String?
+  road      Road?   @relation(fields: [roadId], references: [id], onDelete: SetNull)
+
+  addressInfoId     String?
+  address           AddressInfo?       @relation(fields: [addressInfoId], references: [id], onDelete: SetNull)
+  favoriteWaypoints FavoriteWaypoint[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([roadId, order])
+  @@index([deletedAt])
+  @@index([roadId, deletedAt])
 }
 
 model AddressInfo {
-  id        String      @id @default(uuid())
+  id        String     @id @default(uuid())
   country   String?
   province  String?
   district  String?
   address   String
-  wayPoints WayPoints[]
+  wayPoints WayPoint[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@index([country, province, district])
+  @@index([deletedAt])
 }
 
+// ─────────────────────────────────────────────────────────────
+// FAVORITES
+// ─────────────────────────────────────────────────────────────
+
 model FavoriteRoad {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  title       String
-  description String
-
-  roadId           String?            @unique
-  road             Road?              @relation("RoadFavoriteRoad", fields: [roadId], references: [id], onDelete: SetNull)
-  favoriteWaypoint FavoriteWaypoint[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  title       String?
+  description String?
+  roadId      String?
+  road        Road?     @relation(fields: [roadId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   @@unique([userId, roadId])
+  @@index([userId])
+  @@index([roadId])
+  @@index([userId, deletedAt])
 }
 
 model FavoriteWaypoint {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  waypointId String?
-  waypoint   WayPoints? @relation(fields: [waypointId], references: [id], onDelete: SetNull)
-
-  latitude  Float?
-  longitude Float?
-  order     Int?
-
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @default(now()) @updatedAt
-  favoriteRoad   FavoriteRoad? @relation(fields: [favoriteRoadId], references: [id])
-  favoriteRoadId String?
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  title       String?
+  description String?
+  waypointId  String?
+  waypoint    WayPoint? @relation(fields: [waypointId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   @@unique([userId, waypointId])
+  @@index([userId])
+  @@index([waypointId])
+  @@index([userId, deletedAt])
 }

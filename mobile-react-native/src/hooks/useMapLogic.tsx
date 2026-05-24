@@ -6,9 +6,8 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { useRouteManager } from 'hooks/useRouteManager';
 import {
     useAddWaypointMutation,
-    useDeleteWaypointByRoadIdMutation,
     useGetRoadByIdQuery,
-    useUpdateWaypointByRoadIdMutation,
+    useUpdateWaypointByIdMutation,
 } from 'store/services/roadService';
 import { ShowRouteByIdRouteProp, WaypointWithAddress } from 'types/map-screen-type';
 import { showNotification } from 'services/notificationService';
@@ -36,7 +35,7 @@ const useMapLogic = () => {
         isDragging,
     } = useSelector((state: RootState) => state.map);
 
-    const { data, isLoading, refetch } = useGetRoadByIdQuery({ accessToken, routeId }) as {
+    const { data, isLoading, refetch } = useGetRoadByIdQuery({ accessToken, roadId: routeId }) as {
         data: {
             wayPoints: WaypointWithAddress[];
         };
@@ -44,8 +43,8 @@ const useMapLogic = () => {
         refetch: () => void;
     };
     const [addWaypoint] = useAddWaypointMutation();
-    const [deleteWaypoint] = useDeleteWaypointByRoadIdMutation();
-    const [updateWaypoint] = useUpdateWaypointByRoadIdMutation();
+    const [deleteWaypoint] = useUpdateWaypointByIdMutation();
+    const [updateWaypoint] = useUpdateWaypointByIdMutation();
 
     const { fetchRoute, routeCoordinates } = useRouteManager();
 
@@ -112,7 +111,7 @@ const useMapLogic = () => {
         };
 
         try {
-            await updateWaypoint({ accessToken, routeId, waypointId, waypoint: updatedWaypoint });
+            await updateWaypoint({ accessToken, roadId: routeId, waypointId, waypoint: updatedWaypoint });
             refetch();
         } catch {
             showNotification({

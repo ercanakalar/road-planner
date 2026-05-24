@@ -5,8 +5,11 @@ import createApi from '../middlewares/createApi';
 
 import {
   SignInArgs,
+  SignInArgsResponse,
   SignUpArgs,
+  SignUpArgsResponse,
   ValidateRefreshTokenArgs,
+  ValidateRefreshTokenResponse,
 } from '../../types/store/services/authenticationService-type';
 
 export const authenticationService = createApi({
@@ -40,7 +43,7 @@ export const authenticationService = createApi({
       transformErrorResponse?: (response: any) => any;
     }): any;
   }) => ({
-    signUp: builder.mutation<any, SignUpArgs>({
+    signUp: builder.mutation<SignUpArgsResponse, SignUpArgs>({
       query: (args: SignUpArgs) => {
         return {
           url: '/auth/sign-up',
@@ -58,11 +61,11 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res) => {
+      transformResponse: (res: SignUpArgsResponse) => {
         return transformApiResponse(res);
       },
     }),
-    signIn: builder.mutation<any, SignInArgs>({
+    signIn: builder.mutation<SignInArgsResponse, SignInArgs>({
       query: (args: SignInArgs) => {
         return {
           url: '/auth/sign-in',
@@ -79,9 +82,7 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res);
-      },
+      transformResponse: (res: SignInArgsResponse) => transformApiResponse(res),
     }),
     logout: builder.mutation<void, { accessToken: string }>({
       query: (args: { accessToken: string }) => {
@@ -98,11 +99,12 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res, 'logout');
-      },
+      transformResponse: (res) => transformApiResponse(res, 'logout'),
     }),
-    validateRefreshToken: builder.mutation<any, ValidateRefreshTokenArgs>({
+    validateRefreshToken: builder.mutation<
+      ValidateRefreshTokenResponse,
+      ValidateRefreshTokenArgs
+    >({
       query: (args: ValidateRefreshTokenArgs) => {
         return {
           url: '/auth/refresh-token',
@@ -119,11 +121,11 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
+      transformResponse: (res: ValidateRefreshTokenResponse) =>
+        transformApiResponse(res),
     }),
     googleMobileSignIn: builder.mutation<any, { code: string }>({
       query: (args) => {
-        console.log(args.code);
-        
         return {
           url: `/auth/google/callback?code=${args.code}`,
           method: 'GET',
@@ -136,9 +138,9 @@ export const authenticationService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res) => transformApiResponse(res),
+      transformResponse: (res: ValidateRefreshTokenResponse) =>
+        transformApiResponse(res),
     }),
-
   }),
 });
 
@@ -147,6 +149,5 @@ export const {
   useSignInMutation,
   useValidateRefreshTokenMutation,
   useLogoutMutation,
-  useGoogleMobileSignInMutation
+  useGoogleMobileSignInMutation,
 } = authenticationService;
-

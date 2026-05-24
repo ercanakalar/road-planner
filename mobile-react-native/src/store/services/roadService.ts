@@ -2,7 +2,20 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
-import { WaypointWithAddressAndId } from 'types/map-screen-type';
+import {
+  AddWaypointArgs,
+  AddWaypointResponse,
+  DeleteRoadByIdArgs,
+  DeleteRoadByIdResponse,
+  DeleteWaypointByRoadIdArgs,
+  DeleteWaypointByRoadIdResponse,
+  GetOwnRoadsArgs,
+  GetOwnRoadsResponse,
+  GetRoadByIdArgs,
+  GetRoadByIdResponse,
+  UpdateWaypointByWaypointIdArgs,
+  UpdateWaypointByWaypointIdResponse,
+} from 'types/store/services/roadService-type';
 
 export const roadService = createApi({
   reducerPath: 'roadService',
@@ -36,35 +49,26 @@ export const roadService = createApi({
       transformErrorResponse?: (response: any) => any;
     }): any;
   }) => ({
-    getOwnRoads: builder.query<any, { accessToken: string }>({
-      query: ({ accessToken }) => {
+    getOwnRoads: builder.query<GetOwnRoadsResponse, GetOwnRoadsArgs>({
+      query: (args: GetOwnRoadsArgs) => {
         return {
           url: `/road/own-roads`,
           method: 'POST',
           body: {},
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${args.accessToken}`,
           },
         };
       },
-      extraOptions: {
-        maxRetries: 0,
-      },
-
-      transformResponse: (res) => {
-        return transformApiResponse(res.data);
-      },
-      transformErrorResponse: (error: any) => error,
+      transformResponse: (res: GetOwnRoadsResponse) =>
+        transformApiResponse(res),
     }),
 
-    getRoadById: builder.query<
-      WaypointWithAddressAndId,
-      { accessToken: string; routeId: string }
-    >({
-      query: (args: any) => {
+    getRoadById: builder.query<GetRoadByIdResponse, GetRoadByIdArgs>({
+      query: (args: GetRoadByIdArgs) => {
         return {
-          url: `/road/${args.routeId}`,
+          url: `/road/${args.roadId}`,
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -72,18 +76,15 @@ export const roadService = createApi({
           },
         };
       },
-      extraOptions: {
-        maxRetries: 0,
-      },
-      transformResponse: (response: any) => {
-        return response.data;
+      transformResponse: (res: GetRoadByIdResponse) => {
+        return transformApiResponse(res);
       },
     }),
     deleteRoadById: builder.mutation<
-      any,
-      { accessToken: string; roadId: string }
+      DeleteRoadByIdResponse,
+      DeleteRoadByIdArgs
     >({
-      query: (args: any) => {
+      query: (args: DeleteRoadByIdArgs) => {
         return {
           url: `/road/delete/${args.roadId}`,
           method: 'POST',
@@ -94,10 +95,8 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res);
-      },
-      transformErrorResponse: (error: any) => error,
+      transformResponse: (res: DeleteRoadByIdResponse) =>
+        transformApiResponse(res),
     }),
     updateRoadById: builder.mutation<
       any,
@@ -128,37 +127,18 @@ export const roadService = createApi({
         };
       },
       transformResponse: (res) => {
-        return transformApiResponse(res.data);
+        return transformApiResponse(res);
       },
-      transformErrorResponse: (error: any) => error,
     }),
 
-    addWaypoint: builder.mutation<
-      any,
-      {
-        accessToken: string;
-        routeId: string;
-        waypoint: {
-          latitude: number;
-          longitude: number;
-          address: {
-            country: any;
-            province: any;
-            district: any;
-            address: any;
-          };
-          order: number;
-        };
-      }
-    >({
-      query: (args: any) => {
+    addWaypoint: builder.mutation<AddWaypointResponse, AddWaypointArgs>({
+      query: (args: AddWaypointArgs) => {
         return {
-          url: `/road/add-waypoint/${args.routeId}`,
+          url: `/road/add-waypoint/${args.roadId}`,
           method: 'POST',
           body: {
             longitude: args.waypoint.longitude,
             latitude: args.waypoint.latitude,
-            order: args.waypoint.order,
             address: {
               country: args.waypoint.address.country,
               province: args.waypoint.address.province,
@@ -167,7 +147,7 @@ export const roadService = createApi({
             },
           },
           param: {
-            id: args.routeId,
+            id: args.roadId,
           },
           headers: {
             'Content-Type': 'application/json',
@@ -175,24 +155,22 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res.data);
-      },
-      transformErrorResponse: (error: any) => error,
+      transformResponse: (res: AddWaypointResponse) =>
+        transformApiResponse(res),
     }),
     deleteWaypointByRoadId: builder.mutation<
-      any,
-      { accessToken: string; routeId: string; waypointId: string }
+      DeleteWaypointByRoadIdResponse,
+      DeleteWaypointByRoadIdArgs
     >({
-      query: (args: any) => {
+      query: (args: DeleteWaypointByRoadIdArgs) => {
         return {
-          url: `/road/delete-waypoint/${args.routeId}`,
+          url: `/road/delete-waypoint/${args.roadId}`,
           method: 'DELETE',
           body: {
             waypointId: args.waypointId,
           },
           param: {
-            id: args.routeId,
+            id: args.roadId,
           },
           headers: {
             'Content-Type': 'application/json',
@@ -200,39 +178,20 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res.data);
-      },
-      transformErrorResponse: (error: any) => error,
+      transformResponse: (res: DeleteWaypointByRoadIdResponse) =>
+        transformApiResponse(res),
     }),
-    updateWaypointByRoadId: builder.mutation<
-      any,
-      {
-        accessToken: string;
-        routeId: string;
-        waypointId: string;
-        waypoint: {
-          latitude: number;
-          longitude: number;
-          address: {
-            country: any;
-            province: any;
-            district: any;
-            address: any;
-          };
-          order: number;
-        };
-      }
+    updateWaypointById: builder.mutation<
+      UpdateWaypointByWaypointIdResponse,
+      UpdateWaypointByWaypointIdArgs
     >({
-      query: (args: any) => {
+      query: (args: UpdateWaypointByWaypointIdArgs) => {
         return {
-          url: `/road/update-waypoint/${args.routeId}`,
+          url: `/road/update-waypoint/${args.waypointId}`,
           method: 'PUT',
           body: {
-            waypointId: args.waypointId,
             longitude: args.waypoint.longitude,
             latitude: args.waypoint.latitude,
-            order: args.waypoint.order,
             address: {
               country: args.waypoint.address.country,
               province: args.waypoint.address.province,
@@ -241,7 +200,7 @@ export const roadService = createApi({
             },
           },
           param: {
-            id: args.routeId,
+            id: args.roadId,
           },
           headers: {
             'Content-Type': 'application/json',
@@ -249,10 +208,8 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res) => {
-        return transformApiResponse(res.data);
-      },
-      transformErrorResponse: (error: any) => error,
+      transformResponse: (res: UpdateWaypointByWaypointIdResponse) =>
+        transformApiResponse(res),
     }),
   }),
 });
@@ -263,6 +220,5 @@ export const {
   useDeleteRoadByIdMutation,
   useUpdateRoadByIdMutation,
   useAddWaypointMutation,
-  useDeleteWaypointByRoadIdMutation,
-  useUpdateWaypointByRoadIdMutation,
+  useUpdateWaypointByIdMutation,
 } = roadService;

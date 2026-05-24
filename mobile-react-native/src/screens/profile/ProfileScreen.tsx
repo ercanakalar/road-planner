@@ -29,7 +29,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [logoutTrigger] = useLogoutMutation();
 
   const { data, isLoading, refetch } = useGetUserQuery(
-    { userId, token: accessToken },
+    { userId, accessToken },
   ) as {
     data?: UserProfile;
     isLoading: boolean;
