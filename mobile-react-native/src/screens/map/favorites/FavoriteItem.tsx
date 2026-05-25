@@ -29,12 +29,18 @@ export const FavoriteItem: React.FC<FavoriteItemProps> = ({
   };
 
   const handleItemPress = useCallback(() => {
-    const roadId = item?.road.id
-    
-    navigation.navigate('ShowRouteByIdScreen', {
-      roadId,
-      accessToken: accessToken ?? '',
-    });
+    if (item?.road?.id) {
+      navigation.navigate('ShowRouteByIdScreen', {
+        roadId: item?.road.id,
+        accessToken: accessToken ?? '',
+      });
+    } else if (item?.waypoint?.id) {
+      navigation.navigate('ShowWaypointById', {
+        waypointId: item.waypoint.id,
+        accessToken: accessToken ?? '',
+      });
+    }
+
   }, [onPress, item, navigation, accessToken]);
 
   return (

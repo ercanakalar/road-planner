@@ -1,5 +1,12 @@
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { WaypointWithAddressAndId } from 'types/map-screen-type';
 import { ToastType } from 'types/status-type';
+import { RootStackParamList } from './screens';
+
+export type WaypointRoute = NativeStackScreenProps<
+  RootStackParamList,
+  'ShowWaypointById'
+>['route'];
 
 export interface FavoriteWaypoint {
   id: string;

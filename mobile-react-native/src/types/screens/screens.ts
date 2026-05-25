@@ -21,6 +21,7 @@ type RootStackParamList = {
   AllRoutes: undefined;
   SignUpScreen: undefined;
   SignInScreen: undefined;
+  ShowWaypointById: { waypointId: string; accessToken: string };
 };
 
 export { RootStackParamList };

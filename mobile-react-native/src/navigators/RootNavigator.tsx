@@ -11,6 +11,7 @@ import ProfileScreen from 'screens/profile/ProfileScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from 'types/screens/screens';
+import ShowWaypointById from 'screens/map/roads/ShowWaypointById';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
@@ -47,6 +48,12 @@ const RootNavigator = () => {
         name='SettingsScreen'
         component={SettingsScreen}
         options={{ title: 'Settings' }}
+      />
+       <Stack.Screen
+        name='ShowWaypointById'
+        component={ShowWaypointById}
+        options={{ title: 'Waypoint' }}
+        initialParams={{ waypointId: '0', accessToken: '' }}
       />
     </Stack.Navigator>
   );

@@ -112,6 +112,21 @@ export class RoadService {
     };
   }
 
+  async getWaypointById(id: string, userId: string) {
+    const waypoint = await this.prisma.$transaction(async (tx) => {
+      return await tx.wayPoint.findUnique({
+        where: { id },
+      });
+    });
+
+    return {
+      status: ToastType.Success,
+      header: 'Waypoint Found',
+      message: 'Waypoint found successfully',
+      data: waypoint,
+    };
+  }
+
   async getOwnRoads(userId: string) {
     const roads = await this.prisma.road.findMany({
       where: {
@@ -474,9 +489,9 @@ export class RoadService {
           },
         },
       });
-      
+
       const waypoints = road?.wayPoints ?? [];
-      
+
       const moving = waypoints[from];
       const reordered = [...waypoints];
       reordered.splice(from, 1);

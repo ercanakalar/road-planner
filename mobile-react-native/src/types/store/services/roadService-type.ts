@@ -25,6 +25,7 @@ export interface Waypoint {
   order: number;
   roadId: string;
   addressInfoId: string;
+  address?: Address;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -136,3 +137,16 @@ export type ReorderWaypointsArgs = {
 };
 
 export type ReorderWaypointsResponse = ApiResponse<Waypoint[]>;
+
+export type GetWaypointByIdArgs = {
+  accessToken: string;
+  waypointId: string;
+};
+
+export type GetWaypointByIdResponse = ApiResponse<
+  Waypoint & {
+    address: Address;
+    favoriteWaypoints: string[];
+    isFavorite: boolean;
+  }
+>;

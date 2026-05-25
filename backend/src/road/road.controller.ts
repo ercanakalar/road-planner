@@ -45,6 +45,15 @@ export class RoadController {
     return this.roadService.getRoadById(id, userId);
   }
 
+  @Get('/waypoint/:id')
+  @HttpCode(HttpStatus.OK)
+  async getWaypointById(
+    @Param('id') id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.getWaypointById(id, userId);
+  }
+
   @Post('/own-roads')
   @HttpCode(HttpStatus.OK)
   async getOwnRoads(@GetUser('userId') userId: string) {
@@ -112,9 +121,7 @@ export class RoadController {
   @UseGuards(RoadOwnerGuard)
   @Put('/reorder-waypoint/:waypointId')
   @HttpCode(HttpStatus.OK)
-  async reOrderWaypoints(
-    @Body() body: ReorderWaypointsWithRoadId,
-  ) {
+  async reOrderWaypoints(@Body() body: ReorderWaypointsWithRoadId) {
     return this.roadService.reorderWaypoints(body);
   }
 }

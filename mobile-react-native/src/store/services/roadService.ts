@@ -13,6 +13,8 @@ import {
   GetOwnRoadsResponse,
   GetRoadByIdArgs,
   GetRoadByIdResponse,
+  GetWaypointByIdArgs,
+  GetWaypointByIdResponse,
   ReorderWaypointsArgs,
   UpdateWaypointByWaypointIdArgs,
   UpdateWaypointByWaypointIdResponse,
@@ -68,7 +70,6 @@ export const roadService = createApi({
       transformResponse: (res: GetOwnRoadsResponse) =>
         transformApiResponse(res),
     }),
-
     getRoadById: builder.query<GetRoadByIdResponse, GetRoadByIdArgs>({
       query: (args: GetRoadByIdArgs) => {
         return {
@@ -87,6 +88,28 @@ export const roadService = createApi({
         return transformApiResponse(res);
       },
     }),
+    getWaypointById: builder.query<
+      GetWaypointByIdResponse,
+      GetWaypointByIdArgs
+    >({
+      query: (args: GetWaypointByIdArgs) => {
+        return {
+          url: `/road/waypoint/${args.waypointId}`,
+          method: 'GET',
+          param: {},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res) => {
+        console.log(res);
+        
+        return transformApiResponse(res);
+      },
+    }),
+
     deleteRoadById: builder.mutation<
       DeleteRoadByIdResponse,
       DeleteRoadByIdArgs
@@ -249,6 +272,7 @@ export const roadService = createApi({
 export const {
   useGetOwnRoadsQuery,
   useGetRoadByIdQuery,
+  useGetWaypointByIdQuery,
   useAddWaypointMutation,
   useDeleteRoadByIdMutation,
   useUpdateRoadByIdMutation,
