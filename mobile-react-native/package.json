@@ -4,8 +4,8 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
@@ -18,7 +18,7 @@
     "@react-navigation/native-stack": "^7.3.14",
     "@react-navigation/stack": "^7.3.3",
     "@reduxjs/toolkit": "^2.8.2",
-    "expo": "~54.0.25",
+    "expo": "~54.0.34",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
     "jwt-decode": "^4.0.0",
@@ -29,10 +29,10 @@
     "react-native-maps": "1.20.1",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "~4.1.1",
+    "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-worklets": "0.5.1",
     "react-redux": "^9.2.0"
   },
   "devDependencies": {

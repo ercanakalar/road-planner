@@ -23,40 +23,23 @@ export class FavoritesController {
   constructor(private favoritesService: FavoritesService) {}
 
   @UseGuards(AccessGuard)
-  @Post('add-waypoint')
+  @Post('toggle-waypoint')
   @HttpCode(HttpStatus.OK)
   async addFavoriteWaypoint(
     @Body() body: AddFavoriteWaypoint,
     @GetUser('userId') userId: string,
   ) {
-    return this.favoritesService.addFavoriteWaypoint(body, userId);
+    return this.favoritesService.toggleFavoriteWaypoint(body, userId);
   }
 
   @UseGuards(AccessGuard)
-  @Delete('remove-waypoint')
-  @HttpCode(HttpStatus.OK)
-  async removeFavoriteWaypoint(@Body() body: RemoveFavorite) {
-    return this.favoritesService.removeFavoriteWaypoint(body);
-  }
-
-  @UseGuards(AccessGuard)
-  @Post('add-road')
+  @Post('toggle-road')
   @HttpCode(HttpStatus.OK)
   async addFavoriteRoad(
     @Body() body: AddFavoriteRoad,
     @GetUser('userId') userId: string,
   ) {
-    return this.favoritesService.addFavoriteRoad(body, userId);
-  }
-
-  @UseGuards(AccessGuard)
-  @Delete('remove-road')
-  @HttpCode(HttpStatus.OK)
-  async removeFavoriteRoad(
-    @Body() body: RemoveFavorite,
-    @GetUser('userId') userId: string,
-  ) {
-    return this.favoritesService.removeFavoriteRoad(body, userId);
+    return this.favoritesService.toggleFavoriteRoad(body, userId);
   }
 
   @UseGuards(AccessGuard)

@@ -1,3 +1,6 @@
+import { NavigationProp, RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from './screens';
+
 export type UserProfile = {
   id?: string;
   firstName?: string;
@@ -6,3 +9,8 @@ export type UserProfile = {
   photo?: string;
   nickName?: string;
 };
+
+export interface ProfileScreenProps {
+  navigation: NavigationProp<RootStackParamList, 'ProfileScreen'>;
+  route: RouteProp<RootStackParamList, 'ProfileScreen'>;
+}

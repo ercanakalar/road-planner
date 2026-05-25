@@ -53,3 +53,9 @@ export type UpdateWaypointWithRoadId = {
     province: string;
   };
 };
+
+export type ReorderWaypointsWithRoadId = {
+  roadId: string;
+  from: number;
+  to: number;
+};

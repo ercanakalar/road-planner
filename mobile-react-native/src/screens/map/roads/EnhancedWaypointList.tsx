@@ -1,77 +1,62 @@
-import React, { JSX, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { JSX, useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import DraggableFlatList, {
-  RenderItemParams,
-} from 'react-native-draggable-flatlist';
+import DraggableFlatList, { DragEndParams, RenderItemParams } from 'react-native-draggable-flatlist';
 
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
   useGetRoadByIdQuery,
-  useUpdateRoadByIdMutation,
   roadService,
-  useUpdateWaypointByIdMutation,
+  useDeleteWaypointByIdMutation,
+  useReOrderWaypointsMutation,
 } from 'store/services/roadService';
 import {
-  useAddFavoriteWaypointMutation,
-  useRemoveFavoriteWaypointMutation,
+  useToggleFavoriteWaypointMutation,
 } from 'store/services/favoriteService';
 
 import TransportSelector from 'components/TransportSelector';
 import WaypointCard from './WaypointCard';
-
-import {
-  WaypointWithAddress,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
-import { TransportMode, WaypointOption } from 'types/transport-type';
 import { useDirections } from 'hooks/useDirections';
 
-const EnhancedWaypointList: React.FC<{ routeId: string }> = ({
-  routeId,
-}) => {
+import { WaypointWithAddress, WaypointWithAddressAndId } from 'types/map-screen-type';
+import { TransportMode, WaypointOption } from 'types/transport-type';
+
+const EnhancedWaypointList: React.FC<{ roadId: string }> = ({ roadId }) => {
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector((state) => state.auth.accessToken) ?? '';
 
   const [selectedPair, setSelectedPair] = useState<string[]>([]);
   const [selectedMode, setSelectedMode] = useState<TransportMode>('driving');
 
-  const { data } = useGetRoadByIdQuery(
-    { accessToken, roadId: routeId },
+
+  const { data, refetch } = useGetRoadByIdQuery(
+    { accessToken, roadId },
     { skip: !accessToken },
-  ) as { data?: WaypointWithAddressAndId };
+  ) as { data?: WaypointWithAddressAndId; refetch: () => void };
 
   const waypoints = useMemo(() => data?.wayPoints ?? [], [data?.wayPoints]);
 
-  useEffect(() => {
-    console.log(data);
 
-  }, [routeId])
-
-  const [deleteWaypoint] = useUpdateWaypointByIdMutation();
-  const [updateRoadById] = useUpdateRoadByIdMutation();
-  const [addFavoriteWaypoint] = useAddFavoriteWaypointMutation();
-  const [removeFavoriteWaypoint] = useRemoveFavoriteWaypointMutation();
+  const [deleteWaypointById] = useDeleteWaypointByIdMutation();
+  const [reOrderWaypoints] = useReOrderWaypointsMutation();
+  const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
 
   const durations = useDirections(waypoints, selectedPair);
 
+
   const patchRoadCache = useCallback(
-    (updater: (draft: WaypointWithAddress[]) => WaypointWithAddress[] | void) =>
+    (updater: (draft: WaypointWithAddressAndId) => void) =>
       dispatch(
         roadService.util.updateQueryData(
           'getRoadById',
-          { accessToken, routeId },
+          { accessToken, roadId },
           (draft: unknown) => {
-            const result = updater(
-              (draft as { wayPoints: WaypointWithAddress[] }).wayPoints,
-            );
-            if (result)
-              (draft as { wayPoints: WaypointWithAddress[] }).wayPoints =
-                result;
+            updater(draft as WaypointWithAddressAndId);
           },
         ),
       ),
-    [dispatch, accessToken, routeId],
+    [dispatch, accessToken, roadId],
   );
+
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedPair((prev) => {
@@ -82,80 +67,74 @@ const EnhancedWaypointList: React.FC<{ routeId: string }> = ({
 
   const handleDelete = useCallback(
     async (id: string) => {
-      const patch = patchRoadCache((draft) => draft.filter((w) => w.id !== id));
+
+      const patch = patchRoadCache((draft) => {
+        draft.wayPoints = draft.wayPoints.filter((wp) => wp.id !== id);
+      });
+
       try {
-        await deleteWaypoint({ accessToken, routeId, waypointId: id }).unwrap();
+        await deleteWaypointById({ accessToken, roadId, waypointId: id }).unwrap();
+
+        refetch();
       } catch (error) {
         patch.undo();
         console.warn('Delete waypoint failed:', error);
       }
     },
-    [accessToken, routeId, deleteWaypoint, patchRoadCache],
+    [accessToken, roadId, deleteWaypointById, patchRoadCache, refetch],
   );
 
   const toggleFavorite = useCallback(
     async (waypoint: WaypointWithAddress) => {
       const isFav = waypoint.favoriteWaypoints.length > 0;
-
       const patch = patchRoadCache((draft) => {
-        const target = draft.find((w) => w.id === waypoint.id);
+        const target = draft.wayPoints.find((w) => w.id === waypoint.id);
         if (!target) return;
         target.favoriteWaypoints = isFav
           ? []
-          : [
-            {
-              id: 'temp-id',
-              userId: '',
-              wayPointsId: waypoint.id,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          ];
+          : [{
+            id: 'temp-id',
+            userId: '',
+            wayPointsId: waypoint.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }];
       });
 
       try {
-        if (isFav) {
-          await removeFavoriteWaypoint({
-            accessToken,
-            favoriteId: waypoint.favoriteWaypoints[0].id,
-          }).unwrap();
-        } else {
-          await addFavoriteWaypoint({
-            accessToken,
-            waypointId: waypoint.id,
-          }).unwrap();
-        }
+
+        await toggleFavoriteWaypoint({ accessToken, waypointId: waypoint.id }).unwrap();
       } catch (error) {
         patch.undo();
-        console.warn('Favorite toggle failed:', error);
+        console.warn('Delete waypoint failed — full error:', JSON.stringify(error));
       }
     },
-    [accessToken, addFavoriteWaypoint, removeFavoriteWaypoint, patchRoadCache],
+    [accessToken, toggleFavoriteWaypoint, patchRoadCache],
   );
 
   const handleOptionSelect = useCallback(
     async (option: WaypointOption, item: WaypointWithAddress) => {
       if (option === 'delete') await handleDelete(item.id);
-      else if (option === 'favorite') await toggleFavorite(item);
+      if (option === 'favorite') await toggleFavorite(item);
     },
     [handleDelete, toggleFavorite],
   );
 
   const updateOrder = useCallback(
-    (newData: WaypointWithAddress[]) => {
-      const reordered = newData.map((item, index) => ({
-        ...item,
-        order: index + 1,
-      }));
+    ({ from, to, data: newData }: DragEndParams<WaypointWithAddress>) => {
+      if (from === to) return;
 
-      const patch = patchRoadCache(() => reordered);
+      const reordered = newData.map((item, index) => ({ ...item, order: index + 1 }));
 
-      updateRoadById({
+      const patch = patchRoadCache((draft) => {
+        draft.wayPoints = reordered;
+      });
+
+      reOrderWaypoints({
         accessToken,
-        routeId,
-        title: data?.title ?? '',
-        description: data?.description ?? '',
-        waypoints: reordered,
+        roadId,
+        from,
+        to,
       })
         .unwrap()
         .catch((error) => {
@@ -163,22 +142,12 @@ const EnhancedWaypointList: React.FC<{ routeId: string }> = ({
           console.error('Failed to update order:', error);
         });
     },
-    [
-      accessToken,
-      routeId,
-      data?.title,
-      data?.description,
-      updateRoadById,
-      patchRoadCache,
-    ],
+    [accessToken, roadId, reOrderWaypoints, patchRoadCache],
   );
 
+
   const renderItem = useCallback(
-    ({
-      item,
-      drag,
-      isActive,
-    }: RenderItemParams<WaypointWithAddress>): JSX.Element => (
+    ({ item, drag, isActive }: RenderItemParams<WaypointWithAddress>): JSX.Element => (
       <WaypointCard
         item={item}
         drag={drag}
@@ -198,7 +167,7 @@ const EnhancedWaypointList: React.FC<{ routeId: string }> = ({
       data={waypoints}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      onDragEnd={({ data }) => updateOrder(data)}
+      onDragEnd={(data) => updateOrder(data)}
       ListHeaderComponent={
         <View style={styles.wrapper}>
           <View style={styles.privacyModeWrap}>

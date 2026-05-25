@@ -66,8 +66,7 @@ authMiddleware.startListening({
       }
 
       const data = result.data as RefreshTokenResponse | undefined;
-      console.log(data);
-      
+
       if (data?.accessToken && data?.refreshToken) {
         await Promise.all([
           localStorageService.setItem(TokenType.ACCESS_TOKEN, data.accessToken),

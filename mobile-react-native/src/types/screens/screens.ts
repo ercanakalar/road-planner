@@ -2,22 +2,25 @@ import { WaypointWithAddress } from 'types/map-screen-type';
 
 type RootStackParamList = {
   MapScreen: {};
-  ShowRouteByIdScreen: { routeId: string; accessToken: string };
-  Home: { post?: string };
+  ShowRouteByIdScreen: { roadId: string; accessToken: string };
+  HomeTabNavigator: { post?: string };
   CreatePost: undefined;
   Details: { itemId?: number; otherParam?: string };
+  ProfileDetailScreen: { accessToken: string; userId: string };
   Tab: undefined;
   Modal: undefined;
   Drawer: undefined;
-  ProfileScreen: { accessToken: string; userId: string };
+  ProfileScreen: { userId: string };
   EditWaypointScreen: {
-    routeId: string;
+    roadId: string;
     accessToken?: string;
     waypoint: WaypointWithAddress;
   };
   FavoriteRoutes: undefined;
   SettingsScreen: undefined;
   AllRoutes: undefined;
+  SignUpScreen: undefined;
+  SignInScreen: undefined;
 };
 
 export { RootStackParamList };

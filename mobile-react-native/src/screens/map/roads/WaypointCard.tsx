@@ -25,6 +25,7 @@ const WaypointCard: React.FC<WaypointCardProps> = ({
     <Pressable
       onLongPress={drag}
       disabled={isActive}
+      key={item.id}
       style={[
         styles.card,
         isActive && styles.cardActive,

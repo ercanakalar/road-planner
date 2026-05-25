@@ -13,14 +13,34 @@ import { Prisma } from '@prisma/client';
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
-  async addFavoriteWaypoint(body: AddFavoriteWaypoint, userId: string) {
+  async toggleFavoriteWaypoint(body: AddFavoriteWaypoint, userId: string) {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const waypoint = await tx.wayPoint.findUnique({
           where: { id: body.waypointId },
         });
+
         if (!waypoint) {
           throw new NotFoundException('Waypoint not found');
+        }
+
+        const existingFavorite = await tx.favoriteWaypoint.findFirst({
+          where: {
+            userId,
+            waypointId: waypoint.id,
+          },
+        });
+
+        if (existingFavorite) {
+          await tx.favoriteWaypoint.delete({
+            where: { id: existingFavorite.id },
+          });
+
+          return {
+            status: ToastType.Success,
+            header: 'Removed Favorite',
+            message: 'Favorite waypoint removed successfully',
+          };
         }
 
         const favoriteWaypoint = await tx.favoriteWaypoint.create({
@@ -30,23 +50,15 @@ export class FavoritesService {
           },
         });
 
-        return await tx.wayPoint.update({
-          where: { id: waypoint.id },
-          data: {
-            favoriteWaypoints: { connect: { id: favoriteWaypoint.id } },
-          },
-          include: {
-            favoriteWaypoints: true,
-          },
-        });
+        return {
+          status: ToastType.Success,
+          header: 'Favorite Added',
+          message: 'Favorite waypoint added successfully',
+          data: favoriteWaypoint,
+        };
       });
 
-      return {
-        status: ToastType.Success,
-        header: 'Favorite Added',
-        message: 'Favorite waypoint added successfully',
-        data: result,
-      };
+      return result;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -71,74 +83,48 @@ export class FavoritesService {
           message: 'The waypoint you are trying to favorite does not exist',
         };
       }
-    }
-  }
-
-  async removeFavoriteWaypoint(body: RemoveFavorite) {
-    try {
-      const result = await this.prisma.$transaction(async (tx) => {
-        const deletedFavorite = await tx.favoriteWaypoint.delete({
-          where: { id: body.favoriteId },
-        });
-
-        if (deletedFavorite?.waypointId) {
-          await tx.wayPoint.update({
-            where: { id: deletedFavorite.waypointId },
-            data: {
-              favoriteWaypoints: { disconnect: { id: deletedFavorite.id } },
-            },
-          });
-        }
-
-        return deletedFavorite;
-      });
-
-      return {
-        status: ToastType.Success,
-        header: 'Removed Favorite',
-        message: 'Favorite waypoint removed successfully',
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        return {
-          status: ToastType.Error,
-          header: 'Not Found',
-          message: 'Favorite waypoint not found or already deleted',
-        };
-      }
 
       return {
         status: ToastType.Error,
-        header: 'Delete Failed',
-        message: 'An error occurred while deleting',
+        header: 'Error',
+        message: 'An error occurred while toggling favorite waypoint',
       };
     }
   }
 
-  async addFavoriteRoad(body: AddFavoriteRoad, userId: string) {
+  async toggleFavoriteRoad(body: AddFavoriteRoad, userId: string) {
     try {
-      const favorite = await this.prisma.$transaction(async (tx) => {
-        const road = await tx.road.findUnique({
-          where: { id: body.roadId },
+      const existingFavorite = await this.prisma.favoriteRoad.findFirst({
+        where: {
+          userId,
+          roadId: body.roadId,
+        },
+      });
+
+      if (existingFavorite) {
+        await this.prisma.favoriteRoad.delete({
+          where: { id: existingFavorite.id },
         });
 
-        if (!road) throw new NotFoundException('Road not found');
+        return {
+          status: ToastType.Success,
+          header: 'Removed Favorite',
+          message: 'Favorite road removed successfully',
+        };
+      }
 
-        return tx.favoriteRoad.create({
-          data: {
-            userId,
-            roadId: road.id,
-            title: road.title,
-            description: road.description,
-          },
-        });
+      const favoriteRoad = await this.prisma.favoriteRoad.create({
+        data: {
+          userId,
+          roadId: body.roadId,
+        },
       });
 
       return {
         status: ToastType.Success,
         header: 'Favorite Added',
         message: 'Favorite road added successfully',
-        data: favorite,
+        data: favoriteRoad,
       };
     } catch (error) {
       if (
@@ -154,56 +140,8 @@ export class FavoritesService {
 
       return {
         status: ToastType.Error,
-        header: error instanceof NotFoundException ? 'Not Found' : 'Error',
-        message:
-          error instanceof NotFoundException
-            ? 'The road you are trying to favorite does not exist'
-            : 'Failed to add favorite road',
-      };
-    }
-  }
-
-  async removeFavoriteRoad(body: RemoveFavorite, userId: string) {
-    try {
-      const result = await this.prisma.$transaction(async (tx) => {
-        const favorite = await tx.favoriteRoad.findUnique({
-          where: { id: body.favoriteId, userId },
-          select: { id: true, roadId: true },
-        });
-
-        if (favorite?.id) {
-          const res = await tx.favoriteRoad.delete({
-            where: { id: favorite?.id },
-          });
-        }
-        if (favorite?.roadId) {
-          await tx.road.update({
-            where: { id: favorite!.roadId! },
-            data: {
-              favoriteRoads: { disconnect: { id: favorite.id } },
-            },
-          });
-        }
-        return favorite;
-      });
-
-      return {
-        status: ToastType.Success,
-        header: 'Removed Favorite',
-        message: 'Favorite road removed successfully',
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        return {
-          status: ToastType.Error,
-          header: 'Not Found',
-          message: 'Favorite road not found or already deleted',
-        };
-      }
-      return {
-        status: ToastType.Error,
-        header: 'Delete Failed',
-        message: 'An error occurred while deleting',
+        header: 'Error',
+        message: 'An error occurred while toggling favorite road',
       };
     }
   }

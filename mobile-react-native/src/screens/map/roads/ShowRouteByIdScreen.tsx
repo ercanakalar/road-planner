@@ -17,7 +17,7 @@ import BottomSheetHandle from 'components/BottomSheetHandle';
 
 const ShowRouteByIdScreen = () => {
   const {
-    routeId,
+    roadId,
     mapRef,
     bottomSheetRef,
     isLoading,
@@ -82,7 +82,12 @@ const ShowRouteByIdScreen = () => {
           onMapLongPress={handleMapLongPress}
         />
 
-        <ContextMenu {...contextMenuProps} />
+        <ContextMenu
+          {...contextMenuProps}
+          options={contextMenuProps.options.filter(
+            (option) => option !== undefined
+          )}
+        />
       </View>
 
       <BottomSheet
@@ -95,7 +100,7 @@ const ShowRouteByIdScreen = () => {
         enableDynamicSizing={false}
         handleComponent={BottomSheetHandle}
       >
-        <EnhancedWaypointList routeId={routeId} />
+        <EnhancedWaypointList roadId={roadId} />
       </BottomSheet>
     </>
   );

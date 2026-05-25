@@ -86,6 +86,7 @@ export type AddWaypointArgs = {
   waypoint: {
     latitude: number;
     longitude: number;
+    order: number;
     description?: string;
     address: {
       address: string;
@@ -126,3 +127,12 @@ export type UpdateWaypointByWaypointIdArgs = {
 };
 
 export type UpdateWaypointByWaypointIdResponse = ApiResponse<Waypoint>;
+
+export type ReorderWaypointsArgs = {
+  accessToken: string;
+  roadId: string;
+  from: number;
+  to: number;
+};
+
+export type ReorderWaypointsResponse = ApiResponse<Waypoint[]>;

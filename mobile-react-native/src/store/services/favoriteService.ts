@@ -46,13 +46,13 @@ export const favoriteService = createApi({
       transformErrorResponse?: (response: any) => any;
     }): any;
   }) => ({
-    addFavoriteWaypoint: builder.mutation<
+    toggleFavoriteWaypoint: builder.mutation<
       AddFavoriteWaypointResponse,
       AddFavoriteWaypointArgs
     >({
       query: (args: AddFavoriteWaypointArgs) => {
         return {
-          url: `/favorites/add-waypoint`,
+          url: `/favorites/toggle-waypoint`,
           method: 'POST',
           body: { waypointId: args.waypointId },
           headers: {
@@ -68,35 +68,13 @@ export const favoriteService = createApi({
       transformResponse: (res: AddFavoriteWaypointResponse) =>
         transformApiResponse(res),
     }),
-    removeFavoriteWaypoint: builder.mutation<
-      RemoveFavoriteWaypointResponse,
-      RemoveFavoriteWaypointArgs
-    >({
-      query: (args: RemoveFavoriteWaypointArgs) => {
-        return {
-          url: `/favorites/remove-waypoint`,
-          method: 'DELETE',
-          body: { favoriteId: args.favoriteId },
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
-      extraOptions: {
-        maxRetries: 0,
-      },
-
-      transformResponse: (res: RemoveFavoriteWaypointResponse) =>
-        transformApiResponse(res),
-    }),
-    addFavoriteRoad: builder.mutation<
+    toggleFavoriteRoad: builder.mutation<
       AddFavoriteRoadResponse,
       AddFavoriteRoadArgs
     >({
       query: (args: AddFavoriteRoadArgs) => {
         return {
-          url: `/favorites/add-road`,
+          url: `/favorites/toggle-road`,
           method: 'POST',
           body: { roadId: args.roadId },
           headers: {
@@ -111,27 +89,6 @@ export const favoriteService = createApi({
       transformResponse: (res: AddFavoriteRoadResponse) => {
         return transformApiResponse(res);
       },
-    }),
-    removeFavoriteRoad: builder.mutation<
-      RemoveFavoriteRoadResponse,
-      RemoveFavoriteRoadArgs
-    >({
-      query: (args: RemoveFavoriteRoadArgs) => {
-        return {
-          url: `/favorites/remove-road`,
-          method: 'DELETE',
-          body: { favoriteId: args.favoriteId },
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
-      extraOptions: {
-        maxRetries: 0,
-      },
-      transformResponse: (res: RemoveFavoriteRoadResponse) =>
-        transformApiResponse(res),
     }),
     getFavorites: builder.query<
       GetAllFavoritesResponse,
@@ -157,9 +114,7 @@ export const favoriteService = createApi({
 });
 
 export const {
-  useAddFavoriteWaypointMutation,
-  useRemoveFavoriteWaypointMutation,
-  useAddFavoriteRoadMutation,
-  useRemoveFavoriteRoadMutation,
   useGetFavoritesQuery,
+  useToggleFavoriteWaypointMutation,
+  useToggleFavoriteRoadMutation,
 } = favoriteService;

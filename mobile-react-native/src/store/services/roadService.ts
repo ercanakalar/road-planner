@@ -13,6 +13,7 @@ import {
   GetOwnRoadsResponse,
   GetRoadByIdArgs,
   GetRoadByIdResponse,
+  ReorderWaypointsArgs,
   UpdateWaypointByWaypointIdArgs,
   UpdateWaypointByWaypointIdResponse,
 } from 'types/store/services/roadService-type';
@@ -31,6 +32,7 @@ export const roadService = createApi({
         url: string;
         method: string;
         body: any;
+        param: Record<string, any>;
         headers: Record<string, string>;
       };
       extraOptions?: Record<string, any>;
@@ -42,6 +44,7 @@ export const roadService = createApi({
         url: string;
         method: string;
         body?: any;
+        param: Record<string, any>;
         headers: Record<string, string>;
       };
       extraOptions?: Record<string, any>;
@@ -55,6 +58,7 @@ export const roadService = createApi({
           url: `/road/own-roads`,
           method: 'POST',
           body: {},
+          param: {},
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
@@ -70,13 +74,16 @@ export const roadService = createApi({
         return {
           url: `/road/${args.roadId}`,
           method: 'GET',
+          param: {
+            id: args.roadId,
+          },
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
           },
         };
       },
-      transformResponse: (res: GetRoadByIdResponse) => {
+      transformResponse: (res) => {
         return transformApiResponse(res);
       },
     }),
@@ -89,6 +96,7 @@ export const roadService = createApi({
           url: `/road/delete/${args.roadId}`,
           method: 'POST',
           body: {},
+          param: {},
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
@@ -139,6 +147,7 @@ export const roadService = createApi({
           body: {
             longitude: args.waypoint.longitude,
             latitude: args.waypoint.latitude,
+            order: args.waypoint.order,
             address: {
               country: args.waypoint.address.country,
               province: args.waypoint.address.province,
@@ -158,17 +167,15 @@ export const roadService = createApi({
       transformResponse: (res: AddWaypointResponse) =>
         transformApiResponse(res),
     }),
-    deleteWaypointByRoadId: builder.mutation<
+    deleteWaypointById: builder.mutation<
       DeleteWaypointByRoadIdResponse,
       DeleteWaypointByRoadIdArgs
     >({
       query: (args: DeleteWaypointByRoadIdArgs) => {
         return {
-          url: `/road/delete-waypoint/${args.roadId}`,
+          url: `/road/delete-waypoint/${args.waypointId}`,
           method: 'DELETE',
-          body: {
-            waypointId: args.waypointId,
-          },
+          body: {},
           param: {
             id: args.roadId,
           },
@@ -190,14 +197,39 @@ export const roadService = createApi({
           url: `/road/update-waypoint/${args.waypointId}`,
           method: 'PUT',
           body: {
-            longitude: args.waypoint.longitude,
-            latitude: args.waypoint.latitude,
+            longitude: args.waypoint?.longitude,
+            latitude: args.waypoint?.latitude,
             address: {
-              country: args.waypoint.address.country,
-              province: args.waypoint.address.province,
-              district: args.waypoint.address.district,
-              address: args.waypoint.address.address,
+              country: args.waypoint?.address?.country,
+              province: args.waypoint?.address?.province,
+              district: args.waypoint?.address?.district,
+              address: args.waypoint?.address?.address,
             },
+          },
+          param: {
+            id: args.roadId,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${args.accessToken}`,
+          },
+        };
+      },
+      transformResponse: (res: UpdateWaypointByWaypointIdResponse) =>
+        transformApiResponse(res),
+    }),
+    reOrderWaypoints: builder.mutation<
+      UpdateWaypointByWaypointIdResponse,
+      ReorderWaypointsArgs
+    >({
+      query: (args: ReorderWaypointsArgs) => {
+        return {
+          url: `/road/reorder-waypoint/${args.roadId}`,
+          method: 'PUT',
+          body: {
+            roadId: args.roadId,
+            from: args.from,
+            to: args.to,
           },
           param: {
             id: args.roadId,
@@ -217,8 +249,10 @@ export const roadService = createApi({
 export const {
   useGetOwnRoadsQuery,
   useGetRoadByIdQuery,
+  useAddWaypointMutation,
   useDeleteRoadByIdMutation,
   useUpdateRoadByIdMutation,
-  useAddWaypointMutation,
   useUpdateWaypointByIdMutation,
+  useDeleteWaypointByIdMutation,
+  useReOrderWaypointsMutation,
 } = roadService;

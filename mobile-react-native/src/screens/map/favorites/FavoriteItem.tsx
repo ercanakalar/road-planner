@@ -29,10 +29,10 @@ export const FavoriteItem: React.FC<FavoriteItemProps> = ({
   };
 
   const handleItemPress = useCallback(() => {
-    const routeId = item?.roadId ?? item?.id ?? item?._id;
-
+    const roadId = item?.road.id
+    
     navigation.navigate('ShowRouteByIdScreen', {
-      routeId,
+      roadId,
       accessToken: accessToken ?? '',
     });
   }, [onPress, item, navigation, accessToken]);

@@ -1,17 +1,9 @@
-import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NavigationProp, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from './screens';
 
-type DetailsScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'Details'
->;
+interface ProfileDetailScreenProps {
+  navigation: NavigationProp<RootStackParamList, 'ProfileDetailScreen'>;
+  route: RouteProp<RootStackParamList, 'ProfileDetailScreen'>;
+}
 
-type DetailsScreenRouteProp = RouteProp<RootStackParamList, 'Details'>;
-
-type DetailsScreenProps = {
-  navigation: DetailsScreenNavigationProp;
-  route: DetailsScreenRouteProp;
-};
-
-export { DetailsScreenProps };
+export { ProfileDetailScreenProps };

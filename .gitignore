@@ -1,4 +1,7 @@
 /backend/dist
 /backend/node_modules
-/backend/.package-lock.json
-.package-lock.json
+/backend/package-lock.json
+
+/mobile-react-native/package-lock.json
+/mobile-react-native/android
+/mobile-react-native/ios

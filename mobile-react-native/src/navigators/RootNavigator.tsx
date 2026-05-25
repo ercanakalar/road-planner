@@ -9,9 +9,10 @@ import ShowRouteByIdScreen from 'screens/map/roads/ShowRouteByIdScreen';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import ProfileScreen from 'screens/profile/ProfileScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList } from 'types/screens/screens';
 
-const Stack = createStackNavigator();
-
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   return (
     <Stack.Navigator>
@@ -39,9 +40,9 @@ const RootNavigator = () => {
         name='ShowRouteByIdScreen'
         component={ShowRouteByIdScreen}
         options={{ title: 'Route' }}
-        initialParams={{ routeId: '0', accessToken: '' }}
+        initialParams={{ roadId: '0', accessToken: '' }}
       />
-      <Stack.Screen name='Profile' component={ProfileScreen} />
+      <Stack.Screen name='ProfileScreen' component={ProfileScreen} />
       <Stack.Screen
         name='SettingsScreen'
         component={SettingsScreen}

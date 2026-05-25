@@ -49,6 +49,7 @@ export const profileService = createApi({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
           },
+          providesTags: ['UserProfile'],
         };
       },
       transformResponse: (res: GetUserByIdResponse) =>
@@ -71,6 +72,7 @@ export const profileService = createApi({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${args.accessToken}`,
           },
+          invalidatesTags: ['UserProfile'],
         };
       },
       transformResponse: (res: UserResponse) => transformApiResponse(res),

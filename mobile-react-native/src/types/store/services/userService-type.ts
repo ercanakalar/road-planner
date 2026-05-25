@@ -24,3 +24,9 @@ export type UserResponse = {
   message: string;
   data: Omit<UserArgs, 'accessToken'>;
 };
+
+export interface ProfileForm {
+  firstName: string;
+  lastName: string;
+  nickName: string;
+}

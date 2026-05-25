@@ -14,8 +14,7 @@ import {
   useGetOwnRoadsQuery,
 } from 'store/services/roadService';
 import {
-  useAddFavoriteRoadMutation,
-  useRemoveFavoriteRoadMutation,
+  useToggleFavoriteRoadMutation
 } from 'store/services/favoriteService';
 import RoutesTabBar from './RoutesTabBar';
 import RoutesList from './roads/RouteList';
@@ -38,8 +37,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
   };
 
   const [deleteRoadById] = useDeleteRoadByIdMutation();
-  const [addFavoriteRoad] = useAddFavoriteRoadMutation();
-  const [removeFavoriteRoad] = useRemoveFavoriteRoadMutation();
+  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
 
   const favoriteRoads = useMemo(
     () => roads?.filter((road) => road.isFavorite) || [],
@@ -107,17 +105,10 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
     );
 
     try {
-      if (road.isFavorite) {
-        await removeFavoriteRoad({
-          accessToken,
-          favoriteId: road.favoriteRoads[0].id,
-        }).unwrap();
-      } else {
-        await addFavoriteRoad({
-          accessToken,
-          roadId: road.id,
-        }).unwrap();
-      }
+      await toggleFavoriteRoad({
+        accessToken,
+        roadId: road.id,
+      }).unwrap();
     } catch (error) {
       patchResult.undo();
       console.error('Failed to toggle favorite:', error);
@@ -132,7 +123,7 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
   const handleView = useCallback(
     (roadId: string) => {
       navigation.navigate('ShowRouteByIdScreen', {
-        routeId: roadId,
+        roadId,
         accessToken: accessToken ?? '',
       });
     },

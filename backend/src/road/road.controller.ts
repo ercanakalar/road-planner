@@ -16,6 +16,7 @@ import {
   AddWaypointToRoad,
   CreateRoad,
   DeleteWaypointWithRoadId,
+  ReorderWaypointsWithRoadId,
   UpdateRoad,
   UpdateWaypointWithRoadId,
 } from './type/road.type';
@@ -92,13 +93,10 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Delete('/delete-waypoint/:id')
+  @Delete('/delete-waypoint/:waypointId')
   @HttpCode(HttpStatus.OK)
-  async deleteWaypointWithRoadId(
-    @Body() body: DeleteWaypointWithRoadId,
-    @Param('id') id: string,
-  ) {
-    return this.roadService.deleteWaypointWithRoadId(body, id);
+  async deleteWaypointWithRoadId(@Param('waypointId') waypointId: string) {
+    return this.roadService.deleteWaypointById(waypointId);
   }
 
   @UseGuards(RoadOwnerGuard)
@@ -109,5 +107,14 @@ export class RoadController {
     @Param('waypointId') waypointId: string,
   ) {
     return this.roadService.updateWaypointWithRoadId(body, waypointId);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Put('/reorder-waypoint/:waypointId')
+  @HttpCode(HttpStatus.OK)
+  async reOrderWaypoints(
+    @Body() body: ReorderWaypointsWithRoadId,
+  ) {
+    return this.roadService.reorderWaypoints(body);
   }
 }

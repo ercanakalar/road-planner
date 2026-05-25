@@ -54,20 +54,18 @@ export interface GetAllFavoritesResponse {
   };
 }
 
+export type GetAllFavorites = {
+  ownWaypoints: FavoriteWaypointWithRelation[];
+  ownRoads: FavoriteRoadWithRelation[];
+  othersWaypoints: FavoriteWaypointWithRelation[];
+  othersRoads: FavoriteRoadWithRelation[];
+};
+
 export interface FavoriteServiceResponse<T = any> {
   status: ToastType;
   header: string;
   message: string;
   data?: T;
-}
-
-export type FavoriteType = 'road' | 'waypoint';
-
-export interface FavoriteItem {
-  id: string;
-  name: string;
-  type: FavoriteType;
-  favoriteId: string;
 }
 
 export interface FavoriteSections {
@@ -92,3 +90,7 @@ export interface RoutesListProps {
   onDelete: (roadId: string) => void;
   onView: (roadId: string) => void;
 }
+
+export type FavoriteItem =
+  | FavoriteRoadWithRelation
+  | FavoriteWaypointWithRelation;

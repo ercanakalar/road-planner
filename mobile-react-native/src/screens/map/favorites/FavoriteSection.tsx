@@ -17,7 +17,7 @@ interface Favorite {
   favoriteId?: string;
 }
 
-interface Section <T = any>{
+interface Section<T = any> {
   key: string;
   title: string;
   icon: string;

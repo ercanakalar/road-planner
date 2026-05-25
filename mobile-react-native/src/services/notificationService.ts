@@ -15,7 +15,7 @@ export function showNotification({
   type = 'info',
   header,
   message,
-  visibilityTime = 3000,
+  visibilityTime = 1000,
   position = 'top',
   topOffset = 50,
 }: ShowNotificationOptions) {

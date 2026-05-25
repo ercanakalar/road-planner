@@ -3,11 +3,16 @@ import appConfig from 'constants/appConfig';
 import localStorageService from 'services/localStorageService';
 import { TokenType } from 'types/libs/auth';
 
+type FetchArgsWithParam = FetchArgs & {
+  param?: Record<string, any>;
+};
+
 const baseQuery = (): ReturnType<typeof retry> =>
   retry(
     async (args: FetchArgs, api, extraOptions) => {
+      const requestArgs = args as FetchArgsWithParam;
       const accessToken = await localStorageService.getItem(
-        TokenType.ACCESS_TOKEN
+        TokenType.ACCESS_TOKEN,
       );
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -25,11 +30,18 @@ const baseQuery = (): ReturnType<typeof retry> =>
           });
           return headers;
         },
-      })(args, api, extraOptions);
+      })(
+        {
+          ...requestArgs,
+          params: requestArgs.params ?? requestArgs.param,
+        },
+        api,
+        extraOptions,
+      );
 
       return result;
     },
-    { maxRetries: 0 }
+    { maxRetries: 0 },
   );
 
 export default baseQuery;
