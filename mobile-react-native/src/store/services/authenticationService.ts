@@ -11,6 +11,7 @@ import {
   ValidateRefreshTokenArgs,
   ValidateRefreshTokenResponse,
 } from '../../types/store/services/authenticationService-type';
+import { ApiResponse } from 'types/store/bases';
 
 export const authenticationService = createApi({
   reducerPath: 'authenticationService',
@@ -20,125 +21,100 @@ export const authenticationService = createApi({
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
   tagTypes: ['Authentication'],
-  endpoints: (builder: {
-    mutation<TResponse, TRequest>(config: {
-      query: (args: TRequest) => {
-        url: string;
-        method: string;
-        body: any;
-        headers: Record<string, string>;
-      };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-    }): any;
-    query<TResponse, TRequest>(config: {
-      query: (args: TRequest) => {
-        url: string;
-        method: string;
-        body: any;
-        headers: Record<string, string>;
-      };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-      transformErrorResponse?: (response: any) => any;
-    }): any;
-  }) => ({
+  endpoints: (builder) => ({
     signUp: builder.mutation<SignUpArgsResponse, SignUpArgs>({
-      query: (args: SignUpArgs) => {
-        return {
-          url: '/auth/sign-up',
-          method: 'POST',
-          body: {
-            email: args.email,
-            password: args.password,
-            confirmPassword: args.confirmPassword,
-          },
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        };
-      },
+      query: (args) => ({
+        url: '/auth/sign-up',
+        method: 'POST',
+        body: {
+          email: args.email,
+          password: args.password,
+          confirmPassword: args.confirmPassword,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: SignUpArgsResponse) => {
-        return transformApiResponse(res);
-      },
+      transformResponse: (res: ApiResponse<SignUpArgsResponse>) =>
+        transformApiResponse(res),
     }),
+
     signIn: builder.mutation<SignInArgsResponse, SignInArgs>({
-      query: (args: SignInArgs) => {
-        return {
-          url: '/auth/sign-in',
-          method: 'POST',
-          body: {
-            email: args.email,
-            password: args.password,
-          },
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        };
-      },
+      query: (args) => ({
+        url: '/auth/sign-in',
+        method: 'POST',
+        body: {
+          email: args.email,
+          password: args.password,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: SignInArgsResponse) => transformApiResponse(res),
+      transformResponse: (res: ApiResponse<SignInArgsResponse>) =>
+        transformApiResponse(res),
     }),
+
     logout: builder.mutation<void, { accessToken: string }>({
-      query: (args: { accessToken: string }) => {
-        return {
-          url: '/auth/sign-out',
-          method: 'POST',
-          body: {},
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
+      query: ({ accessToken }) => ({
+        url: '/auth/sign-out',
+        method: 'POST',
+        body: {},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res) => transformApiResponse(res, 'logout'),
+      transformResponse: (res: ApiResponse<void>) =>
+        transformApiResponse(res, 'logout'),
     }),
+
     validateRefreshToken: builder.mutation<
       ValidateRefreshTokenResponse,
       ValidateRefreshTokenArgs
     >({
-      query: (args: ValidateRefreshTokenArgs) => {
-        return {
-          url: '/auth/refresh-token',
-          method: 'POST',
-          body: {
-            refreshToken: args.refreshToken,
-          },
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
+      query: (args) => ({
+        url: '/auth/refresh-token',
+        method: 'POST',
+        body: {
+          refreshToken: args.refreshToken,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${args.accessToken}`,
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: ValidateRefreshTokenResponse) =>
+      transformResponse: (res: ApiResponse<ValidateRefreshTokenResponse>) =>
         transformApiResponse(res),
     }),
-    googleMobileSignIn: builder.mutation<any, { code: string }>({
-      query: (args) => {
-        return {
-          url: `/auth/google/callback?code=${args.code}`,
-          method: 'GET',
-          body: {},
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        };
-      },
+
+    googleMobileSignIn: builder.mutation<
+      ValidateRefreshTokenResponse,
+      { code: string }
+    >({
+      query: ({ code }) => ({
+        url: `/auth/google/callback?code=${code}`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: ValidateRefreshTokenResponse) =>
+      transformResponse: (res: ApiResponse<ValidateRefreshTokenResponse>) =>
         transformApiResponse(res),
     }),
   }),

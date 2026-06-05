@@ -23,7 +23,6 @@ import { ProfileScreenProps } from 'types/screens/profileScreenType';
 
 const FALLBACK_AVATAR = 'https://i.pravatar.cc/150?img=12';
 
-
 const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
   const dispatch = useAppDispatch();
   const { accessToken, userId } = useAppSelector((state) => state.auth);
@@ -35,8 +34,6 @@ const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     { userId, accessToken },
     { skip: !accessToken || !userId },
   ) as { data?: UserProfile; isLoading: boolean; refetch: () => void };
-
-  useAppStateRefetch(refetch);
 
   useEffect(() => {
     if (!data) return;

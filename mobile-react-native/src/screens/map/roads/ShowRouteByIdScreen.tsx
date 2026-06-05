@@ -85,7 +85,7 @@ const ShowRouteByIdScreen = () => {
         <ContextMenu
           {...contextMenuProps}
           options={contextMenuProps.options.filter(
-            (option) => option !== undefined
+            (option) => option !== undefined,
           )}
         />
       </View>

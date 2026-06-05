@@ -52,3 +52,5 @@ export interface GetAllFavorites {
 }
 
 export type GetAllFavoritesResponse = ApiResponse<GetAllFavorites>;
+
+export type GetAllFavoritesArgs = { accessToken: string };

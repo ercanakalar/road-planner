@@ -1,17 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
-import MapView, { LongPressEvent, Marker, Polyline } from 'react-native-maps';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
-interface MapSectionProps {
-  waypoints: WaypointWithAddress[];
-  routeCoordinates: { latitude: number; longitude: number }[];
-  selectedMarkerId?: string;
-  isDragging?: boolean;
-  handleMarkerDragEnd?: (event: any, waypointId: string) => void;
-  onMapLongPress: (event: LongPressEvent) => void;
-  ref: any;
-}
+import { MapSectionProps } from 'types/screens/mapScreenType';
 
 export const MapSection = ({
   waypoints,
@@ -42,7 +33,7 @@ export const MapSection = ({
             key={wp.id}
             coordinate={{ latitude: wp.latitude, longitude: wp.longitude }}
             draggable={isDragging && selectedMarkerId === wp.id}
-            onDragEnd={(e) => handleMarkerDragEnd?.(e, wp.id)}
+            onDragEnd={(e) => handleMarkerDragEnd(e, wp.id)}
           />
         ))}
         <Polyline

@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
+import { ApiResponse } from 'types/store/bases';
 import {
   AddWaypointArgs,
   AddWaypointResponse,
@@ -33,25 +34,22 @@ export const roadService = createApi({
       query: (args: TRequest) => {
         url: string;
         method: string;
-        body: any;
-        param: Record<string, any>;
+        body:
+          | Record<string, number | string | Record<string, number | string>>
+          | undefined;
         headers: Record<string, string>;
       };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-      transformErrorResponse?: (response: any) => any;
+      extraOptions?: Record<string, number>;
+      transformResponse?: (response: ApiResponse<TResponse>) => TResponse;
     }): any;
     query<TResponse, TRequest>(config: {
       query: (args: TRequest) => {
         url: string;
         method: string;
-        body?: any;
-        param: Record<string, any>;
         headers: Record<string, string>;
       };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-      transformErrorResponse?: (response: any) => any;
+      extraOptions?: Record<string, number>;
+      transformResponse: (response: ApiResponse<TResponse>) => TResponse;
     }): any;
   }) => ({
     getOwnRoads: builder.query<GetOwnRoadsResponse, GetOwnRoadsArgs>({
@@ -67,8 +65,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: GetOwnRoadsResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
     getRoadById: builder.query<GetRoadByIdResponse, GetRoadByIdArgs>({
       query: (args: GetRoadByIdArgs) => {
@@ -105,7 +102,7 @@ export const roadService = createApi({
       },
       transformResponse: (res) => {
         console.log(res);
-        
+
         return transformApiResponse(res);
       },
     }),
@@ -126,8 +123,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: DeleteRoadByIdResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
     updateRoadById: builder.mutation<
       any,
@@ -187,8 +183,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: AddWaypointResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
     deleteWaypointById: builder.mutation<
       DeleteWaypointByRoadIdResponse,
@@ -208,8 +203,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: DeleteWaypointByRoadIdResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
     updateWaypointById: builder.mutation<
       UpdateWaypointByWaypointIdResponse,
@@ -238,8 +232,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: UpdateWaypointByWaypointIdResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
     reOrderWaypoints: builder.mutation<
       UpdateWaypointByWaypointIdResponse,
@@ -263,8 +256,7 @@ export const roadService = createApi({
           },
         };
       },
-      transformResponse: (res: UpdateWaypointByWaypointIdResponse) =>
-        transformApiResponse(res),
+      transformResponse: (res) => transformApiResponse(res),
     }),
   }),
 });

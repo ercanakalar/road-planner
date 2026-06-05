@@ -1,12 +1,9 @@
 import { jwtDecode } from 'jwt-decode';
-import localStorageService from './localStorageService';
-import { TokenType } from 'types/libs/auth';
 
-export interface JwtPayload {
-  exp?: number;
-  iat?: number;
-  [key: string]: any;
-}
+import { TokenType } from 'types/libs/auth';
+import { JwtPayload } from 'types/services/jwt-service-type';
+
+import localStorageService from './localStorageService';
 
 class JwtService {
   async decodeToken<T extends JwtPayload = JwtPayload>(): Promise<T | null> {
@@ -27,7 +24,7 @@ class JwtService {
     const now = Math.floor(Date.now() / 1000);
     return decoded.exp < now;
   }
-  
+
   async getAccessToken(): Promise<string | null> {
     return await localStorageService.getItem(TokenType.ACCESS_TOKEN);
   }

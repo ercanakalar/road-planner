@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   FlatList,
@@ -15,10 +21,13 @@ import {
   useGetFavoritesQuery,
 } from 'store/services/favoriteService';
 import { FavoriteSection } from './FavoriteSection';
-import { FavoriteWaypointWithRelation, GetAllFavorites } from 'types/screens/mapScreenType';
+import {
+  FavoriteItem,
+  FavoriteWaypointWithRelation,
+  GetAllFavorites,
+} from 'types/screens/mapScreenType';
 import { FavoriteRoadWithRelation } from 'types/store/services/favoriteService-type';
 import { isFavoriteRoad } from 'utils/favoriteGuars';
-
 
 const SECTIONS = [
   { key: 'ownRoads', title: 'My Roads', icon: 'directions-car' },
@@ -37,7 +46,9 @@ export default function Favorite({ refreshToken }: FavoriteProps) {
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector((state) => state.auth.accessToken) ?? '';
 
-  const [expandedSection, setExpandedSection] = useState<SectionKey | null>(null);
+  const [expandedSection, setExpandedSection] = useState<SectionKey | null>(
+    null,
+  );
   const [localError, setLocalError] = useState<string | null>(null);
 
   const hasMountedRef = useRef(false);
@@ -62,39 +73,38 @@ export default function Favorite({ refreshToken }: FavoriteProps) {
   }, [refreshToken, refetch]);
 
   const handleRemoveFavorite = useCallback(
-    async (item: FavoriteWaypointWithRelation | FavoriteRoadWithRelation) => {
+    async (item: FavoriteItem) => {
       try {
         if (isFavoriteRoad(item)) {
           await toggleFavoriteRoad({
             accessToken,
-            favoriteId: item.id,
+            roadId: item.id,
           }).unwrap();
         } else {
           await toggleFavoriteWaypoint({
             accessToken,
-            favoriteId: item.id,
+            waypointId: item.id,
           }).unwrap();
         }
       } catch (err) {
-        setLocalError(err instanceof Error ? err.message : 'Failed to remove favorite');
+        setLocalError(
+          err instanceof Error ? err.message : 'Failed to remove favorite',
+        );
         console.error('Failed to remove favorite:', err);
       }
     },
     [accessToken, toggleFavoriteRoad, toggleFavoriteWaypoint],
   );
 
-  const toggleSection = useCallback(
-    (key: SectionKey) => {
-      setExpandedSection((prev) => (prev === key ? null : key))
-    },
-    [],
-  );
+  const toggleSection = useCallback((key: SectionKey) => {
+    setExpandedSection((prev) => (prev === key ? null : key));
+  }, []);
 
   const sections = useMemo(
     () =>
       SECTIONS.map((s) => ({
         ...s,
-        data: (favoritesData as GetAllFavorites)?.[s.key] ?? [],
+        data: favoritesData?.data[s.key] ?? [],
       })),
     [favoritesData],
   );
@@ -104,7 +114,7 @@ export default function Favorite({ refreshToken }: FavoriteProps) {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size='large' color='#2196F3' />
       </View>
     );
   }
@@ -141,7 +151,7 @@ export default function Favorite({ refreshToken }: FavoriteProps) {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={refetch}
-            tintColor="#2196F3"
+            tintColor='#2196F3'
           />
         }
       />
@@ -153,9 +163,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9f9f9' },
   center: { justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 20 },
-  errorText: { fontSize: 16, color: '#d32f2f', marginBottom: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: '#2196F3', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
   retryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  errorBanner: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#ffebee', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#d32f2f' },
+  errorBanner: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffebee',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#d32f2f',
+  },
   errorBannerText: { color: '#d32f2f', fontSize: 14, fontWeight: '600' },
 });

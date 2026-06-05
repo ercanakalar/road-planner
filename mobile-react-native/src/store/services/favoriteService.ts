@@ -1,12 +1,15 @@
+import { EndpointDefinition } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
+import { ApiResponse } from 'types/store/bases';
 import {
   AddFavoriteRoadArgs,
   AddFavoriteRoadResponse,
   AddFavoriteWaypointArgs,
   AddFavoriteWaypointResponse,
+  GetAllFavoritesArgs,
   GetAllFavoritesResponse,
   RemoveFavoriteRoadArgs,
   RemoveFavoriteRoadResponse,
@@ -22,92 +25,60 @@ export const favoriteService = createApi({
   refetchOnFocus: true,
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
-  endpoints: (builder: {
-    mutation<TResponse, TRequest>(config: {
-      query: (args: TRequest) => {
-        url: string;
-        method: string;
-        body: any;
-        headers: Record<string, string>;
-      };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-      transformErrorResponse?: (response: any) => any;
-    }): any;
-    query<TResponse, TRequest>(config: {
-      query: (args: TRequest) => {
-        url: string;
-        method: string;
-        body?: any;
-        headers: Record<string, string>;
-      };
-      extraOptions?: Record<string, any>;
-      transformResponse?: (response: any) => any;
-      transformErrorResponse?: (response: any) => any;
-    }): any;
-  }) => ({
+  endpoints: (builder) => ({
     toggleFavoriteWaypoint: builder.mutation<
       AddFavoriteWaypointResponse,
       AddFavoriteWaypointArgs
     >({
-      query: (args: AddFavoriteWaypointArgs) => {
-        return {
-          url: `/favorites/toggle-waypoint`,
-          method: 'POST',
-          body: { waypointId: args.waypointId },
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
+      query: (args) => ({
+        url: '/favorites/toggle-waypoint',
+        method: 'POST',
+        body: { waypointId: args.waypointId },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${args.accessToken}`,
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-
-      transformResponse: (res: AddFavoriteWaypointResponse) =>
+      transformResponse: (res: ApiResponse<AddFavoriteWaypointResponse>) =>
         transformApiResponse(res),
     }),
+
     toggleFavoriteRoad: builder.mutation<
       AddFavoriteRoadResponse,
       AddFavoriteRoadArgs
     >({
-      query: (args: AddFavoriteRoadArgs) => {
-        return {
-          url: `/favorites/toggle-road`,
-          method: 'POST',
-          body: { roadId: args.roadId },
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${args.accessToken}`,
-          },
-        };
-      },
+      query: (args) => ({
+        url: '/favorites/toggle-road',
+        method: 'POST',
+        body: { roadId: args.roadId },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${args.accessToken}`,
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: AddFavoriteRoadResponse) => {
-        return transformApiResponse(res);
-      },
+      transformResponse: (res: ApiResponse<AddFavoriteRoadResponse>) =>
+        transformApiResponse(res),
     }),
-    getFavorites: builder.query<
-      GetAllFavoritesResponse,
-      { accessToken: string }
-    >({
-      query: ({ accessToken }) => {
-        return {
-          url: `/favorites`,
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-        };
-      },
+
+    getFavorites: builder.query<GetAllFavoritesResponse, GetAllFavoritesArgs>({
+      query: (args) => ({
+        url: '/favorites',
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${args.accessToken}`,
+        },
+      }),
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: GetAllFavoritesResponse) =>
+      transformResponse: (res: ApiResponse<GetAllFavoritesResponse>) =>
         transformApiResponse(res),
     }),
   }),

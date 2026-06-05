@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native';
 import { TextInput, Button, Checkbox, Text } from 'react-native-paper';
 
-import { profileService, useUpdateUserMutation } from 'store/services/profileService';
+import {
+  profileService,
+  useUpdateUserMutation,
+} from 'store/services/profileService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { useAppStateGoBack } from 'hooks/useAppStateGoBack';
@@ -26,7 +29,6 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
-
   useEffect(() => {
     if (!data) return;
     setForm({
@@ -36,14 +38,12 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
     });
   }, [data]);
 
-
   const onChangeText = useCallback(
     (field: keyof ProfileForm) => (value: string) => {
       setForm((prev) => ({ ...prev, [field]: value }));
     },
     [],
   );
-
 
   const handleUpdateProfile = useCallback(async () => {
     if (!data?.id) return;
@@ -55,7 +55,6 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
         ...form,
         isCorporate,
       }).unwrap();
-
 
       dispatch(updateUserProfile({ ...form }));
       dispatch(
@@ -76,13 +75,20 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
         message: 'Failed to update profile. Please try again.',
       });
     }
-  }, [accessToken, data?.id, form, isCorporate, updateUser, dispatch, navigation]);
-
+  }, [
+    accessToken,
+    data?.id,
+    form,
+    isCorporate,
+    updateUser,
+    dispatch,
+    navigation,
+  ]);
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size='large' color='#0000ff' />
       </View>
     );
   }
@@ -90,32 +96,32 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TextInput
-        label="First Name"
+        label='First Name'
         value={form.firstName}
         onChangeText={onChangeText('firstName')}
-        mode="outlined"
+        mode='outlined'
         style={styles.input}
       />
       <TextInput
-        label="Last Name"
+        label='Last Name'
         value={form.lastName}
         onChangeText={onChangeText('lastName')}
-        mode="outlined"
+        mode='outlined'
         style={styles.input}
       />
       <TextInput
-        label="Email"
+        label='Email'
         value={data?.email ?? ''}
         disabled
         editable={false}
-        mode="outlined"
+        mode='outlined'
         style={styles.input}
       />
       <TextInput
-        label="Nick Name"
+        label='Nick Name'
         value={form.nickName}
         onChangeText={onChangeText('nickName')}
-        mode="outlined"
+        mode='outlined'
         style={styles.input}
       />
 
@@ -130,7 +136,7 @@ const ProfileDetailScreen = ({ navigation }: ProfileDetailScreenProps) => {
       </View>
 
       <Button
-        mode="contained"
+        mode='contained'
         onPress={handleUpdateProfile}
         loading={isUpdating}
         disabled={isUpdating}

@@ -8,37 +8,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { FavoriteItem } from './FavoriteItem';
+import { FavoriteSectionProps } from '../../../types/screens/mapScreenType';
 
-interface Favorite {
-  id: string;
-  name: string;
-  type: 'road' | 'waypoint';
-  owner: 'own' | 'others';
-  favoriteId?: string;
-}
-
-interface Section<T = any> {
-  key: string;
-  title: string;
-  icon: string;
-  data: T[];
-}
-
-interface FavoriteSectionProps {
-  section: Section;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onItemPress?: (item: Favorite) => void;
-  onRemove?: (item: any) => void;
-}
-
-export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
+export function FavoriteSection({
   section,
   isExpanded,
   onToggle,
   onItemPress,
   onRemove,
-}) => {
+}: FavoriteSectionProps) {
   const isEmpty = section.data.length === 0;
 
   return (
@@ -69,8 +47,8 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
           renderItem={({ item }) => (
             <FavoriteItem
               item={item}
-              onPress={() => onItemPress?.(item)}
-              onRemove={() => onRemove?.(item)}
+              onPress={() => onItemPress(item)}
+              onRemove={() => onRemove(item)}
             />
           )}
           scrollEnabled={false}
@@ -85,7 +63,7 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
       )}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   section: {

@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PassportStrategy } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
+import { Request } from 'express';
+
 import { JwtPayload } from '../type/auth.types';
 
 @Injectable()
@@ -18,7 +20,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     });
   }
 
-  validate(req: any, payload: JwtPayload) {
+  validate(req: Request, payload: JwtPayload) {
     const authHeader = req.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new Error('Authorization header is missing or malformed');

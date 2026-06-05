@@ -1,23 +1,29 @@
-export interface IKeyValue {
-  [key: string]: any;
-}
-export interface IErrorType {
+export type ErrorMap = Record<string, string>;
+
+export interface ApiError {
   status: number;
-  type: string;
-  errors: IKeyValue;
-  messages: string[];
+  type?: string;
+  errors: ErrorMap;
+  messages?: string[];
   message: string;
   code: number;
 }
-export const transformApiErrorResponse = (baseQueryReturnValue: any): unknown => {
-  return (
-    (baseQueryReturnValue?.error as IErrorType) ?? {
-      errors: {
-        error: 'Bir hata oluştu.',
-      },
-      message: 'Bir hata oluştu.',
-      status: 500,
-      code: 500,
-    }
-  );
+
+const DEFAULT_ERROR: ApiError = {
+  errors: {
+    error: 'Bir hata oluştu.',
+  },
+  message: 'Bir hata oluştu.',
+  status: 500,
+  code: 500,
+};
+
+interface BaseQueryErrorResponse {
+  error?: ApiError;
+}
+
+export const transformApiErrorResponse = (
+  response: BaseQueryErrorResponse,
+): ApiError => {
+  return response.error ?? DEFAULT_ERROR;
 };

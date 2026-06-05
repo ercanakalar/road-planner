@@ -1,13 +1,8 @@
 import localStorageService from 'services/localStorageService';
 import { showNotification } from 'services/notificationService';
 import { TokenType } from 'types/libs/auth';
+import { ApiResponse } from 'types/store/bases';
 
-interface ApiResponse<T = any> {
-  status?: string;
-  message?: string;
-  header?: string;
-  data?: T;
-}
 export const transformApiResponse = <T>(
   response: ApiResponse<T>,
   query?: string,

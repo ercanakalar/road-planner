@@ -15,6 +15,7 @@ import { setUserId } from 'store/slices/authSlice';
 import jwtService from 'services/jwtService';
 import AuthGate from 'screens/profile/auth/AuthGateScreen';
 import MapScreen from 'screens/map/MapScreen';
+import { JwtPayload } from 'types/services/jwt-service-type';
 
 const Tab = createBottomTabNavigator();
 
@@ -38,8 +39,9 @@ const HomeTabNavigator = () => {
 
   useEffect(() => {
     const fetchAndSetUserId = async () => {
-      const decoded: any = await jwtService.decodeToken();
-      dispatch(setUserId(decoded?.userId));
+      const decoded = await jwtService.decodeToken<JwtPayload>();
+      if (!decoded) return;
+      dispatch(setUserId(decoded.userId));
     };
 
     fetchAndSetUserId();

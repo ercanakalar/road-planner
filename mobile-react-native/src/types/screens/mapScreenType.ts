@@ -1,7 +1,14 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { WaypointWithAddressAndId } from 'types/map-screen-type';
+import {
+  WaypointWithAddress,
+  WaypointWithAddressAndId,
+} from 'types/map-screen-type';
 import { ToastType } from 'types/status-type';
 import { RootStackParamList } from './screens';
+import MapView, {
+  LongPressEvent,
+  MarkerDragStartEndEvent,
+} from 'react-native-maps';
 
 export type WaypointRoute = NativeStackScreenProps<
   RootStackParamList,
@@ -42,11 +49,11 @@ export interface RoadDetail {
 }
 
 export interface FavoriteWaypointWithRelation extends FavoriteWaypoint {
-  wayPoints: WayPointDetail;
+  wayPoints?: WayPointDetail;
 }
 
 export interface FavoriteRoadWithRelation extends FavoriteRoad {
-  road: RoadDetail;
+  road?: RoadDetail;
 }
 
 export interface GetAllFavoritesResponse {
@@ -84,8 +91,23 @@ export interface FavoriteSections {
 
 export interface FavoriteItemProps {
   item: any;
-  onPress?: () => void;
-  onRemove?: () => void;
+  onPress: () => void;
+  onRemove: () => void;
+}
+
+export interface FavoriteSectionProps {
+  section: Section<FavoriteItem>;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onItemPress: (item: FavoriteItem) => void;
+  onRemove: (item: FavoriteItem) => void;
+}
+
+interface Section<T> {
+  key: string;
+  title: string;
+  icon: string;
+  data: T[];
 }
 
 export interface RoutesListProps {
@@ -101,3 +123,16 @@ export interface RoutesListProps {
 export type FavoriteItem =
   | FavoriteRoadWithRelation
   | FavoriteWaypointWithRelation;
+
+export interface MapSectionProps {
+  waypoints: WaypointWithAddress[];
+  routeCoordinates: { latitude: number; longitude: number }[];
+  selectedMarkerId?: string;
+  isDragging?: boolean;
+  handleMarkerDragEnd: (
+    event: MarkerDragStartEndEvent,
+    waypointId: string,
+  ) => void;
+  onMapLongPress: (event: LongPressEvent) => void;
+  ref: React.RefObject<MapView | null> ;
+}
