@@ -17,17 +17,6 @@ Road Planner is a route planning application that helps users create, manage, an
 - 📱 Mobile-first experience
 - ☁️ Backend API with secure data storage
 
-## 📸 Screenshots
-
-Add application screenshots here.
-
-```text
-/screenshots
-├── home.png
-├── route-details.png
-├── create-route.png
-└── profile.png
-```
 
 ## 🏗️ Architecture
 
@@ -37,8 +26,6 @@ Road Planner
 ├── Mobile App (React Native + Expo)
 │
 ├── Backend API (NestJS)
-│
-└── PostgreSQL Database
 ```
 
 ## 🛠️ Tech Stack
@@ -58,11 +45,6 @@ Road Planner
 - TypeScript
 - PostgreSQL
 - JWT Authentication
-
-### DevOps
-
-- Git
-- GitHub
 
 ## 🚀 Getting Started
 
