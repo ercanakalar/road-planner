@@ -38,7 +38,6 @@ const useWaypointLogic = () => {
         longitudeDelta: 0.01,
       }
     : undefined;
-  console.log(data);
 
   return {
     waypointId,

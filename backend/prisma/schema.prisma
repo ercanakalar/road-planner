@@ -98,17 +98,17 @@ model User {
   lastName          String?
   photo             String?
   nickName          String?            @unique
-  manuelAuth        ManuelAuth?
-  googleAuth        GoogleAuth?
   tokens            Tokens?
   permitId          String?
   permit            Permit?            @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
-  roads             Road[]
-  favoriteRoads     FavoriteRoad[]
-  favoriteWaypoints FavoriteWaypoint[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   deletedAt         DateTime?
+  manuelAuth        ManuelAuth?
+  googleAuth        GoogleAuth?
+  roads             Road[]
+  favoriteRoads     FavoriteRoad[]
+  favoriteWaypoints FavoriteWaypoint[]
 
   @@index([email])
   @@index([nickName])

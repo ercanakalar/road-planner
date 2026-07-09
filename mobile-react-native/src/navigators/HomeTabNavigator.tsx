@@ -16,6 +16,7 @@ import jwtService from 'services/jwtService';
 import AuthGate from 'screens/profile/auth/AuthGateScreen';
 import MapScreen from 'screens/map/MapScreen';
 import { JwtPayload } from 'types/services/jwt-service-type';
+import FavoriteScreen from 'screens/favorite/FavoriteScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -31,6 +32,7 @@ const HomeTabNavigator = () => {
       const accessToken = await localStorageService.getItem(
         TokenType.ACCESS_TOKEN,
       );
+      if (!refreshToken || !accessToken) return;
       await validateRefreshToken({ accessToken, refreshToken }).unwrap();
     };
 
@@ -58,6 +60,10 @@ const HomeTabNavigator = () => {
             iconName = 'home';
           } else if (route.name === 'Map') {
             iconName = 'map-marker';
+          } else if (route.name === 'Map') {
+            iconName = 'map-marker';
+          } else if (route.name === 'Favorite') {
+            iconName = 'heart';
           } else if (route.name === 'Chat') {
             iconName = 'chat';
           } else if (route.name === 'Profile') {
@@ -84,6 +90,7 @@ const HomeTabNavigator = () => {
     >
       <Tab.Screen name='Home' component={HomeScreen} />
       <Tab.Screen name='Map' component={MapScreen} />
+      <Tab.Screen name='Favorite' component={FavoriteScreen} />
       <Tab.Screen name='Chat' component={ChatScreen} />
       <Tab.Screen name='Profile' component={AuthGate} />
     </Tab.Navigator>

@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useRoute } from '@react-navigation/native';
 import MapView from 'react-native-maps';
-import { MarkerDragEndEvent } from 'types/hooks/useMapLogic-type';
+import { MarkerDragEndEvent } from 'types/hooks/useMapLogic-types';
 import { WaypointRoute } from 'types/screens/mapScreenType';
 import { useGetWaypointByIdQuery } from 'store/services/roadService';
 import { Waypoint } from 'types/store/services/roadService-type';
@@ -26,19 +26,18 @@ const useWaypointLogic = () => {
   );
 
   const handleMarkerDragEnd = useCallback(
-    (_event: MarkerDragEndEvent, _waypointId: string) => {},
+    (_event: MarkerDragEndEvent, _waypointId: string) => { },
     [],
   );
 
   const initialRegion = data
     ? {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }
+      latitude: data.latitude,
+      longitude: data.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    }
     : undefined;
-  console.log(data);
 
   return {
     waypointId,

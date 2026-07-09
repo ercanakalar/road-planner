@@ -3,8 +3,12 @@ import { showNotification } from 'services/notificationService';
 import { TokenType } from 'types/libs/auth';
 import { ApiResponse } from 'types/store/bases';
 
+const isApiResponse = <T>(value: unknown): value is ApiResponse<T> => {
+  return typeof value === 'object' && value !== null && 'data' in value;
+};
+
 export const transformApiResponse = <T>(
-  response: ApiResponse<T>,
+  response: unknown,
   query?: string,
 ): T => {
   if (query === 'logout') {
@@ -12,13 +16,17 @@ export const transformApiResponse = <T>(
     localStorageService.removeItem(TokenType.REFRESH_TOKEN);
   }
 
-  if (response?.message) {
+  const normalized = isApiResponse<T>(response)
+    ? response
+    : ({ data: response } as ApiResponse<T>);
+
+  if (normalized?.message) {
     showNotification({
-      type: response.status as any,
-      header: response.header ?? '',
-      message: response.message,
+      type: normalized.status as any,
+      header: normalized.header ?? '',
+      message: normalized.message,
     });
   }
 
-  return response.data as T;
+  return normalized.data as T;
 };

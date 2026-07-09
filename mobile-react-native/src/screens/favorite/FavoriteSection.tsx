@@ -8,17 +8,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { FavoriteItem } from './FavoriteItem';
-import { FavoriteSectionProps } from '../../../types/screens/mapScreenType';
+import { FavoriteSectionProps } from 'types/screens/mapScreenType';
 
 export function FavoriteSection({
   section,
   isExpanded,
   onToggle,
-  onItemPress,
-  onRemove,
 }: FavoriteSectionProps) {
   const isEmpty = section.data.length === 0;
-
+  
   return (
     <View style={styles.section}>
       <TouchableOpacity
@@ -47,8 +45,6 @@ export function FavoriteSection({
           renderItem={({ item }) => (
             <FavoriteItem
               item={item}
-              onPress={() => onItemPress(item)}
-              onRemove={() => onRemove(item)}
             />
           )}
           scrollEnabled={false}
