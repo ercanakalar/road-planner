@@ -22,6 +22,7 @@ export interface Waypoint {
   id: string;
   latitude: number;
   longitude: number;
+  description?: string;
   order: number;
   roadId: string;
   addressInfoId: string;

@@ -101,8 +101,6 @@ export const roadService = createApi({
         };
       },
       transformResponse: (res) => {
-        console.log(res);
-
         return transformApiResponse(res);
       },
     }),

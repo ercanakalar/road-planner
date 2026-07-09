@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import {
@@ -16,15 +16,12 @@ import {
 import {
   useToggleFavoriteRoadMutation
 } from 'store/services/favoriteService';
-import RoutesTabBar from './RoutesTabBar';
 import RoutesList from './roads/RouteList';
-import Favorite from './favorites/Favorite';
 
 const MapScreen = ({ navigation }: MapScreenProps) => {
   const dispatch = useAppDispatch();
 
   const { accessToken } = useAppSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites'>('all');
 
   const {
     data: roads,
@@ -38,16 +35,6 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
 
   const [deleteRoadById] = useDeleteRoadByIdMutation();
   const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
-
-  const favoriteRoads = useMemo(
-    () => roads?.filter((road) => road.isFavorite) || [],
-    [roads],
-  );
-
-  const displayedRoads = useMemo(
-    () => (activeTab === 'favorites' ? favoriteRoads : roads),
-    [activeTab, roads, favoriteRoads],
-  );
 
   const handleDeleteRoad = async (roadId: string) => {
     if (!accessToken) return;
@@ -133,25 +120,16 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
   return (
     <Container>
       <View style={styles.container}>
-        <RoutesTabBar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          allCount={roads?.length ?? 0}
-          favoritesCount={favoriteRoads.length}
+        <RoutesList
+          data={roads ?? []}
+          accessToken={accessToken ?? ''}
+          isRefreshing={!!isFetching}
+          onRefresh={handleRefresh}
+          onToggleFavorite={handleToggleFavorite}
+          onDelete={handleDeleteRoad}
+          onView={handleView}
         />
-        {activeTab === 'all' ? (
-          <RoutesList
-            data={displayedRoads ?? []}
-            accessToken={accessToken ?? ''}
-            isRefreshing={!!isFetching}
-            onRefresh={handleRefresh}
-            onToggleFavorite={handleToggleFavorite}
-            onDelete={handleDeleteRoad}
-            onView={handleView}
-          />
-        ) : (
-          <Favorite />
-        )}
+
       </View>
     </Container>
   );

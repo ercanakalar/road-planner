@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAppSelector } from 'store/hook';
 import {
@@ -7,67 +7,73 @@ import {
   NavigationProp,
   ParamListBase,
 } from '@react-navigation/native';
-import { FavoriteItemProps } from 'types/screens/mapScreenType';
+import { FavoriteItemType, FavoriteItemProps } from 'types/screens/mapScreenType';
+import { isFavoriteRoad } from 'utils/favoriteGuars';
+import { useToggleFavoriteRoadMutation, useToggleFavoriteWaypointMutation } from 'store/services/favoriteService';
 
 export const FavoriteItem: React.FC<FavoriteItemProps> = ({
   item,
-  onPress,
-  onRemove,
 }) => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { accessToken } = useAppSelector((state) => state.auth);
 
-  const handleRemove = () => {
-    Alert.alert(
-      'Remove Favorite',
-      `Are you sure you want to remove "${item.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', onPress: onRemove, style: 'destructive' },
-      ],
-    );
-  };
+  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
 
-  const handleItemPress = useCallback(() => {
-    if (item?.road?.id) {
+  const onPress = useCallback(async (favorite: any) => {
+    if (favorite?.road?.id) {
       navigation.navigate('ShowRouteByIdScreen', {
-        roadId: item?.road.id,
+        roadId: favorite?.road.id,
         accessToken: accessToken ?? '',
       });
-    } else if (item?.waypoint?.id) {
+    } else if (favorite?.waypoint?.id) {
       navigation.navigate('ShowWaypointById', {
-        waypointId: item.waypoint.id,
+        waypointId: favorite?.waypoint.id,
         accessToken: accessToken ?? '',
       });
     }
 
-  }, [onPress, item, navigation, accessToken]);
+  }, [item, navigation, accessToken]);
 
+  const handleRemoveFavorite = useCallback(
+    async (item: any) => {
+      try {
+        if (!accessToken) return;
+        if (isFavoriteRoad(item)) {
+          await toggleFavoriteRoad({ accessToken, roadId: item.id }).unwrap();
+        } else {
+          await toggleFavoriteWaypoint({ accessToken, waypointId: item.id }).unwrap();
+        }
+      } catch (err) {
+        console.error('Failed to remove favorite:', err);
+      }
+    },
+    [accessToken, toggleFavoriteRoad, toggleFavoriteWaypoint],
+  );
   return (
     <TouchableOpacity
       style={styles.item}
-      onPress={handleItemPress}
       activeOpacity={0.7}
+      onPress={() => onPress(item)}
     >
       <View style={styles.itemContent}>
         <View style={styles.iconContainer}>
           <Icon
-            name={item.type === 'road' ? 'directions-car' : 'location-on'}
+            name={item?.key?.includes('road') ? 'directions-car' : 'location-on'}
             size={20}
             color='#2196F3'
           />
         </View>
         <View style={styles.itemText}>
-          <Text style={styles.itemName}>{item.name}</Text>
           <Text style={styles.itemType}>
-            {item.type === 'road' ? 'Road' : 'Waypoint'}
+            {/* {item?.road ? item?.road?.description : item?.waypoint?.description} */}
           </Text>
         </View>
       </View>
 
       <TouchableOpacity
         style={styles.removeButton}
-        onPress={handleRemove}
+        // onPress={() => handleRemoveFavorite(item)}
         activeOpacity={0.7}
       >
         <Icon name='close' size={20} color='#d32f2f' />

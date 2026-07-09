@@ -1,8 +1,8 @@
-import { EndpointDefinition } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import baseQuery from 'store/bases/baseQuery';
 import { transformApiResponse } from 'store/bases/transformApiResponse';
+import { GetAllFavorites } from 'types/screens/mapScreenType';
 import { ApiResponse } from 'types/store/bases';
 import {
   AddFavoriteRoadArgs,
@@ -11,10 +11,6 @@ import {
   AddFavoriteWaypointResponse,
   GetAllFavoritesArgs,
   GetAllFavoritesResponse,
-  RemoveFavoriteRoadArgs,
-  RemoveFavoriteRoadResponse,
-  RemoveFavoriteWaypointArgs,
-  RemoveFavoriteWaypointResponse,
 } from 'types/store/services/favoriteService-type';
 
 export const favoriteService = createApi({
@@ -66,7 +62,7 @@ export const favoriteService = createApi({
         transformApiResponse(res),
     }),
 
-    getFavorites: builder.query<GetAllFavoritesResponse, GetAllFavoritesArgs>({
+    getFavorites: builder.query<GetAllFavorites, GetAllFavoritesArgs>({
       query: (args) => ({
         url: '/favorites',
         method: 'GET',
@@ -78,8 +74,9 @@ export const favoriteService = createApi({
       extraOptions: {
         maxRetries: 0,
       },
-      transformResponse: (res: ApiResponse<GetAllFavoritesResponse>) =>
-        transformApiResponse(res),
+      transformResponse: (res: ApiResponse<GetAllFavoritesResponse>) => {
+        return transformApiResponse(res);
+      },
     }),
   }),
 });
