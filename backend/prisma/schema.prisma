@@ -8,59 +8,122 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SOFT DELETE: REMOVED, DELIBERATELY
+//
+// Every model used to carry a nullable `deletedAt` plus an index on it. It was
+// never implemented: no code path anywhere wrote the column, so it was NULL in
+// every row of every table, and `deleteRoadById` issued a hard DELETE. The only
+// reads were six `deletedAt: null` filters, which therefore matched everything.
+//
+// Unenforced, it was worse than absent, because it implied a protection that did
+// not exist — `findUserByEmail` ignored it, so a "soft-deleted" user could still
+// sign in. It would also silently defeat every cascade rule below, since a soft
+// delete never triggers one.
+//
+// Nothing is lost by removing it: the columns were provably always NULL. If
+// retention or audit is needed later, the right shape is an append-only audit
+// table or an archive schema, designed against an actual requirement rather than
+// a column that looks like one.
+// ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
 // AUTH MODELS
+//
+// `Tokens` used to hold access token, refresh token, reset token and reset
+// expiry in one row keyed uniquely by userId, reachable through three separate
+// unique foreign keys (Tokens.userId, ManuelAuth.tokenId, GoogleAuth.tokenId).
+// That shape caused three distinct problems, so it is replaced by two
+// purpose-specific tables:
+//
+//   * One session per user meant signing in on a phone silently invalidated a
+//     tablet. `Session` is one row per device.
+//   * Session and password-reset lifecycles were coupled, so signing out left a
+//     live reset token behind. `PasswordReset` is separate.
+//   * Three navigation paths to one row meant three places for them to
+//     disagree. Both new tables hang off `User` alone.
 // ─────────────────────────────────────────────────────────────
 
 model ManuelAuth {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String    @db.VarChar(255)
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  tokens    Tokens?   @relation(fields: [tokenId], references: [id], onDelete: SetNull)
-  tokenId   String?   @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id       String @id @default(uuid())
+  /// Denormalised from User.email; kept in sync by AuthService. citext for the
+  /// same reason as User.email.
+  email    String @unique @db.Citext
+  password String @db.VarChar(255)
+  userId   String @unique
+  /// Cascade: credentials are meaningless without their user. Was Restrict,
+  /// which made a user impossible to delete at all.
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([deletedAt])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model GoogleAuth {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  tokenId   String?   @unique
-  tokens    Tokens?   @relation(fields: [tokenId], references: [id], onDelete: SetNull)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id     String @id @default(uuid())
+  email  String @unique @db.Citext
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([deletedAt])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Tokens {
-  id                       String      @id @default(uuid())
-  userId                   String      @unique
-  user                     User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  manuelAuth               ManuelAuth?
-  googleAuth               GoogleAuth?
-  // Nullable — signOut sonrası null yapılır, bu kasıtlı
-  refreshToken             String?
-  accessToken              String?
-  resetToken               String?     @unique
-  passwordResetTokenExpiry DateTime?
-  createdAt                DateTime    @default(now())
-  updatedAt                DateTime    @updatedAt
-  deletedAt                DateTime?
+/// One row per signed-in device.
+model Session {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([resetToken])
-  @@index([deletedAt])
+  /// SHA-256 of the refresh token. Never the token itself: a database
+  /// disclosure must not hand over live sessions.
+  refreshTokenHash String @unique
+
+  /// Mirrors the refresh JWT's own expiry, so expired rows can be swept without
+  /// decoding every token.
+  expiresAt  DateTime
+  /// Set on sign-out, on rotation-reuse detection, and on password reset.
+  revokedAt  DateTime?
+  /// Updated on each successful refresh, for "last active" reporting.
+  lastUsedAt DateTime  @default(now())
+
+  /// Free-text client hint, for showing a user their own session list.
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+/// A single-use password-reset grant.
+model PasswordReset {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 of the emailed token. The previous implementation stored and
+  /// emailed the *same* digest, so the stored value was the value that granted
+  /// the reset.
+  tokenHash String @unique
+
+  expiresAt DateTime
+  /// Set when consumed, so a used token is auditable rather than deleted.
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─────────────────────────────────────────────────────────────
 // PERMISSION MODELS
+//
+// `Permit` is a role; `Permission` is a single grant. The names are kept as-is
+// because renaming them would churn every call site and migration for no
+// behavioural gain.
 // ─────────────────────────────────────────────────────────────
 
 model Permit {
@@ -69,22 +132,18 @@ model Permit {
   description String?
   users       User[]       @relation("UserPermit")
   permissions Permission[] @relation("PermitPermissions")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
 
-  @@index([deletedAt])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Permission {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  permits   Permit[]  @relation("PermitPermissions")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id      String   @id @default(uuid())
+  name    String   @unique
+  permits Permit[] @relation("PermitPermissions")
 
-  @@index([deletedAt])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -92,27 +151,34 @@ model Permission {
 // ─────────────────────────────────────────────────────────────
 
 model User {
-  id                String             @id @default(uuid())
-  email             String             @unique
-  firstName         String?
-  lastName          String?
-  photo             String?
-  nickName          String?            @unique
-  tokens            Tokens?
-  permitId          String?
-  permit            Permit?            @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  deletedAt         DateTime?
-  manuelAuth        ManuelAuth?
-  googleAuth        GoogleAuth?
+  id String @id @default(uuid())
+
+  /// `citext` so uniqueness is case-insensitive. As plain text, `Foo@x.com` and
+  /// `foo@x.com` were two separate accounts.
+  email String @unique @db.Citext
+
+  firstName String?
+  lastName  String?
+  photo     String?
+  nickName  String? @unique
+
+  manuelAuth     ManuelAuth?
+  googleAuth     GoogleAuth?
+  sessions       Session[]
+  passwordResets PasswordReset[]
+
+  permitId String?
+  permit   Permit? @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
+
   roads             Road[]
   favoriteRoads     FavoriteRoad[]
   favoriteWaypoints FavoriteWaypoint[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([nickName])
-  @@index([deletedAt])
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -120,94 +186,126 @@ model User {
 // ─────────────────────────────────────────────────────────────
 
 model Road {
-  id            String         @id @default(uuid())
-  userId        String?
-  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  title         String
-  description   String
+  id String @id @default(uuid())
+
+  /// Non-null with Cascade. It was nullable with SetNull, so deleting a user
+  /// left ownerless roads that could never be listed, authorized or cleaned up —
+  /// and made `road.userId !== user.userId` compare null against undefined.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+
   wayPoints     WayPoint[]
   favoriteRoads FavoriteRoad[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
-  @@index([deletedAt])
-  @@index([userId, deletedAt])
 }
 
 model WayPoint {
-  id        String  @id @default(uuid())
+  id        String @id @default(uuid())
   latitude  Float
   longitude Float
-  order     Int
-  roadId    String?
-  road      Road?   @relation(fields: [roadId], references: [id], onDelete: SetNull)
 
-  addressInfoId     String?
-  address           AddressInfo?       @relation(fields: [addressInfoId], references: [id], onDelete: SetNull)
+  /// Position within the road, 1-based and contiguous.
+  ///
+  /// Assigned by the service from the payload's ordering, never taken from the
+  /// request verbatim: duplicates and gaps were both representable, and every
+  /// write path renumbered afterwards anyway.
+  order Int
+
+  /// Non-null with Cascade, for the same reason as Road.userId: an orphaned
+  /// waypoint is unreachable and unauthorizable.
+  roadId String
+  road   Road   @relation(fields: [roadId], references: [id], onDelete: Cascade)
+
+  /// One address per waypoint, owned by it. The relation was many-to-one while
+  /// the code created a fresh address per waypoint and deleted addresses by id
+  /// on road deletion — so a shared address would have been destroyed out from
+  /// under another road.
+  addressInfoId String?      @unique
+  address       AddressInfo? @relation(fields: [addressInfoId], references: [id], onDelete: SetNull)
+
   favoriteWaypoints FavoriteWaypoint[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([roadId, order])
-  @@index([deletedAt])
-  @@index([roadId, deletedAt])
+  /// Two waypoints on one road cannot share a position.
+  ///
+  /// Created by the migration as `DEFERRABLE INITIALLY DEFERRED`, which
+  /// `schema.prisma` has no syntax for — Prisma's own diff reports no drift for it,
+  /// which was checked before relying on it. Deferral is what makes a reorder
+  /// possible at all: permuting positions with a single
+  /// `UPDATE … FROM (VALUES …)` transiently duplicates a value, and a
+  /// non-deferrable index rejects that mid-statement even though the end state is
+  /// unique. It still rejects a genuine duplicate at commit.
+  ///
+  /// It also supersedes the previous `@@index([roadId, order])`, which the
+  /// migration drops: a unique index serves the same ordered lookups.
+  @@unique([roadId, order])
 }
 
 model AddressInfo {
-  id        String     @id @default(uuid())
-  country   String?
-  province  String?
-  district  String?
-  address   String
-  wayPoints WayPoint[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
+  id       String  @id @default(uuid())
+  country  String?
+  province String?
+  district String?
+  address  String
+
+  wayPoint WayPoint?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([country, province, district])
-  @@index([deletedAt])
 }
 
 // ─────────────────────────────────────────────────────────────
 // FAVORITES
+//
+// Cascade on both sides: a favourite is a link, meaningless once either end is
+// gone. `userId` was Restrict, which blocked user deletion outright.
 // ─────────────────────────────────────────────────────────────
 
 model FavoriteRoad {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   title       String?
   description String?
-  roadId      String?
-  road        Road?     @relation(fields: [roadId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+
+  roadId String
+  road   Road   @relation(fields: [roadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, roadId])
   @@index([userId])
   @@index([roadId])
-  @@index([userId, deletedAt])
 }
 
 model FavoriteWaypoint {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   title       String?
   description String?
-  waypointId  String?
-  waypoint    WayPoint? @relation(fields: [waypointId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+
+  waypointId String
+  waypoint   WayPoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, waypointId])
   @@index([userId])
   @@index([waypointId])
-  @@index([userId, deletedAt])
 }

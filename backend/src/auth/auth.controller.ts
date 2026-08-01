@@ -10,25 +10,27 @@ import {
   Query,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
-import {
-  RefreshData,
-  ResetPassword,
-  SignInData,
-  SignUpData,
-} from './type/auth.types';
-import { Public } from 'src/common/decorators';
-import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard';
-import { RefreshGuard } from 'src/common/guards/refresh/refresh.guard';
-import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
-import { RequirePermission } from 'src/common/decorators/require-permission.decorator';
-import { GoogleService } from './service/google/google.service';
-import { AuthService } from './service/auth/auth.service';
-import { AccessGuard } from 'src/common/guards/access/access.guard';
 
-@Controller('api/auth')
+import { Public, RequirePermission } from 'src/common/decorators';
+import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
+import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard';
+import { AUTH_THROTTLE } from 'src/config/throttle';
+import {
+  ForgotPasswordDto,
+  RefreshTokenDto,
+  ResetPasswordDto,
+  SignInDto,
+  SignUpDto,
+} from './dto/auth.dto';
+import { AuthService } from './service/auth/auth.service';
+import { GoogleService } from './service/google/google.service';
+
+@Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -36,50 +38,56 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Throttle(AUTH_THROTTLE.signUp)
   @Post('sign-up')
   @UseGuards(UserExistsGuard)
   @HttpCode(HttpStatus.CREATED)
-  async signUp(@Body() signUpData: SignUpData) {
+  async signUp(@Body() signUpData: SignUpDto) {
     return this.authService.signUp(signUpData);
   }
 
   @Public()
+  @Throttle(AUTH_THROTTLE.signIn)
   @Post('sign-in')
   @HttpCode(HttpStatus.CREATED)
-  async signIn(@Body() signInData: SignInData) {
+  async signIn(@Body() signInData: SignInDto) {
     return this.authService.signIn(signInData);
   }
 
-  @UseGuards(AccessGuard)
   @Post('sign-out')
   @HttpCode(HttpStatus.OK)
   async signOut(@Req() req: Request) {
-    if (!req.user || typeof (req.user as any).userId === 'undefined') {
-      throw new Error('User not authenticated');
+    const userId = (req.user as { userId?: string } | undefined)?.userId;
+
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
     }
-    const userId = (req.user as { userId: string }).userId;
+
     return this.authService.signOut(userId);
   }
 
-  @UseGuards(RefreshGuard)
+  @Public()
+  @Throttle(AUTH_THROTTLE.refreshToken)
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() refreshBody: RefreshData) {
+  async refreshToken(@Body() refreshBody: RefreshTokenDto) {
     return this.authService.refreshToken(refreshBody.refreshToken);
   }
 
   @Public()
+  @Throttle(AUTH_THROTTLE.forgotPassword)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body('email') email: string) {
-    return this.authService.forgotPassword(email);
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.forgotPassword(body.email);
   }
 
   @Public()
+  @Throttle(AUTH_THROTTLE.resetPassword)
   @Patch('reset-password/:token')
   @HttpCode(HttpStatus.OK)
   async resetPassword(
-    @Body() resetPassword: ResetPassword,
+    @Body() resetPassword: ResetPasswordDto,
     @Param('token') token: string,
   ) {
     return this.authService.resetPassword(resetPassword, token);
@@ -89,24 +97,23 @@ export class AuthController {
   @Get('google')
   @HttpCode(HttpStatus.OK)
   async redirectToGoogle(@Res() res: Response) {
-    const url = await this.googleService.getAuthClientUrl();
+    const { url } = await this.googleService.getAuthClientUrl();
     res.redirect(url);
   }
 
   @Public()
+  @Throttle(AUTH_THROTTLE.signIn)
   @Get('google/callback')
   @HttpCode(HttpStatus.OK)
-  async googleCallback(@Query('code') code: string) {
-    const { email, accessToken, refreshToken } =
-      await this.googleService.getAuthClientData(code);
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+  ) {
+    this.googleService.verifyState(state);
 
-    await this.authService.signInWithGoogle(email, accessToken, refreshToken);
+    const { email } = await this.googleService.getAuthClientData(code);
 
-    return {
-      email,
-      accessToken,
-      refreshToken,
-    };
+    return this.authService.signInWithGoogle(email);
   }
 
   @UseGuards(PermissionsGuard)

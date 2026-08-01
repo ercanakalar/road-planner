@@ -5,21 +5,22 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 
-import { UserService } from './user.service';
-import { UpdateUser } from './type/user.type';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserService } from './user.service';
 
-@Controller('api/user')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('/update')
   @HttpCode(HttpStatus.OK)
   async updateUser(
-    @Body() body: UpdateUser,
+    @Body() body: UpdateUserDto,
     @GetUser('userId') userId: string,
   ) {
     return this.userService.updateUser(body, userId);
@@ -27,7 +28,10 @@ export class UserController {
 
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
-  async getUserById(@Param('id') id: string) {
-    return this.userService.getUserById(id);
+  async getUserById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.userService.getUserById(id, userId);
   }
 }

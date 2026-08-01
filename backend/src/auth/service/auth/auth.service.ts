@@ -1,44 +1,49 @@
-import { ToastType } from './../../../common/type/status.type';
 import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  SignUpData,
-  SignInData,
-  ResetPassword,
-} from 'src/auth/type/auth.types';
-import { EmailService } from 'src/notification/email/email.service';
+import { ConfigService } from '@nestjs/config';
+
+import { ResetPasswordDto, SignInDto, SignUpDto } from 'src/auth/dto/auth.dto';
 import { HelperService } from 'src/auth/helper/helper.service';
-import { Permit, Permission } from '@prisma/client';
+import { ok } from 'src/common/http/api-response';
+import { EnvironmentVariables } from 'src/config/env.validation';
+import { EmailService } from 'src/notification/email/email.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 const USER_AUTH_SELECT = {
   id: true,
   email: true,
-  permit: {
-    include: { permissions: true },
-  },
   manuelAuth: {
-    select: { id: true, password: true, tokenId: true },
+    select: { id: true, password: true },
   },
   googleAuth: {
-    select: { id: true, tokenId: true },
-  },
-  tokens: {
     select: { id: true },
   },
 } as const;
 
+const DUMMY_PASSWORD_HASH =
+  'scrypt$N=32768,r=8,p=1$00000000000000000000000000000000$' + '0'.repeat(128);
+
+const FORGOT_PASSWORD_RESPONSE = ok({
+  header: 'Password Reset Requested',
+  message:
+    'If an account exists for that address, a password reset link has been sent.',
+});
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly helperService: HelperService,
     private readonly emailService: EmailService,
+    private readonly config: ConfigService<EnvironmentVariables, true>,
   ) {}
 
   private async findUserByEmail(email: string) {
@@ -69,25 +74,62 @@ export class AuthService {
     return permit;
   }
 
-  private buildTokenPayload(user: {
-    email: string;
-    id: string;
-    permit?: (Permit & { permissions: Permission[] }) | null;
-  }) {
+  private buildTokenPayload(user: { id: string; email: string }) {
     return {
-      accessTokenData: {
-        email: user.email,
-        userId: user.id,
-        permissions: user.permit?.permissions ?? [],
-      },
-      refreshTokenData: {
-        email: user.email,
-        userId: user.id,
-      },
+      accessTokenData: { userId: user.id, email: user.email },
+      refreshTokenData: { userId: user.id, email: user.email },
     };
   }
 
-  async signUp(signUpData: SignUpData) {
+  private refreshTokenExpiry(): Date {
+    const configured = this.config.get('REFRESH_EXPIRES_IN', { infer: true });
+    const match = /^(\d+)(ms|s|m|h|d|w|y)?$/.exec(configured);
+
+    const unitMs: Record<string, number> = {
+      ms: 1,
+      s: 1000,
+      m: 60_000,
+      h: 3_600_000,
+      d: 86_400_000,
+      w: 604_800_000,
+      y: 31_536_000_000,
+    };
+
+    const amount = match ? Number(match[1]) : 7;
+    const multiplier = match ? (unitMs[match[2] ?? 's'] ?? 1000) : unitMs.d;
+
+    return new Date(Date.now() + amount * multiplier);
+  }
+
+  private async createSession(
+    user: { id: string; email: string },
+    tx: Pick<PrismaService, 'session'> = this.prisma,
+  ) {
+    const { accessToken, refreshToken } =
+      await this.helperService.generateTokens(this.buildTokenPayload(user));
+
+    await tx.session.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash: this.helperService.hashToken(refreshToken),
+        expiresAt: this.refreshTokenExpiry(),
+      },
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  private async revokeAllSessions(
+    userId: string,
+    tx: Pick<PrismaService, 'session'> = this.prisma,
+  ) {
+    return tx.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async signUp(signUpData: SignUpDto) {
     const { email, password } = signUpData;
 
     const existingUser = await this.findUserByEmail(email);
@@ -100,81 +142,50 @@ export class AuthService {
       this.helperService.toHashPassword(password),
     ]);
 
-    const { accessToken, refreshToken } = await this.prisma.$transaction(
-      async (tx) => {
-        const user = await tx.user.upsert({
-          where: { email },
-          update: {
-            permit: { connect: { id: userPermit.id } },
-          },
-          create: {
-            email,
-            permit: { connect: { id: userPermit.id } },
-          },
-          include: {
-            permit: { include: { permissions: true } },
-          },
-        });
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.upsert({
+        where: { email },
+        update: {
+          permit: { connect: { id: userPermit.id } },
+        },
+        create: {
+          email,
+          permit: { connect: { id: userPermit.id } },
+        },
+      });
 
-        const manuelAuth = await tx.manuelAuth.create({
-          data: {
-            email,
-            password: hashedPassword,
-            user: { connect: { id: user.id } },
-          },
-        });
+      await tx.manuelAuth.create({
+        data: {
+          email,
+          password: hashedPassword,
+          user: { connect: { id: user.id } },
+        },
+      });
 
-        const tokens = await this.helperService.generateTokens(
-          this.buildTokenPayload(user),
-        );
+      const tokens = await this.createSession(user, tx);
 
-        const savedTokens = await tx.tokens.upsert({
-          where: { userId: user.id },
-          update: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-            manuelAuth: { connect: { id: manuelAuth.id } },
-          },
-          create: {
-            user: { connect: { id: user.id } },
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-            manuelAuth: { connect: { id: manuelAuth.id } },
-          },
-        });
+      return { ...tokens, userId: user.id };
+    });
 
-        await tx.manuelAuth.update({
-          where: { id: manuelAuth.id },
-          data: { tokens: { connect: { id: savedTokens.id } } },
-        });
-
-        return tokens;
-      },
-    );
-
-    return {
-      status: ToastType.Success,
+    return ok({
       header: 'Signup successful',
       message: 'You signed up successfully',
       data: {
-        userId: existingUser ? existingUser.id : null,
-        accessToken,
-        refreshToken,
+        userId: result.userId,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
       },
-    };
+    });
   }
 
-  async signIn(signInData: SignInData) {
+  async signIn(signInData: SignInDto) {
     const { email, password } = signInData;
 
     const user = await this.findUserByEmail(email);
 
-    if (!user || !user.manuelAuth) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (!user.tokens?.id) {
-      throw new InternalServerErrorException('User token record is missing');
+    if (!user?.manuelAuth) {
+      await this.helperService.comparePassword(DUMMY_PASSWORD_HASH, password);
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await this.helperService.comparePassword(
@@ -183,19 +194,19 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
-    const { accessToken, refreshToken } =
-      await this.helperService.generateTokens(this.buildTokenPayload(user));
+    if (this.helperService.needsRehash(user.manuelAuth.password)) {
+      await this.prisma.manuelAuth.update({
+        where: { id: user.manuelAuth.id },
+        data: { password: await this.helperService.toHashPassword(password) },
+      });
+    }
 
-    await this.prisma.tokens.update({
-      where: { id: user.tokens.id },
-      data: { accessToken, refreshToken },
-    });
+    const { accessToken, refreshToken } = await this.createSession(user);
 
-    return {
-      status: ToastType.Success,
+    return ok({
       header: 'Login successful',
       message: 'You signed in successfully',
       data: {
@@ -203,7 +214,7 @@ export class AuthService {
         accessToken,
         refreshToken,
       },
-    };
+    });
   }
 
   async signOut(userId: string) {
@@ -217,80 +228,85 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    if (!user.tokens?.id) {
-      return {
-        status: ToastType.Success,
-        header: 'Logout successful',
-        message: 'Successfully signed out',
-      };
-    }
+    await this.revokeAllSessions(userId);
 
-    await this.prisma.tokens.update({
-      where: { id: user.tokens.id },
-      data: {
-        accessToken: null,
-        refreshToken: null,
-      },
-    });
-
-    return {
-      status: ToastType.Success,
+    return ok({
       header: 'Logout successful',
       message: 'Successfully signed out',
-    };
+    });
   }
 
   async refreshToken(refreshToken: string) {
-    const decoded = await this.helperService.verifyRefreshToken(refreshToken);
+    let decoded: { userId?: string; email?: string };
 
-    const user = await this.findUserByEmail(decoded.email);
-
-    if (!user) {
-      throw new NotFoundException('User not found');
+    try {
+      decoded = await this.helperService.verifyRefreshToken(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const tokenId = user.manuelAuth?.tokenId ?? user.googleAuth?.tokenId;
-
-    if (!tokenId) {
-      throw new NotFoundException('Token record not found');
+    if (!decoded?.userId) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const accessToken = await this.helperService.createAccessToken({
-      email: user.email,
-      userId: user.id,
-      permissions: user.permit?.permissions ?? [],
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: this.helperService.hashToken(refreshToken) },
+      include: { user: { select: { id: true, email: true } } },
     });
 
-    await this.prisma.tokens.update({
-      where: { id: tokenId },
-      data: { accessToken, refreshToken },
+    if (!session) {
+      this.logger.warn(
+        `Refresh token replay detected for user ${decoded.userId}; sessions revoked`,
+      );
+      await this.revokeAllSessions(decoded.userId);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (session.userId !== decoded.userId) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const issued = await this.prisma.$transaction(async (tx) => {
+      await tx.session.delete({ where: { id: session.id } });
+      return this.createSession(session.user, tx);
     });
 
-    return {
+    return ok({
       data: {
-        userId: user.id,
-        accessToken,
-        refreshToken,
+        userId: session.userId,
+        accessToken: issued.accessToken,
+        refreshToken: issued.refreshToken,
       },
-    };
+    });
   }
 
   async forgotPassword(email: string) {
     const user = await this.findUserByEmail(email);
 
-    if (!user?.manuelAuth?.tokenId) {
-      throw new NotFoundException('User not found');
+    if (!user?.manuelAuth) {
+      return FORGOT_PASSWORD_RESPONSE;
     }
 
-    const { passwordResetTokenExpiry, resetToken } =
+    const { token, tokenHash, expiresAt } =
       this.helperService.createPasswordResetToken();
 
-    await this.prisma.tokens.update({
-      where: { id: user.manuelAuth.tokenId },
-      data: { resetToken, passwordResetTokenExpiry },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.passwordReset.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      await tx.passwordReset.create({
+        data: { userId: user.id, tokenHash, expiresAt },
+      });
     });
 
-    const resetTokenUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const frontendUrl = this.config.get('FRONTEND_URL', { infer: true });
+    const resetTokenUrl = `${frontendUrl}/reset-password/${token}`;
 
     await this.emailService.sendEmail({
       to: email,
@@ -299,60 +315,65 @@ export class AuthService {
       html: `<p>Click the link to reset your password: <a href="${resetTokenUrl}">${resetTokenUrl}</a></p>`,
     });
 
-    return {
-      status: ToastType.Success,
-      header: 'Password Reset Token Created',
-      message: 'Password reset token created successfully',
-      resetToken,
-      resetTokenUrl,
-    };
+    return FORGOT_PASSWORD_RESPONSE;
   }
 
-  async resetPassword(resetPasswordData: ResetPassword, token: string) {
-    const tokenRecord = await this.prisma.tokens.findUnique({
-      where: {
-        resetToken: token,
-        passwordResetTokenExpiry: { gte: new Date() },
-      },
-      include: { user: true },
-    });
-
-    if (!tokenRecord) {
-      throw new BadRequestException('Reset token is invalid or expired');
+  async resetPassword(resetPasswordData: ResetPasswordDto, token: string) {
+    if (resetPasswordData.password !== resetPasswordData.confirmPassword) {
+      throw new BadRequestException(
+        'password and confirmPassword do not match',
+      );
     }
 
+    const tokenHash = this.helperService.hashToken(token);
     const hashedPassword = await this.helperService.toHashPassword(
       resetPasswordData.password,
     );
 
-    await this.prisma.tokens.update({
-      where: { resetToken: token },
-      data: {
-        resetToken: null,
-        passwordResetTokenExpiry: null,
-        manuelAuth: {
-          update: { password: hashedPassword },
-        },
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const grant = await tx.passwordReset.findUnique({
+        where: { tokenHash },
+        include: { user: { select: { manuelAuth: { select: { id: true } } } } },
+      });
+
+      if (
+        !grant ||
+        grant.usedAt !== null ||
+        grant.expiresAt <= new Date() ||
+        !grant.user.manuelAuth
+      ) {
+        throw new BadRequestException('Reset token is invalid or expired');
+      }
+
+      const consumed = await tx.passwordReset.updateMany({
+        where: { id: grant.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      if (consumed.count === 0) {
+        throw new BadRequestException('Reset token is invalid or expired');
+      }
+
+      await tx.manuelAuth.update({
+        where: { id: grant.user.manuelAuth.id },
+        data: { password: hashedPassword },
+      });
+
+      await this.revokeAllSessions(grant.userId, tx);
     });
 
-    return {
-      status: ToastType.Success,
+    return ok({
       header: 'Password Reset Successful',
       message: 'Password has been reset successfully',
-    };
+    });
   }
 
-  async signInWithGoogle(
-    email: string,
-    accessToken: string,
-    refreshToken: string,
-  ) {
+  async signInWithGoogle(email: string) {
     const existingUser = await this.findUserByEmail(email);
     const userPermit = await this.getDefaultPermit();
 
     if (!existingUser) {
-      const userId = await this.prisma.$transaction(async (tx) => {
+      const created = await this.prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
           data: {
             email,
@@ -360,67 +381,36 @@ export class AuthService {
           },
         });
 
-        const newToken = await tx.tokens.create({
-          data: {
-            user: { connect: { id: newUser.id } },
-            accessToken,
-            refreshToken,
-          },
-        });
-
         await tx.googleAuth.create({
-          data: {
-            email,
-            user: { connect: { id: newUser.id } },
-            tokens: { connect: { id: newToken.id } },
-          },
+          data: { email, user: { connect: { id: newUser.id } } },
         });
 
-        return newUser.id;
+        const tokens = await this.createSession(newUser, tx);
+
+        return { userId: newUser.id, ...tokens };
       });
 
-      return {
-        status: ToastType.Success,
+      return ok({
         header: 'Google Sign In Successful',
         message: 'New user created and signed in with Google',
-        userId,
-      };
+        data: created,
+      });
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      const savedToken = await tx.tokens.upsert({
-        where: { userId: existingUser.id },
-        update: { accessToken, refreshToken },
-        create: {
-          user: { connect: { id: existingUser.id } },
-          accessToken,
-          refreshToken,
-        },
-      });
-
+    const issued = await this.prisma.$transaction(async (tx) => {
       if (!existingUser.googleAuth) {
         await tx.googleAuth.create({
-          data: {
-            email,
-            user: { connect: { id: existingUser.id } },
-            tokens: { connect: { id: savedToken.id } },
-          },
-        });
-      } else {
-        await tx.googleAuth.update({
-          where: { id: existingUser.googleAuth.id },
-          data: {
-            tokens: { connect: { id: savedToken.id } },
-          },
+          data: { email, user: { connect: { id: existingUser.id } } },
         });
       }
+
+      return this.createSession(existingUser, tx);
     });
 
-    return {
-      status: ToastType.Success,
+    return ok({
       header: 'Google Sign In Successful',
       message: 'User signed in with Google',
-      userId: existingUser.id,
-    };
+      data: { userId: existingUser.id, ...issued },
+    });
   }
 }
