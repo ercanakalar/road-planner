@@ -1,213 +1,131 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
+import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
+import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
-  AddFavoriteRoad,
-  AddFavoriteWaypoint,
-  RemoveFavorite,
-} from './type/favorites.type';
-import { ToastType } from 'src/common/type/status.type';
-import { Prisma } from '@prisma/client';
+  ToggleFavoriteRoadDto,
+  ToggleFavoriteWaypointDto,
+} from './dto/favorites.dto';
+
+function isDuplicate(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  );
+}
 
 @Injectable()
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
-  async toggleFavoriteWaypoint(body: AddFavoriteWaypoint, userId: string) {
+  async toggleFavoriteWaypoint(
+    body: ToggleFavoriteWaypointDto,
+    userId: string,
+  ) {
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.favoriteWaypoint.findUnique({
+          where: { userId_waypointId: { userId, waypointId: body.waypointId } },
+          select: { id: true },
+        });
+
+        if (existing) {
+          await tx.favoriteWaypoint.delete({ where: { id: existing.id } });
+
+          return ok({
+            header: 'Removed Favorite',
+            message: 'Favorite waypoint removed successfully',
+          });
+        }
+
         const waypoint = await tx.wayPoint.findUnique({
           where: { id: body.waypointId },
+          select: { id: true },
         });
 
         if (!waypoint) {
           throw new NotFoundException('Waypoint not found');
         }
 
-        const existingFavorite = await tx.favoriteWaypoint.findFirst({
-          where: {
-            userId,
-            waypointId: waypoint.id,
-          },
-        });
-
-        if (existingFavorite) {
-          await tx.favoriteWaypoint.delete({
-            where: { id: existingFavorite.id },
-          });
-
-          return {
-            status: ToastType.Success,
-            header: 'Removed Favorite',
-            message: 'Favorite waypoint removed successfully',
-          };
-        }
-
-        const favoriteWaypoint = await tx.favoriteWaypoint.create({
-          data: {
-            userId,
-            waypointId: waypoint.id,
-          },
-        });
-
-        return {
-          status: ToastType.Success,
+        return ok({
           header: 'Favorite Added',
           message: 'Favorite waypoint added successfully',
-          data: favoriteWaypoint,
-        };
+          data: await tx.favoriteWaypoint.create({
+            data: { userId, waypointId: waypoint.id },
+          }),
+        });
       });
-
-      return result;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          return {
-            status: ToastType.Success,
-            header: 'Already Favorited',
-            message: 'This waypoint is already in your favorites',
-          };
-        }
-
-        if (error.code === 'P2003') {
-          return {
-            status: ToastType.Error,
-            header: 'Invalid Waypoint',
-            message: 'The waypoint relation is invalid or missing',
-          };
-        }
-      } else if (error instanceof NotFoundException) {
-        return {
-          status: ToastType.Error,
-          header: 'Not Found',
-          message: 'The waypoint you are trying to favorite does not exist',
-        };
+      if (isDuplicate(error)) {
+        return ok({
+          header: 'Already Favorited',
+          message: 'This waypoint is already in your favorites',
+        });
       }
 
-      return {
-        status: ToastType.Error,
-        header: 'Error',
-        message: 'An error occurred while toggling favorite waypoint',
-      };
+      throw error;
     }
   }
 
-  async toggleFavoriteRoad(body: AddFavoriteRoad, userId: string) {
+  async toggleFavoriteRoad(body: ToggleFavoriteRoadDto, userId: string) {
     try {
-      const existingFavorite = await this.prisma.favoriteRoad.findFirst({
-        where: {
-          userId,
-          roadId: body.roadId,
-        },
-      });
-
-      if (existingFavorite) {
-        await this.prisma.favoriteRoad.delete({
-          where: { id: existingFavorite.id },
+      return await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.favoriteRoad.findUnique({
+          where: { userId_roadId: { userId, roadId: body.roadId } },
+          select: { id: true },
         });
 
-        return {
-          status: ToastType.Success,
-          header: 'Removed Favorite',
-          message: 'Favorite road removed successfully',
-        };
-      }
+        if (existing) {
+          await tx.favoriteRoad.delete({ where: { id: existing.id } });
 
-      const favoriteRoad = await this.prisma.favoriteRoad.create({
-        data: {
-          userId,
-          roadId: body.roadId,
-        },
+          return ok({
+            header: 'Removed Favorite',
+            message: 'Favorite road removed successfully',
+          });
+        }
+
+        const road = await tx.road.findUnique({
+          where: { id: body.roadId },
+          select: { id: true },
+        });
+
+        if (!road) {
+          throw new NotFoundException('Road not found');
+        }
+
+        return ok({
+          header: 'Favorite Added',
+          message: 'Favorite road added successfully',
+          data: await tx.favoriteRoad.create({
+            data: { userId, roadId: road.id },
+          }),
+        });
       });
-
-      return {
-        status: ToastType.Success,
-        header: 'Favorite Added',
-        message: 'Favorite road added successfully',
-        data: favoriteRoad,
-      };
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        return {
-          status: ToastType.Success,
+      if (isDuplicate(error)) {
+        return ok({
           header: 'Already Favorited',
           message: 'This road is already in your favorites',
-        };
+        });
       }
 
-      return {
-        status: ToastType.Error,
-        header: 'Error',
-        message: 'An error occurred while toggling favorite road',
-      };
+      throw error;
     }
   }
 
-  async getAllFavorites(userId: string) {
-    const [ownRoads, ownWaypoints, othersRoads, othersWaypoints] =
+  async getAllFavorites(userId: string, pagination: PaginationQueryDto) {
+    const page = {
+      take: pagination.limit,
+      skip: pagination.offset,
+      orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
+    };
+
+    const [roads, roadTotal, waypoints, waypointTotal] =
       await this.prisma.$transaction([
         this.prisma.favoriteRoad.findMany({
-          where: {
-            userId,
-            deletedAt: null,
-            road: { userId },
-          },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            road: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                userId: true,
-              },
-            },
-          },
-        }),
-
-        this.prisma.favoriteWaypoint.findMany({
-          where: {
-            userId,
-            deletedAt: null,
-            waypoint: {
-              road: { userId },
-            },
-          },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            waypoint: {
-              select: {
-                id: true,
-                latitude: true,
-                longitude: true,
-                address: {
-                  select: {
-                    country: true,
-                    province: true,
-                    district: true,
-                    address: true,
-                  },
-                },
-              },
-            },
-          },
-        }),
-
-        this.prisma.favoriteRoad.findMany({
-          where: {
-            userId,
-            deletedAt: null,
-            road: {
-              userId: { not: userId },
-            },
-          },
+          where: { userId },
           select: {
             id: true,
             title: true,
@@ -232,22 +150,17 @@ export class FavoritesService {
                       },
                     },
                   },
+                  orderBy: { order: 'asc' },
                 },
               },
             },
           },
+          ...page,
         }),
+        this.prisma.favoriteRoad.count({ where: { userId } }),
 
         this.prisma.favoriteWaypoint.findMany({
-          where: {
-            userId,
-            deletedAt: null,
-            waypoint: {
-              road: {
-                userId: { not: userId },
-              },
-            },
-          },
+          where: { userId },
           select: {
             id: true,
             title: true,
@@ -257,6 +170,7 @@ export class FavoritesService {
                 id: true,
                 latitude: true,
                 longitude: true,
+                road: { select: { userId: true } },
                 address: {
                   select: {
                     country: true,
@@ -268,19 +182,39 @@ export class FavoritesService {
               },
             },
           },
+          ...page,
         }),
+        this.prisma.favoriteWaypoint.count({ where: { userId } }),
       ]);
 
-    return {
-      status: ToastType.Success,
+    const ownRoads = roads.filter((f) => f.road.userId === userId);
+    const othersRoads = roads.filter((f) => f.road.userId !== userId);
+
+    const stripRoad = (favorite: (typeof waypoints)[number]) => ({
+      ...favorite,
+      waypoint: {
+        id: favorite.waypoint.id,
+        latitude: favorite.waypoint.latitude,
+        longitude: favorite.waypoint.longitude,
+        address: favorite.waypoint.address,
+      },
+    });
+
+    const ownWaypoints = waypoints
+      .filter((f) => f.waypoint.road.userId === userId)
+      .map(stripRoad);
+    const othersWaypoints = waypoints
+      .filter((f) => f.waypoint.road.userId !== userId)
+      .map(stripRoad);
+
+    return ok({
       header: 'All Favorites',
       message: 'Favorites retrieved successfully',
-      data: {
-        ownRoads,
-        ownWaypoints,
-        othersRoads,
-        othersWaypoints,
+      data: { ownRoads, ownWaypoints, othersRoads, othersWaypoints },
+      meta: {
+        roads: pageMeta(roadTotal, pagination),
+        waypoints: pageMeta(waypointTotal, pagination),
       },
-    };
+    });
   }
 }

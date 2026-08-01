@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { RoadService } from './services/road/road.service';
@@ -9,7 +8,7 @@ import { AccessStrategy } from 'src/auth/strategy/access.strategy';
 import { HelperService } from './services/helper/helper.service';
 
 @Module({
-  imports: [PrismaModule, ConfigModule.forRoot(), JwtModule.register({})],
+  imports: [PrismaModule, JwtModule.register({})],
   controllers: [RoadController],
   providers: [RoadService, AccessStrategy, HelperService],
 })

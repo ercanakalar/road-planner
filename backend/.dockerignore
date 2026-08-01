@@ -1,0 +1,41 @@
+# Keeps the build context small and, more importantly, keeps secrets out of it.
+#
+# The Dockerfile no longer copies `.env`, but a file in the context can still be
+# copied by accident — a future `COPY . .` would pick it up. Excluding it here means
+# the daemon never receives it at all.
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── Build output and dependencies ────────────────────────────────────────────
+# node_modules is installed inside the image from the lockfile; sending the host's
+# copy would both bloat the context and risk shipping platform-specific binaries.
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# ── Tests and tooling ────────────────────────────────────────────────────────
+test
+**/*.spec.ts
+jest.config.js
+.eslintrc.js
+.prettierrc
+
+# ── Version control and editors ──────────────────────────────────────────────
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# ── Docs and local artefacts ─────────────────────────────────────────────────
+docs
+README.md
+Dockerfile
+.dockerignore
+npm-debug.log*

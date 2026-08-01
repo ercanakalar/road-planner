@@ -4,8 +4,11 @@ import {
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
+import { EnvironmentVariables } from 'src/config/env.validation';
 
 interface EmailPayload {
   to: string;
@@ -18,19 +21,24 @@ interface EmailPayload {
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: Transporter<SMTPTransport.SentMessageInfo>;
+  private transporter!: Transporter<SMTPTransport.SentMessageInfo>;
 
-  onModuleInit() {
+  constructor(
+    private readonly config: ConfigService<EnvironmentVariables, true>,
+  ) {}
+
+  onModuleInit(): void {
     this.transporter = createTransport({
-      host: process.env.MAIL_HOST ?? 'sandbox.smtp.mailtrap.io',
-      port: Number(process.env.MAIL_PORT) || 2525,
+      host: this.config.get('MAIL_HOST', { infer: true }),
+      port: this.config.get('MAIL_PORT', { infer: true }),
       auth: {
-        user: process.env.MAIL_USERNAME,
-        pass: process.env.MAIL_PASSWORD,
+        user: this.config.get('MAIL_USERNAME', { infer: true }),
+        pass: this.config.get('MAIL_PASSWORD', { infer: true }),
       },
       tls: {
-        ciphers: 'SSLv3',
-        rejectUnauthorized: false,
+        rejectUnauthorized: this.config.get('MAIL_TLS_REJECT_UNAUTHORIZED', {
+          infer: true,
+        }),
       },
     });
   }
@@ -39,7 +47,7 @@ export class EmailService implements OnModuleInit {
     try {
       await this.transporter.sendMail({
         ...payload,
-        from: process.env.MAIL_FROM,
+        from: this.config.get('MAIL_FROM', { infer: true }),
       });
       return true;
     } catch (error) {

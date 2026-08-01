@@ -1,32 +1,34 @@
 import {
+  CanActivate,
   ExecutionContext,
-  Injectable,
   ForbiddenException,
+  Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
+
 import { PrismaService } from 'src/prisma/prisma.service';
 
-@Injectable()
-export class AdminGuard extends AuthGuard('jwt-access') {
-  constructor(private prisma: PrismaService) {
-    super();
-  }
+export const ADMIN_PERMIT = 'ADMIN';
 
-  getRequest(context: ExecutionContext) {
-    const ctx = context.switchToHttp();
-    return ctx.getRequest();
-  }
+@Injectable()
+export class AdminGuard implements CanActivate {
+  constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
-    const user = req.user;
+    const req = context.switchToHttp().getRequest<Request>();
+    const userId = (req.user as { userId?: string } | undefined)?.userId;
 
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.userId },
+    if (!userId) {
+      throw new UnauthorizedException('Not authenticated');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
       include: { permit: true },
     });
 
-    if (dbUser?.permit?.name !== 'ADMIN') {
+    if (user?.permit?.name !== ADMIN_PERMIT) {
       throw new ForbiddenException('Access denied: Admins only');
     }
 

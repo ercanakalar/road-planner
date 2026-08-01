@@ -1,28 +1,3 @@
-import { Request } from 'express';
-
-export type SignUpData = {
-  email: string;
-  password: string;
-};
-
-export type SignInData = {
-  email: string;
-  password: string;
-};
-
-export type ResetPassword = {
-  password: string;
-  confirmPassword: string;
-};
-
-export type RefreshData = {
-  refreshToken: string;
-};
-
-export interface RefreshRequest extends Request {
-  user: JwtPayload & { refreshToken: string };
-}
-
 export type JwtPayload = {
   userId: string;
   email: string;
@@ -30,14 +5,24 @@ export type JwtPayload = {
   exp: number;
 };
 
-export type AccessTokenType = {};
-export type RefreshTokenType = {};
+export type AccessTokenType = {
+  userId: string;
+  email: string;
+
+  permissions?: unknown[];
+};
+
+export type RefreshTokenType = {
+  userId: string;
+  email: string;
+};
 
 export type GoogleAuthClient = {
   email: string;
-  verified_email: string;
-  name: string;
-  given_name: string;
-  family_name: string;
-  picture: string;
+  verified_email?: boolean | string;
+  email_verified?: boolean | string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
 };

@@ -6,31 +6,34 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { RoadService } from './services/road/road.service';
-import { GetUser } from 'src/common/decorators/get-user.decorator';
-import {
-  AddWaypointToRoad,
-  CreateRoad,
-  DeleteWaypointWithRoadId,
-  ReorderWaypointsWithRoadId,
-  UpdateRoad,
-  UpdateWaypointWithRoadId,
-} from './type/road.type';
-import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
-import { Public } from 'src/common/decorators';
 
-@Controller('api/road')
+import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
+import { Public } from 'src/common/decorators';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
+import {
+  AddWaypointDto,
+  CreateRoadDto,
+  ReorderWaypointsDto,
+  UpdateRoadDto,
+  UpdateWaypointDto,
+} from './dto/road.dto';
+import { RoadService } from './services/road/road.service';
+
+@Controller('road')
 export class RoadController {
   constructor(private roadService: RoadService) {}
 
   @Post('/create')
   @HttpCode(HttpStatus.OK)
   async createRoad(
-    @Body() body: CreateRoad,
+    @Body() body: CreateRoadDto,
     @GetUser('userId') userId: string,
   ) {
     return this.roadService.createRoad(body, userId);
@@ -39,7 +42,7 @@ export class RoadController {
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
   async getRoadById(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @GetUser('userId') userId: string,
   ) {
     return this.roadService.getRoadById(id, userId);
@@ -48,7 +51,7 @@ export class RoadController {
   @Get('/waypoint/:id')
   @HttpCode(HttpStatus.OK)
   async getWaypointById(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @GetUser('userId') userId: string,
   ) {
     return this.roadService.getWaypointById(id, userId);
@@ -56,32 +59,11 @@ export class RoadController {
 
   @Post('/own-roads')
   @HttpCode(HttpStatus.OK)
-  async getOwnRoads(@GetUser('userId') userId: string) {
-    return this.roadService.getOwnRoads(userId);
-  }
-
-  @UseGuards(RoadOwnerGuard)
-  @Put('/update/:id')
-  @HttpCode(HttpStatus.OK)
-  async updateRoadById(@Body() body: UpdateRoad, @Param('id') id: string) {
-    return this.roadService.updateRoadById(id, body);
-  }
-
-  @UseGuards(RoadOwnerGuard)
-  @Post('/delete/:id')
-  @HttpCode(HttpStatus.OK)
-  async deleteRoadById(
-    @Param('id') id: string,
+  async getOwnRoads(
     @GetUser('userId') userId: string,
+    @Query() pagination: PaginationQueryDto,
   ) {
-    return this.roadService.deleteRoadById(id, userId);
-  }
-
-  @UseGuards(RoadOwnerGuard)
-  @Get('/share/:id')
-  @HttpCode(HttpStatus.OK)
-  async shareRoadByIdWithToken(@Param('id') id: string) {
-    return this.roadService.shareRoadByIdWithToken(id);
+    return this.roadService.getOwnRoads(userId, pagination);
   }
 
   @Public()
@@ -92,11 +74,38 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
+  @Get('/share/:id')
+  @HttpCode(HttpStatus.OK)
+  async shareRoadByIdWithToken(@Param('id', ParseUUIDPipe) id: string) {
+    return this.roadService.shareRoadByIdWithToken(id);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Put('/update/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateRoadById(
+    @Body() body: UpdateRoadDto,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.roadService.updateRoadById(id, body);
+  }
+
+  @UseGuards(RoadOwnerGuard)
+  @Post('/delete/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteRoadById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.deleteRoadById(id, userId);
+  }
+
+  @UseGuards(RoadOwnerGuard)
   @Post('/add-waypoint/:id')
   @HttpCode(HttpStatus.OK)
   async addWaypointToRoad(
-    @Body() body: AddWaypointToRoad,
-    @Param('id') id: string,
+    @Body() body: AddWaypointDto,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.roadService.addWaypointToRoad(body, id);
   }
@@ -104,7 +113,9 @@ export class RoadController {
   @UseGuards(RoadOwnerGuard)
   @Delete('/delete-waypoint/:waypointId')
   @HttpCode(HttpStatus.OK)
-  async deleteWaypointWithRoadId(@Param('waypointId') waypointId: string) {
+  async deleteWaypointWithRoadId(
+    @Param('waypointId', ParseUUIDPipe) waypointId: string,
+  ) {
     return this.roadService.deleteWaypointById(waypointId);
   }
 
@@ -112,16 +123,19 @@ export class RoadController {
   @Put('/update-waypoint/:waypointId')
   @HttpCode(HttpStatus.OK)
   async updateWaypointWithRoadId(
-    @Body() body: UpdateWaypointWithRoadId,
-    @Param('waypointId') waypointId: string,
+    @Body() body: UpdateWaypointDto,
+    @Param('waypointId', ParseUUIDPipe) waypointId: string,
   ) {
     return this.roadService.updateWaypointWithRoadId(body, waypointId);
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Put('/reorder-waypoint/:waypointId')
+  @Put('/reorder-waypoint/:roadId')
   @HttpCode(HttpStatus.OK)
-  async reOrderWaypoints(@Body() body: ReorderWaypointsWithRoadId) {
-    return this.roadService.reorderWaypoints(body);
+  async reOrderWaypoints(
+    @Body() body: ReorderWaypointsDto,
+    @Param('roadId', ParseUUIDPipe) roadId: string,
+  ) {
+    return this.roadService.reorderWaypoints(roadId, body);
   }
 }

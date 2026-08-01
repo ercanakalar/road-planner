@@ -1,9 +1,9 @@
-import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+
 import { JwtPayload } from '../type/auth.types';
-import { Request } from 'express';
 
 @Injectable()
 export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
@@ -12,17 +12,16 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
     if (!secretKey) {
       throw new Error('ACCESS_KEY is not defined in the configuration');
     }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: secretKey,
-      passReqToCallback: true,
     });
   }
 
-  validate(req: Request, payload: JwtPayload) {
-    const authHeader = req.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Authorization header is missing or malformed');
+  validate(payload: JwtPayload): JwtPayload {
+    if (!payload?.userId) {
+      throw new UnauthorizedException('Token is missing a subject');
     }
 
     return payload;
