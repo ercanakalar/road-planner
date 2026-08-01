@@ -1,4 +1,7 @@
-import { ApiResponse } from './base-type';
+import {
+  WaypointWithAddress,
+  WaypointWithAddressAndId,
+} from 'types/map-screen-type';
 
 export interface Road {
   id: string;
@@ -18,20 +21,6 @@ export interface RoadDetail {
   description?: string;
 }
 
-export interface Waypoint {
-  id: string;
-  latitude: number;
-  longitude: number;
-  description?: string;
-  order: number;
-  roadId: string;
-  addressInfoId: string;
-  address?: Address;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
 export interface Address {
   id: string;
   country: string;
@@ -43,111 +32,93 @@ export interface Address {
   deletedAt: string | null;
 }
 
+export interface Waypoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+  roadId: string;
+  addressInfoId: string;
+  address?: Address;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
 export interface FavoriteEntity {
   id: string;
 }
 
-export interface GetOwnRoadsArgs {
-  accessToken: string;
+export interface WaypointAddressInput {
+  address: string;
+  country: string;
+  province: string;
+  district: string;
 }
 
-export type GetOwnRoadsResponse = ApiResponse<
-  Road[] & {
-    waypoints: Waypoint[] &
-      { favoriteWaypoints: string[]; isfavorite: boolean }[];
-    favoriteRoads: string[];
-    favoriteWaypoints: string[];
-  }
->;
+export interface WaypointInput {
+  latitude: number;
+  longitude: number;
+  order?: number;
+  description?: string;
+  address: WaypointAddressInput;
+}
+
+export type GetOwnRoadsArgs = void;
+export type GetOwnRoadsResponse = WaypointWithAddressAndId[];
 
 export interface GetRoadByIdArgs {
-  accessToken: string;
   roadId: string;
 }
+export type GetRoadByIdResponse = WaypointWithAddressAndId;
 
-export type GetRoadByIdResponse = ApiResponse<
-  Array<
-    Road & {
-      waypoints: Array<Waypoint & { favoriteWaypoints: string[] }>;
-      favoriteRoads: string[];
-      favoriteWaypoints: string[];
-    }
-  >
->;
+export interface GetWaypointByIdArgs {
+  waypointId: string;
+}
+export type GetWaypointByIdResponse = WaypointWithAddress;
 
-export type DeleteRoadByIdArgs = {
-  accessToken: string;
+export interface DeleteRoadByIdArgs {
   roadId: string;
-};
+}
+export type DeleteRoadByIdResponse = null;
 
-export type DeleteRoadByIdResponse = ApiResponse<null>;
+export interface CreateRoadArgs {
+  title: string;
+  description?: string;
+  waypoints?: WaypointInput[];
+}
+export type CreateRoadResponse = WaypointWithAddressAndId;
 
-export type AddWaypointArgs = {
-  accessToken: string;
+export interface UpdateRoadByIdArgs {
   roadId: string;
-  waypoint: {
-    latitude: number;
-    longitude: number;
-    order: number;
-    description?: string;
-    address: {
-      address: string;
-      country: string;
-      province: string;
-      district: string;
-      name: string;
-    };
-  };
-};
+  title: string;
+  description?: string;
+  waypoints?: WaypointInput[];
+}
+export type UpdateRoadByIdResponse = WaypointWithAddressAndId;
 
-export type AddWaypointResponse = ApiResponse<Waypoint>;
+export interface AddWaypointArgs {
+  roadId: string;
+  waypoint: WaypointInput;
+}
+export type AddWaypointResponse = Waypoint;
 
-export type DeleteWaypointByRoadIdArgs = {
-  accessToken: string;
+export interface DeleteWaypointByRoadIdArgs {
   roadId: string;
   waypointId: string;
-};
+}
+export type DeleteWaypointByRoadIdResponse = null;
 
-export type DeleteWaypointByRoadIdResponse = ApiResponse<null>;
-
-export type UpdateWaypointByWaypointIdArgs = {
-  accessToken: string;
+export interface UpdateWaypointByWaypointIdArgs {
   roadId: string;
   waypointId: string;
-  waypoint: {
-    latitude: number;
-    longitude: number;
-    description?: string;
-    address: {
-      address: string;
-      country: string;
-      province: string;
-      district: string;
-      name: string;
-    };
-  };
-};
+  waypoint: WaypointInput;
+}
+export type UpdateWaypointByWaypointIdResponse = Waypoint;
 
-export type UpdateWaypointByWaypointIdResponse = ApiResponse<Waypoint>;
-
-export type ReorderWaypointsArgs = {
-  accessToken: string;
+export interface ReorderWaypointsArgs {
   roadId: string;
   from: number;
   to: number;
-};
-
-export type ReorderWaypointsResponse = ApiResponse<Waypoint[]>;
-
-export type GetWaypointByIdArgs = {
-  accessToken: string;
-  waypointId: string;
-};
-
-export type GetWaypointByIdResponse = ApiResponse<
-  Waypoint & {
-    address: Address;
-    favoriteWaypoints: string[];
-    isFavorite: boolean;
-  }
->;
+}
+export type ReorderWaypointsResponse = Waypoint[];

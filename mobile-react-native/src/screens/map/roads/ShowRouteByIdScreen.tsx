@@ -1,19 +1,17 @@
-import React, { useMemo, useState, useCallback, memo } from 'react';
-import {
-  ActivityIndicator,
-  Text,
-  View,
-  useWindowDimensions,
-  LayoutChangeEvent,
-} from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
 
 import PlacesSearchBar from 'components/PlacesSearchBar';
 import ContextMenu from 'components/ContextMenu';
+import ScreenState from 'components/ScreenState';
+import BottomSheetHandle from 'components/BottomSheetHandle';
 import EnhancedWaypointList from 'screens/map/roads/EnhancedWaypointList';
 import { MapSection } from './MapSection';
+
 import useMapLogic from 'hooks/useMapLogic';
-import BottomSheetHandle from 'components/BottomSheetHandle';
+import { colors } from 'theme';
+import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 
 const ShowRouteByIdScreen = () => {
   const {
@@ -21,73 +19,64 @@ const ShowRouteByIdScreen = () => {
     mapRef,
     bottomSheetRef,
     isLoading,
-    data,
-    isDragging,
+    waypoints,
+    routeLine,
+    transportMode,
+    setTransportMode,
+    draggingWaypointId,
     contextMenuProps,
-    markerLogic,
     onPlaceSelected,
     handleMarkerDragEnd,
     handleMapLongPress,
+    handleMapPress,
   } = useMapLogic();
 
   const { height: windowHeight } = useWindowDimensions();
-  const [searchBarBottom, setSearchBarBottom] = useState(0);
-
-  const handleSearchLayout = useCallback((event: LayoutChangeEvent) => {
-    const { y, height } = event.nativeEvent.layout;
-    setSearchBarBottom(y + height);
-  }, []);
+  const [isReordering, setIsReordering] = useState(false);
 
   const snapPoints = useMemo(() => {
-    const min = Math.round(windowHeight * 0.2);
-    const mid = Math.round(windowHeight * 0.4);
-    const large = Math.round(windowHeight * 0.6);
-
-    const maxByScreen = Math.round(windowHeight * 0.8);
-    const maxBySearch =
-      searchBarBottom > 0
-        ? Math.round(windowHeight - searchBarBottom)
-        : maxByScreen;
-
-    const max = Math.max(min, Math.min(maxByScreen, maxBySearch));
-
-    return [min, mid, large, max]
-      .filter((point, index, arr) => point > 0 && arr.indexOf(point) === index)
-      .sort((a, b) => a - b);
-  }, [windowHeight, searchBarBottom]);
-
-  if (isLoading || !data?.wayPoints?.length) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size='large' color='#007AFF' />
-        <Text>Loading route...</Text>
-      </View>
+    const points = [0.22, 0.45, 0.75].map((ratio) =>
+      Math.round(windowHeight * ratio),
     );
+    return Array.from(new Set(points)).sort((a, b) => a - b);
+  }, [windowHeight]);
+
+  const summary = useMemo(() => {
+    if (routeLine.durationSeconds === undefined) return undefined;
+    return {
+      duration: secondsToHour(routeLine.durationSeconds),
+      distance: metersToDistance(routeLine.distanceMeters),
+    };
+  }, [routeLine.distanceMeters, routeLine.durationSeconds]);
+
+  const handleReorderingChange = useCallback(
+    (reordering: boolean) => setIsReordering(reordering),
+    [],
+  );
+
+  if (isLoading && waypoints.length === 0) {
+    return <ScreenState variant='loading' title='Loading route…' />;
   }
+
+  const sheetGesturesEnabled = !draggingWaypointId && !isReordering;
 
   return (
     <>
-      <View style={{ flex: 1 }}>
-        <View onLayout={handleSearchLayout}>
-          <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
-        </View>
-
+      <View style={styles.container}>
         <MapSection
-          ref={mapRef}
-          waypoints={data.wayPoints}
-          isDragging={isDragging}
-          selectedMarkerId={markerLogic.selectedMarkerId}
-          routeCoordinates={markerLogic.routeCoordinates}
+          mapRef={mapRef}
+          waypoints={waypoints}
+          draggingWaypointId={draggingWaypointId}
+          routeCoordinates={routeLine.coordinates}
+          summary={summary}
           handleMarkerDragEnd={handleMarkerDragEnd}
           onMapLongPress={handleMapLongPress}
+          onMapPress={handleMapPress}
         />
 
-        <ContextMenu
-          {...contextMenuProps}
-          options={contextMenuProps.options.filter(
-            (option) => option !== undefined,
-          )}
-        />
+        <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
+
+        <ContextMenu {...contextMenuProps} />
       </View>
 
       <BottomSheet
@@ -95,15 +84,28 @@ const ShowRouteByIdScreen = () => {
         snapPoints={snapPoints}
         index={0}
         enablePanDownToClose={false}
-        enableContentPanningGesture={!isDragging}
-        enableHandlePanningGesture={!isDragging}
+        enableContentPanningGesture={sheetGesturesEnabled}
+        enableHandlePanningGesture={sheetGesturesEnabled}
         enableDynamicSizing={false}
         handleComponent={BottomSheetHandle}
+        backgroundStyle={styles.sheetBackground}
       >
-        <EnhancedWaypointList roadId={roadId} />
+        <EnhancedWaypointList
+          roadId={roadId}
+          transportMode={transportMode}
+          onTransportModeChange={setTransportMode}
+          onReorderingChange={handleReorderingChange}
+        />
       </BottomSheet>
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  sheetBackground: {
+    backgroundColor: colors.surface,
+  },
+});
 
 export default memo(ShowRouteByIdScreen);

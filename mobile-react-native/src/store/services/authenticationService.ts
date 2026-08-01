@@ -1,5 +1,8 @@
 import baseQuery from 'store/bases/baseQuery';
-import { transformApiResponse } from 'store/bases/transformApiResponse';
+import {
+  transformApiResponse,
+  transformApiResponseWithToast,
+} from 'store/bases/transformApiResponse';
 
 import createApi from '../middlewares/createApi';
 
@@ -17,9 +20,7 @@ export const authenticationService = createApi({
   reducerPath: 'authenticationService',
   baseQuery: baseQuery(),
   keepUnusedDataFor: 0,
-  refetchOnFocus: true,
   refetchOnReconnect: true,
-  refetchOnMountOrArgChange: true,
   tagTypes: ['Authentication'],
   endpoints: (builder) => ({
     signUp: builder.mutation<SignUpArgsResponse, SignUpArgs>({
@@ -31,51 +32,31 @@ export const authenticationService = createApi({
           password: args.password,
           confirmPassword: args.confirmPassword,
         },
-        headers: {
-          'Content-Type': 'application/json',
-        },
       }),
-      extraOptions: {
-        maxRetries: 0,
-      },
+      extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<SignUpArgsResponse>) =>
-        transformApiResponse(res),
+        transformApiResponseWithToast(res),
     }),
 
     signIn: builder.mutation<SignInArgsResponse, SignInArgs>({
       query: (args) => ({
         url: '/auth/sign-in',
         method: 'POST',
-        body: {
-          email: args.email,
-          password: args.password,
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        body: { email: args.email, password: args.password },
       }),
-      extraOptions: {
-        maxRetries: 0,
-      },
+      extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<SignInArgsResponse>) =>
-        transformApiResponse(res),
+        transformApiResponseWithToast(res),
     }),
 
-    logout: builder.mutation<void, { accessToken: string }>({
-      query: ({ accessToken }) => ({
+    logout: builder.mutation<void, void>({
+      query: () => ({
         url: '/auth/sign-out',
         method: 'POST',
         body: {},
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
       }),
-      extraOptions: {
-        maxRetries: 0,
-      },
-      transformResponse: (res: ApiResponse<void>) =>
-        transformApiResponse(res, 'logout'),
+      extraOptions: { maxRetries: 0 },
+      transformResponse: (res: ApiResponse<void>) => transformApiResponse(res),
     }),
 
     validateRefreshToken: builder.mutation<
@@ -85,17 +66,9 @@ export const authenticationService = createApi({
       query: (args) => ({
         url: '/auth/refresh-token',
         method: 'POST',
-        body: {
-          refreshToken: args.refreshToken,
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${args.accessToken}`,
-        },
+        body: { refreshToken: args.refreshToken },
       }),
-      extraOptions: {
-        maxRetries: 0,
-      },
+      extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<ValidateRefreshTokenResponse>) =>
         transformApiResponse(res),
     }),
@@ -105,17 +78,12 @@ export const authenticationService = createApi({
       { code: string }
     >({
       query: ({ code }) => ({
-        url: `/auth/google/callback?code=${code}`,
+        url: `/auth/google/callback?code=${encodeURIComponent(code)}`,
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       }),
-      extraOptions: {
-        maxRetries: 0,
-      },
+      extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<ValidateRefreshTokenResponse>) =>
-        transformApiResponse(res),
+        transformApiResponseWithToast(res),
     }),
   }),
 });

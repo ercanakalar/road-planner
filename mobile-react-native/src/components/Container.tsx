@@ -1,30 +1,24 @@
-import { View, StyleSheet } from 'react-native';
-import React, { ReactNode } from 'react';
+import React, { ReactNode, memo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { colors } from 'theme';
 
 const Container = ({ children }: { children: ReactNode }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.topContainer}>
-      <View style={styles.header}></View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {children}
     </View>
   );
 };
 
-export default Container;
-
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: '#ffffff',
-    paddingTop: 36,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  topContainer: {
+  container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    backgroundColor: colors.background,
   },
 });
+
+export default memo(Container);

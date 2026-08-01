@@ -1,160 +1,217 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-  Text,
   RefreshControl,
+  SectionList,
+  SectionListData,
+  SectionListRenderItemInfo,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { useAppDispatch, useAppSelector } from 'store/hook';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+
+import ScreenState from 'components/ScreenState';
+import { FavoriteSection } from './FavoriteSection';
+import { FavoriteItem } from './FavoriteItem';
+
 import {
+  useGetFavoritesQuery,
   useToggleFavoriteRoadMutation,
   useToggleFavoriteWaypointMutation,
-  useGetFavoritesQuery,
 } from 'store/services/favoriteService';
-import { FavoriteSection } from './FavoriteSection';
-import { FavoriteWaypointWithRelation, GetAllFavorites } from 'types/screens/mapScreenType';
-import { FavoriteRoadWithRelation } from 'types/store/services/favoriteService-type';
-import { isFavoriteRoad } from 'utils/favoriteGuars';
+import { showNotification } from 'services/notificationService';
 
+import { colors, spacing } from 'theme';
+import {
+  FavoriteEntry,
+  FavoriteSectionKey,
+} from 'types/store/services/favoriteService-type';
+import {
+  FavoriteSectionDescriptor,
+  MaterialIconName,
+} from 'types/screens/mapScreenType';
+import { RootStackParamList } from 'types/screens/screens';
 
-const SECTIONS = [
-  { key: 'ownRoads', title: 'My Roads', icon: 'directions-car' },
-  { key: 'ownWaypoints', title: 'My Waypoints', icon: 'location-on' },
-  { key: 'othersRoads', title: "Others' Roads", icon: 'public' },
-  { key: 'othersWaypoints', title: "Others' Waypoints", icon: 'place' },
-] as const;
+const SECTIONS: {
+  key: FavoriteSectionKey;
+  title: string;
+  icon: MaterialIconName;
+}[] = [
+  { key: 'ownRoads', title: 'My routes', icon: 'directions-car' },
+  { key: 'ownWaypoints', title: 'My places', icon: 'location-on' },
+  { key: 'othersRoads', title: "Others' routes", icon: 'public' },
+  { key: 'othersWaypoints', title: "Others' places", icon: 'place' },
+];
 
-type SectionKey = (typeof SECTIONS)[number]['key'];
+const Favorite = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [expanded, setExpanded] = useState<FavoriteSectionKey | null>(
+    'ownRoads',
+  );
 
-interface FavoriteProps {
-  refreshToken?: number;
-}
-
-export default function Favorite({ refreshToken }: FavoriteProps) {
-  const dispatch = useAppDispatch();
-  const accessToken = useAppSelector((state) => state.auth.accessToken) ?? '';
-
-  const [expandedSection, setExpandedSection] = useState<SectionKey | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const hasMountedRef = useRef(false);
+  const {
+    data: favorites,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetFavoritesQuery();
 
   const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
   const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
 
-  const {
-    data: favoritesData,
-    isLoading,
-    isFetching,
-    error: fetchError,
-    refetch,
-  } = useGetFavoritesQuery({ accessToken }, { skip: !accessToken });
+  const toggleSection = useCallback((key: FavoriteSectionKey) => {
+    setExpanded((previous) => (previous === key ? null : key));
+  }, []);
 
-  useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
-    }
-    refetch();
-  }, [refreshToken, refetch]);
-
-  const handleRemoveFavorite = useCallback(
-    async (item: FavoriteWaypointWithRelation | FavoriteRoadWithRelation) => {
+  const handleRemove = useCallback(
+    async (item: FavoriteEntry) => {
       try {
-        if (isFavoriteRoad(item)) {
-          await toggleFavoriteRoad({
-            accessToken,
-            favoriteId: item.id,
-          }).unwrap();
+        if (item.kind === 'road') {
+          await toggleFavoriteRoad({ roadId: item.targetId }).unwrap();
         } else {
           await toggleFavoriteWaypoint({
-            accessToken,
-            favoriteId: item.id,
+            waypointId: item.targetId,
           }).unwrap();
         }
-      } catch (err) {
-        setLocalError(err instanceof Error ? err.message : 'Failed to remove favorite');
-        console.error('Failed to remove favorite:', err);
+      } catch {
+        showNotification({
+          type: 'error',
+          header: 'Error',
+          message: 'Could not remove that favourite.',
+        });
       }
     },
-    [accessToken, toggleFavoriteRoad, toggleFavoriteWaypoint],
+    [toggleFavoriteRoad, toggleFavoriteWaypoint],
   );
 
-  const toggleSection = useCallback(
-    (key: SectionKey) => {
-      setExpandedSection((prev) => (prev === key ? null : key))
+  const handleItemPress = useCallback(
+    (item: FavoriteEntry) => {
+      if (item.kind === 'road') {
+        navigation.navigate('ShowRouteByIdScreen', { roadId: item.targetId });
+      } else {
+        navigation.navigate('ShowWaypointById', { waypointId: item.targetId });
+      }
     },
+    [navigation],
+  );
+
+  /*
+   * Collapsed sections carry an empty `data` array, which is how a SectionList
+   * expresses an accordion — the header stays mounted, the rows unmount.
+   */
+  const sections = useMemo<FavoriteSectionDescriptor[]>(
+    () =>
+      SECTIONS.map((section) => ({
+        ...section,
+        data: expanded === section.key ? favorites?.[section.key] ?? [] : [],
+      })),
+    [expanded, favorites],
+  );
+
+  const totalCount = useMemo(
+    () =>
+      SECTIONS.reduce(
+        (total, section) => total + (favorites?.[section.key].length ?? 0),
+        0,
+      ),
+    [favorites],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({
+      section,
+    }: {
+      section: SectionListData<FavoriteEntry, FavoriteSectionDescriptor>;
+    }) => (
+      <FavoriteSection
+        section={{ ...section, data: favorites?.[section.key] ?? [] }}
+        isExpanded={expanded === section.key}
+        onToggle={toggleSection}
+      />
+    ),
+    [expanded, favorites, toggleSection],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: SectionListRenderItemInfo<FavoriteEntry>) => (
+      <FavoriteItem
+        item={item}
+        onPress={handleItemPress}
+        onRemove={handleRemove}
+      />
+    ),
+    [handleItemPress, handleRemove],
+  );
+
+  const keyExtractor = useCallback(
+    (item: FavoriteEntry) => item.favoriteId,
     [],
   );
 
-  const sections = useMemo(
-    () =>
-      SECTIONS.map((s) => ({
-        ...s,
-        data: (favoritesData as GetAllFavorites)?.[s.key] ?? [],
-      })),
-    [favoritesData],
-  );
-
-  const error = localError ?? (fetchError ? 'Failed to fetch favorites' : null);
-
   if (isLoading) {
+    return <ScreenState variant='loading' title='Loading favourites…' />;
+  }
+
+  if (isError && !favorites) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-      </View>
+      <ScreenState
+        variant='error'
+        title='Could not load favourites'
+        message='Check your connection and try again.'
+        actionLabel='Retry'
+        onAction={refetch}
+      />
     );
   }
 
-  if (error && !favoritesData) {
+  if (totalCount === 0) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenState
+        variant='empty'
+        icon='star-outline'
+        title='Nothing saved yet'
+        message='Star a route or a stop and it will show up here.'
+      />
     );
   }
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={sections}
-        keyExtractor={(item) => item.key}
-        renderItem={({ item }) => (
-          <FavoriteSection
-            section={item}
-            isExpanded={expandedSection === item.key}
-            onToggle={() => toggleSection(item.key)}
-            onRemove={handleRemoveFavorite}
-            onItemPress={(fav) => {
-            }}
-          />
-        )}
+      <SectionList<FavoriteEntry, FavoriteSectionDescriptor>
+        sections={sections}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        SectionSeparatorComponent={SectionSpacer}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
             onRefresh={refetch}
-            tintColor="#2196F3"
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
       />
     </View>
   );
-}
+};
+
+const SectionSpacer = () => <View style={styles.sectionSpacer} />;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f9f9' },
-  center: { justifyContent: 'center', alignItems: 'center' },
-  listContent: { paddingBottom: 20 },
-  errorText: { fontSize: 16, color: '#d32f2f', marginBottom: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: '#2196F3', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
-  retryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  errorBanner: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#ffebee', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#d32f2f' },
-  errorBannerText: { color: '#d32f2f', fontSize: 14, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colors.background },
+  listContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  sectionSpacer: {
+    height: spacing.sm,
+  },
 });
+
+export default Favorite;

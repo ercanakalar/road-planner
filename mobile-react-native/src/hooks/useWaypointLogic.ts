@@ -1,53 +1,37 @@
-import { useCallback, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useRoute } from '@react-navigation/native';
-import MapView from 'react-native-maps';
-import { MarkerDragEndEvent } from 'types/hooks/useMapLogic-type';
-import { WaypointRoute } from 'types/screens/mapScreenType';
+import MapView, { Region } from 'react-native-maps';
+
 import { useGetWaypointByIdQuery } from 'store/services/roadService';
-import { Waypoint } from 'types/store/services/roadService-type';
+import { WaypointRoute } from 'types/screens/mapScreenType';
+
+const DELTA = 0.01;
 
 const useWaypointLogic = () => {
   const route = useRoute<WaypointRoute>();
-  const { accessToken, waypointId } = route.params;
+  const { waypointId } = route.params;
 
   const mapRef = useRef<MapView>(null);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  }: {
-    data: Waypoint | undefined;
-    isLoading: boolean;
-    isError: boolean;
-  } = useGetWaypointByIdQuery(
-    { accessToken, waypointId },
-    { skip: !accessToken || !waypointId },
+  const { data, isLoading, isError } = useGetWaypointByIdQuery(
+    { waypointId },
+    { skip: !waypointId },
   );
 
-  const handleMarkerDragEnd = useCallback(
-    (_event: MarkerDragEndEvent, _waypointId: string) => {},
-    [],
+  const initialRegion = useMemo<Region | undefined>(
+    () =>
+      data
+        ? {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            latitudeDelta: DELTA,
+            longitudeDelta: DELTA,
+          }
+        : undefined,
+    [data],
   );
 
-  const initialRegion = data
-    ? {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }
-    : undefined;
-
-  return {
-    waypointId,
-    mapRef,
-    data,
-    isLoading,
-    isError,
-    initialRegion,
-    handleMarkerDragEnd,
-  };
+  return { waypointId, mapRef, data, isLoading, isError, initialRegion };
 };
 
 export default useWaypointLogic;

@@ -1,98 +1,105 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { Slice, SliceCaseReducers } from '@reduxjs/toolkit';
+import { createSlice, isAnyOf, PayloadAction } from '@reduxjs/toolkit';
 
 import { authenticationService } from '../services/authenticationService';
+import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 
-import {
-  IAuthState,
-  SetAuthAction,
-  authInitialState,
-} from 'types/store/auth-type';
+import { IAuthState, authInitialState } from 'types/store/auth-type';
 
-export const authSlice: Slice<
-  IAuthState,
-  SliceCaseReducers<IAuthState>
-> = createSlice({
+type SessionPayload = {
+  accessToken: string;
+  refreshToken: string;
+  userId?: string | null;
+};
+
+const applySession = (state: IAuthState, session: SessionPayload) => {
+  state.accessToken = session.accessToken;
+  state.refreshToken = session.refreshToken;
+  if (session.userId !== undefined) state.userId = session.userId;
+  state.isLoggedIn = true;
+  state.isLoading = false;
+  state.errors = null;
+  state.state = 'authenticated';
+};
+
+const clearSession = (state: IAuthState) => {
+  state.accessToken = null;
+  state.refreshToken = null;
+  state.userId = null;
+  state.isLoggedIn = false;
+  state.isLoading = false;
+  state.errors = null;
+  state.state = 'initial';
+};
+
+export const authSlice = createSlice({
   name: 'auth',
   initialState: authInitialState,
   reducers: {
-    logout: (state) => {
-      state.isLoggedIn = false;
-      state.accessToken = null;
-      state.refreshToken = null;
-      state.state = 'initial';
-      state.errors = null;
-    },
-    clearAuth: (state: IAuthState) => {
-      state.isLoggedIn = false;
-      state.accessToken = null;
-      state.refreshToken = null;
-      state.state = 'initial';
-      state.errors = null;
-    },
-    setUserId: (state: IAuthState, action: { payload: string | null }) => {
+    logout: clearSession,
+    clearAuth: clearSession,
+    setUserId: (state, action: PayloadAction<string | null>) => {
       state.userId = action.payload;
     },
+    sessionRestored: (state, action: PayloadAction<SessionPayload | null>) => {
+      if (action.payload) applySession(state, action.payload);
+      else clearSession(state);
+      state.isLoading = false;
+    },
+    sessionRestoreStarted: (state) => {
+      state.isLoading = true;
+    },
   },
-  extraReducers: (builder: any) => {
-    const { signIn, validateRefreshToken, logout } =
-      authenticationService.endpoints;
+  extraReducers: (builder) => {
+    const {
+      signIn,
+      signUp,
+      validateRefreshToken,
+      logout: logoutEndpoint,
+    } = authenticationService.endpoints;
+
     builder
+      .addCase(sessionRefreshed, (state, action) => {
+        applySession(state, action.payload);
+      })
+      .addCase(sessionCleared, clearSession)
+
       .addMatcher(
-        signIn.matchFulfilled,
-        (state: IAuthState, action: SetAuthAction) => {
-          const { accessToken, refreshToken } = action.payload;
-          state.accessToken = accessToken;
-          state.refreshToken = refreshToken;
-          state.isLoggedIn = true;
-          state.errors = null;
-          state.state = 'authenticated';
+        isAnyOf(signIn.matchFulfilled, signUp.matchFulfilled),
+        (state, { payload }) => {
+          applySession(state, {
+            accessToken: payload.accessToken,
+            refreshToken: payload.refreshToken,
+            userId: payload.userId,
+          });
         },
       )
-      .addMatcher(signIn.matchRejected, (state: IAuthState, action: any) => {
-        state.errors = action?.error?.data || 'Unknown error';
+      .addMatcher(signIn.matchRejected, (state, action) => {
+        state.errors =
+          (action.payload?.data as unknown) ?? 'Unable to sign in right now.';
         state.isLoggedIn = false;
         state.state = 'error';
-      });
-    builder
-      .addMatcher(
-        logout.matchFulfilled,
-        (state: IAuthState, action: SetAuthAction) => {
-          state.accessToken = null;
-          state.refreshToken = null;
-          state.isLoggedIn = false;
-          state.errors = null;
-          state.state = 'authenticated';
-        },
-      )
-      .addMatcher(logout.matchRejected, (state: IAuthState, action: any) => {
-        state.errors = action?.error?.data || 'Unknown error';
-        state.isLoggedIn = false;
-        state.state = 'error';
-      });
-    builder
-      .addMatcher(
-        validateRefreshToken.matchFulfilled,
-        (state: IAuthState, action: SetAuthAction) => {
-          const { accessToken, refreshToken } = action.payload;
-          state.accessToken = accessToken;
-          state.refreshToken = refreshToken;
-          state.isLoggedIn = true;
-          state.errors = null;
-          state.state = 'authenticated';
-        },
-      )
-      .addMatcher(
-        validateRefreshToken.matchRejected,
-        (state: IAuthState, action: any) => {
-          state.errors = action?.error?.data || 'Unknown error';
-          state.isLoggedIn = false;
-          state.state = 'error';
-        },
-      );
+      })
+
+      .addMatcher(validateRefreshToken.matchFulfilled, (state, { payload }) => {
+        applySession(state, {
+          accessToken: payload.accessToken,
+          refreshToken: payload.refreshToken,
+          userId: payload.userId,
+        });
+      })
+      .addMatcher(validateRefreshToken.matchRejected, clearSession)
+
+      .addMatcher(logoutEndpoint.matchFulfilled, clearSession)
+      .addMatcher(logoutEndpoint.matchRejected, clearSession);
   },
 });
 
-export const { logout, clearAuth, setUserId } = authSlice.actions;
+export const {
+  logout,
+  clearAuth,
+  setUserId,
+  sessionRestored,
+  sessionRestoreStarted,
+} = authSlice.actions;
 
 export default authSlice.reducer;

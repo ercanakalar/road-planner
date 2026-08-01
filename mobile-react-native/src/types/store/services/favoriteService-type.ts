@@ -1,56 +1,72 @@
-import { Waypoint } from 'types/map-screen-type';
-import { FavoriteRoad } from 'types/screens/mapScreenType';
-import { ToastType } from 'types/status-type';
-import { RoadDetail } from './roadService-type';
-import { ApiResponse } from './base-type';
+export interface FavoriteRoadTarget {
+  id: string;
+  userId?: string;
+  title?: string | null;
+  description?: string | null;
+}
 
-export type AddFavoriteWaypointResponse = ApiResponse<Waypoint>;
+export interface FavoriteWaypointTarget {
+  id: string;
+  latitude: number;
+  longitude: number;
+  address?: {
+    country?: string | null;
+    province?: string | null;
+    district?: string | null;
+    address?: string | null;
+  } | null;
+}
 
-export type AddFavoriteWaypointArgs = {
-  accessToken: string;
-  waypointId: string;
-};
+export interface FavoriteRoadRow {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  road?: FavoriteRoadTarget | null;
+}
 
-export type RemoveFavoriteWaypointArgs = {
-  accessToken: string;
+export interface FavoriteWaypointRow {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  waypoint?: FavoriteWaypointTarget | null;
+}
+
+export interface RawFavorites {
+  ownRoads: FavoriteRoadRow[];
+  ownWaypoints: FavoriteWaypointRow[];
+  othersRoads: FavoriteRoadRow[];
+  othersWaypoints: FavoriteWaypointRow[];
+}
+
+export type FavoriteKind = 'road' | 'waypoint';
+
+export interface FavoriteEntry {
   favoriteId: string;
-};
+  targetId: string;
+  kind: FavoriteKind;
+  title: string;
+  subtitle?: string;
+}
 
-export type RemoveFavoriteWaypointResponse = ApiResponse<Waypoint>;
+export type FavoriteSectionKey =
+  | 'ownRoads'
+  | 'ownWaypoints'
+  | 'othersRoads'
+  | 'othersWaypoints';
 
-export type AddFavoriteRoadArgs = {
-  accessToken: string;
+export type NormalizedFavorites = Record<FavoriteSectionKey, FavoriteEntry[]>;
+
+export type GetAllFavoritesArgs = void;
+export type GetAllFavoritesResponse = NormalizedFavorites;
+
+export interface ToggleFavoriteRoadArgs {
   roadId: string;
-};
-
-export type AddFavoriteRoadResponse = ApiResponse<FavoriteRoad>;
-
-export type RemoveFavoriteRoadArgs = {
-  accessToken: string;
-  favoriteId: string;
-};
-
-export type RemoveFavoriteRoadResponse = {
-  status: ToastType;
-  header: string;
-  message: string;
-};
-
-export interface FavoriteWaypointWithRelation extends FavoriteRoad {
-  wayPoints: Waypoint;
 }
 
-export interface FavoriteRoadWithRelation extends FavoriteRoad {
-  road: RoadDetail;
+export interface ToggleFavoriteWaypointArgs {
+  waypointId: string;
+
+  roadId?: string;
 }
 
-export interface GetAllFavorites {
-  ownWaypoints: FavoriteWaypointWithRelation[];
-  ownRoads: FavoriteRoadWithRelation[];
-  othersWaypoints: FavoriteWaypointWithRelation[];
-  othersRoads: FavoriteRoadWithRelation[];
-}
-
-export type GetAllFavoritesResponse = ApiResponse<GetAllFavorites>;
-
-export type GetAllFavoritesArgs = { accessToken: string };
+export type ToggleFavoriteResponse = { id: string } | null;

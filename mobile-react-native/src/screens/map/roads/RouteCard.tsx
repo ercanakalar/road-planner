@@ -1,89 +1,165 @@
-import React, { memo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
+import { colors, radius, shadows, spacing, typography } from 'theme';
 import { WaypointWithAddressAndId } from 'types/map-screen-type';
 
 type Props = {
   item: WaypointWithAddressAndId;
-  accessToken: string;
   onToggleFavorite: (item: WaypointWithAddressAndId) => void;
-  onDelete: (roadId: string) => void;
+  onDelete: (item: WaypointWithAddressAndId) => void;
   onView: (roadId: string) => void;
 };
 
 const RouteCard = ({ item, onToggleFavorite, onDelete, onView }: Props) => {
+  const handleView = useCallback(() => onView(item.id), [item.id, onView]);
+
+  const handleToggleFavorite = useCallback(
+    () => onToggleFavorite(item),
+    [item, onToggleFavorite],
+  );
+
+  const handleDelete = useCallback(() => onDelete(item), [item, onDelete]);
+
+  const stopCount = item.wayPoints?.length ?? 0;
+
   return (
-    <View style={styles.routeCard}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={handleView}
+      accessibilityRole='button'
+      accessibilityLabel={`Open route ${item.title}`}
+    >
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{item.title}</Text>
-        <TouchableOpacity
-          onPress={() => onToggleFavorite(item)}
-          style={styles.favoriteButton}
+        <Text style={styles.title} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Pressable
+          onPress={handleToggleFavorite}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.iconButton,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole='button'
+          accessibilityLabel={
+            item.isFavorite ? 'Remove from favourites' : 'Add to favourites'
+          }
         >
-          <Text style={{ fontSize: 18 }}>22{item.isFavorite ? '⭐' : '☆'}</Text>
-        </TouchableOpacity>
+          <Ionicons
+            name={item.isFavorite ? 'star' : 'star-outline'}
+            size={22}
+            color={item.isFavorite ? colors.warning : colors.textSubtle}
+          />
+        </Pressable>
       </View>
 
-      <Text style={styles.desc}>{item.description}</Text>
+      {item.description ? (
+        <Text style={styles.description} numberOfLines={2}>
+          {item.description}
+        </Text>
+      ) : null}
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.button} onPress={() => onView(item.id)}>
-          <Text style={styles.buttonText}>View</Text>
-        </TouchableOpacity>
+      <View style={styles.footer}>
+        <View style={styles.metaPill}>
+          <Ionicons name='location-outline' size={13} color={colors.primary} />
+          <Text style={styles.metaText}>
+            {stopCount} stop{stopCount === 1 ? '' : 's'}
+          </Text>
+        </View>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#FF3B30' }]}
-          onPress={() => onDelete(item.id)}
-        >
-          <Text style={styles.buttonText}>Delete 11</Text>
-        </TouchableOpacity>
+        <View style={styles.footerActions}>
+          <Pressable
+            onPress={handleDelete}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.pressed,
+            ]}
+            accessibilityRole='button'
+            accessibilityLabel={`Delete route ${item.title}`}
+          >
+            <Ionicons
+              name='trash-outline'
+              size={18}
+              color={colors.textSubtle}
+            />
+          </Pressable>
+          <Ionicons
+            name='chevron-forward'
+            size={18}
+            color={colors.textSubtle}
+          />
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
-export default memo(RouteCard);
-
 const styles = StyleSheet.create({
-  routeCard: {
-    padding: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    marginBottom: 12,
+  card: {
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+    ...shadows.sm,
+  },
+  cardPressed: {
+    backgroundColor: colors.surfaceAlt,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  favoriteButton: {
-    padding: 4,
+    gap: spacing.sm,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.heading,
+    color: colors.text,
+    flex: 1,
   },
-  desc: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-    marginBottom: 10,
+  description: {
+    ...typography.caption,
+    color: colors.textMuted,
+    lineHeight: 18,
   },
-  actions: {
+  footer: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
   },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+  },
+  metaText: {
+    ...typography.caption,
+    fontSize: 11,
+    color: colors.primary,
+  },
+  iconButton: {
+    padding: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  pressed: {
+    backgroundColor: colors.surfaceAlt,
   },
 });
+
+
+export default memo(RouteCard);

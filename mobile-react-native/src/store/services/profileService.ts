@@ -1,7 +1,9 @@
-import { createApi } from '@reduxjs/toolkit/query/react';
-
+import createApi from 'store/middlewares/createApi';
 import baseQuery from 'store/bases/baseQuery';
-import { transformApiResponse } from 'store/bases/transformApiResponse';
+import {
+  transformApiResponse,
+  transformApiResponseWithToast,
+} from 'store/bases/transformApiResponse';
 
 import {
   UserArgs,
@@ -15,24 +17,20 @@ export const profileService = createApi({
   reducerPath: 'profileService',
   baseQuery: baseQuery(),
   tagTypes: ['UserProfile'],
-  keepUnusedDataFor: 60,
+  keepUnusedDataFor: 300,
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  refetchOnMountOrArgChange: true,
+  refetchOnMountOrArgChange: 30,
 
   endpoints: (builder) => ({
     getUser: builder.query<GetUserByIdResponse, GetUserByIdArgs>({
-      query: ({ userId, accessToken }) => ({
+      query: ({ userId }) => ({
         url: `/user/${userId}`,
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
       }),
-
-      providesTags: ['UserProfile'],
-
+      providesTags: (_result, _error, { userId }) => [
+        { type: 'UserProfile', id: userId },
+      ],
       transformResponse: (res: ApiResponse<GetUserByIdResponse>) =>
         transformApiResponse(res),
     }),
@@ -49,16 +47,12 @@ export const profileService = createApi({
           photo: args.photo,
           nickName: args.nickName,
         },
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${args.accessToken}`,
-        },
       }),
-
-      invalidatesTags: ['UserProfile'],
-
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'UserProfile', id },
+      ],
       transformResponse: (res: ApiResponse<UserResponse>) =>
-        transformApiResponse(res),
+        transformApiResponseWithToast(res),
     }),
   }),
 });

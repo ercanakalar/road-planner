@@ -1,97 +1,81 @@
-import React, { useEffect } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-import { useValidateRefreshTokenMutation } from 'store/services/authenticationService';
-
-import localStorageService from 'services/localStorageService';
+import React, { useMemo } from 'react';
+import {
+  BottomTabNavigationOptions,
+  createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from 'screens/home/HomeScreen';
-import ChatScreen from 'screens/chat/ChatScreen';
-
-import { TokenType } from 'types/libs/auth';
-import { useDispatch } from 'react-redux';
-import { setUserId } from 'store/slices/authSlice';
-import jwtService from 'services/jwtService';
-import AuthGate from 'screens/profile/auth/AuthGateScreen';
 import MapScreen from 'screens/map/MapScreen';
-import { JwtPayload } from 'types/services/jwt-service-type';
-import FavoriteScreen from 'screens/favorite/FavoriteScreen';
+import LocalMapScreen from 'screens/map/local/LocalMapScreen';
+import AuthGate from 'screens/profile/auth/AuthGateScreen';
+
+import { colors, shadows, spacing } from 'theme';
 
 const Tab = createBottomTabNavigator();
 
+const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Home: 'home-outline',
+  Map: 'navigate-outline',
+  Routes: 'map-outline',
+  Profile: 'person-outline',
+};
+
+const ACTIVE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Home: 'home',
+  Map: 'navigate',
+  Routes: 'map',
+  Profile: 'person',
+};
+
+/*
+ * The session is restored once, before the navigator mounts (see SessionGate),
+ * so this component no longer fires a refresh-token mutation on mount — the
+ * old one called `.unwrap()` with no catch, which surfaced as an unhandled
+ * rejection on every cold start without a token.
+ */
 const HomeTabNavigator = () => {
-  const [validateRefreshToken] = useValidateRefreshTokenMutation();
-  const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    const checkRefreshToken = async () => {
-      const refreshToken = await localStorageService.getItem(
-        TokenType.REFRESH_TOKEN,
-      );
-      const accessToken = await localStorageService.getItem(
-        TokenType.ACCESS_TOKEN,
-      );
-      if (!refreshToken || !accessToken) return;
-      await validateRefreshToken({ accessToken, refreshToken }).unwrap();
-    };
-
-    checkRefreshToken();
-  }, [validateRefreshToken]);
-
-  useEffect(() => {
-    const fetchAndSetUserId = async () => {
-      const decoded = await jwtService.decodeToken<JwtPayload>();
-      if (!decoded) return;
-      dispatch(setUserId(decoded.userId));
-    };
-
-    fetchAndSetUserId();
-  }, [dispatch]);
-
-  return (
-    <Tab.Navigator
-      initialRouteName='Home'
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName = '';
-
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Map') {
-            iconName = 'map-marker';
-          } else if (route.name === 'Map') {
-            iconName = 'map-marker';
-          } else if (route.name === 'Favorite') {
-            iconName = 'heart';
-          } else if (route.name === 'Chat') {
-            iconName = 'chat';
-          } else if (route.name === 'Profile') {
-            iconName = 'menu';
-          }
-
-          return <Icon name={iconName} color={color} size={size} />;
-        },
-        tabBarActiveTintColor: '#e91e63',
-        tabBarInactiveTintColor: '#000000',
+  const screenOptions = useMemo(
+    () =>
+      ({ route }: { route: { name: string } }): BottomTabNavigationOptions => ({
+        tabBarIcon: ({ color, size, focused }) => (
+          <Ionicons
+            name={
+              (focused ? ACTIVE_ICONS[route.name] : ICONS[route.name]) ??
+              'ellipse-outline'
+            }
+            color={color}
+            size={size}
+          />
+        ),
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.surface,
           borderTopWidth: 0,
-          paddingVertical: 10,
-          height: 100,
+          height: 56 + insets.bottom,
+          paddingTop: spacing.sm,
+          paddingBottom: insets.bottom || spacing.sm,
+          ...shadows.md,
         },
         tabBarLabelStyle: {
-          paddingBottom: 8,
-          fontSize: 12,
-          fontWeight: 'bold',
+          fontSize: 11,
+          fontWeight: '600',
         },
         headerShown: false,
-      })}
-    >
+      }),
+    [insets.bottom],
+  );
+
+  return (
+    <Tab.Navigator initialRouteName='Map' screenOptions={screenOptions}>
       <Tab.Screen name='Home' component={HomeScreen} />
-      <Tab.Screen name='Map' component={MapScreen} />
-      <Tab.Screen name='Favorite' component={FavoriteScreen} />
-      <Tab.Screen name='Chat' component={ChatScreen} />
+      {/* Usable without an account; anything built here stays on the device. */}
+      <Tab.Screen name='Map' component={LocalMapScreen} />
+      <Tab.Screen name='Routes' component={MapScreen} />
       <Tab.Screen name='Profile' component={AuthGate} />
     </Tab.Navigator>
   );

@@ -1,52 +1,80 @@
-import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import {
+  FlatList,
+  ListRenderItemInfo,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+
 import RouteCard from 'screens/map/roads/RouteCard';
+import ScreenState from 'components/ScreenState';
+import { colors, spacing } from 'theme';
+import { WaypointWithAddressAndId } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 
-const RoutesList: React.FC<RoutesListProps> = ({
+const RoutesList = ({
   data,
-  accessToken,
   isRefreshing,
   onRefresh,
   onToggleFavorite,
   onDelete,
   onView,
-}) => {
+}: RoutesListProps) => {
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<WaypointWithAddressAndId>) => (
+      <RouteCard
+        item={item}
+        onToggleFavorite={onToggleFavorite}
+        onDelete={onDelete}
+        onView={onView}
+      />
+    ),
+    [onDelete, onToggleFavorite, onView],
+  );
+
+  const keyExtractor = useCallback(
+    (item: WaypointWithAddressAndId) => item.id,
+    [],
+  );
+
   return (
     <FlatList
       data={data}
-      refreshing={isRefreshing}
-      onRefresh={onRefresh}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContent}
-      ListEmptyComponent={
-        <Text style={styles.emptyText}>
-          You haven't created any routes yet.
-        </Text>
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      contentContainerStyle={
+        data.length === 0 ? styles.emptyContent : styles.listContent
       }
-      renderItem={({ item }) => (
-        <RouteCard
-          item={item}
-          accessToken={accessToken}
-          onToggleFavorite={onToggleFavorite}
-          onDelete={onDelete}
-          onView={onView}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
         />
-      )}
-      scrollIndicatorInsets={{ right: 1 }}
+      }
+      ListEmptyComponent={
+        <ScreenState
+          variant='empty'
+          title='No routes yet'
+          message='Create a route to start planning stops and comparing travel times.'
+        />
+      }
+      initialNumToRender={6}
+      maxToRenderPerBatch={6}
+      windowSize={7}
+      removeClippedSubviews
     />
   );
 };
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingBottom: 16,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 16,
-    color: '#888',
+  emptyContent: {
+    flexGrow: 1,
   },
 });
 

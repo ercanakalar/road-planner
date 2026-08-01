@@ -4,10 +4,14 @@ import { NavigationProp } from '@react-navigation/native';
 import { useAppSelector } from 'store/hook';
 import SignInScreen from './SignInScreen';
 import ProfileScreen from '../ProfileScreen';
+import { RootStackParamList } from 'types/screens/screens';
 
-const AuthGate = ({ navigation }: { navigation: NavigationProp<any> }) => {
-  const { accessToken } = useAppSelector((state) => state.auth);
-  const isLoggedIn = !!accessToken;
+const AuthGate = ({
+  navigation,
+}: {
+  navigation: NavigationProp<RootStackParamList>;
+}) => {
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   return isLoggedIn ? (
     <ProfileScreen navigation={navigation} />

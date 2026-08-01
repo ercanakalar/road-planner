@@ -21,8 +21,6 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
-    // Align with tsconfig's noUnusedParameters, which exempts a leading underscore.
-    // Used for parameters kept to preserve a signature (e.g. an interface method).
     '@typescript-eslint/no-unused-vars': [
       'error',
       {

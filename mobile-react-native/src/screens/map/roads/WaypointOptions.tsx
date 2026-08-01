@@ -1,49 +1,83 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { memo, useCallback } from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-import { WaypointOptionsProps } from 'types/map-screen-type';
+import { colors, radius, spacing } from 'theme';
+import { WaypointWithAddress } from 'types/map-screen-type';
+import { WaypointOption } from 'types/transport-type';
 
-const WaypointOptions: React.FC<WaypointOptionsProps> = ({
-  onOptionSelect,
+interface Props {
+  item: WaypointWithAddress;
+  showFavoriteAction?: boolean;
+  onOptionSelect: (option: WaypointOption) => void;
+}
+
+const WaypointOptions = ({
   item,
-}) => (
-  <View style={styles.optionRow}>
-    <TouchableOpacity
-      style={styles.optionBtn}
-      onPress={() => onOptionSelect('delete')}
-    >
-      <MaterialIcons name='delete' size={20} color='#c00' />
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => onOptionSelect('favorite')}
-      style={styles.optionBtn}
-    >
-      <Text style={styles.favoriteIcon}>
-        33{item.favoriteWaypoints[0]?.id ? '⭐' : '☆'}
-      </Text>
-    </TouchableOpacity>
-  </View>
-);
+  showFavoriteAction = true,
+  onOptionSelect,
+}: Props) => {
+  const isFavorite = item.favoriteWaypoints.length > 0;
 
-export default WaypointOptions;
+  const handleFavorite = useCallback(
+    () => onOptionSelect('favorite'),
+    [onOptionSelect],
+  );
+  const handleDelete = useCallback(
+    () => onOptionSelect('delete'),
+    [onOptionSelect],
+  );
+
+  return (
+    <View style={styles.row}>
+      {showFavoriteAction ? (
+        <Pressable
+          onPress={handleFavorite}
+          hitSlop={8}
+          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+          accessibilityRole='button'
+          accessibilityLabel={
+            isFavorite ? 'Remove from favourites' : 'Add to favourites'
+          }
+        >
+          <Ionicons
+            name={isFavorite ? 'star' : 'star-outline'}
+            size={20}
+            color={isFavorite ? colors.warning : colors.textSubtle}
+          />
+        </Pressable>
+      ) : null}
+
+      <Pressable
+        onPress={handleDelete}
+        hitSlop={8}
+        style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        accessibilityRole='button'
+        accessibilityLabel='Delete waypoint'
+      >
+        <MaterialIcons
+          name='delete-outline'
+          size={20}
+          color={colors.textSubtle}
+        />
+      </Pressable>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  optionRow: {
-    flexDirection: 'column',
-    gap: 8,
-    height: 'auto',
-  },
-  optionBtn: {
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
   },
-  optionText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#333',
+  button: {
+    padding: spacing.sm,
+    borderRadius: radius.sm,
   },
-  favoriteIcon: {
-    fontSize: 18,
-    color: '#FFD700',
+  pressed: {
+    backgroundColor: colors.surfaceAlt,
   },
 });
+
+export default memo(WaypointOptions);
