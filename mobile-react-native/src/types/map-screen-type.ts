@@ -2,9 +2,9 @@ import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import { RootStackParamList } from './screens/screens';
 import { RouteProp } from '@react-navigation/native';
-import { WaypointOption } from './transport-type';
+
+import { RootStackParamList } from './screens/screens';
 
 export type MapScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -21,34 +21,13 @@ export type ShowRouteByIdRouteProp = RouteProp<
   'ShowRouteByIdScreen'
 >;
 
-export type EditWaypointScreenProp = RouteProp<
-  RootStackParamList,
-  'EditWaypointScreen'
->;
-
 export type MapScreenProps = {
   navigation: MapScreenNavigationProp;
-};
-
-export type Waypoint = {
-  id: string;
-  latitude: number;
-  longitude: number;
-  address: string;
-  order: number;
 };
 
 export type RouteCoordinate = {
   latitude: number;
   longitude: number;
-};
-
-export type Route = {
-  key: string;
-  name: string;
-  params?: {
-    newWaypoint?: Waypoint;
-  };
 };
 
 export type WaypointAddress = {
@@ -57,6 +36,22 @@ export type WaypointAddress = {
   country: string;
   district: string;
   province: string;
+};
+
+export type FavoriteWaypoint = {
+  id: string;
+  userId: string;
+  wayPointsId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FavoriteRoad = {
+  id: string;
+  userId: string;
+  roadId: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type WaypointWithAddress = {
@@ -83,28 +78,4 @@ export type WaypointWithAddressAndId = {
   updatedAt: string;
   favoriteRoads: FavoriteRoad[];
   isFavorite: boolean;
-  favorites: Array<{
-    id: string;
-  }>;
 };
-
-type FavoriteWaypoint = {
-  id: string;
-  userId: string;
-  wayPointsId: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type FavoriteRoad = {
-  id: string;
-  userId: string;
-  roadId: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export interface WaypointOptionsProps {
-  onOptionSelect: (option: WaypointOption) => void;
-  item: WaypointWithAddress;
-}

@@ -1,88 +1,46 @@
-import { createListenerMiddleware, UnknownAction } from '@reduxjs/toolkit';
-import localStorageService from 'services/localStorageService';
+import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
+
+import tokenStorage from 'services/tokenStorage';
 import { resetAllApiStates } from 'store/actions/authAction';
+import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 import { authenticationService } from 'store/services/authenticationService';
-import { TokenType } from 'types/libs/auth';
-
-interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface RejectedAction extends UnknownAction {
-  payload?: { status?: number };
-  meta?: { arg?: { endpointName?: string } };
-}
-
-function isRejectedWith401(action: unknown): action is RejectedAction {
-  const a = action as RejectedAction;
-  return a?.payload?.status === 401;
-}
-
-function isValidateRefreshTokenAction(action: RejectedAction): boolean {
-  return (
-    action.meta?.arg?.endpointName?.includes('validateRefreshToken') ?? false
-  );
-}
-
-async function clearTokens(): Promise<void> {
-  await Promise.all([
-    localStorageService.removeItem(TokenType.ACCESS_TOKEN),
-    localStorageService.removeItem(TokenType.REFRESH_TOKEN),
-  ]);
-}
+import { clearAuth, logout } from 'store/slices/authSlice';
+import type { AppDispatch } from 'store';
 
 const authMiddleware = createListenerMiddleware();
-let isRefreshing = false;
+
+const { signIn, signUp, validateRefreshToken } =
+  authenticationService.endpoints;
+
+const isSessionIssued = isAnyOf(
+  signIn.matchFulfilled,
+  signUp.matchFulfilled,
+  validateRefreshToken.matchFulfilled,
+);
 
 authMiddleware.startListening({
-  predicate: (action) => {
-    if (!isRejectedWith401(action)) return false;
-    if (isValidateRefreshTokenAction(action)) return false;
-    return !isRefreshing;
+  matcher: isSessionIssued,
+  effect: async (action) => {
+    if (!isSessionIssued(action)) return;
+
+    const { accessToken, refreshToken } = action.payload;
+    if (!accessToken || !refreshToken) return;
+    await tokenStorage.save({ accessToken, refreshToken });
   },
+});
 
+authMiddleware.startListening({
+  actionCreator: sessionRefreshed,
+  effect: async (action) => {
+    await tokenStorage.save(action.payload);
+  },
+});
+
+authMiddleware.startListening({
+  matcher: isAnyOf(sessionCleared, logout, clearAuth),
   effect: async (_action, listenerApi) => {
-    if (isRefreshing) return;
-    isRefreshing = true;
-    listenerApi.cancelActiveListeners();
-
-    try {
-      const [accessToken, refreshToken] = await Promise.all([
-        localStorageService.getItem(TokenType.ACCESS_TOKEN),
-        localStorageService.getItem(TokenType.REFRESH_TOKEN),
-      ]);
-
-      const result =
-        await authenticationService.endpoints.validateRefreshToken.initiate({
-          accessToken,
-          refreshToken,
-        })(listenerApi.dispatch, listenerApi.getState, undefined);
-
-      if (result.error) {
-        await clearTokens();
-        resetAllApiStates();
-        return;
-      }
-
-      const data = result.data as RefreshTokenResponse | undefined;
-
-      if (data?.accessToken && data?.refreshToken) {
-        await Promise.all([
-          localStorageService.setItem(TokenType.ACCESS_TOKEN, data.accessToken),
-          localStorageService.setItem(
-            TokenType.REFRESH_TOKEN,
-            data.refreshToken,
-          ),
-        ]);
-      }
-    } catch (err) {
-      console.error('Token refresh failed:', err);
-      await clearTokens();
-      resetAllApiStates();
-    } finally {
-      isRefreshing = false;
-    }
+    await tokenStorage.clear();
+    (listenerApi.dispatch as AppDispatch)(resetAllApiStates());
   },
 });
 

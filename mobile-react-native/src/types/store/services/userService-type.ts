@@ -1,16 +1,9 @@
-import { ToastType } from 'types/status-type';
-import { ApiResponse } from './base-type';
-
 export type GetUserByIdArgs = {
   userId: string;
-  accessToken: string;
 };
 
-export type GetUserByIdResponse = ApiResponse<Omit<UserArgs, 'accessToken'>>;
-
-export type UserArgs = {
+export type UserProfileData = {
   id: string;
-  accessToken: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -18,12 +11,11 @@ export type UserArgs = {
   nickName: string;
 };
 
-export type UserResponse = {
-  status: ToastType;
-  header: string;
-  message: string;
-  data: Omit<UserArgs, 'accessToken'>;
-};
+export type GetUserByIdResponse = UserProfileData;
+
+export type UserArgs = UserProfileData;
+
+export type UserResponse = UserProfileData;
 
 export interface ProfileForm {
   firstName: string;

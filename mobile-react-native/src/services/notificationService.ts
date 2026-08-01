@@ -11,6 +11,22 @@ interface ShowNotificationOptions {
   topOffset?: number;
 }
 
+/*
+ * Mirrors `settings.notificationsEnabled`.
+ *
+ * A module-level flag rather than a store read: `showNotification` is called
+ * from response transforms and other non-React code that has no access to a
+ * hook, and importing the store here would make a cycle. `settingsMiddleware`
+ * pushes the value in whenever the preference changes or is restored.
+ */
+let notificationsEnabled = true;
+
+export const setNotificationsEnabled = (enabled: boolean) => {
+  notificationsEnabled = enabled;
+};
+
+export const areNotificationsEnabled = () => notificationsEnabled;
+
 export function showNotification({
   type = 'info',
   header,
@@ -19,7 +35,8 @@ export function showNotification({
   position = 'top',
   topOffset = 50,
 }: ShowNotificationOptions) {
-  // ToastAndroid.show(header, ToastAndroid.SHORT);
+  if (!notificationsEnabled) return;
+
   Toast.show({
     type,
     text1: header,

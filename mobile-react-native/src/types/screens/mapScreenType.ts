@@ -1,131 +1,71 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {
-  WaypointWithAddress,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
-import { ToastType } from 'types/status-type';
-import { RootStackParamList } from './screens';
 import MapView, {
   LongPressEvent,
   MarkerDragStartEndEvent,
 } from 'react-native-maps';
-import { Road, Waypoint } from 'types/store/services/roadService-type';
+import type { MaterialIcons } from '@expo/vector-icons';
+
+import {
+  RouteCoordinate,
+  WaypointWithAddress,
+  WaypointWithAddressAndId,
+} from 'types/map-screen-type';
+import {
+  FavoriteEntry,
+  FavoriteSectionKey,
+} from 'types/store/services/favoriteService-type';
+import { RootStackParamList } from './screens';
 
 export type WaypointRoute = NativeStackScreenProps<
   RootStackParamList,
   'ShowWaypointById'
 >['route'];
 
-export interface FavoriteWaypoint {
-  id: string;
-  userId: string;
-  latitude: number;
-  longitude: number;
-  waypointId: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+export type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
 
-export interface FavoriteRoad {
-  id: string;
-  userId: string;
-  roadId: string;
+export interface FavoriteSectionDescriptor {
+  key: FavoriteSectionKey;
   title: string;
-  description?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface WayPointDetail {
-  id: string;
-  latitude: number;
-  longitude: number;
-}
-
-export interface RoadDetail {
-  id: string;
-  userId: string;
-  title: string;
-  description?: string;
-}
-
-export interface FavoriteWaypointWithRelation extends FavoriteWaypoint {
-  wayPoints?: WayPointDetail;
-}
-
-export interface FavoriteRoadWithRelation extends FavoriteRoad {
-  road?: RoadDetail;
-}
-
-export interface GetAllFavoritesResponse {
-  status: ToastType;
-  header: string;
-  message: string;
-  data: {
-    ownWaypoints: FavoriteWaypointWithRelation[];
-    ownRoads: FavoriteRoadWithRelation[];
-    othersWaypoints: FavoriteWaypointWithRelation[];
-    othersRoads: FavoriteRoadWithRelation[];
-  };
-}
-
-export type GetAllFavorites = {
-  ownWaypoints: FavoriteWaypointWithRelation[];
-  ownRoads: FavoriteRoadWithRelation[];
-  othersWaypoints: FavoriteWaypointWithRelation[];
-  othersRoads: FavoriteRoadWithRelation[];
-};
-
-export interface FavoriteServiceResponse<T = any> {
-  status: ToastType;
-  header: string;
-  message: string;
-  data?: T;
-}
-
-export interface FavoriteSections {
-  ownRoads: FavoriteItemType[];
-  ownWaypoints: FavoriteItemType[];
-  othersRoads: FavoriteItemType[];
-  othersWaypoints: FavoriteItemType[];
+  icon: MaterialIconName;
+  data: FavoriteEntry[];
 }
 
 export interface FavoriteItemProps {
-  item: {
-    id: string;
-    icon: string;
-    directions: string;
-    key: keyof FavoriteSections;
-    road: Road;
-    waypoint: Waypoint;
-  };
-  onPress?: () => void;
-  onRemove?: () => void;
+  item: FavoriteEntry;
+  onPress: (item: FavoriteEntry) => void;
+  onRemove: (item: FavoriteEntry) => void;
+}
+
+export interface FavoriteSectionHeaderProps {
+  section: FavoriteSectionDescriptor;
+  isExpanded: boolean;
+  onToggle: (key: FavoriteSectionKey) => void;
 }
 
 export interface RoutesListProps {
   data: WaypointWithAddressAndId[];
-  accessToken: string;
   isRefreshing: boolean;
   onRefresh: () => void;
   onToggleFavorite: (road: WaypointWithAddressAndId) => void;
-  onDelete: (roadId: string) => void;
+  onDelete: (road: WaypointWithAddressAndId) => void;
   onView: (roadId: string) => void;
 }
 
-export type FavoriteItemType =
-  | FavoriteRoadWithRelation
-  | FavoriteWaypointWithRelation;
+export interface RouteSummary {
+  duration: string;
+  distance: string;
+}
 
 export interface MapSectionProps {
   waypoints: WaypointWithAddress[];
-  routeCoordinates: { latitude: number; longitude: number }[];
-  selectedMarkerId?: string;
-  isDragging?: boolean;
+  routeCoordinates: RouteCoordinate[];
+  draggingWaypointId?: string;
+  summary?: RouteSummary;
   handleMarkerDragEnd: (
     event: MarkerDragStartEndEvent,
     waypointId: string,
   ) => void;
   onMapLongPress: (event: LongPressEvent) => void;
-  ref: React.RefObject<MapView | null>;
+  onMapPress: () => void;
+  mapRef: React.RefObject<MapView | null>;
 }

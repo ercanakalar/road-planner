@@ -1,160 +1,139 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import React, { memo, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { colors, radius, spacing, typography } from 'theme';
+
+export type RoutesTab = 'all' | 'favorites';
 
 interface RoutesTabBarProps {
-  activeTab: 'all' | 'favorites';
-  onTabChange: (tab: 'all' | 'favorites') => void;
-  onNavigateToFavorites?: () => void;
+  activeTab: RoutesTab;
+  onTabChange: (tab: RoutesTab) => void;
   allCount: number;
   favoritesCount: number;
 }
 
-const RoutesTabBar: React.FC<RoutesTabBarProps> = ({
+interface TabButtonProps {
+  tab: RoutesTab;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  count: number;
+  isActive: boolean;
+  onPress: (tab: RoutesTab) => void;
+}
+
+const TabButton = memo(
+  ({ tab, label, icon, count, isActive, onPress }: TabButtonProps) => {
+    const handlePress = useCallback(() => onPress(tab), [onPress, tab]);
+
+    return (
+      <Pressable
+        style={[styles.tab, isActive && styles.activeTab]}
+        onPress={handlePress}
+        accessibilityRole='tab'
+        accessibilityState={{ selected: isActive }}
+        accessibilityLabel={`${label}, ${count} item${count === 1 ? '' : 's'}`}
+      >
+        <Ionicons
+          name={icon}
+          size={17}
+          color={isActive ? colors.primary : colors.textMuted}
+        />
+        <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+          {label}
+        </Text>
+        <View style={[styles.badge, isActive && styles.activeBadge]}>
+          <Text style={[styles.badgeText, isActive && styles.activeBadgeText]}>
+            {count}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  },
+);
+
+TabButton.displayName = 'TabButton';
+
+const RoutesTabBar = ({
   activeTab,
   onTabChange,
   allCount,
   favoritesCount,
-}) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'all' && styles.activeTab]}
-          onPress={() => onTabChange('all')}
-          activeOpacity={0.7}
-        >
-          <Icon
-            name='list'
-            size={20}
-            color={activeTab === 'all' ? '#2196F3' : '#666'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'all' && styles.activeTabText,
-            ]}
-          >
-            Own Roads
-          </Text>
-          <View
-            style={[styles.badge, activeTab === 'all' && styles.activeBadge]}
-          >
-            <Text style={styles.badgeText}>{allCount}</Text>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'favorites' && styles.activeTab]}
-          onPress={() => onTabChange('favorites')}
-          activeOpacity={0.7}
-        >
-          <Icon
-            name='favorite'
-            size={20}
-            color={activeTab === 'favorites' ? '#e91e63' : '#666'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'favorites' && styles.activeTabText,
-            ]}
-          >
-            Favorites
-          </Text>
-          <View
-            style={[
-              styles.badge,
-              activeTab === 'favorites' && styles.activeBadgeFav,
-            ]}
-          >
-            <Text style={styles.badgeText}>{favoritesCount}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+}: RoutesTabBarProps) => (
+  <View style={styles.container}>
+    <View style={styles.tabsContainer} accessibilityRole='tablist'>
+      <TabButton
+        tab='all'
+        label='My routes'
+        icon='map-outline'
+        count={allCount}
+        isActive={activeTab === 'all'}
+        onPress={onTabChange}
+      />
+      <TabButton
+        tab='favorites'
+        label='Favourites'
+        icon='star-outline'
+        count={favoritesCount}
+        isActive={activeTab === 'favorites'}
+        onPress={onTabChange}
+      />
     </View>
-  );
-};
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
   },
   tabsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 4,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    gap: spacing.xs,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    gap: 6,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    gap: spacing.sm,
   },
   activeTab: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
   },
   tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
+    ...typography.label,
+    color: colors.textMuted,
   },
   activeTabText: {
-    color: '#2196F3',
+    color: colors.text,
   },
   badge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 4,
+    minWidth: 22,
+    alignItems: 'center',
+    backgroundColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
   },
   activeBadge: {
-    backgroundColor: '#E3F2FD',
-  },
-  activeBadgeFav: {
-    backgroundColor: '#FCE4EC',
+    backgroundColor: colors.primarySoft,
   },
   badgeText: {
+    ...typography.caption,
     fontSize: 11,
-    fontWeight: '700',
-    color: '#2196F3',
+    color: colors.textMuted,
   },
-  divider: {
-    width: 1,
-    height: 30,
-    backgroundColor: '#ddd',
-  },
-  viewAllButton: {
-    backgroundColor: '#2196F3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-  },
-  viewAllText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  activeBadgeText: {
+    color: colors.primary,
   },
 });
 
-export default RoutesTabBar;
+export default memo(RoutesTabBar);

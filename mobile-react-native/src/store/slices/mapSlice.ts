@@ -1,61 +1,61 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface LatLng {
-  latitude: number;
-  longitude: number;
-}
+import { RouteCoordinate } from 'types/map-screen-type';
 
-interface MapState {
-  clickedLocation: LatLng | undefined;
-  selectedMarkerId?: string;
+export interface MapState {
+  clickedLocation?: RouteCoordinate;
+  contextMenuWaypointId?: string;
   isContextMenuVisible: boolean;
-  marker?: any;
-  isDragging: boolean;
+  draggingWaypointId?: string;
 }
 
 const initialState: MapState = {
   clickedLocation: undefined,
-  selectedMarkerId: undefined,
+  contextMenuWaypointId: undefined,
   isContextMenuVisible: false,
-  marker: undefined,
-  isDragging: false,
+  draggingWaypointId: undefined,
 };
 
 const mapSlice = createSlice({
   name: 'map',
   initialState,
   reducers: {
-    setClickedLocation(state, action: PayloadAction<LatLng | undefined>) {
+    openContextMenuForLocation(
+      state,
+      action: PayloadAction<RouteCoordinate>,
+    ) {
       state.clickedLocation = action.payload;
+      state.contextMenuWaypointId = undefined;
+      state.isContextMenuVisible = true;
     },
-    setSelectedMarkerId(state, action: PayloadAction<string | undefined>) {
-      state.selectedMarkerId = action.payload;
-    },
-    setContextMenuVisible(state, action: PayloadAction<boolean>) {
-      state.isContextMenuVisible = action.payload;
-    },
-    setMarker(state, action: PayloadAction<any>) {
-      state.marker = action.payload;
-    },
-    setIsDragging(state, action: PayloadAction<boolean>) {
-      state.isDragging = action.payload;
-    },
-    resetMapState(state) {
+    openContextMenuForWaypoint(state, action: PayloadAction<string>) {
       state.clickedLocation = undefined;
-      state.selectedMarkerId = undefined;
+      state.contextMenuWaypointId = action.payload;
+      state.isContextMenuVisible = true;
+    },
+    closeContextMenu(state) {
       state.isContextMenuVisible = false;
-      state.marker = undefined;
-      state.isDragging = false;
+    },
+    startDraggingWaypoint(state, action: PayloadAction<string>) {
+      state.draggingWaypointId = action.payload;
+      state.isContextMenuVisible = false;
+    },
+    stopDraggingWaypoint(state) {
+      state.draggingWaypointId = undefined;
+      state.contextMenuWaypointId = undefined;
+    },
+    resetMapState() {
+      return initialState;
     },
   },
 });
 
 export const {
-  setClickedLocation,
-  setSelectedMarkerId,
-  setContextMenuVisible,
-  setMarker,
-  setIsDragging,
+  openContextMenuForLocation,
+  openContextMenuForWaypoint,
+  closeContextMenu,
+  startDraggingWaypoint,
+  stopDraggingWaypoint,
   resetMapState,
 } = mapSlice.actions;
 

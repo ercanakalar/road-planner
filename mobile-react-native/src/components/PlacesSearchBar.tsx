@@ -1,115 +1,190 @@
-import React, { useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  TextInput,
+  ActivityIndicator,
   FlatList,
-  Text,
-  TouchableOpacity,
+  ListRenderItemInfo,
+  Pressable,
   StyleSheet,
-  LayoutChangeEvent,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import appConfig from 'constants/appConfig';
 
-const REACT_APP_MAP_API_KEY = appConfig.mapApiKey;
+import {
+  PlacePrediction,
+  createSessionToken,
+  fetchPlaceDetails,
+  fetchPlacePredictions,
+} from 'services/googleMapsService';
+import useDebouncedValue from 'hooks/useDebouncedValue';
+import { colors, radius, shadows, spacing, typography } from 'theme';
 
-const PlacesSearchBar = ({
-  onPlaceSelected,
-  onLayoutChange,
-}: {
+const MIN_QUERY_LENGTH = 3;
+const DEBOUNCE_MS = 350;
+const MAX_VISIBLE_RESULTS = 5;
+const ROW_HEIGHT = 48;
+
+type Props = {
   onPlaceSelected: (
     location: { lat: number; lng: number },
     address: string,
   ) => void;
-  onLayoutChange?: (bottom: number) => void;
-}) => {
+};
+
+const PredictionRow = memo(
+  ({
+    prediction,
+    onSelect,
+  }: {
+    prediction: PlacePrediction;
+    onSelect: (prediction: PlacePrediction) => void;
+  }) => (
+    <Pressable
+      style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}
+      onPress={() => onSelect(prediction)}
+      accessibilityRole='button'
+    >
+      <Ionicons name='location-outline' size={16} color={colors.textMuted} />
+      <Text style={styles.resultText} numberOfLines={1}>
+        {prediction.description}
+      </Text>
+    </Pressable>
+  ),
+);
+
+PredictionRow.displayName = 'PredictionRow';
+
+const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
   const [input, setInput] = useState('');
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const handleSearch = async (text: string) => {
-    setInput(text);
-    if (!text) {
+  /*
+   * Google bills autocomplete keystrokes and the follow-up details lookup as a
+   * single session when they share a token, so the token is minted per search
+   * and rotated once a place has been picked.
+   */
+  const sessionTokenRef = useRef(createSessionToken());
+
+  const query = useDebouncedValue(input.trim(), DEBOUNCE_MS);
+
+  useEffect(() => {
+    if (query.length < MIN_QUERY_LENGTH) {
       setPredictions([]);
+      setIsSearching(false);
       return;
     }
 
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-          text,
-        )}&key=${REACT_APP_MAP_API_KEY}`,
-      );
-      const data = await response.json();
-      if (data.status === 'OK') {
-        setPredictions(data.predictions);
-      } else {
-        setPredictions([]);
-      }
-    } catch (error) {
-      console.error('Autocomplete error:', error);
-    }
-  };
+    const controller = new AbortController();
+    let cancelled = false;
 
-  const handleSelect = async (placeId: string, description: string) => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${REACT_APP_MAP_API_KEY}`,
-      );
-      const data = await response.json();
-      if (data.status === 'OK') {
-        const { lat, lng } = data.result.geometry.location;
-        onPlaceSelected({ lat, lng }, description);
-        setPredictions([]);
-        setInput(description);
-      }
-    } catch (error) {
-      console.error('Place details error:', error);
-    }
-  };
+    setIsSearching(true);
+    fetchPlacePredictions(query, sessionTokenRef.current, controller.signal)
+      .then((results) => {
+        if (!cancelled) setPredictions(results);
+      })
+      .catch(() => {
+        if (!cancelled) setPredictions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false);
+      });
 
-  const clearInput = () => {
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [query]);
+
+  const handleSelect = useCallback(
+    async (prediction: PlacePrediction) => {
+      setPredictions([]);
+      setInput(prediction.description);
+      inputRef.current?.blur();
+
+      const details = await fetchPlaceDetails(
+        prediction.placeId,
+        sessionTokenRef.current,
+      ).catch(() => null);
+
+      sessionTokenRef.current = createSessionToken();
+      if (!details) return;
+
+      onPlaceSelected(
+        { lat: details.latitude, lng: details.longitude },
+        details.address,
+      );
+    },
+    [onPlaceSelected],
+  );
+
+  const clearInput = useCallback(() => {
     setInput('');
     setPredictions([]);
     inputRef.current?.focus();
-  };
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<PlacePrediction>) => (
+      <PredictionRow prediction={item} onSelect={handleSelect} />
+    ),
+    [handleSelect],
+  );
+
+  const keyExtractor = useCallback(
+    (item: PlacePrediction) => item.placeId,
+    [],
+  );
 
   return (
-    <View
-      style={styles.container}
-      onLayout={(e: LayoutChangeEvent) => {
-        const { y, height } = e.nativeEvent.layout;
-        onLayoutChange?.(y + height);
-      }}
-    >
+    <View style={styles.container}>
       <View style={styles.inputWrapper}>
+        <Ionicons name='search' size={18} color={colors.textMuted} />
         <TextInput
           ref={inputRef}
-          placeholder='Search here...'
+          placeholder='Search for a place'
           value={input}
-          onChangeText={handleSearch}
+          onChangeText={setInput}
           style={styles.input}
+          placeholderTextColor={colors.textSubtle}
+          returnKeyType='search'
+          autoCorrect={false}
         />
-        {input.length > 0 && (
-          <TouchableOpacity onPress={clearInput} style={styles.clearBtn}>
-            <Ionicons name='close-circle' size={20} color='#999' />
-          </TouchableOpacity>
-        )}
+        {isSearching ? (
+          <ActivityIndicator size='small' color={colors.textMuted} />
+        ) : null}
+        {input.length > 0 && !isSearching ? (
+          <Pressable
+            onPress={clearInput}
+            hitSlop={8}
+            accessibilityRole='button'
+            accessibilityLabel='Clear search'
+          >
+            <Ionicons
+              name='close-circle'
+              size={18}
+              color={colors.textSubtle}
+            />
+          </Pressable>
+        ) : null}
       </View>
 
-      <FlatList
-        data={predictions}
-        keyExtractor={(item) => item.place_id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => handleSelect(item.place_id, item.description)}
-          >
-            <Text style={styles.resultItem}>{item.description}</Text>
-          </TouchableOpacity>
-        )}
-        style={styles.results}
-        keyboardShouldPersistTaps='handled'
-      />
+      {predictions.length > 0 ? (
+        <FlatList
+          data={predictions}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          style={styles.results}
+          keyboardShouldPersistTaps='handled'
+          getItemLayout={(_data, index) => ({
+            length: ROW_HEIGHT,
+            offset: ROW_HEIGHT * index,
+            index,
+          })}
+        />
+      ) : null}
     </View>
   );
 };
@@ -117,41 +192,49 @@ const PlacesSearchBar = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 5,
-    left: 16,
-    right: 16,
+    top: spacing.sm,
+    left: spacing.lg,
+    right: spacing.lg,
     zIndex: 2,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 4,
-    elevation: 5,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    ...shadows.md,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     height: 44,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-  },
-  clearBtn: {
-    padding: 4,
+    fontSize: 15,
+    color: colors.text,
+    paddingVertical: 0,
   },
   results: {
-    marginTop: 4,
+    maxHeight: ROW_HEIGHT * MAX_VISIBLE_RESULTS,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
-  resultItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    fontSize: 15,
-    borderBottomColor: '#ddd',
-    borderBottomWidth: 1,
+  result: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: ROW_HEIGHT,
+    paddingHorizontal: spacing.md,
+  },
+  resultPressed: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  resultText: {
+    flex: 1,
+    ...typography.caption,
+    color: colors.text,
+    fontSize: 14,
   },
 });
 
-export default PlacesSearchBar;
+export default memo(PlacesSearchBar);

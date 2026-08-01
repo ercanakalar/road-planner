@@ -1,72 +1,85 @@
 import React, { memo } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+
+import ScreenState from 'components/ScreenState';
 import useWaypointLogic from 'hooks/useWaypointLogic';
+import { colors, radius, shadows, spacing, typography } from 'theme';
 
 const ShowWaypointByIdScreen = () => {
-    const {
-        mapRef,
-        data,
-        isLoading,
-        isError,
-        initialRegion,
-        handleMarkerDragEnd,
-    } = useWaypointLogic();
+  const { mapRef, data, isLoading, isError, initialRegion } =
+    useWaypointLogic();
 
-    if (isLoading) {
-        return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.loadingText}>Loading waypoint...</Text>
-            </View>
-        );
-    }
+  if (isLoading) {
+    return <ScreenState variant='loading' title='Loading waypoint…' />;
+  }
 
-    if (isError || !data) {
-        return (
-            <View style={styles.center}>
-                <Text style={styles.errorText}>Waypoint not found</Text>
-            </View>
-        );
-    }
-
+  if (isError || !data) {
     return (
-        <View style={styles.container}>
-            <MapView
-                ref={mapRef}
-                style={styles.map}
-                showsUserLocation
-                showsMyLocationButton
-                initialRegion={initialRegion}
-            >
-                <Marker
-                    key={data.id}
-                    coordinate={{ latitude: data.latitude, longitude: data.longitude }}
-                    onDragEnd={(e) => handleMarkerDragEnd(e, data.id)}
-                />
-            </MapView>
-
-            {data.address && (
-                <View style={styles.infoCard}>
-                    <Text style={styles.addressTitle}>
-                        {data.address.district}, {data.address.province}
-                    </Text>
-                    <Text style={styles.addressSub}>{data.address.address}</Text>
-                </View>
-            )}
-        </View>
+      <ScreenState
+        variant='error'
+        title='Waypoint not found'
+        message='It may have been removed from the route.'
+      />
     );
+  }
+
+  const locality = [data.address?.district, data.address?.province]
+    .filter(Boolean)
+    .join(', ');
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFill}
+        showsUserLocation
+        showsMyLocationButton
+        initialRegion={initialRegion}
+      >
+        <Marker
+          coordinate={{ latitude: data.latitude, longitude: data.longitude }}
+          tracksViewChanges={false}
+          pinColor={colors.accent}
+        />
+      </MapView>
+
+      <View style={styles.infoCard}>
+        {/* The detail endpoint does not join the address table, so the card
+            falls back to coordinates rather than rendering blank lines. */}
+        <Text style={styles.title} numberOfLines={2}>
+          {data.address?.address ?? 'Saved place'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {locality ||
+            `${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`}
+        </Text>
+      </View>
+    </View>
+  );
 };
 
-export default memo(ShowWaypointByIdScreen);
-
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    map: { flex: 1 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { marginTop: 8, fontSize: 14, color: '#666' },
-    errorText: { fontSize: 16, color: '#d32f2f' },
-    infoCard: { position: 'absolute', bottom: 24, left: 16, right: 16, backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-    addressTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
-    addressSub: { fontSize: 13, color: '#666' },
+  container: { flex: 1, backgroundColor: colors.background },
+  infoCard: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    left: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.xs,
+    ...shadows.md,
+  },
+  title: {
+    ...typography.heading,
+    color: colors.text,
+  },
+  subtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
 });
+
+export default memo(ShowWaypointByIdScreen);

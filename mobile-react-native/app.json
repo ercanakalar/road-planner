@@ -14,7 +14,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ercanakalar.mobilereactnative"
+      "bundleIdentifier": "com.ercanakalar.mobilereactnative",
+      "config": {
+        "googleMapsApiKey": "$GOOGLE_MAPS_API_KEY"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Your location is shown on the map so you can see where you are relative to the stops on a route."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,11 +28,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ercanakalar.mobilereactnative"
+      "package": "com.ercanakalar.mobilereactnative",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "config": {
+        "googleMaps": {
+          "apiKey": "$GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": ["expo-secure-store"],
     "extra": {
       "eas": {
         "projectId": "93f8f9b3-7bcd-4cf4-a399-145abf969808"

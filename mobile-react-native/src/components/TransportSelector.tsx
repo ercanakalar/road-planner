@@ -1,147 +1,115 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { StyleSheet, Text, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { transportModes } from 'constants/transportMods';
+import { colors, radius, spacing, typography } from 'theme';
+import { secondsToHour } from 'utils/secondsToHour';
+import { TransportMode, TransportSelectorProps } from 'types/transport-type';
 
-import { TransportSelectorProps } from 'types/transport-type';
+type OptionProps = {
+  mode: (typeof transportModes)[number];
+  isSelected: boolean;
+  durationSeconds?: number;
+  onChange: (mode: TransportMode) => void;
+};
 
-const TransportSelector: React.FC<TransportSelectorProps> = ({
-  selected,
-  onChange,
-  durations,
-}) => (
-  <View style={styles.transportRow}>
-    {transportModes.map((mode) => (
-      <TouchableOpacity
-        key={mode.key}
-        style={[
-          styles.transportBtn,
-          selected === mode.key && styles.activeTransport,
+const TransportOption = memo(
+  ({ mode, isSelected, durationSeconds, onChange }: OptionProps) => {
+    const handlePress = useCallback(
+      () => onChange(mode.key),
+      [mode.key, onChange],
+    );
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.option,
+          isSelected && styles.optionSelected,
+          pressed && !isSelected && styles.optionPressed,
         ]}
-        onPress={() => onChange(mode.key)}
+        onPress={handlePress}
+        accessibilityRole='radio'
+        accessibilityState={{ selected: isSelected }}
+        accessibilityLabel={`${mode.label}, ${secondsToHour(durationSeconds)}`}
       >
         <Ionicons
           name={mode.icon}
-          size={20}
-          color={selected === mode.key ? 'white' : '#555'}
+          size={18}
+          color={isSelected ? colors.textInverse : colors.textMuted}
         />
-        <View>
-          <Text
-            style={[
-              styles.transportText,
-              selected === mode.key && styles.activeText,
-            ]}
-          >
-            {mode.label}
-          </Text>
-          <Text
-            style={[
-              styles.durationText,
-              selected === mode.key && styles.activeText,
-            ]}
-          >
-            {durations?.[mode.key]}
-          </Text>
-        </View>
-      </TouchableOpacity>
+        <Text
+          style={[styles.duration, isSelected && styles.textSelected]}
+          numberOfLines={1}
+        >
+          {secondsToHour(durationSeconds)}
+        </Text>
+        <Text
+          style={[styles.label, isSelected && styles.textSelected]}
+          numberOfLines={1}
+        >
+          {mode.label}
+        </Text>
+      </Pressable>
+    );
+  },
+);
+
+TransportOption.displayName = 'TransportOption';
+
+const TransportSelector = ({
+  selected,
+  onChange,
+  durations,
+}: TransportSelectorProps) => (
+  <View style={styles.row} accessibilityRole='radiogroup'>
+    {transportModes.map((mode) => (
+      <TransportOption
+        key={mode.key}
+        mode={mode}
+        isSelected={selected === mode.key}
+        durationSeconds={durations?.[mode.key]}
+        onChange={onChange}
+      />
     ))}
   </View>
 );
 
 const styles = StyleSheet.create({
-  searchBarContainer: {
+  row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    gap: spacing.sm,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardSelected: {
-    borderWidth: 2,
-    borderColor: '#2c7be5',
-  },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  index: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginRight: 8,
-  },
-  addressWrap: { flex: 1 },
-  address: { fontWeight: '600', color: '#111' },
-  subAddress: { color: '#666' },
-
-  searchInput: {
+  option: {
     flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: '#f9f9f9',
+    borderColor: colors.border,
   },
-  privacyModeWrap: {
-    marginBottom: 16,
+  optionSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  privacyText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+  optionPressed: {
+    backgroundColor: colors.primarySoft,
   },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
+  duration: {
+    ...typography.label,
+    color: colors.text,
   },
-  optionBtn: {
-    alignItems: 'center',
+  label: {
+    ...typography.caption,
+    fontSize: 11,
+    color: colors.textMuted,
   },
-  optionText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#333',
-  },
-  transportRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  transportBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#f1f1f1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  activeTransport: {
-    backgroundColor: '#2c7be5',
-  },
-  transportText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  durationText: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 2,
-  },
-  activeText: {
-    color: 'white',
+  textSelected: {
+    color: colors.textInverse,
   },
 });
 
-export default TransportSelector;
+export default memo(TransportSelector);

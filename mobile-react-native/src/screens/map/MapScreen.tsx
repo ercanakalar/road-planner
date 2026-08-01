@@ -1,135 +1,130 @@
-import React, { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import {
-  MapScreenProps,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import Container from 'components/Container';
-import { useAppDispatch, useAppSelector } from 'store/hook';
+import ScreenState from 'components/ScreenState';
+import RoutesTabBar, { RoutesTab } from './RoutesTabBar';
+import RoutesList from './roads/RouteList';
+import Favorite from './favorites/Favorite';
+
+import { useAppSelector } from 'store/hook';
 import {
-  roadService,
   useDeleteRoadByIdMutation,
   useGetOwnRoadsQuery,
 } from 'store/services/roadService';
-import {
-  useToggleFavoriteRoadMutation
-} from 'store/services/favoriteService';
-import RoutesList from './roads/RouteList';
+import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+
+import { colors, spacing } from 'theme';
+import { MapScreenProps, WaypointWithAddressAndId } from 'types/map-screen-type';
+
+const EMPTY_ROADS: WaypointWithAddressAndId[] = [];
 
 const MapScreen = ({ navigation }: MapScreenProps) => {
-  const dispatch = useAppDispatch();
-
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+  const [activeTab, setActiveTab] = useState<RoutesTab>('all');
 
   const {
-    data: roads,
+    data: roads = EMPTY_ROADS,
     refetch,
     isFetching,
-  } = useGetOwnRoadsQuery({ accessToken }, { skip: !accessToken }) as {
-    data: WaypointWithAddressAndId[];
-    refetch: () => void;
-    isFetching: boolean;
-  };
+    isLoading,
+    isError,
+  } = useGetOwnRoadsQuery(undefined, { skip: !isLoggedIn });
 
   const [deleteRoadById] = useDeleteRoadByIdMutation();
   const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
 
-  const handleDeleteRoad = async (roadId: string) => {
-    if (!accessToken) return;
+  const favoritesCount = useMemo(
+    () => roads.filter((road) => road.isFavorite).length,
+    [roads],
+  );
 
-    const patchResult = dispatch(
-      roadService.util.updateQueryData(
-        'getOwnRoads',
-        { accessToken },
-        (draft: unknown) => {
-          const typedDraft = draft as WaypointWithAddressAndId[];
-          return typedDraft.filter(
-            (r: WaypointWithAddressAndId) => r.id !== roadId,
-          );
-        },
-      ),
-    );
+  /*
+   * All three handlers are memoized. They are passed down to `memo(RouteCard)`
+   * through the list, so a fresh identity on each render would re-render every
+   * card in the list for free.
+   */
+  const handleDeleteRoad = useCallback(
+    (road: WaypointWithAddressAndId) => {
+      Alert.alert(
+        'Delete route',
+        `“${road.title}” and its stops will be removed.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => deleteRoadById({ roadId: road.id }),
+          },
+        ],
+      );
+    },
+    [deleteRoadById],
+  );
 
-    try {
-      await deleteRoadById({ accessToken, roadId }).unwrap();
-    } catch (error) {
-      patchResult.undo();
-      console.error('Failed to delete road:', error);
-    }
-  };
-
-  const handleToggleFavorite = async (road: WaypointWithAddressAndId) => {
-    if (!accessToken) return;
-
-    const patchResult = dispatch(
-      roadService.util.updateQueryData(
-        'getOwnRoads',
-        { accessToken },
-        (draft: unknown) => {
-          const typedDraft = draft as WaypointWithAddressAndId[];
-          const target = typedDraft.find((r) => r.id === road.id);
-          if (!target) return;
-
-          if (road.isFavorite) {
-            target.isFavorite = false;
-            target.favoriteRoads = [];
-          } else {
-            target.isFavorite = true;
-            target.favoriteRoads = [
-              {
-                id: 'temp-id',
-                userId: road.userId,
-                roadId: road.id,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-            ];
-          }
-        },
-      ),
-    );
-
-    try {
-      await toggleFavoriteRoad({
-        accessToken,
-        roadId: road.id,
-      }).unwrap();
-    } catch (error) {
-      patchResult.undo();
-      console.error('Failed to toggle favorite:', error);
-    }
-  };
+  const handleToggleFavorite = useCallback(
+    (road: WaypointWithAddressAndId) => {
+      toggleFavoriteRoad({ roadId: road.id });
+    },
+    [toggleFavoriteRoad],
+  );
 
   const handleRefresh = useCallback(() => {
-    if (!accessToken) return;
-    refetch?.();
-  }, [accessToken, refetch]);
+    if (isLoggedIn) refetch();
+  }, [isLoggedIn, refetch]);
 
   const handleView = useCallback(
-    (roadId: string) => {
-      navigation.navigate('ShowRouteByIdScreen', {
-        roadId,
-        accessToken: accessToken ?? '',
-      });
-    },
-    [accessToken, navigation],
+    (roadId: string) => navigation.navigate('ShowRouteByIdScreen', { roadId }),
+    [navigation],
   );
+
+  if (!isLoggedIn) {
+    return (
+      <Container>
+        <ScreenState
+          variant='empty'
+          icon='lock-closed-outline'
+          title='Sign in to see your routes'
+          message='Your saved routes and favourites live with your account.'
+        />
+      </Container>
+    );
+  }
 
   return (
     <Container>
       <View style={styles.container}>
-        <RoutesList
-          data={roads ?? []}
-          accessToken={accessToken ?? ''}
-          isRefreshing={!!isFetching}
-          onRefresh={handleRefresh}
-          onToggleFavorite={handleToggleFavorite}
-          onDelete={handleDeleteRoad}
-          onView={handleView}
+        <RoutesTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          allCount={roads.length}
+          favoritesCount={favoritesCount}
         />
 
+        {activeTab === 'all' ? (
+          isLoading ? (
+            <ScreenState variant='loading' title='Loading your routes…' />
+          ) : isError ? (
+            <ScreenState
+              variant='error'
+              title='Could not load routes'
+              message='Check your connection and try again.'
+              actionLabel='Retry'
+              onAction={handleRefresh}
+            />
+          ) : (
+            <RoutesList
+              data={roads}
+              isRefreshing={isFetching}
+              onRefresh={handleRefresh}
+              onToggleFavorite={handleToggleFavorite}
+              onDelete={handleDeleteRoad}
+              onView={handleView}
+            />
+          )
+        ) : (
+          <Favorite />
+        )}
       </View>
     </Container>
   );
@@ -138,7 +133,8 @@ const MapScreen = ({ navigation }: MapScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 12,
+    gap: spacing.md,
+    backgroundColor: colors.background,
   },
 });
 

@@ -1,32 +1,24 @@
-import localStorageService from 'services/localStorageService';
 import { showNotification } from 'services/notificationService';
-import { TokenType } from 'types/libs/auth';
+import { ToastType } from 'types/status-type';
 import { ApiResponse } from 'types/store/bases';
 
-const isApiResponse = <T>(value: unknown): value is ApiResponse<T> => {
-  return typeof value === 'object' && value !== null && 'data' in value;
-};
+const toToastType = (status?: string): ToastType =>
+  status === ToastType.Error || status === ToastType.Success
+    ? (status as ToastType)
+    : ToastType.Info;
 
-export const transformApiResponse = <T>(
-  response: unknown,
-  query?: string,
+export const transformApiResponse = <T>(response: ApiResponse<T>): T =>
+  response?.data as T;
+
+export const transformApiResponseWithToast = <T>(
+  response: ApiResponse<T>,
 ): T => {
-  if (query === 'logout') {
-    localStorageService.removeItem(TokenType.ACCESS_TOKEN);
-    localStorageService.removeItem(TokenType.REFRESH_TOKEN);
-  }
-
-  const normalized = isApiResponse<T>(response)
-    ? response
-    : ({ data: response } as ApiResponse<T>);
-
-  if (normalized?.message) {
+  if (response?.message) {
     showNotification({
-      type: normalized.status as any,
-      header: normalized.header ?? '',
-      message: normalized.message,
+      type: toToastType(response.status),
+      header: response.header ?? '',
+      message: response.message,
     });
   }
-
-  return normalized.data as T;
+  return response?.data as T;
 };

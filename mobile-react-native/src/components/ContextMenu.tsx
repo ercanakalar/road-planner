@@ -1,93 +1,134 @@
-import React from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  GestureResponderEvent,
-  Pressable,
-  Dimensions,
-} from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Modal, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+import { colors, radius, shadows, spacing, typography } from 'theme';
+import { ContextMenuOption, ContextMenuProps } from 'types/components/contextMenu';
 
-interface ContextMenuProps {
-  visible: boolean;
-  options: { label: string; action: (event: GestureResponderEvent) => void }[];
-  onClose: () => void;
-}
+const MenuRow = memo(
+  ({ option, onClose }: { option: ContextMenuOption; onClose: () => void }) => {
+    const isDanger = option.tone === 'danger';
 
-const ContextMenu: React.FC<ContextMenuProps> = ({
+    const handlePress = useCallback(() => {
+      onClose();
+      option.action();
+    }, [onClose, option]);
+
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        onPress={handlePress}
+        accessibilityRole='button'
+        accessibilityLabel={option.label}
+      >
+        {option.icon ? (
+          <Ionicons
+            name={option.icon}
+            size={20}
+            color={isDanger ? colors.danger : colors.primary}
+          />
+        ) : null}
+        <Text style={[styles.rowText, isDanger && styles.rowTextDanger]}>
+          {option.label}
+        </Text>
+      </Pressable>
+    );
+  },
+);
+
+MenuRow.displayName = 'MenuRow';
+
+const swallowPress = () => {};
+
+const ContextMenu = ({
   visible,
+  title,
   options,
   onClose,
-}) => {
-  return (
-    <Modal
-      visible={visible}
-      animationType='fade'
-      onRequestClose={onClose}
-      transparent
-    >
-      <View style={styles.overlay}>
-        <View style={styles.menu}>
-          {options.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.menuItem}
-              onPress={(e) => {
-                option.action(e);
-                onClose();
-              }}
-            >
-              <Text style={styles.menuItemText}>{option.label}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.menuItem} onPress={onClose}>
-            <Text style={[styles.menuItemText, { color: 'red' }]}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+}: ContextMenuProps) => (
+  <Modal
+    visible={visible}
+    animationType='fade'
+    onRequestClose={onClose}
+    transparent
+    statusBarTranslucent
+  >
+    <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable style={styles.sheet} onPress={swallowPress}>
+        {title ? (
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+        ) : null}
+
+        {options.map((option) => (
+          <MenuRow key={option.label} option={option} onClose={onClose} />
+        ))}
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.row,
+            styles.cancelRow,
+            pressed && styles.rowPressed,
+          ]}
+          onPress={onClose}
+          accessibilityRole='button'
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </Pressable>
+      </Pressable>
+    </Pressable>
+  </Modal>
+);
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    width,
-    height,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: 500,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+    padding: spacing.lg,
   },
-  menu: {
-    width: 260,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 10,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+  sheet: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xs,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: '#007AFF',
+  title: {
+    ...typography.caption,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     textAlign: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  rowPressed: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  rowText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  rowTextDanger: {
+    color: colors.danger,
+  },
+  cancelRow: {
+    justifyContent: 'center',
+  },
+  cancelText: {
+    ...typography.body,
+    color: colors.textMuted,
   },
 });
 
-export default ContextMenu;
+export default memo(ContextMenu);

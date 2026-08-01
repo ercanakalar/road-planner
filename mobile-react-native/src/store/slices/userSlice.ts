@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { profileService } from 'store/services/profileService';
+
 import { userInitialState, UserState } from 'types/store/user-type';
+
+type ProfilePatch = Partial<UserState['data']>;
 
 const userSlice = createSlice({
   name: 'user',
@@ -11,31 +13,17 @@ const userSlice = createSlice({
       state.isLoading = action.payload.isLoading;
       state.error = action.payload.error;
     },
-    clearUser(state) {
-      Object.assign(state, userInitialState);
+    clearUser() {
+      return userInitialState;
     },
-    updateUserProfile(
-      state,
-      action: PayloadAction<{
-        id?: string;
-        firstName?: string;
-        lastName?: string;
-        email?: string;
-        photo?: string;
-        nickName?: string;
-      }>
-    ) {
-      const { id, firstName, lastName, email, photo, nickName } =
-        action.payload;
-      if (id) state.data.id = id;
-      if (firstName) state.data.firstName = firstName;
-      if (lastName) state.data.lastName = lastName;
-      if (email) state.data.email = email;
-      if (photo) state.data.photo = photo;
-      if (nickName) state.data.nickName = nickName;
+    updateUserProfile(state, action: PayloadAction<ProfilePatch>) {
+      (Object.keys(action.payload) as (keyof ProfilePatch)[]).forEach((key) => {
+        const value = action.payload[key];
+        if (value !== undefined) {
+          state.data = { ...state.data, [key]: value };
+        }
+      });
     },
-  },
-  extraReducers: (builder: any) => {
   },
 });
 
