@@ -1,0 +1,39 @@
+services:
+    build-apk:
+        build:
+            context: ./mobile-react-native
+            dockerfile: Dockerfile.android
+        image: road-planner-android-builder
+        environment:
+            BUILD_TYPE: ${BUILD_TYPE:-release}
+            EXPO_PUBLIC_BASE_URL: ${EXPO_PUBLIC_BASE_URL:-}
+            EXPO_PUBLIC_MAP_API_KEY: ${EXPO_PUBLIC_MAP_API_KEY:-}
+            EXPO_PUBLIC_SHARE_LINK_BASE_URL: ${EXPO_PUBLIC_SHARE_LINK_BASE_URL:-}
+            EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID:-}
+            EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:-}
+            EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:-}
+        env_file:
+            - path: ./mobile-react-native/.env
+              required: false
+        volumes:
+            - ./mobile-react-native:/app
+            - apk-keystore:/keystore
+            - ./apk-output:/output
+            - apk-gradle-cache:/gradle-cache
+
+    logcat:
+        build:
+            context: ./mobile-react-native
+            dockerfile: Dockerfile.android
+        image: road-planner-android-builder
+        entrypoint: /usr/local/bin/android-logcat
+        environment:
+            ADB_TARGET: ${ADB_TARGET:-}
+            ADB_PAIR: ${ADB_PAIR:-}
+            PAIR_CODE: ${PAIR_CODE:-}
+        volumes:
+            - ./apk-output:/output
+
+volumes:
+    apk-keystore:
+    apk-gradle-cache:
