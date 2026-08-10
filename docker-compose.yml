@@ -1,59 +1,64 @@
-version: '3.8'
-
 services:
-  backend:
-    build:
-      context: ./backend
-    image: ercanakalar/road-map-backend
-    container_name: road-map-backend
-    ports:
-      - '3000:3000'
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:road-map@test-db:5432/roaddb?schema=public
-      DATABASE_HOST: test-db
-      DATABASE_PORT: 5432
-      DATABASE_NAME: roaddb
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: road-map
-    depends_on:
-      - test-db
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: npm run start:dev
+    backend:
+        build:
+            context: ./backend
+            target: development
+        image: ercanakalar/road-map-backend
+        container_name: road-map-backend
+        ports:
+            - '3000:3000'
+        env_file:
+            - path: ./backend/.env
+              required: false
+        environment:
+            NODE_ENV: development
+            DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-road-map}@test-db:5432/${POSTGRES_DB:-roaddb}?schema=public
+        depends_on:
+            test-db:
+                condition: service_healthy
+        volumes:
+            - ./backend:/app
+            - backend-uploads:/app/uploads
+            - /app/node_modules
+        command: npm run start:dev
 
-  test-db:
-    image: postgres:latest
-    container_name: road-map-db
-    ports:
-      - '5434:5432'
-    environment:
-      POSTGRES_DB: roaddb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: road-map
-    volumes:
-      - road-map-db:/var/lib/postgresql/data
+    test-db:
+        image: postgres:16
+        container_name: road-map-db
+        ports:
+            - '5434:5432'
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-roaddb}
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-road-map}
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        volumes:
+            - road-map-db:/var/lib/postgresql/data
 
-  mobile:
-    build:
-      context: ./mobile-react-native
-    image: ercanakalar/road-map-mobile
-    container_name: road-map-mobile
-    ports:
-      - '8081:8081'
-      - '19000:19000'
-      - '19001:19001'
-      - '19002:19002'
-    environment:
-      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
-      REACT_NATIVE_PACKAGER_HOSTNAME: 192.168.1.104
-    volumes:
-      - ./mobile-react-native:/app
-      - /app/node_modules
-    stdin_open: true
-    tty: true
-    command: npx expo start --tunnel
+    mobile:
+        build:
+            context: ./mobile-react-native
+        image: ercanakalar/road-map-mobile
+        container_name: road-map-mobile
+        ports:
+            - '8081:8081'
+            - '19000:19000'
+            - '19001:19001'
+            - '19002:19002'
+        environment:
+            EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+            REACT_NATIVE_PACKAGER_HOSTNAME: 192.168.1.104
+        volumes:
+            - ./mobile-react-native:/app
+            - /app/node_modules
+        stdin_open: true
+        tty: true
+        command: npx expo start --tunnel
 
 volumes:
-  road-map-db:
+    road-map-db:
+    backend-uploads:
