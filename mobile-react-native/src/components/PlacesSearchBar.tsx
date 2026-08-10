@@ -18,7 +18,16 @@ import {
   fetchPlacePredictions,
 } from 'services/googleMapsService';
 import useDebouncedValue from 'hooks/useDebouncedValue';
-import { colors, radius, shadows, spacing, typography } from 'theme';
+import {
+  radius,
+  shadows,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+  useThemedTextInputProps,
+} from 'theme';
+import type { ThemeColors } from 'theme';
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 350;
@@ -39,33 +48,40 @@ const PredictionRow = memo(
   }: {
     prediction: PlacePrediction;
     onSelect: (prediction: PlacePrediction) => void;
-  }) => (
-    <Pressable
-      style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}
-      onPress={() => onSelect(prediction)}
-      accessibilityRole='button'
-    >
-      <Ionicons name='location-outline' size={16} color={colors.textMuted} />
-      <Text style={styles.resultText} numberOfLines={1}>
-        {prediction.description}
-      </Text>
-    </Pressable>
-  ),
+  }) => {
+    const { colors } = useTheme();
+    const styles = useThemedStyles(createStyles);
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.result,
+          pressed && styles.resultPressed,
+        ]}
+        onPress={() => onSelect(prediction)}
+        accessibilityRole='button'
+      >
+        <Ionicons name='location-outline' size={16} color={colors.textMuted} />
+        <Text style={styles.resultText} numberOfLines={1}>
+          {prediction.description}
+        </Text>
+      </Pressable>
+    );
+  },
 );
 
 PredictionRow.displayName = 'PredictionRow';
 
 const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const inputTheme = useThemedTextInputProps();
+
   const [input, setInput] = useState('');
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  /*
-   * Google bills autocomplete keystrokes and the follow-up details lookup as a
-   * single session when they share a token, so the token is minted per search
-   * and rotated once a place has been picked.
-   */
   const sessionTokenRef = useRef(createSessionToken());
 
   const query = useDebouncedValue(input.trim(), DEBOUNCE_MS);
@@ -133,10 +149,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
     [handleSelect],
   );
 
-  const keyExtractor = useCallback(
-    (item: PlacePrediction) => item.placeId,
-    [],
-  );
+  const keyExtractor = useCallback((item: PlacePrediction) => item.placeId, []);
 
   return (
     <View style={styles.container}>
@@ -148,7 +161,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
           value={input}
           onChangeText={setInput}
           style={styles.input}
-          placeholderTextColor={colors.textSubtle}
+          {...inputTheme}
           returnKeyType='search'
           autoCorrect={false}
         />
@@ -162,11 +175,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
             accessibilityRole='button'
             accessibilityLabel='Clear search'
           >
-            <Ionicons
-              name='close-circle'
-              size={18}
-              color={colors.textSubtle}
-            />
+            <Ionicons name='close-circle' size={18} color={colors.textSubtle} />
           </Pressable>
         ) : null}
       </View>
@@ -189,52 +198,53 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 2,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.xs,
-    ...shadows.md,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    height: 44,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-    paddingVertical: 0,
-  },
-  results: {
-    maxHeight: ROW_HEIGHT * MAX_VISIBLE_RESULTS,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  result: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    height: ROW_HEIGHT,
-    paddingHorizontal: spacing.md,
-  },
-  resultPressed: {
-    backgroundColor: colors.surfaceAlt,
-  },
-  resultText: {
-    flex: 1,
-    ...typography.caption,
-    color: colors.text,
-    fontSize: 14,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      position: 'absolute',
+      top: spacing.sm,
+      left: spacing.lg,
+      right: spacing.lg,
+      zIndex: 2,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.xs,
+      ...shadows.md,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      height: 44,
+    },
+    input: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+      paddingVertical: 0,
+    },
+    results: {
+      maxHeight: ROW_HEIGHT * MAX_VISIBLE_RESULTS,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    result: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      height: ROW_HEIGHT,
+      paddingHorizontal: spacing.md,
+    },
+    resultPressed: {
+      backgroundColor: colors.surfaceAlt,
+    },
+    resultText: {
+      flex: 1,
+      ...typography.caption,
+      color: colors.text,
+      fontSize: 14,
+    },
+  });
 
 export default memo(PlacesSearchBar);

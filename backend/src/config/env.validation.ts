@@ -100,6 +100,10 @@ export class EnvironmentVariables {
   @IsUrl({ require_tld: false, require_protocol: true })
   FRONTEND_URL!: string;
 
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @IsOptional()
+  SHARE_LINK_BASE_URL?: string;
+
   @IsString()
   @IsOptional()
   CORS_ORIGINS: string = '*';
@@ -135,12 +139,22 @@ export class EnvironmentVariables {
   @Transform(blankAsUnset)
   @IsString()
   @IsOptional()
+  UPLOAD_DIR: string = 'uploads';
+
+  @Transform(blankAsUnset)
+  @IsString()
+  @IsOptional()
   GOOGLE_CLIENT_ID?: string;
 
   @Transform(blankAsUnset)
   @IsString()
   @IsOptional()
   GOOGLE_CLIENT_SECRET?: string;
+
+  @Transform(blankAsUnset)
+  @IsString()
+  @IsOptional()
+  GOOGLE_NATIVE_CLIENT_IDS?: string;
 
   @Transform(blankAsUnset)
   @IsUrl({ require_tld: false, require_protocol: true })

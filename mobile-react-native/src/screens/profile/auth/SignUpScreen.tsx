@@ -1,20 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
+import AuthScreenLayout from 'components/AuthScreenLayout';
 import FormField from 'components/FormField';
+import GoogleSignInButton from 'components/GoogleSignInButton';
 import PrimaryButton from 'components/PrimaryButton';
 import { useSignUpMutation } from 'store/services/authenticationService';
-
-import { colors, spacing, typography } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,100 +72,50 @@ export default function SignUpScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.flex}
+    <AuthScreenLayout
+      icon='person-add'
+      title='Create your account'
+      subtitle='Plan routes and save the places you care about.'
+      footerText='Already have an account?'
+      footerActionLabel='Sign in'
+      onFooterAction={goToSignIn}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps='handled'
-      >
-        <View style={styles.container}>
-          <View style={styles.heading}>
-            <Text style={styles.title}>Create your account</Text>
-            <Text style={styles.subtitle}>
-              Plan routes and save the places you care about.
-            </Text>
-          </View>
+      <FormField
+        label='Email'
+        placeholder='you@example.com'
+        value={form.email}
+        onChangeText={handleInputChange('email')}
+        autoCapitalize='none'
+        autoComplete='email'
+        keyboardType='email-address'
+      />
 
-          <FormField
-            label='Email'
-            placeholder='you@example.com'
-            value={form.email}
-            onChangeText={handleInputChange('email')}
-            autoCapitalize='none'
-            autoComplete='email'
-            keyboardType='email-address'
-          />
+      <FormField
+        label='Password'
+        placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+        value={form.password}
+        onChangeText={handleInputChange('password')}
+        autoComplete='new-password'
+        isPassword
+      />
 
-          <FormField
-            label='Password'
-            placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
-            value={form.password}
-            onChangeText={handleInputChange('password')}
-            autoComplete='new-password'
-            isPassword
-          />
+      <FormField
+        label='Confirm password'
+        placeholder='Repeat your password'
+        value={form.confirmPassword}
+        onChangeText={handleInputChange('confirmPassword')}
+        autoComplete='new-password'
+        isPassword
+        error={error}
+      />
 
-          <FormField
-            label='Confirm password'
-            placeholder='Repeat your password'
-            value={form.confirmPassword}
-            onChangeText={handleInputChange('confirmPassword')}
-            autoComplete='new-password'
-            isPassword
-            error={error}
-          />
+      <PrimaryButton
+        label='Create account'
+        onPress={handleSubmit}
+        isLoading={isLoading}
+      />
 
-          <PrimaryButton
-            label='Create account'
-            onPress={handleSubmit}
-            isLoading={isLoading}
-          />
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account?</Text>
-            <Pressable onPress={goToSignIn} hitSlop={8}>
-              <Text style={styles.footerLink}>Sign in</Text>
-            </Pressable>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <GoogleSignInButton label='Sign up with Google' />
+    </AuthScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  container: { gap: spacing.lg },
-  heading: { gap: spacing.xs, marginBottom: spacing.sm },
-  title: {
-    ...typography.title,
-    fontSize: 26,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  footerText: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  footerLink: {
-    ...typography.label,
-    color: colors.primary,
-  },
-});

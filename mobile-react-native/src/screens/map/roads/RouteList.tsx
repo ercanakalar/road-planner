@@ -8,7 +8,9 @@ import {
 
 import RouteCard from 'screens/map/roads/RouteCard';
 import ScreenState from 'components/ScreenState';
-import { colors, spacing } from 'theme';
+import useRefreshControlColors from 'components/useRefreshControlColors';
+import { spacing, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { WaypointWithAddressAndId } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 
@@ -18,18 +20,37 @@ const RoutesList = ({
   onRefresh,
   onToggleFavorite,
   onDelete,
+  onEdit,
   onView,
+  onTogglePublic,
+  onShare,
+  sharingRoadId,
 }: RoutesListProps) => {
+  const styles = useThemedStyles(createStyles);
+  const refreshColors = useRefreshControlColors();
+
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<WaypointWithAddressAndId>) => (
       <RouteCard
         item={item}
         onToggleFavorite={onToggleFavorite}
         onDelete={onDelete}
+        onEdit={onEdit}
         onView={onView}
+        onTogglePublic={onTogglePublic}
+        onShare={onShare}
+        isSharing={sharingRoadId === item.id}
       />
     ),
-    [onDelete, onToggleFavorite, onView],
+    [
+      onDelete,
+      onEdit,
+      onShare,
+      onToggleFavorite,
+      onTogglePublic,
+      onView,
+      sharingRoadId,
+    ],
   );
 
   const keyExtractor = useCallback(
@@ -47,11 +68,10 @@ const RoutesList = ({
       }
       refreshControl={
         <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            {...refreshColors}
+          />
       }
       ListEmptyComponent={
         <ScreenState
@@ -68,14 +88,17 @@ const RoutesList = ({
   );
 };
 
-const styles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  emptyContent: {
-    flexGrow: 1,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    listContent: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.xxl,
+      gap: spacing.md,
+    },
+    emptyContent: {
+      flexGrow: 1,
+    },
+  });
 
 export default RoutesList;

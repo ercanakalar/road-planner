@@ -39,10 +39,6 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Directions                                                                  */
-/* -------------------------------------------------------------------------- */
-
 interface DirectionsLeg {
   duration?: { value: number };
   distance?: { value: number };

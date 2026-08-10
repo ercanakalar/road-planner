@@ -5,8 +5,16 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+const UPLOAD_DIR = 'test-uploads';
+
+import { ConfigService } from '@nestjs/config';
+
 import { PrismaService } from 'src/prisma/prisma.service';
-import { createPrismaMock, PrismaMock } from 'src/testing/mocks';
+import {
+  createConfigMock,
+  createPrismaMock,
+  PrismaMock,
+} from 'src/testing/mocks';
 import { UserService } from './user.service';
 
 const USER_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
@@ -20,7 +28,14 @@ describe('UserService', () => {
     prisma = createPrismaMock();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UserService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: ConfigService,
+          useValue: createConfigMock({ UPLOAD_DIR: UPLOAD_DIR }),
+        },
+      ],
     }).compile();
 
     service = module.get(UserService);

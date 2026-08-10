@@ -87,8 +87,10 @@ const useMapLogic = () => {
       const { coordinate } = event.nativeEvent;
       const pressed = waypointsRef.current.find(
         (waypoint) =>
-          Math.abs(waypoint.latitude - coordinate.latitude) < COORD_THRESHOLD &&
-          Math.abs(waypoint.longitude - coordinate.longitude) < COORD_THRESHOLD,
+          Math.abs(waypoint.latitude - coordinate.latitude) <
+            COORD_THRESHOLD &&
+          Math.abs(waypoint.longitude - coordinate.longitude) <
+            COORD_THRESHOLD,
       );
 
       dispatch(

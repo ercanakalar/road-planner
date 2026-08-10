@@ -10,7 +10,6 @@ interface State {
   error: Error | null;
 }
 
-
 class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 

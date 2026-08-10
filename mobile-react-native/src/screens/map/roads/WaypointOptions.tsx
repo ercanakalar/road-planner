@@ -2,7 +2,8 @@ import React, { memo, useCallback } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-import { colors, radius, spacing } from 'theme';
+import { radius, spacing, useTheme, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { WaypointOption } from 'types/transport-type';
 
@@ -17,6 +18,9 @@ const WaypointOptions = ({
   showFavoriteAction = true,
   onOptionSelect,
 }: Props) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   const isFavorite = item.favoriteWaypoints.length > 0;
 
   const handleFavorite = useCallback(
@@ -65,19 +69,20 @@ const WaypointOptions = ({
   );
 };
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  button: {
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-  },
-  pressed: {
-    backgroundColor: colors.surfaceAlt,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    button: {
+      padding: spacing.sm,
+      borderRadius: radius.sm,
+    },
+    pressed: {
+      backgroundColor: colors.surfaceAlt,
+    },
+  });
 
 export default memo(WaypointOptions);

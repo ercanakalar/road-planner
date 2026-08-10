@@ -1,11 +1,11 @@
-import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PaginationQueryDto } from '../../src/common/dto/pagination.dto';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { HelperService } from '../../src/road/services/helper/helper.service';
 import { RoadService } from '../../src/road/services/road/road.service';
+import { RoadVisibility } from '../../src/road/services/visibility/road-visibility';
+import { WaypointService } from '../../src/road/services/waypoint/waypoint.service';
 
 const DATABASE_URL = process.env.INTEGRATION_DATABASE_URL;
 
@@ -14,6 +14,7 @@ const describeIntegration = DATABASE_URL ? describe : describe.skip;
 describeIntegration('Road writes (integration)', () => {
   let prisma: PrismaClient;
   let service: RoadService;
+  let waypoints: WaypointService;
   let userId: string;
 
   const firstPage = () => new PaginationQueryDto();
@@ -55,10 +56,11 @@ describeIntegration('Road writes (integration)', () => {
     prisma = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
     await prisma.$connect();
 
-    service = new RoadService(
+    const visibility = new RoadVisibility();
+    service = new RoadService(prisma as unknown as PrismaService, visibility);
+    waypoints = new WaypointService(
       prisma as unknown as PrismaService,
-      { get: () => 'http://localhost:8081' } as unknown as ConfigService,
-      {} as HelperService,
+      visibility,
     );
   });
 
@@ -345,7 +347,6 @@ describeIntegration('Road writes (integration)', () => {
       });
 
       expect(await waypointsOf(roadId)).toEqual([]);
-
       await expect(prisma.addressInfo.count()).resolves.toBeGreaterThanOrEqual(
         0,
       );
@@ -356,7 +357,7 @@ describeIntegration('Road writes (integration)', () => {
     it('appends past the end and compacts', async () => {
       const roadId = await createRoad(['A', 'B']);
 
-      const result = await service.addWaypointToRoad(
+      const result = await waypoints.addWaypointToRoad(
         { latitude: 9, longitude: 9, order: 50, address: address('Z') },
         roadId,
       );
@@ -366,14 +367,13 @@ describeIntegration('Road writes (integration)', () => {
         { order: 2, latitude: 2, address: 'B' },
         { order: 3, latitude: 9, address: 'Z' },
       ]);
-
       expect(result.data.order).toBe(3);
     });
 
     it('inserts in the middle, shifting the rest down', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await service.addWaypointToRoad(
+      await waypoints.addWaypointToRoad(
         { latitude: 9, longitude: 9, order: 2, address: address('Z') },
         roadId,
       );
@@ -389,7 +389,7 @@ describeIntegration('Road writes (integration)', () => {
     it('inserts at the front', async () => {
       const roadId = await createRoad(['A', 'B']);
 
-      await service.addWaypointToRoad(
+      await waypoints.addWaypointToRoad(
         { latitude: 9, longitude: 9, order: 1, address: address('Z') },
         roadId,
       );
@@ -404,7 +404,7 @@ describeIntegration('Road writes (integration)', () => {
     it('treats a requested position of 0 as the front', async () => {
       const roadId = await createRoad(['A']);
 
-      await service.addWaypointToRoad(
+      await waypoints.addWaypointToRoad(
         { latitude: 9, longitude: 9, order: 0, address: address('Z') },
         roadId,
       );
@@ -418,7 +418,7 @@ describeIntegration('Road writes (integration)', () => {
     it('adds the first waypoint to an empty road', async () => {
       const roadId = await createRoad([]);
 
-      await service.addWaypointToRoad(
+      await waypoints.addWaypointToRoad(
         { latitude: 9, longitude: 9, order: 1, address: address('Z') },
         roadId,
       );
@@ -437,7 +437,7 @@ describeIntegration('Road writes (integration)', () => {
         orderBy: { order: 'asc' },
       });
 
-      await service.deleteWaypointById(existing[1].id);
+      await waypoints.deleteWaypointById(existing[1].id);
 
       expect(await waypointsOf(roadId)).toEqual([
         { order: 1, latitude: 1, address: 'A' },
@@ -451,7 +451,7 @@ describeIntegration('Road writes (integration)', () => {
       const existing = await prisma.wayPoint.findMany({ where: { roadId } });
       const addressId = existing[0].addressInfoId!;
 
-      await service.deleteWaypointById(existing[0].id);
+      await waypoints.deleteWaypointById(existing[0].id);
 
       await expect(
         prisma.addressInfo.count({ where: { id: addressId } }),
@@ -460,7 +460,7 @@ describeIntegration('Road writes (integration)', () => {
 
     it('raises P2025 for an unknown waypoint', async () => {
       await expect(
-        service.deleteWaypointById(randomUUID()),
+        waypoints.deleteWaypointById(randomUUID()),
       ).rejects.toMatchObject({ code: 'P2025' });
     });
 
@@ -468,7 +468,7 @@ describeIntegration('Road writes (integration)', () => {
       const roadId = await createRoad(['A']);
       const [only] = await prisma.wayPoint.findMany({ where: { roadId } });
 
-      await service.deleteWaypointById(only.id);
+      await waypoints.deleteWaypointById(only.id);
 
       expect(await waypointsOf(roadId)).toEqual([]);
     });
@@ -478,7 +478,7 @@ describeIntegration('Road writes (integration)', () => {
     it('moves a waypoint to the end', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await service.reorderWaypoints(roadId, { from: 0, to: 2 });
+      await waypoints.reorderWaypoints(roadId, { from: 0, to: 2 });
 
       expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
         'B',
@@ -490,7 +490,7 @@ describeIntegration('Road writes (integration)', () => {
     it('moves a waypoint to the front', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await service.reorderWaypoints(roadId, { from: 2, to: 0 });
+      await waypoints.reorderWaypoints(roadId, { from: 2, to: 0 });
 
       expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
         'C',
@@ -502,7 +502,7 @@ describeIntegration('Road writes (integration)', () => {
     it('reverses a longer road', async () => {
       const roadId = await createRoad(['A', 'B', 'C', 'D', 'E']);
 
-      await service.reorderWaypoints(roadId, { from: 0, to: 4 });
+      await waypoints.reorderWaypoints(roadId, { from: 0, to: 4 });
 
       expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
         'B',
@@ -516,7 +516,7 @@ describeIntegration('Road writes (integration)', () => {
     it('leaves the road alone when from equals to', async () => {
       const roadId = await createRoad(['A', 'B']);
 
-      await service.reorderWaypoints(roadId, { from: 1, to: 1 });
+      await waypoints.reorderWaypoints(roadId, { from: 1, to: 1 });
 
       expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
         'A',
@@ -528,7 +528,7 @@ describeIntegration('Road writes (integration)', () => {
       const roadId = await createRoad(['A', 'B']);
 
       await expect(
-        service.reorderWaypoints(roadId, { from: 9, to: 0 }),
+        waypoints.reorderWaypoints(roadId, { from: 9, to: 0 }),
       ).rejects.toThrow(/between 0 and 1/);
       expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
         'A',

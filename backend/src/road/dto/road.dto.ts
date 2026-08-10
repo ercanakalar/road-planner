@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  IsBoolean,
   IsArray,
   IsDefined,
   IsIn,
@@ -105,7 +106,11 @@ export class CreateRoadDto {
   waypoints?: WaypointInputDto[];
 }
 
-export class UpdateRoadDto extends CreateRoadDto {}
+export class UpdateRoadDto extends CreateRoadDto {
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+}
 
 export class AddWaypointDto {
   @IsNumber()

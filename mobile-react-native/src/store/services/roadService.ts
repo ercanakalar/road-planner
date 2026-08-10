@@ -1,6 +1,6 @@
 import createApi from 'store/middlewares/createApi';
 import baseQuery from 'store/bases/baseQuery';
-import { COLLECTION_PAGE_SIZE } from 'constants/pagination';
+import { COLLECTION_PAGE_SIZE, DISCOVER_PAGE_SIZE } from 'constants/pagination';
 import {
   transformApiResponse,
   transformApiResponseWithToast,
@@ -19,10 +19,18 @@ import {
   DeleteRoadByIdResponse,
   DeleteWaypointByRoadIdArgs,
   DeleteWaypointByRoadIdResponse,
+  CloneRoadArgs,
+  CloneRoadResponse,
+  GetDiscoverRoadsArgs,
+  GetDiscoverRoadsResponse,
   GetOwnRoadsArgs,
   GetOwnRoadsResponse,
   GetRoadByIdArgs,
   GetRoadByIdResponse,
+  GetSharedRoadArgs,
+  GetSharedRoadResponse,
+  ShareRoadArgs,
+  ShareRoadResponse,
   GetWaypointByIdArgs,
   GetWaypointByIdResponse,
   ReorderWaypointsArgs,
@@ -77,6 +85,50 @@ export const roadService = createApi({
       ],
     }),
 
+    getDiscoverRoads: builder.query<
+      GetDiscoverRoadsResponse,
+      GetDiscoverRoadsArgs
+    >({
+      query: () => ({
+        url: '/road/discover',
+        method: 'GET',
+        params: { limit: DISCOVER_PAGE_SIZE },
+      }),
+      transformResponse: (res: ApiResponse<GetDiscoverRoadsResponse>) =>
+        transformApiResponse(res) ?? [],
+      providesTags: [{ type: 'Road' as const, id: 'DISCOVER' }],
+    }),
+
+    cloneRoad: builder.mutation<CloneRoadResponse, CloneRoadArgs>({
+      query: ({ roadId }) => ({
+        url: `/road/clone/${roadId}`,
+        method: 'POST',
+        body: {},
+      }),
+      transformResponse: (res: ApiResponse<CloneRoadResponse>) =>
+        transformApiResponseWithToast(res),
+      invalidatesTags: [{ type: 'Road', id: 'LIST' }],
+    }),
+
+    shareRoad: builder.query<ShareRoadResponse, ShareRoadArgs>({
+      query: ({ roadId }) => ({
+        url: `/road/share/${roadId}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: ApiResponse<ShareRoadResponse>) =>
+        transformApiResponse(res),
+    }),
+
+    getSharedRoad: builder.query<GetSharedRoadResponse, GetSharedRoadArgs>({
+      query: ({ token }) => ({
+        url: `/road/share/${encodeURIComponent(token)}`,
+        method: 'POST',
+        body: {},
+      }),
+      transformResponse: (res: ApiResponse<GetSharedRoadResponse>) =>
+        transformApiResponse(res),
+    }),
+
     getRoadById: builder.query<GetRoadByIdResponse, GetRoadByIdArgs>({
       query: ({ roadId }) => ({
         url: `/road/${roadId}`,
@@ -117,14 +169,13 @@ export const roadService = createApi({
         transformApiResponseWithToast(res),
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: 'LIST' },
+        { type: 'Road', id: 'DISCOVER' },
         { type: 'Road', id: roadId },
       ],
       async onQueryStarted({ roadId }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getOwnRoads',
-            undefined,
-            (draft) => draft.filter((road) => road.id !== roadId),
+          roadService.util.updateQueryData('getOwnRoads', undefined, (draft) =>
+            draft.filter((road) => road.id !== roadId),
           ),
         );
         try {
@@ -150,10 +201,15 @@ export const roadService = createApi({
       UpdateRoadByIdResponse,
       UpdateRoadByIdArgs
     >({
-      query: ({ roadId, title, description, waypoints }) => ({
+      query: ({ roadId, title, description, isPublic, waypoints }) => ({
         url: `/road/update/${roadId}`,
         method: 'PUT',
-        body: { title, description, waypoints },
+        body: {
+          title,
+          description,
+          waypoints,
+          ...(isPublic === undefined ? {} : { isPublic }),
+        },
       }),
       transformResponse: (res: ApiResponse<UpdateRoadByIdResponse>) =>
         transformApiResponseWithToast(res),
@@ -180,10 +236,7 @@ export const roadService = createApi({
         { type: 'Road', id: roadId },
         { type: 'Road', id: 'LIST' },
       ],
-      async onQueryStarted(
-        { roadId, waypoint },
-        { dispatch, queryFulfilled },
-      ) {
+      async onQueryStarted({ roadId, waypoint }, { dispatch, queryFulfilled }) {
         const now = new Date().toISOString();
         const patch = dispatch(
           roadService.util.updateQueryData(
@@ -313,10 +366,7 @@ export const roadService = createApi({
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
       ],
-      async onQueryStarted(
-        { roadId, from, to },
-        { dispatch, queryFulfilled },
-      ) {
+      async onQueryStarted({ roadId, from, to }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
           roadService.util.updateQueryData(
             'getRoadById',
@@ -344,6 +394,10 @@ export const selectRoadWaypoints = (
 
 export const {
   useGetOwnRoadsQuery,
+  useGetDiscoverRoadsQuery,
+  useCloneRoadMutation,
+  useLazyShareRoadQuery,
+  useGetSharedRoadQuery,
   useGetRoadByIdQuery,
   useGetWaypointByIdQuery,
   useAddWaypointMutation,

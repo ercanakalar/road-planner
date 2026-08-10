@@ -53,6 +53,7 @@ export const authSlice = createSlice({
     const {
       signIn,
       signUp,
+      signInWithGoogle,
       validateRefreshToken,
       logout: logoutEndpoint,
     } = authenticationService.endpoints;
@@ -64,7 +65,11 @@ export const authSlice = createSlice({
       .addCase(sessionCleared, clearSession)
 
       .addMatcher(
-        isAnyOf(signIn.matchFulfilled, signUp.matchFulfilled),
+        isAnyOf(
+          signIn.matchFulfilled,
+          signUp.matchFulfilled,
+          signInWithGoogle.matchFulfilled,
+        ),
         (state, { payload }) => {
           applySession(state, {
             accessToken: payload.accessToken,

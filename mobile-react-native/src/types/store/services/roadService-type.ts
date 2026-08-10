@@ -57,6 +57,7 @@ export interface WaypointAddressInput {
 }
 
 export interface WaypointInput {
+  id?: string;
   latitude: number;
   longitude: number;
   order?: number;
@@ -66,6 +67,47 @@ export interface WaypointInput {
 
 export type GetOwnRoadsArgs = void;
 export type GetOwnRoadsResponse = WaypointWithAddressAndId[];
+
+export interface DiscoverRoad {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  author: string;
+  stopCount: number;
+  isFavorite: boolean;
+  wayPoints: WaypointWithAddress[];
+}
+
+export interface ShareRoadArgs {
+  roadId: string;
+}
+
+export interface ShareRoadResponse {
+  url: string;
+  token: string;
+}
+
+export interface GetSharedRoadArgs {
+  token: string;
+}
+
+export type GetSharedRoadResponse = WaypointWithAddressAndId & {
+  author: string;
+  isFavorite: boolean;
+};
+
+export interface CloneRoadArgs {
+  roadId: string;
+}
+
+export interface CloneRoadResponse {
+  id: string;
+  title: string;
+}
+
+export type GetDiscoverRoadsArgs = void;
+export type GetDiscoverRoadsResponse = DiscoverRoad[];
 
 export interface GetRoadByIdArgs {
   roadId: string;
@@ -93,6 +135,7 @@ export interface UpdateRoadByIdArgs {
   roadId: string;
   title: string;
   description?: string;
+  isPublic?: boolean;
   waypoints?: WaypointInput[];
 }
 export type UpdateRoadByIdResponse = WaypointWithAddressAndId;

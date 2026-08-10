@@ -2,24 +2,28 @@
   "expo": {
     "name": "mobile-react-native",
     "slug": "mobile-react-native",
+    "scheme": "com.ercanakalar.mobilereactnative",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0F172A"
+      }
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ercanakalar.mobilereactnative",
-      "config": {
-        "googleMapsApiKey": "$GOOGLE_MAPS_API_KEY"
-      },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Your location is shown on the map so you can see where you are relative to the stops on a route."
+        "NSLocationWhenInUseUsageDescription": "Your location is shown on the map so you can see where you are relative to the stops on a route.",
+        "NSPhotoLibraryUsageDescription": "Your photos are used only to set your profile picture."
       }
     },
     "android": {
@@ -29,17 +33,23 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ercanakalar.mobilereactnative",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
-      "config": {
-        "googleMaps": {
-          "apiKey": "$GOOGLE_MAPS_API_KEY"
-        }
-      }
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store"],
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to use your photos so you can set a profile picture."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "93f8f9b3-7bcd-4cf4-a399-145abf969808"

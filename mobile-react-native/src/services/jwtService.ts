@@ -1,32 +1,38 @@
 import { jwtDecode } from 'jwt-decode';
 
-import { TokenType } from 'types/libs/auth';
 import { JwtPayload } from 'types/services/jwt-service-type';
 
-import localStorageService from './localStorageService';
+import tokenStorage from './tokenStorage';
 
 class JwtService {
-  async decodeToken<T extends JwtPayload = JwtPayload>(): Promise<T | null> {
-    const token = await localStorageService.getItem(TokenType.ACCESS_TOKEN);
-    if (!token) return null;
+  async decodeToken<T extends JwtPayload = JwtPayload>(
+    token?: string | null,
+  ): Promise<T | null> {
+    const value = token ?? (await tokenStorage.getAccessToken());
+    if (!value) return null;
+
     try {
-      return jwtDecode<T>(token);
+      return jwtDecode<T>(value);
     } catch {
       return null;
     }
   }
 
   async isTokenExpired(): Promise<boolean> {
-    const token = await localStorageService.getItem(TokenType.REFRESH_TOKEN);
-    if (!token) return true;
-    const decoded = jwtDecode<JwtPayload>(token);
-    if (!decoded || !decoded.exp) return true;
-    const now = Math.floor(Date.now() / 1000);
-    return decoded.exp < now;
+    const { refreshToken } = await tokenStorage.get();
+    if (!refreshToken) return true;
+
+    try {
+      const decoded = jwtDecode<JwtPayload>(refreshToken);
+      if (!decoded?.exp) return true;
+      return decoded.exp < Math.floor(Date.now() / 1000);
+    } catch {
+      return true;
+    }
   }
 
   async getAccessToken(): Promise<string | null> {
-    return await localStorageService.getItem(TokenType.ACCESS_TOKEN);
+    return tokenStorage.getAccessToken();
   }
 }
 

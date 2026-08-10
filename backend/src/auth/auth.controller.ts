@@ -20,10 +20,14 @@ import { Public, RequirePermission } from 'src/common/decorators';
 import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
 import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard';
 import { AUTH_THROTTLE } from 'src/config/throttle';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
 import {
   ForgotPasswordDto,
+  GoogleIdTokenDto,
   RefreshTokenDto,
+  ChangePasswordDto,
   ResetPasswordDto,
+  VerifyResetCodeDto,
   SignInDto,
   SignUpDto,
 } from './dto/auth.dto';
@@ -83,6 +87,32 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(AUTH_THROTTLE.forgotPassword)
+  @Post('forgot-password/code')
+  @HttpCode(HttpStatus.OK)
+  async requestPasswordResetCode(@Body() body: ForgotPasswordDto) {
+    return this.authService.requestPasswordResetCode(body.email);
+  }
+
+  @Throttle(AUTH_THROTTLE.resetPassword)
+  @Patch('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() body: ChangePasswordDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.authService.changePassword(userId, body);
+  }
+
+  @Public()
+  @Throttle(AUTH_THROTTLE.resetPassword)
+  @Post('verify-reset-code')
+  @HttpCode(HttpStatus.OK)
+  async verifyResetCode(@Body() body: VerifyResetCodeDto) {
+    return this.authService.verifyResetCode(body);
+  }
+
+  @Public()
   @Throttle(AUTH_THROTTLE.resetPassword)
   @Patch('reset-password/:token')
   @HttpCode(HttpStatus.OK)
@@ -112,6 +142,16 @@ export class AuthController {
     this.googleService.verifyState(state);
 
     const { email } = await this.googleService.getAuthClientData(code);
+
+    return this.authService.signInWithGoogle(email);
+  }
+
+  @Public()
+  @Throttle(AUTH_THROTTLE.signIn)
+  @Post('google/token')
+  @HttpCode(HttpStatus.OK)
+  async signInWithGoogleIdToken(@Body() body: GoogleIdTokenDto) {
+    const email = await this.googleService.getEmailFromIdToken(body.idToken);
 
     return this.authService.signInWithGoogle(email);
   }

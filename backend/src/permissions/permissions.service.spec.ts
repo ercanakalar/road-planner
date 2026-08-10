@@ -96,7 +96,6 @@ describe('PermissionsService', () => {
       expect(prisma.permit.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { permissions: { set: [] } } }),
       );
-
       expect(prisma.permission.count).not.toHaveBeenCalled();
     });
 

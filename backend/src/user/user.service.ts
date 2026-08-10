@@ -6,9 +6,13 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { ConfigService } from '@nestjs/config';
+
 import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { EnvironmentVariables } from 'src/config/env.validation';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
 
 const USER_PUBLIC_SELECT = {
   id: true,
@@ -23,7 +27,41 @@ const USER_PUBLIC_SELECT = {
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService<EnvironmentVariables, true>,
+  ) {}
+
+  private get uploadDir(): string {
+    return this.config.get('UPLOAD_DIR', { infer: true });
+  }
+
+  async updatePhoto(userId: string, buffer: Buffer) {
+    const filename = await writeAvatar(this.uploadDir, buffer);
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { photo: true },
+    });
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { photo: `/api/user/photo/${filename}` },
+      select: USER_PUBLIC_SELECT,
+    });
+
+    await removeAvatar(this.uploadDir, existing?.photo ?? null);
+
+    return ok({
+      header: 'Photo Updated',
+      message: 'Profile photo updated successfully',
+      data: updated,
+    });
+  }
+
+  resolveAvatarPath(filename: string): string | null {
+    return avatarPath(this.uploadDir, filename);
+  }
 
   async updateUser(body: UpdateUserDto, userId: string) {
     const data: Prisma.UserUpdateInput = {};
@@ -73,7 +111,6 @@ export class UserService {
 
     const user = await this.prisma.user.findUnique({
       where: { id },
-
       select: USER_PUBLIC_SELECT,
     });
 

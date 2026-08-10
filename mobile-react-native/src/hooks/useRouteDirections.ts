@@ -26,7 +26,6 @@ const toRequest = (
 ): Omit<DirectionsRequest, 'mode'> & { mode: TransportMode } => ({
   origin: waypoints[0],
   destination: waypoints[waypoints.length - 1],
-
   waypoints: waypoints.slice(1, -1),
   mode,
 });
@@ -38,17 +37,14 @@ export function useRouteLine(
   const routable = waypoints.length >= 2;
 
   const [result, setResult] = useState<DirectionsResult | null>(() =>
-    routable ? (peekDirections(toRequest(waypoints, mode)) ?? null) : null,
+    routable ? peekDirections(toRequest(waypoints, mode)) ?? null : null,
   );
   const [isLoading, setIsLoading] = useState(false);
 
   const signature = useMemo(
     () =>
       waypoints
-        .map(
-          (point) =>
-            `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`,
-        )
+        .map((point) => `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`)
         .join('|'),
     [waypoints],
   );
@@ -120,10 +116,7 @@ export function useModeDurations(
   const signature = useMemo(
     () =>
       target
-        ?.map(
-          (point) =>
-            `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`,
-        )
+        ?.map((point) => `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`)
         .join('|') ?? '',
     [target],
   );

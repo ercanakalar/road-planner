@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import {
   createHash,
   randomBytes,
+  randomInt,
   randomUUID,
   scrypt,
   ScryptOptions,
@@ -12,6 +13,10 @@ import {
 import { promisify } from 'util';
 
 import { AccessTokenType, RefreshTokenType } from '../type/auth.types';
+import {
+  RESET_CODE_LENGTH,
+  RESET_CODE_TTL_MINUTES,
+} from '../constants/password-reset';
 
 const scryptAsync = promisify<string, string, number, ScryptOptions, Buffer>(
   scrypt,
@@ -92,6 +97,25 @@ export class HelperService {
       parsed.params.r !== SCRYPT_PARAMS.r ||
       parsed.params.p !== SCRYPT_PARAMS.p
     );
+  }
+
+  async createPasswordResetCode(): Promise<{
+    code: string;
+    codeHash: string;
+    expiresAt: Date;
+  }> {
+    const max = 10 ** RESET_CODE_LENGTH;
+    const code = String(randomInt(0, max)).padStart(RESET_CODE_LENGTH, '0');
+
+    return {
+      code,
+      codeHash: await this.toHashPassword(code),
+      expiresAt: this.addMinutes(RESET_CODE_TTL_MINUTES),
+    };
+  }
+
+  async isResetCodeValid(codeHash: string, code: string): Promise<boolean> {
+    return this.comparePassword(codeHash, code);
   }
 
   createPasswordResetToken(): {

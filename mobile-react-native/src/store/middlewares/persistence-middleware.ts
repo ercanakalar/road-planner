@@ -8,13 +8,14 @@ import {
   settingsRestored,
   settingSet,
   settingToggled,
+  themeModeSet,
 } from 'store/slices/settingsSlice';
 import type { RootState } from 'store';
 
 const persistenceMiddleware = createListenerMiddleware();
 
 persistenceMiddleware.startListening({
-  matcher: isAnyOf(settingsRestored, settingToggled, settingSet),
+  matcher: isAnyOf(settingsRestored, settingToggled, settingSet, themeModeSet),
   effect: async (_action, listenerApi) => {
     const { settings } = listenerApi.getState() as RootState;
     setNotificationsEnabled(settings.notificationsEnabled);

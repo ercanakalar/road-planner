@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import {
   ToggleFavoriteRoadDto,
   ToggleFavoriteWaypointDto,
+  UpdateFavoriteAnnotationDto,
 } from './dto/favorites.dto';
 
 function isDuplicate(error: unknown): boolean {
@@ -40,8 +41,14 @@ export class FavoritesService {
           });
         }
 
-        const waypoint = await tx.wayPoint.findUnique({
-          where: { id: body.waypointId },
+        const waypoint = await tx.wayPoint.findFirst({
+          where: {
+            id: body.waypointId,
+            road: {
+              archivedAt: null,
+              OR: [{ userId }, { isPublic: true }],
+            },
+          },
           select: { id: true },
         });
 
@@ -86,8 +93,12 @@ export class FavoritesService {
           });
         }
 
-        const road = await tx.road.findUnique({
-          where: { id: body.roadId },
+        const road = await tx.road.findFirst({
+          where: {
+            id: body.roadId,
+            archivedAt: null,
+            OR: [{ userId }, { isPublic: true }],
+          },
           select: { id: true },
         });
 
@@ -136,6 +147,8 @@ export class FavoritesService {
                 title: true,
                 description: true,
                 userId: true,
+                isPublic: true,
+                archivedAt: true,
                 wayPoints: {
                   select: {
                     id: true,
@@ -217,4 +230,65 @@ export class FavoritesService {
       },
     });
   }
+
+  async updateFavoriteRoadAnnotation(
+    favoriteId: string,
+    userId: string,
+    body: UpdateFavoriteAnnotationDto,
+  ) {
+    const favorite = await this.prisma.favoriteRoad.findFirst({
+      where: { id: favoriteId, userId },
+      select: { id: true },
+    });
+
+    if (!favorite) {
+      throw new NotFoundException('Favorite road not found');
+    }
+
+    const updated = await this.prisma.favoriteRoad.update({
+      where: { id: favorite.id },
+      data: pickAnnotation(body),
+      select: { id: true, title: true, description: true },
+    });
+
+    return ok({
+      header: 'Favorite updated',
+      message: 'Your changes were saved',
+      data: updated,
+    });
+  }
+
+  async updateFavoriteWaypointAnnotation(
+    favoriteId: string,
+    userId: string,
+    body: UpdateFavoriteAnnotationDto,
+  ) {
+    const favorite = await this.prisma.favoriteWaypoint.findFirst({
+      where: { id: favoriteId, userId },
+      select: { id: true },
+    });
+
+    if (!favorite) {
+      throw new NotFoundException('Favorite waypoint not found');
+    }
+
+    const updated = await this.prisma.favoriteWaypoint.update({
+      where: { id: favorite.id },
+      data: pickAnnotation(body),
+      select: { id: true, title: true, description: true },
+    });
+
+    return ok({
+      header: 'Favorite updated',
+      message: 'Your changes were saved',
+      data: updated,
+    });
+  }
+}
+
+function pickAnnotation(body: UpdateFavoriteAnnotationDto) {
+  const data: { title?: string; description?: string } = {};
+  if (body.title !== undefined) data.title = body.title;
+  if (body.description !== undefined) data.description = body.description;
+  return data;
 }

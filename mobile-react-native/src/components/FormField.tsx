@@ -9,7 +9,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, radius, spacing, typography } from 'theme';
+import {
+  radius,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+  useThemedTextInputProps,
+} from 'theme';
+import type { ThemeColors } from 'theme';
 
 interface Props extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -18,6 +26,11 @@ interface Props extends Omit<TextInputProps, 'style'> {
 }
 
 const FormField = ({ label, error, isPassword, ...inputProps }: Props) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const inputTheme = useThemedTextInputProps();
+
+  const isMultiline = !!inputProps.multiline;
   const [isFocused, setIsFocused] = useState(false);
   const [isHidden, setIsHidden] = useState(true);
 
@@ -35,17 +48,19 @@ const FormField = ({ label, error, isPassword, ...inputProps }: Props) => {
       <View
         style={[
           styles.inputWrapper,
+          isMultiline && styles.inputWrapperMultiline,
           isFocused && styles.inputWrapperFocused,
           !!error && styles.inputWrapperError,
         ]}
       >
         <TextInput
           {...inputProps}
-          style={styles.input}
+          style={[styles.input, isMultiline && styles.inputMultiline]}
+          textAlignVertical={isMultiline ? 'top' : 'center'}
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={isPassword && isHidden}
-          placeholderTextColor={colors.textSubtle}
+          {...inputTheme}
           accessibilityLabel={label}
         />
 
@@ -70,40 +85,55 @@ const FormField = ({ label, error, isPassword, ...inputProps }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  group: { gap: spacing.sm },
-  label: {
-    ...typography.label,
-    color: colors.textMuted,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-    height: 50,
-  },
-  inputWrapperFocused: {
-    borderColor: colors.primary,
-  },
-  inputWrapperError: {
-    borderColor: colors.danger,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-    paddingVertical: 0,
-  },
-  error: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.danger,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    group: { gap: spacing.sm },
+    label: {
+      ...typography.label,
+      color: colors.text,
+      marginLeft: spacing.xxs,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.surfaceAlt,
+      height: 54,
+    },
+    inputWrapperMultiline: {
+      height: undefined,
+      minHeight: 104,
+      paddingVertical: spacing.md,
+      alignItems: 'flex-start',
+    },
+    inputWrapperFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    inputWrapperError: {
+      borderColor: colors.danger,
+      backgroundColor: colors.dangerSoft,
+    },
+    input: {
+      flex: 1,
+      ...typography.body,
+      lineHeight: undefined,
+      color: colors.text,
+      paddingVertical: 0,
+    },
+    inputMultiline: {
+      minHeight: 76,
+      lineHeight: 22,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginLeft: spacing.xxs,
+    },
+  });
 
 export default memo(FormField);

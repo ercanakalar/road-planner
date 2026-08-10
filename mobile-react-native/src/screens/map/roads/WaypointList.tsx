@@ -9,7 +9,8 @@ import DraggableFlatList, {
 import TransportSelector from 'components/TransportSelector';
 import WaypointCard from './WaypointCard';
 
-import { colors, spacing, typography } from 'theme';
+import { spacing, typography, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode, WaypointOption } from 'types/transport-type';
 
@@ -38,6 +39,8 @@ const WaypointList = ({
   onReorder,
   onReorderingChange,
 }: WaypointListProps) => {
+  const styles = useThemedStyles(createStyles);
+
   const handleDragBegin = useCallback(
     () => onReorderingChange?.(true),
     [onReorderingChange],
@@ -94,7 +97,13 @@ const WaypointList = ({
         />
       </View>
     ),
-    [durations, onTransportModeChange, selectedPair.length, transportMode],
+    [
+      durations,
+      onTransportModeChange,
+      selectedPair.length,
+      styles,
+      transportMode,
+    ],
   );
 
   const empty = useMemo(
@@ -106,7 +115,7 @@ const WaypointList = ({
         </Text>
       </View>
     ),
-    [],
+    [styles],
   );
 
   return (
@@ -128,39 +137,40 @@ const WaypointList = ({
   );
 };
 
-const styles = StyleSheet.create({
-  header: {
-    paddingBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.heading,
-    color: colors.text,
-  },
-  headerHint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
-  },
-  listContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.xs,
-  },
-  emptyTitle: {
-    ...typography.body,
-    color: colors.text,
-  },
-  emptyHint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    header: {
+      paddingBottom: spacing.lg,
+      gap: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.heading,
+      color: colors.text,
+    },
+    headerHint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginBottom: spacing.xs,
+    },
+    listContent: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xxl,
+    },
+    empty: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+      gap: spacing.xs,
+    },
+    emptyTitle: {
+      ...typography.body,
+      color: colors.text,
+    },
+    emptyHint: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+  });
 
 export default WaypointList;

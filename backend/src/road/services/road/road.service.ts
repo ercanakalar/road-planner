@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
@@ -11,25 +6,20 @@ import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
-  AddressInputDto,
-  AddWaypointDto,
   CreateRoadDto,
-  ReorderWaypointsDto,
   UpdateRoadDto,
-  UpdateWaypointDto,
   WaypointInputDto,
 } from 'src/road/dto/road.dto';
-import { HelperService } from '../helper/helper.service';
 import {
   AddressValues,
   applyAddressValues,
-  applyWaypointOrder,
   applyWaypointValues,
-  compactWaypointOrder,
   linkWaypointAddresses,
   positionByRank,
   WaypointValues,
 } from './waypoint-writes';
+import { RoadVisibility } from '../visibility/road-visibility';
+import { addressColumns } from './address-columns';
 
 type PositionedWaypoint = WaypointInputDto & { order: number };
 
@@ -67,26 +57,11 @@ function buildNewWaypointRows(
   return { addresses, waypoints: rows };
 }
 
-function addressColumns(address: AddressInputDto | undefined): {
-  country: string | null;
-  province: string | null;
-  district: string | null;
-  address: string;
-} {
-  return {
-    country: address?.country ?? null,
-    province: address?.province ?? null,
-    district: address?.district ?? null,
-    address: address?.address ?? '',
-  };
-}
-
 @Injectable()
 export class RoadService {
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
-    private helperService: HelperService,
+    private visibility: RoadVisibility,
   ) {}
 
   async createRoad(data: CreateRoadDto, userId: string) {
@@ -124,31 +99,22 @@ export class RoadService {
     });
   }
 
-  private visibleRoadWhere(id: string, userId: string): Prisma.RoadWhereInput {
-    return {
-      id,
-      OR: [{ userId }, { favoriteRoads: { some: { userId } } }],
-    };
-  }
-
-  async getRoadById(id: string, userId: string) {
+  async getRoadById(id: string, userId: string | null) {
     const road = await this.prisma.road.findFirst({
-      where: this.visibleRoadWhere(id, userId),
+      where: this.visibility.road(id, userId),
       include: {
         wayPoints: {
           include: {
             address: true,
-            favoriteWaypoints: {
-              where: { userId },
-              select: { id: true },
-            },
+            favoriteWaypoints: userId
+              ? { where: { userId }, select: { id: true } }
+              : false,
           },
           orderBy: { order: 'asc' },
         },
-        favoriteRoads: {
-          where: { userId },
-          select: { id: true },
-        },
+        favoriteRoads: userId
+          ? { where: { userId }, select: { id: true } }
+          : false,
       },
     });
 
@@ -161,37 +127,18 @@ export class RoadService {
       message: 'Road found successfully',
       data: {
         ...road,
+        favoriteRoads: road.favoriteRoads ?? [],
+        wayPoints: (road.wayPoints ?? []).map((waypoint) => ({
+          ...waypoint,
+          favoriteWaypoints: waypoint.favoriteWaypoints ?? [],
+        })),
         isFavorite: !!road.favoriteRoads?.length,
       },
     });
   }
 
-  async getWaypointById(id: string, userId: string) {
-    const waypoint = await this.prisma.wayPoint.findFirst({
-      where: {
-        id,
-        OR: [
-          { road: { userId } },
-          { road: { favoriteRoads: { some: { userId } } } },
-          { favoriteWaypoints: { some: { userId } } },
-        ],
-      },
-      include: { address: true },
-    });
-
-    if (!waypoint) {
-      throw new NotFoundException('Waypoint not found');
-    }
-
-    return ok({
-      header: 'Waypoint Found',
-      message: 'Waypoint found successfully',
-      data: waypoint,
-    });
-  }
-
   async getOwnRoads(userId: string, pagination: PaginationQueryDto) {
-    const where: Prisma.RoadWhereInput = { userId };
+    const where: Prisma.RoadWhereInput = this.visibility.ownedBy(userId);
 
     const [roads, total] = await this.prisma.$transaction([
       this.prisma.road.findMany({
@@ -236,12 +183,160 @@ export class RoadService {
     });
   }
 
+  async getDiscoverRoads(userId: string | null, limit: number) {
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "Road"
+      WHERE "isPublic" = true
+        AND "archivedAt" IS NULL
+        AND ("userId" <> ${userId ?? ''} OR ${userId === null})
+      ORDER BY random()
+      LIMIT ${limit}
+    `;
+
+    if (!rows.length) {
+      return ok({
+        header: 'Discover Roads',
+        message: 'No published routes yet',
+        data: [],
+      });
+    }
+
+    const roads = await this.prisma.road.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        createdAt: true,
+        user: { select: { nickName: true, firstName: true } },
+        favoriteRoads: userId
+          ? { where: { userId }, select: { id: true } }
+          : false,
+        wayPoints: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+            order: true,
+            address: true,
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    const order = new Map(rows.map((row, index) => [row.id, index]));
+    const shaped = roads
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+      .map(({ user, wayPoints, favoriteRoads, ...road }) => ({
+        ...road,
+        author: user.nickName ?? user.firstName ?? 'A traveller',
+        stopCount: wayPoints.length,
+        isFavorite: !!favoriteRoads?.length,
+        wayPoints,
+      }));
+
+    return ok({
+      header: 'Discover Roads',
+      message: 'Published routes retrieved successfully',
+      data: shaped,
+    });
+  }
+
+  async cloneRoad(id: string, userId: string) {
+    const source = await this.prisma.road.findFirst({
+      where: this.visibility.road(id, userId),
+      select: {
+        title: true,
+        description: true,
+        wayPoints: {
+          select: {
+            latitude: true,
+            longitude: true,
+            order: true,
+            address: {
+              select: {
+                country: true,
+                province: true,
+                district: true,
+                address: true,
+              },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    if (!source) {
+      throw new NotFoundException('Road not found');
+    }
+
+    const clone = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.road.create({
+        data: {
+          title: source.title,
+          description: source.description,
+          userId,
+          isPublic: false,
+        },
+        select: { id: true },
+      });
+
+      const addresses: Prisma.AddressInfoCreateManyInput[] = [];
+      const waypoints: Prisma.WayPointCreateManyInput[] = [];
+
+      source.wayPoints.forEach((waypoint, index) => {
+        const addressInfoId = randomUUID();
+        addresses.push({
+          id: addressInfoId,
+          country: waypoint.address?.country ?? null,
+          province: waypoint.address?.province ?? null,
+          district: waypoint.address?.district ?? null,
+          address: waypoint.address?.address ?? '',
+        });
+        waypoints.push({
+          id: randomUUID(),
+          latitude: waypoint.latitude,
+          longitude: waypoint.longitude,
+          order: index + 1,
+          roadId: created.id,
+          addressInfoId,
+        });
+      });
+
+      if (addresses.length)
+        await tx.addressInfo.createMany({ data: addresses });
+      if (waypoints.length) await tx.wayPoint.createMany({ data: waypoints });
+
+      return tx.road.findUnique({
+        where: { id: created.id },
+        include: {
+          wayPoints: { include: { address: true }, orderBy: { order: 'asc' } },
+        },
+      });
+    });
+
+    return ok({
+      header: 'Road Copied',
+      message: 'The route is now yours to edit',
+      data: clone,
+    });
+  }
+
   async updateRoadById(id: string, data: UpdateRoadDto) {
-    const { title, description } = data;
+    const { title, description, isPublic } = data;
     const waypoints = positionByRank(data.waypoints ?? []);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.road.update({ where: { id }, data: { title, description } });
+      await tx.road.update({
+        where: { id },
+        data: {
+          title,
+          description,
+          ...(isPublic === undefined ? {} : { isPublic }),
+        },
+      });
 
       const existing = await tx.wayPoint.findMany({
         where: { roadId: id },
@@ -276,12 +371,14 @@ export class RoadService {
       await applyWaypointValues(
         tx,
         id,
-        kept.map((w): WaypointValues => ({
-          id: w.id as string,
-          latitude: w.latitude,
-          longitude: w.longitude,
-          order: w.order,
-        })),
+        kept.map(
+          (w): WaypointValues => ({
+            id: w.id as string,
+            latitude: w.latitude,
+            longitude: w.longitude,
+            order: w.order,
+          }),
+        ),
       );
 
       const addressUpdates: AddressValues[] = [];
@@ -350,252 +447,23 @@ export class RoadService {
   }
 
   async deleteRoadById(id: string, userId: string) {
-    await this.prisma.$transaction(async (tx) => {
-      const road = await tx.road.findFirst({
-        where: { id, userId },
-        select: { id: true },
-      });
-
-      if (!road) {
-        throw new NotFoundException('Road not found');
-      }
-
-      const addressIds = (
-        await tx.wayPoint.findMany({
-          where: { roadId: id },
-          select: { addressInfoId: true },
-        })
-      )
-        .map((waypoint) => waypoint.addressInfoId)
-        .filter((addressId): addressId is string => addressId !== null);
-
-      await tx.road.delete({ where: { id } });
-
-      if (addressIds.length) {
-        await tx.addressInfo.deleteMany({ where: { id: { in: addressIds } } });
-      }
-    });
-
-    return ok({
-      header: 'Road Deleted',
-      message: 'Road deleted successfully',
-    });
-  }
-
-  async shareRoadByIdWithToken(id: string) {
-    const token = await this.helperService.generateTokenForShareRoad(id);
-
-    return ok({
-      data: {
-        url: `${this.config.get<string>('FRONTEND_URL')}/share/${token}`,
-      },
-    });
-  }
-
-  async routeToSharedRoad(token: string) {
-    const payload = await this.helperService.decodeTokenForShareRoad(token);
-
-    const road = await this.prisma.road.findUnique({
-      where: { id: payload.id },
-      omit: { userId: true },
-      include: {
-        wayPoints: {
-          include: { address: true },
-          orderBy: { order: 'asc' },
-        },
-      },
+    const road = await this.prisma.road.findFirst({
+      where: { id, userId, archivedAt: null },
+      select: { id: true },
     });
 
     if (!road) {
-      throw new NotFoundException('The shared road no longer exists');
+      throw new NotFoundException('Road not found');
     }
 
-    return ok({ data: road });
-  }
-
-  async addWaypointToRoad(body: AddWaypointDto, roadId: string) {
-    const insertAt = Math.max(body.order, 1);
-
-    const waypoint = await this.prisma.$transaction(async (tx) => {
-      const addressInfoId = randomUUID();
-
-      await tx.addressInfo.create({
-        data: { id: addressInfoId, ...addressColumns(body.address) },
-      });
-
-      await tx.$executeRaw(Prisma.sql`
-        UPDATE "WayPoint"
-           SET "order" = "order" + 1,
-               "updatedAt" = NOW()
-         WHERE "roadId" = ${roadId}
-           AND "order" >= ${insertAt}
-      `);
-
-      const created = await tx.wayPoint.create({
-        data: {
-          latitude: body.latitude,
-          longitude: body.longitude,
-          order: insertAt,
-          roadId,
-          addressInfoId,
-        },
-        select: { id: true },
-      });
-
-      await compactWaypointOrder(tx, roadId);
-
-      return tx.wayPoint.findUniqueOrThrow({
-        where: { id: created.id },
-        include: { address: true },
-      });
+    await this.prisma.road.update({
+      where: { id },
+      data: { archivedAt: new Date(), isPublic: false },
     });
 
     return ok({
-      header: 'Add Waypoint',
-      message: 'Waypoint added successfully',
-      data: waypoint,
-    });
-  }
-
-  async deleteWaypointById(waypointId: string) {
-    await this.prisma.$transaction(async (tx) => {
-      const deleted = await tx.wayPoint.delete({
-        where: { id: waypointId },
-        select: { roadId: true, addressInfoId: true },
-      });
-
-      if (deleted.addressInfoId) {
-        await tx.addressInfo.delete({ where: { id: deleted.addressInfoId } });
-      }
-
-      await compactWaypointOrder(tx, deleted.roadId);
-    });
-
-    return ok({
-      header: 'Delete Waypoint',
-      message: 'Waypoint deleted and order updated successfully',
-    });
-  }
-
-  async updateWaypointWithRoadId(body: UpdateWaypointDto, waypointId: string) {
-    const { latitude, longitude, address } = body;
-
-    if (!waypointId) {
-      throw new BadRequestException('waypointId is required');
-    }
-
-    const waypoint = await this.prisma.wayPoint.findUnique({
-      where: { id: waypointId },
-      select: { id: true, addressInfoId: true },
-    });
-
-    if (!waypoint) {
-      throw new NotFoundException('Waypoint not found');
-    }
-
-    const updatedWaypoint = await this.prisma.$transaction(async (prisma) => {
-      let addressInfoId = waypoint.addressInfoId;
-
-      if (addressInfoId) {
-        await prisma.addressInfo.update({
-          where: { id: addressInfoId },
-          data: {
-            country: address.country,
-            province: address.province,
-            district: address.district,
-            address: address.address,
-          },
-        });
-      } else {
-        const createdAddress = await prisma.addressInfo.create({
-          data: {
-            country: address.country,
-            province: address.province,
-            district: address.district,
-            address: address.address,
-          },
-        });
-
-        addressInfoId = createdAddress.id;
-      }
-
-      await prisma.wayPoint.update({
-        where: { id: waypointId },
-        data: {
-          latitude,
-          longitude,
-          address: addressInfoId
-            ? {
-                connect: { id: addressInfoId },
-              }
-            : undefined,
-        },
-        include: { address: true },
-      });
-
-      return prisma.wayPoint.findUnique({
-        where: { id: waypointId },
-        include: { address: true },
-      });
-    });
-
-    return ok({
-      header: 'Update Waypoint',
-      message: 'Waypoint updated successfully',
-      data: updatedWaypoint,
-    });
-  }
-
-  async reorderWaypoints(roadId: string, body: ReorderWaypointsDto) {
-    const { from, to } = body;
-
-    if (body.roadId !== undefined && body.roadId !== roadId) {
-      throw new BadRequestException(
-        'roadId in the body does not match the roadId in the path',
-      );
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      const road = await tx.road.findUnique({
-        where: { id: roadId },
-        select: { id: true },
-      });
-
-      if (!road) {
-        throw new NotFoundException('Road not found');
-      }
-
-      const waypoints = await tx.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-        select: { id: true },
-      });
-
-      if (from >= waypoints.length || to >= waypoints.length) {
-        throw new BadRequestException(
-          `from and to must be between 0 and ${Math.max(waypoints.length - 1, 0)}`,
-        );
-      }
-
-      if (from === to) return;
-
-      const reordered = [...waypoints];
-      const [moving] = reordered.splice(from, 1);
-      reordered.splice(to, 0, moving);
-
-      await applyWaypointOrder(
-        tx,
-        roadId,
-        reordered.map((waypoint, index) => ({
-          id: waypoint.id,
-          order: index + 1,
-        })),
-      );
-    });
-
-    return ok({
-      header: 'Reordered',
-      message: 'Waypoint order updated successfully',
+      header: 'Road Removed',
+      message: 'Road removed from your list',
     });
   }
 }

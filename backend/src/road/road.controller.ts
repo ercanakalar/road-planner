@@ -16,6 +16,7 @@ import {
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { Public } from 'src/common/decorators';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { OptionalAccessGuard } from 'src/common/guards/optional-access/optional-access.guard';
 import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
 import {
   AddWaypointDto,
@@ -25,10 +26,16 @@ import {
   UpdateWaypointDto,
 } from './dto/road.dto';
 import { RoadService } from './services/road/road.service';
+import { RoadSharingService } from './services/sharing/road-sharing.service';
+import { WaypointService } from './services/waypoint/waypoint.service';
 
 @Controller('road')
 export class RoadController {
-  constructor(private roadService: RoadService) {}
+  constructor(
+    private roadService: RoadService,
+    private waypointService: WaypointService,
+    private sharingService: RoadSharingService,
+  ) {}
 
   @Post('/create')
   @HttpCode(HttpStatus.OK)
@@ -39,13 +46,29 @@ export class RoadController {
     return this.roadService.createRoad(body, userId);
   }
 
+  @Public()
+  @UseGuards(OptionalAccessGuard)
+  @Get('/discover')
+  @HttpCode(HttpStatus.OK)
+  async getDiscoverRoads(
+    @GetUser() user: { userId?: string } | undefined,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.roadService.getDiscoverRoads(
+      user?.userId ?? null,
+      pagination.limit,
+    );
+  }
+
+  @Public()
+  @UseGuards(OptionalAccessGuard)
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
   async getRoadById(
     @Param('id', ParseUUIDPipe) id: string,
-    @GetUser('userId') userId: string,
+    @GetUser() user: { userId?: string } | undefined,
   ) {
-    return this.roadService.getRoadById(id, userId);
+    return this.roadService.getRoadById(id, user?.userId ?? null);
   }
 
   @Get('/waypoint/:id')
@@ -54,7 +77,7 @@ export class RoadController {
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('userId') userId: string,
   ) {
-    return this.roadService.getWaypointById(id, userId);
+    return this.waypointService.getWaypointById(id, userId);
   }
 
   @Post('/own-roads')
@@ -67,17 +90,30 @@ export class RoadController {
   }
 
   @Public()
+  @UseGuards(OptionalAccessGuard)
   @Post('/share/:token')
   @HttpCode(HttpStatus.OK)
-  async routeToSharedRoad(@Param('token') token: string) {
-    return this.roadService.routeToSharedRoad(token);
+  async routeToSharedRoad(
+    @Param('token') token: string,
+    @GetUser() user: { userId?: string } | undefined,
+  ) {
+    return this.sharingService.resolveLink(token, user?.userId ?? null);
   }
 
   @UseGuards(RoadOwnerGuard)
   @Get('/share/:id')
   @HttpCode(HttpStatus.OK)
   async shareRoadByIdWithToken(@Param('id', ParseUUIDPipe) id: string) {
-    return this.roadService.shareRoadByIdWithToken(id);
+    return this.sharingService.createLink(id);
+  }
+
+  @Post('/clone/:id')
+  @HttpCode(HttpStatus.OK)
+  async cloneRoad(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.roadService.cloneRoad(id, userId);
   }
 
   @UseGuards(RoadOwnerGuard)
@@ -107,7 +143,7 @@ export class RoadController {
     @Body() body: AddWaypointDto,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.roadService.addWaypointToRoad(body, id);
+    return this.waypointService.addWaypointToRoad(body, id);
   }
 
   @UseGuards(RoadOwnerGuard)
@@ -116,7 +152,7 @@ export class RoadController {
   async deleteWaypointWithRoadId(
     @Param('waypointId', ParseUUIDPipe) waypointId: string,
   ) {
-    return this.roadService.deleteWaypointById(waypointId);
+    return this.waypointService.deleteWaypointById(waypointId);
   }
 
   @UseGuards(RoadOwnerGuard)
@@ -126,7 +162,7 @@ export class RoadController {
     @Body() body: UpdateWaypointDto,
     @Param('waypointId', ParseUUIDPipe) waypointId: string,
   ) {
-    return this.roadService.updateWaypointWithRoadId(body, waypointId);
+    return this.waypointService.updateWaypointWithRoadId(body, waypointId);
   }
 
   @UseGuards(RoadOwnerGuard)
@@ -136,6 +172,6 @@ export class RoadController {
     @Body() body: ReorderWaypointsDto,
     @Param('roadId', ParseUUIDPipe) roadId: string,
   ) {
-    return this.roadService.reorderWaypoints(roadId, body);
+    return this.waypointService.reorderWaypoints(roadId, body);
   }
 }

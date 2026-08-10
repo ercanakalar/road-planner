@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -171,7 +172,6 @@ describe('GoogleService', () => {
 
     it('rejects a state with a tampered timestamp', () => {
       const [nonce, issuedAt, signature] = service.createState().split('.');
-
       const forged = `${nonce}.${Number(issuedAt) + 60_000}.${signature}`;
 
       expect(() => service.verifyState(forged)).toThrow(UnauthorizedException);
@@ -281,6 +281,93 @@ describe('GoogleService', () => {
       const result = await service.getAuthClientData('code');
 
       expect(Object.keys(result)).toEqual(['email']);
+    });
+  });
+
+  describe('getEmailFromIdToken', () => {
+    const verifyIdToken = jest.fn();
+
+    beforeEach(() => {
+      verifyIdToken.mockReset();
+      jest
+        .spyOn(OAuth2Client.prototype, 'verifyIdToken')
+        .mockImplementation(verifyIdToken);
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    const withNative = () =>
+      build({ GOOGLE_NATIVE_CLIENT_IDS: 'ios-id.apps, android-id.apps' });
+
+    it('is unavailable until native client ids are configured', async () => {
+      const bare = await build({ GOOGLE_NATIVE_CLIENT_IDS: '' });
+
+      expect(bare.isNativeConfigured()).toBe(false);
+      await expect(bare.getEmailFromIdToken('t')).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      expect(verifyIdToken).not.toHaveBeenCalled();
+    });
+
+    it('pins the audience to the configured client ids', async () => {
+      const native = await withNative();
+      verifyIdToken.mockResolvedValue({
+        getPayload: () => ({ email: 'a@b.c', email_verified: true }),
+      });
+
+      await native.getEmailFromIdToken('token-1');
+
+      expect(verifyIdToken).toHaveBeenCalledWith({
+        idToken: 'token-1',
+        audience: ['ios-id.apps', 'android-id.apps'],
+      });
+    });
+
+    it('returns the verified email', async () => {
+      const native = await withNative();
+      verifyIdToken.mockResolvedValue({
+        getPayload: () => ({ email: 'a@b.c', email_verified: true }),
+      });
+
+      await expect(native.getEmailFromIdToken('t')).resolves.toBe('a@b.c');
+    });
+
+    it('rejects a token Google will not verify', async () => {
+      const native = await withNative();
+      verifyIdToken.mockRejectedValue(new Error('bad signature'));
+
+      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rejects an unverified email rather than trusting it', async () => {
+      const native = await withNative();
+      verifyIdToken.mockResolvedValue({
+        getPayload: () => ({ email: 'a@b.c', email_verified: false }),
+      });
+
+      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rejects a payload with no email at all', async () => {
+      const native = await withNative();
+      verifyIdToken.mockResolvedValue({ getPayload: () => ({}) });
+
+      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rejects an empty token before calling Google', async () => {
+      const native = await withNative();
+
+      await expect(native.getEmailFromIdToken('')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(verifyIdToken).not.toHaveBeenCalled();
     });
   });
 });

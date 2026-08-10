@@ -117,7 +117,6 @@ describe('Authorization (e2e)', () => {
         id: OWNER_ROAD,
         userId: OWNER_ID,
       });
-
       prisma.wayPoint.findMany.mockResolvedValue([
         { id: 'wp-1' },
         { id: 'wp-2' },
@@ -216,8 +215,45 @@ describe('Authorization (e2e)', () => {
       expect(prisma.road.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([{ userId: OWNER_ID }]),
+            OR: expect.arrayContaining([
+              { userId: OWNER_ID, archivedAt: null },
+            ]),
           }),
+        }),
+      );
+    });
+
+    it('serves a published road to someone with no account', async () => {
+      prisma.road.findFirst.mockResolvedValue({
+        id: OWNER_ROAD,
+        title: 'Coast run',
+        isPublic: true,
+        wayPoints: [{ id: OWNER_WAYPOINT }],
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/road/${OWNER_ROAD}`)
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        id: OWNER_ROAD,
+        title: 'Coast run',
+        isFavorite: false,
+      });
+      expect(response.body.data.favoriteRoads).toEqual([]);
+      expect(response.body.data.wayPoints[0].favoriteWaypoints).toEqual([]);
+    });
+
+    it('offers a caller with no account nothing but published roads', async () => {
+      prisma.road.findFirst.mockResolvedValue(null);
+
+      await request(app.getHttpServer())
+        .get(`/api/road/${OWNER_ROAD}`)
+        .expect(404);
+
+      expect(prisma.road.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: OWNER_ROAD, isPublic: true, archivedAt: null },
         }),
       );
     });
@@ -259,8 +295,8 @@ describe('Authorization (e2e)', () => {
 
   describe('favourites', () => {
     it('rejects a favourite against a road that does not exist', async () => {
-      prisma.favoriteRoad.findFirst.mockResolvedValue(null);
-      prisma.road.findUnique.mockResolvedValue(null);
+      prisma.favoriteRoad.findUnique.mockResolvedValue(null);
+      prisma.road.findFirst.mockResolvedValue(null);
 
       await as(
         OWNER_ID,
@@ -272,9 +308,9 @@ describe('Authorization (e2e)', () => {
       expect(prisma.favoriteRoad.create).not.toHaveBeenCalled();
     });
 
-    it('allows favouriting another user’s road', async () => {
-      prisma.favoriteRoad.findFirst.mockResolvedValue(null);
-      prisma.road.findUnique.mockResolvedValue({ id: ATTACKER_ROAD });
+    it('allows favouriting another user’s published road', async () => {
+      prisma.favoriteRoad.findUnique.mockResolvedValue(null);
+      prisma.road.findFirst.mockResolvedValue({ id: ATTACKER_ROAD });
       prisma.favoriteRoad.create.mockResolvedValue({ id: 'fav-1' });
 
       await as(
@@ -283,6 +319,29 @@ describe('Authorization (e2e)', () => {
       )
         .send({ roadId: ATTACKER_ROAD })
         .expect(200);
+    });
+
+    it('only looks for roads the caller owns or that are published', async () => {
+      prisma.favoriteRoad.findUnique.mockResolvedValue(null);
+      prisma.road.findFirst.mockResolvedValue(null);
+
+      await as(
+        OWNER_ID,
+        request(app.getHttpServer()).post('/api/favorites/toggle-road'),
+      )
+        .send({ roadId: ATTACKER_ROAD })
+        .expect(404);
+
+      expect(prisma.road.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: ATTACKER_ROAD,
+            archivedAt: null,
+            OR: [{ userId: OWNER_ID }, { isPublic: true }],
+          }),
+        }),
+      );
+      expect(prisma.favoriteRoad.create).not.toHaveBeenCalled();
     });
 
     it('still requires authentication despite the removed @UseGuards', async () => {

@@ -25,14 +25,16 @@ async function writeOne(key: string, value: string): Promise<void> {
   try {
     if (useSecureStore) await SecureStore.setItemAsync(key, value);
     else await localStorageService.setItem(key, value);
-  } catch {}
+  } catch {
+  }
 }
 
 async function deleteOne(key: string): Promise<void> {
   try {
     if (useSecureStore) await SecureStore.deleteItemAsync(key);
     else await localStorageService.removeItem(key);
-  } catch {}
+  } catch {
+  }
 }
 
 export const tokenStorage = {

@@ -2,9 +2,12 @@ import React, { ReactNode, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from 'theme';
+import { useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 
 const Container = ({ children }: { children: ReactNode }) => {
+  const styles = useThemedStyles(createStyles);
+
   const insets = useSafeAreaInsets();
 
   return (
@@ -14,11 +17,12 @@ const Container = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+  });
 
 export default memo(Container);

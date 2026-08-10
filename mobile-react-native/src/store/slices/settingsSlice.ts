@@ -1,16 +1,22 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+import { ThemeMode } from 'types/theme';
+
 export interface SettingsState {
   notificationsEnabled: boolean;
   autoFitRoute: boolean;
+  themeMode: ThemeMode;
 }
 
 export const settingsInitialState: SettingsState = {
   notificationsEnabled: true,
   autoFitRoute: true,
+  themeMode: 'system',
 };
 
-export type SettingKey = keyof SettingsState;
+export type SettingKey = {
+  [K in keyof SettingsState]: SettingsState[K] extends boolean ? K : never;
+}[keyof SettingsState];
 
 const settingsSlice = createSlice({
   name: 'settings',
@@ -28,10 +34,13 @@ const settingsSlice = createSlice({
     ) {
       state[action.payload.key] = action.payload.value;
     },
+    themeModeSet(state, action: PayloadAction<ThemeMode>) {
+      state.themeMode = action.payload;
+    },
   },
 });
 
-export const { settingsRestored, settingToggled, settingSet } =
+export const { settingsRestored, settingToggled, settingSet, themeModeSet } =
   settingsSlice.actions;
 
 export default settingsSlice.reducer;

@@ -114,6 +114,46 @@ describe('Authentication (e2e)', () => {
       expect(stored).toBe(helper.hashToken(emailed));
     });
 
+    describe('code channel', () => {
+      it('emails digits rather than a link', async () => {
+        await request(app.getHttpServer())
+          .post('/api/auth/forgot-password/code')
+          .send({ email: 'user@example.com' })
+          .expect(200);
+
+        const { text } = sendEmail.mock.calls[0][0];
+        expect(text).toMatch(/\b\d{5}\b/);
+        expect(text).not.toContain('reset-password/');
+      });
+
+      it('leaks neither the code nor a token in the response', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/auth/forgot-password/code')
+          .send({ email: 'user@example.com' })
+          .expect(200);
+
+        const body = JSON.stringify(response.body);
+        expect(body).not.toMatch(/[0-9a-f]{64}/);
+        expect(body).not.toMatch(/\b\d{5}\b/);
+      });
+
+      it('stores the code digest and mints no token yet', async () => {
+        await request(app.getHttpServer())
+          .post('/api/auth/forgot-password/code')
+          .send({ email: 'user@example.com' })
+          .expect(200);
+
+        const { data } = prisma.passwordReset.create.mock.calls[0][0];
+        const emailed =
+          sendEmail.mock.calls[0][0].text.match(/\b(\d{5})\b/)![1];
+
+        expect(data.channel).toBe('CODE');
+        expect(data.tokenHash).toBeUndefined();
+        expect(data.codeHash).toEqual(expect.any(String));
+        expect(data.codeHash).not.toContain(emailed);
+      });
+    });
+
     it('answers identically for an address with no account', async () => {
       const known = await request(app.getHttpServer())
         .post('/api/auth/forgot-password')
@@ -197,7 +237,6 @@ describe('Authentication (e2e)', () => {
         userId: USER_ID,
         email: 'user@example.com',
       });
-
       prisma.session.findUnique.mockResolvedValue(null);
       prisma.session.updateMany.mockResolvedValue({ count: 1 });
 
@@ -212,7 +251,6 @@ describe('Authentication (e2e)', () => {
         userId: USER_ID,
         email: 'user@example.com',
       });
-
       prisma.session.findUnique.mockResolvedValue({
         ...sessionFor(refreshToken),
         revokedAt: new Date(),
