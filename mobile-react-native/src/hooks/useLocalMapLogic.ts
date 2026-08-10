@@ -15,6 +15,7 @@ import {
 import {
   localWaypointAdded,
   localWaypointDeleted,
+  localWaypointFavoriteToggled,
   localWaypointMoved,
   localWaypointsReordered,
 } from 'store/slices/localRoadSlice';
@@ -45,7 +46,17 @@ const toSharedWaypoint = (
   address: { id: waypoint.id, ...waypoint.address },
   createdAt: '',
   updatedAt: '',
-  favoriteWaypoints: [],
+  favoriteWaypoints: waypoint.isFavorite
+    ? [
+        {
+          id: waypoint.id,
+          userId: '',
+          wayPointsId: waypoint.id,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]
+    : [],
 });
 
 export const selectActiveLocalRoad = (
@@ -207,6 +218,11 @@ const useLocalMapLogic = () => {
     [dispatch],
   );
 
+  const handleToggleFavoriteWaypoint = useCallback(
+    (waypointId: string) => dispatch(localWaypointFavoriteToggled(waypointId)),
+    [dispatch],
+  );
+
   const onPlaceSelected = useCallback<OnPlaceSelected>(
     (location) => {
       mapRef.current?.animateToRegion(
@@ -295,6 +311,7 @@ const useLocalMapLogic = () => {
     handleMapPress,
     handleReorder,
     handleDeleteWaypointById,
+    handleToggleFavoriteWaypoint,
   };
 };
 

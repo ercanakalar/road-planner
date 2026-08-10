@@ -8,7 +8,6 @@ export type JwtPayload = {
 export type AccessTokenType = {
   userId: string;
   email: string;
-
   permissions?: unknown[];
 };
 

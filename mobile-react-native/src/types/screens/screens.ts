@@ -1,13 +1,28 @@
 type RootStackParamList = {
-  HomeTabNavigator: { screen?: string } | undefined;
+  HomeTabNavigator:
+    | { screen?: string; params?: { highlightTargetId?: string } }
+    | undefined;
   MapScreen: undefined;
   ShowRouteByIdScreen: { roadId: string };
+  CommunityRouteScreen: { roadId: string; title?: string };
+  SharedRouteScreen: { token: string };
   ShowWaypointById: { waypointId: string };
   ProfileDetailScreen: { userId: string };
   ProfileScreen: { userId: string } | undefined;
   SettingsScreen: undefined;
   SignUpScreen: undefined;
   SignInScreen: undefined;
+  ForgotPasswordScreen: { email?: string } | undefined;
+  VerifyResetCodeScreen: { email: string };
+  ResetPasswordScreen: { token: string; email: string };
 };
 
-export { RootStackParamList };
+type HomeTabParamList = {
+  Home: undefined;
+  Map: undefined;
+  Routes: undefined;
+  Favourites: { highlightTargetId?: string } | undefined;
+  Profile: undefined;
+};
+
+export { RootStackParamList, HomeTabParamList };

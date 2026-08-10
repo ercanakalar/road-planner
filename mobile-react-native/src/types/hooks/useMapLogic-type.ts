@@ -1,7 +1,4 @@
-import type {
-  LongPressEvent,
-  MarkerDragStartEndEvent,
-} from 'react-native-maps';
+import type { LongPressEvent, MarkerDragStartEndEvent } from 'react-native-maps';
 
 export interface Location {
   lat: number;

@@ -78,4 +78,5 @@ export type WaypointWithAddressAndId = {
   updatedAt: string;
   favoriteRoads: FavoriteRoad[];
   isFavorite: boolean;
+  isPublic?: boolean;
 };

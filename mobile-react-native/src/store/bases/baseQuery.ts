@@ -5,7 +5,7 @@ import {
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query';
 
-import appConfig from 'constants/appConfig';
+import { API_BASE_URL } from 'constants/apiUrl';
 import tokenStorage from 'services/tokenStorage';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 import type { RootState } from 'store';
@@ -13,11 +13,15 @@ import type { RootState } from 'store';
 const TIMEOUT_MS = 15000;
 const MAX_RETRIES = 2;
 
+export const MULTIPART = 'multipart/form-data';
+
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: appConfig.baseUrl,
+  baseUrl: API_BASE_URL,
   timeout: TIMEOUT_MS,
   prepareHeaders: async (headers, { getState }) => {
-    if (!headers.has('Content-Type')) {
+    if (headers.get('Content-Type') === MULTIPART) {
+      headers.delete('Content-Type');
+    } else if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
 

@@ -292,6 +292,7 @@ describeIntegration('Schema (integration)', () => {
       await prisma.passwordReset.create({
         data: {
           userId: user.id,
+          codeHash: 'unused-in-this-test',
           tokenHash,
           expiresAt: new Date(Date.now() + 600_000),
         },
@@ -301,6 +302,7 @@ describeIntegration('Schema (integration)', () => {
         prisma.passwordReset.create({
           data: {
             userId: user.id,
+            codeHash: 'unused-in-this-test',
             tokenHash,
             expiresAt: new Date(Date.now() + 600_000),
           },
@@ -321,6 +323,7 @@ describeIntegration('Schema (integration)', () => {
       const grant = await prisma.passwordReset.create({
         data: {
           userId: user.id,
+          codeHash: 'unused-in-this-test',
           tokenHash: `indep-reset-${user.id}`,
           expiresAt: new Date(Date.now() + 600_000),
         },

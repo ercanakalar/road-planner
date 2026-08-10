@@ -1,8 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import PrimaryButton from 'components/PrimaryButton';
+import ThemeModeSelector from 'components/ThemeModeSelector';
+import ChangePasswordSection from './ChangePasswordSection';
+import { useConfirm } from 'components/ConfirmProvider';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { SettingKey, settingToggled } from 'store/slices/settingsSlice';
 import {
@@ -10,7 +13,15 @@ import {
   uploadLocalRoads,
 } from 'store/actions/localRoadActions';
 
-import { colors, radius, shadows, spacing, typography } from 'theme';
+import {
+  radius,
+  shadows,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+} from 'theme';
+import type { ThemeColors } from 'theme';
 
 const PREFERENCES: { key: SettingKey; label: string; hint: string }[] = [
   {
@@ -26,7 +37,11 @@ const PREFERENCES: { key: SettingKey; label: string; hint: string }[] = [
 ];
 
 const SettingsScreen = () => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   const dispatch = useAppDispatch();
+  const confirm = useConfirm();
 
   const settings = useAppSelector((state) => state.settings);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -39,7 +54,8 @@ const SettingsScreen = () => {
   );
 
   const stopCount = useMemo(
-    () => transferable.reduce((total, road) => total + road.wayPoints.length, 0),
+    () =>
+      transferable.reduce((total, road) => total + road.wayPoints.length, 0),
     [transferable],
   );
 
@@ -54,28 +70,41 @@ const SettingsScreen = () => {
     dispatch(uploadLocalRoads());
   }, [dispatch]);
 
-  const handleDiscard = useCallback(() => {
-    Alert.alert(
-      'Discard local routes',
-      `${transferable.length} route${
+  const handleDiscard = useCallback(async () => {
+    const confirmed = await confirm({
+      title: 'Discard local routes',
+      message: `${transferable.length} route${
         transferable.length === 1 ? '' : 's'
       } will be deleted from this device. This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => dispatch(discardLocalRoads()),
-        },
-      ],
-    );
-  }, [dispatch, transferable.length]);
+      confirmLabel: 'Discard',
+      icon: 'trash-outline',
+      tone: 'danger',
+    });
+    if (confirmed) dispatch(discardLocalRoads());
+  }, [confirm, dispatch, transferable.length]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.group}>
-        {PREFERENCES.map((preference) => (
-          <View key={preference.key} style={styles.row}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name='contrast-outline' size={18} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Appearance</Text>
+        </View>
+
+        <View style={styles.sectionBody}>
+          <ThemeModeSelector />
+          <Text style={styles.rowHint}>
+            Automatic follows your phone&apos;s light or dark setting.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.group}>
+        {PREFERENCES.map((preference, index) => (
+          <View
+            key={preference.key}
+            style={[styles.row, index > 0 && styles.rowDivided]}
+          >
             <View style={styles.rowText}>
               <Text style={styles.rowLabel}>{preference.label}</Text>
               <Text style={styles.rowHint}>{preference.hint}</Text>
@@ -84,11 +113,15 @@ const SettingsScreen = () => {
               value={settings[preference.key]}
               onValueChange={handleToggle(preference.key)}
               trackColor={{ true: colors.primary, false: colors.borderStrong }}
+              thumbColor={colors.surface}
+              ios_backgroundColor={colors.borderStrong}
               accessibilityLabel={preference.label}
             />
           </View>
         ))}
       </View>
+
+      {isLoggedIn ? <ChangePasswordSection /> : null}
 
       {transferable.length > 0 ? (
         <View style={styles.group}>
@@ -140,59 +173,63 @@ const SettingsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  group: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    ...shadows.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowLabel: {
-    ...typography.body,
-    color: colors.text,
-  },
-  rowHint: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 17,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  sectionTitle: {
-    ...typography.label,
-    fontSize: 15,
-    color: colors.text,
-  },
-  sectionBody: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  footnote: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textSubtle,
-    textAlign: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      padding: spacing.lg,
+      gap: spacing.lg,
+    },
+    group: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+      ...shadows.sm,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    rowDivided: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    rowText: { flex: 1, gap: spacing.xxs },
+    rowLabel: {
+      ...typography.body,
+      color: colors.text,
+    },
+    rowHint: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textMuted,
+      lineHeight: 17,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+    },
+    sectionTitle: {
+      ...typography.label,
+      fontSize: 15,
+      lineHeight: 21,
+      color: colors.text,
+    },
+    sectionBody: {
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    footnote: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSubtle,
+      textAlign: 'center',
+    },
+  });
 
 export default SettingsScreen;

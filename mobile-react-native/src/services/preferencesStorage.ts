@@ -1,5 +1,6 @@
 import localStorageService from './localStorageService';
 import { SettingsState } from 'store/slices/settingsSlice';
+import { isThemeMode } from 'types/theme';
 
 const STORAGE_KEY = 'preferences_v1';
 
@@ -12,7 +13,7 @@ export const preferencesStorage = {
       const parsed: unknown = JSON.parse(raw);
       if (typeof parsed !== 'object' || parsed === null) return {};
 
-      const { notificationsEnabled, autoFitRoute } =
+      const { notificationsEnabled, autoFitRoute, themeMode } =
         parsed as Partial<SettingsState>;
       const restored: Partial<SettingsState> = {};
       if (typeof notificationsEnabled === 'boolean') {
@@ -20,6 +21,9 @@ export const preferencesStorage = {
       }
       if (typeof autoFitRoute === 'boolean') {
         restored.autoFitRoute = autoFitRoute;
+      }
+      if (isThemeMode(themeMode)) {
+        restored.themeMode = themeMode;
       }
       return restored;
     } catch {
@@ -30,8 +34,7 @@ export const preferencesStorage = {
   async save(settings: SettingsState): Promise<void> {
     try {
       await localStorageService.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-    }
+    } catch {}
   },
 };
 

@@ -45,7 +45,6 @@ describe('AuthService', () => {
       verifyRefreshToken: jest
         .fn()
         .mockResolvedValue({ userId: 'user-1', email: 'user@example.com' }),
-
       hashToken: jest.fn((token: string) => `hash(${token})`),
       verifyHashedToken: jest.fn(
         (token: string, hash: string) => `hash(${token})` === hash,
@@ -55,6 +54,12 @@ describe('AuthService', () => {
         tokenHash: 'hash(raw-reset-token)',
         expiresAt: new Date(Date.now() + 600_000),
       }),
+      createPasswordResetCode: jest.fn().mockResolvedValue({
+        code: '04213',
+        codeHash: 'scrypt$hash(04213)',
+        expiresAt: new Date(Date.now() + 900_000),
+      }),
+      isResetCodeValid: jest.fn().mockResolvedValue(true),
     };
 
     email = { sendEmail: jest.fn().mockResolvedValue(true) };
@@ -509,6 +514,315 @@ describe('AuthService', () => {
     });
   });
 
+  describe('changePassword', () => {
+    const body = {
+      currentPassword: 'OldPassw0rd',
+      newPassword: 'NewPassw0rd',
+      confirmPassword: 'NewPassw0rd',
+    };
+
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        manuelAuth: { id: 'auth-1', password: 'scrypt$stored' },
+      });
+    });
+
+    it('writes the new hash when the current password checks out', async () => {
+      await service.changePassword('user-1', body);
+
+      expect(prisma.manuelAuth.update).toHaveBeenCalledWith({
+        where: { id: 'auth-1' },
+        data: { password: 'scrypt$hashed' },
+      });
+    });
+
+    it('never stores the plaintext', async () => {
+      await service.changePassword('user-1', body);
+
+      const [call] = prisma.manuelAuth.update.mock.calls;
+      expect(JSON.stringify(call)).not.toContain('NewPassw0rd');
+    });
+
+    it('sends no email and mints no code', async () => {
+      await service.changePassword('user-1', body);
+
+      expect(email.sendEmail).not.toHaveBeenCalled();
+      expect(prisma.passwordReset.create).not.toHaveBeenCalled();
+      expect(helper.createPasswordResetCode).not.toHaveBeenCalled();
+    });
+
+    it('rejects a wrong current password', async () => {
+      helper.comparePassword!.mockResolvedValue(false);
+
+      await expect(service.changePassword('user-1', body)).rejects.toThrow(
+        'Current password is incorrect',
+      );
+      expect(prisma.manuelAuth.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a mismatched confirmation', async () => {
+      await expect(
+        service.changePassword('user-1', {
+          ...body,
+          confirmPassword: 'Different0',
+        }),
+      ).rejects.toThrow(/do not match/);
+      expect(prisma.manuelAuth.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses to set the same password again', async () => {
+      await expect(
+        service.changePassword('user-1', {
+          currentPassword: 'Sam3Password',
+          newPassword: 'Sam3Password',
+          confirmPassword: 'Sam3Password',
+        }),
+      ).rejects.toThrow(/must differ/);
+    });
+
+    it('rejects an account with no password to change', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        manuelAuth: null,
+      });
+
+      await expect(service.changePassword('user-1', body)).rejects.toThrow(
+        /does not sign in with a password/,
+      );
+    });
+  });
+
+  describe('requestPasswordResetCode', () => {
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue(existingUser());
+    });
+
+    it('emails the raw code, not the stored digest', async () => {
+      await service.requestPasswordResetCode('user@example.com');
+
+      const [payload] = email.sendEmail!.mock.calls[0];
+      expect(payload.text).toContain('04213');
+      expect(payload.text).not.toContain('scrypt$hash(04213)');
+    });
+
+    it('emails no link, which an app cannot open', async () => {
+      await service.requestPasswordResetCode('user@example.com');
+
+      const [payload] = email.sendEmail!.mock.calls[0];
+      expect(payload.text).not.toContain('reset-password/');
+    });
+
+    it('stores the code digest and no token yet', async () => {
+      await service.requestPasswordResetCode('user@example.com');
+
+      expect(prisma.passwordReset.create).toHaveBeenCalledWith({
+        data: {
+          userId: 'user-1',
+          channel: 'CODE',
+          codeHash: 'scrypt$hash(04213)',
+          expiresAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('supersedes any outstanding request', async () => {
+      await service.requestPasswordResetCode('user@example.com');
+
+      expect(prisma.passwordReset.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', usedAt: null },
+        data: { usedAt: expect.any(Date) },
+      });
+    });
+
+    it('answers identically for an unknown address', async () => {
+      const known = await service.requestPasswordResetCode('user@example.com');
+
+      prisma.user.findUnique.mockResolvedValue(null);
+      const unknown = await service.requestPasswordResetCode('nobody@x.com');
+
+      expect(known).toEqual(unknown);
+    });
+
+    describe('lockout', () => {
+      beforeEach(() => {
+        prisma.passwordReset.findFirst.mockResolvedValue({
+          lockedUntil: new Date(Date.now() + 3_600_000),
+        });
+      });
+
+      it('does not issue a fresh code while locked', async () => {
+        await service.requestPasswordResetCode('user@example.com');
+
+        expect(prisma.passwordReset.create).not.toHaveBeenCalled();
+        expect(email.sendEmail).not.toHaveBeenCalled();
+      });
+
+      it('still answers generically, so the lockout is not an oracle', async () => {
+        const locked =
+          await service.requestPasswordResetCode('user@example.com');
+
+        prisma.user.findUnique.mockResolvedValue(null);
+        const unknown = await service.requestPasswordResetCode('nobody@x.com');
+
+        expect(locked).toEqual(unknown);
+      });
+    });
+  });
+
+  describe('verifyResetCode', () => {
+    const liveGrant = (overrides: Record<string, unknown> = {}) => ({
+      id: 'reset-1',
+      userId: 'user-1',
+      codeHash: 'scrypt$hash(04213)',
+      attempts: 0,
+      lockedUntil: null,
+      verifiedAt: null,
+      tokenHash: null,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 900_000),
+      createdAt: new Date(),
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue(existingUser());
+      prisma.passwordReset.findFirst.mockResolvedValue(liveGrant());
+      prisma.passwordReset.updateMany.mockResolvedValue({ count: 1 });
+    });
+
+    it('issues a reset token when the code is right', async () => {
+      const result = await service.verifyResetCode({
+        email: 'user@example.com',
+        code: '04213',
+      });
+
+      expect(result.data).toMatchObject({ resetToken: 'raw-reset-token' });
+    });
+
+    it('stores the token digest, never the token', async () => {
+      await service.verifyResetCode({
+        email: 'user@example.com',
+        code: '04213',
+      });
+
+      const [call] = prisma.passwordReset.updateMany.mock.calls.slice(-1);
+      expect(call[0].data).toMatchObject({
+        tokenHash: 'hash(raw-reset-token)',
+        verifiedAt: expect.any(Date),
+      });
+      expect(JSON.stringify(call[0])).not.toContain('raw-reset-token"');
+    });
+
+    it('only verifies a grant that is unused and unverified', async () => {
+      await service.verifyResetCode({
+        email: 'user@example.com',
+        code: '04213',
+      });
+
+      const [call] = prisma.passwordReset.updateMany.mock.calls.slice(-1);
+      expect(call[0].where).toMatchObject({ usedAt: null, verifiedAt: null });
+    });
+
+    it('rejects a wrong code and counts the attempt', async () => {
+      helper.isResetCodeValid!.mockResolvedValue(false);
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '00000' }),
+      ).rejects.toThrow(/incorrect or has expired/);
+
+      expect(prisma.passwordReset.update).toHaveBeenCalledWith({
+        where: { id: 'reset-1' },
+        data: { attempts: 1 },
+      });
+    });
+
+    it('locks the request on the third wrong code', async () => {
+      helper.isResetCodeValid!.mockResolvedValue(false);
+      prisma.passwordReset.findFirst.mockResolvedValue(
+        liveGrant({ attempts: 2 }),
+      );
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '00000' }),
+      ).rejects.toMatchObject({ status: 423 });
+
+      const [call] = prisma.passwordReset.update.mock.calls.slice(-1);
+      expect(call[0].data.attempts).toBe(3);
+      expect(call[0].data.lockedUntil).toBeInstanceOf(Date);
+    });
+
+    it('reports how long a lockout has left', async () => {
+      const lockedUntil = new Date(Date.now() + 3_600_000);
+      prisma.passwordReset.findFirst.mockResolvedValue(
+        liveGrant({ attempts: 3, lockedUntil }),
+      );
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
+      ).rejects.toMatchObject({
+        response: {
+          error: 'PASSWORD_RESET_LOCKED',
+          lockedUntil: lockedUntil.toISOString(),
+        },
+      });
+    });
+
+    it('does not accept a correct code while locked', async () => {
+      prisma.passwordReset.findFirst.mockResolvedValue(
+        liveGrant({
+          attempts: 3,
+          lockedUntil: new Date(Date.now() + 3_600_000),
+        }),
+      );
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
+      ).rejects.toMatchObject({ status: 423 });
+
+      expect(prisma.passwordReset.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('accepts again once the lockout has passed', async () => {
+      prisma.passwordReset.findFirst.mockResolvedValue(
+        liveGrant({ attempts: 3, lockedUntil: new Date(Date.now() - 1_000) }),
+      );
+
+      const result = await service.verifyResetCode({
+        email: 'user@example.com',
+        code: '04213',
+      });
+
+      expect(result.data).toMatchObject({ resetToken: 'raw-reset-token' });
+    });
+
+    it('rejects an expired code', async () => {
+      prisma.passwordReset.findFirst.mockResolvedValue(
+        liveGrant({ expiresAt: new Date(Date.now() - 1_000) }),
+      );
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
+      ).rejects.toThrow(/incorrect or has expired/);
+    });
+
+    it('answers the same for an unknown address as for a wrong code', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.verifyResetCode({ email: 'nobody@example.com', code: '04213' }),
+      ).rejects.toThrow(/incorrect or has expired/);
+    });
+
+    it('answers the same when no reset was ever requested', async () => {
+      prisma.passwordReset.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
+      ).rejects.toThrow(/incorrect or has expired/);
+    });
+  });
+
   describe('forgotPassword', () => {
     describe('token disclosure (C1)', () => {
       beforeEach(() => {
@@ -545,14 +859,16 @@ describe('AuthService', () => {
         expect(payload.text).not.toContain('hash(raw-reset-token)');
       });
 
-      it('stores only the digest', async () => {
+      it('stores only the digest, already usable', async () => {
         await service.forgotPassword('user@example.com');
 
         expect(prisma.passwordReset.create).toHaveBeenCalledWith({
           data: {
             userId: 'user-1',
+            channel: 'LINK',
             tokenHash: 'hash(raw-reset-token)',
             expiresAt: expect.any(Date),
+            verifiedAt: expect.any(Date),
           },
         });
       });

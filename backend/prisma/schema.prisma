@@ -103,19 +103,54 @@ model PasswordReset {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// SHA-256 of the emailed token. The previous implementation stored and
-  /// emailed the *same* digest, so the stored value was the value that granted
-  /// the reset.
-  tokenHash String @unique
+  /// Which client asked, and therefore what was emailed.
+  ///
+  /// `LINK` mails a URL carrying the token and is usable straight away — that
+  /// is the browser flow. `CODE` mails five digits that must be exchanged for a
+  /// token first, because a link is useless in a native app.
+  channel PasswordResetChannel @default(LINK)
+
+  /// scrypt hash of the emailed numeric code. Null on the `LINK` channel.
+  ///
+  /// A slow KDF rather than the SHA-256 used for `tokenHash`: a five-digit code
+  /// has ~17 bits of entropy, so a fast digest of one is trivially reversed by
+  /// enumerating all 100,000 values. The attempt limit is the primary defence
+  /// and this is the second.
+  codeHash String?
+
+  /// Failed code submissions against this request.
+  attempts Int @default(0)
+
+  /// Set once `attempts` reaches the limit; no code is accepted until it passes.
+  lockedUntil DateTime?
+
+  /// When the request became usable.
+  ///
+  /// On `LINK` that is creation: possessing the emailed URL is the proof. On
+  /// `CODE` it is when the right digits arrived, and `tokenHash` is written at
+  /// the same moment so the low-entropy code never authorizes a change alone.
+  verifiedAt DateTime?
+
+  /// SHA-256 of the token that authorizes the change. Set at creation on the
+  /// `LINK` channel and at verification on `CODE`.
+  ///
+  /// The original implementation stored and emailed the *same* digest, so the
+  /// stored value was the value that granted the reset.
+  tokenHash String? @unique
 
   expiresAt DateTime
-  /// Set when consumed, so a used token is auditable rather than deleted.
+  /// Set when consumed, so a used request is auditable rather than deleted.
   usedAt    DateTime?
 
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+enum PasswordResetChannel {
+  LINK
+  CODE
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -197,13 +232,33 @@ model Road {
   title       String
   description String
 
+  /// Opt-in. A road is private to its owner unless they publish it, which is
+  /// what the discover feed reads. Defaulting this to true would retroactively
+  /// expose every existing route, including the addresses of its stops.
+  isPublic Boolean @default(false)
+
+  /// When the owner removed this road from their own list.
+  ///
+  /// Deleting the row is not an option once the road can be published: another
+  /// user may have saved it, and their copy must keep working. So the owner's
+  /// delete retires the road instead — it leaves their list and the discover
+  /// feed, while everyone who favourited it keeps full access.
+  ///
+  /// This is a soft delete, which this schema removed once before. The
+  /// difference is that this one is enforced: every read path filters on it,
+  /// and the tests below the service cover the archived case. The earlier
+  /// `deletedAt` was written by nothing and read by six filters that therefore
+  /// matched every row.
+  archivedAt DateTime?
+
   wayPoints     WayPoint[]
   favoriteRoads FavoriteRoad[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
+  @@index([userId, archivedAt])
+  @@index([isPublic, archivedAt, createdAt])
 }
 
 model WayPoint {

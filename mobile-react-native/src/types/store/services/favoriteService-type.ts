@@ -3,6 +3,8 @@ export interface FavoriteRoadTarget {
   userId?: string;
   title?: string | null;
   description?: string | null;
+  isPublic?: boolean;
+  archivedAt?: string | null;
 }
 
 export interface FavoriteWaypointTarget {
@@ -46,6 +48,11 @@ export interface FavoriteEntry {
   kind: FavoriteKind;
   title: string;
   subtitle?: string;
+  annotationTitle?: string;
+  annotationDescription?: string;
+  defaultTitle: string;
+  isOwn: boolean;
+  isWithdrawn?: boolean;
 }
 
 export type FavoriteSectionKey =
@@ -65,8 +72,20 @@ export interface ToggleFavoriteRoadArgs {
 
 export interface ToggleFavoriteWaypointArgs {
   waypointId: string;
-
   roadId?: string;
 }
 
 export type ToggleFavoriteResponse = { id: string } | null;
+
+export interface UpdateFavoriteAnnotationArgs {
+  favoriteId: string;
+  kind: FavoriteKind;
+  title?: string;
+  description?: string;
+}
+
+export type UpdateFavoriteAnnotationResponse = {
+  id: string;
+  title: string | null;
+  description: string | null;
+};

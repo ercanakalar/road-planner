@@ -1,14 +1,9 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { HelperService } from 'src/road/services/helper/helper.service';
-import {
-  createConfigMock,
-  createPrismaMock,
-  PrismaMock,
-} from 'src/testing/mocks';
+import { createPrismaMock, PrismaMock } from 'src/testing/mocks';
+import { RoadVisibility } from '../visibility/road-visibility';
 import { RoadService } from './road.service';
 
 const ROAD_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
@@ -19,205 +14,18 @@ describe('RoadService', () => {
   let service: RoadService;
   let prisma: PrismaMock;
 
-  const orderedPositions = (callIndex = 0) => {
-    const { values } = prisma.$executeRaw.mock.calls[callIndex][0];
-    const pairs: { id: string; order: number }[] = [];
-
-    for (let i = 0; i + 1 < values.length - 1; i += 2) {
-      pairs.push({ id: values[i], order: values[i + 1] });
-    }
-
-    return pairs;
-  };
-
-  const givenWaypoints = (count: number) => {
-    prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID });
-    prisma.wayPoint.findMany.mockResolvedValue(
-      Array.from({ length: count }, (_, i) => ({ id: `wp-${i + 1}` })),
-    );
-  };
-
   beforeEach(async () => {
     prisma = createPrismaMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RoadService,
+        RoadVisibility,
         { provide: PrismaService, useValue: prisma },
-        {
-          provide: ConfigService,
-          useValue: createConfigMock({ FRONTEND_URL: 'http://localhost:8081' }),
-        },
-        {
-          provide: HelperService,
-          useValue: {
-            generateTokenForShareRoad: jest
-              .fn()
-              .mockResolvedValue('share-token'),
-            decodeTokenForShareRoad: jest
-              .fn()
-              .mockResolvedValue({ id: ROAD_ID }),
-          },
-        },
       ],
     }).compile();
 
     service = module.get(RoadService);
-  });
-
-  describe('reorderWaypoints', () => {
-    it('renumbers every waypoint sequentially after the move', async () => {
-      givenWaypoints(3);
-
-      await service.reorderWaypoints(ROAD_ID, { from: 0, to: 2 });
-
-      expect(orderedPositions()).toEqual([
-        { id: 'wp-2', order: 1 },
-        { id: 'wp-3', order: 2 },
-        { id: 'wp-1', order: 3 },
-      ]);
-    });
-
-    it('moves a waypoint backwards as well as forwards', async () => {
-      givenWaypoints(3);
-
-      await service.reorderWaypoints(ROAD_ID, { from: 2, to: 0 });
-
-      expect(orderedPositions()).toEqual([
-        { id: 'wp-3', order: 1 },
-        { id: 'wp-1', order: 2 },
-        { id: 'wp-2', order: 3 },
-      ]);
-    });
-
-    it('renumbers in one statement rather than one per waypoint', async () => {
-      givenWaypoints(5);
-
-      await service.reorderWaypoints(ROAD_ID, { from: 0, to: 4 });
-
-      expect(prisma.wayPoint.update).not.toHaveBeenCalled();
-      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
-    });
-
-    it('scopes the statement to the road', async () => {
-      givenWaypoints(3);
-
-      await service.reorderWaypoints(ROAD_ID, { from: 0, to: 1 });
-
-      const { values } = prisma.$executeRaw.mock.calls[0][0];
-      expect(values[values.length - 1]).toBe(ROAD_ID);
-    });
-
-    it('reads only the ids it needs', async () => {
-      givenWaypoints(3);
-
-      await service.reorderWaypoints(ROAD_ID, { from: 0, to: 1 });
-
-      expect(prisma.wayPoint.findMany).toHaveBeenCalledWith({
-        where: { roadId: ROAD_ID },
-        orderBy: { order: 'asc' },
-        select: { id: true },
-      });
-    });
-
-    describe('index bounds', () => {
-      beforeEach(() => {
-        givenWaypoints(3);
-      });
-
-      it('rejects a from index past the end of the list', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 99, to: 0 }),
-        ).rejects.toThrow(BadRequestException);
-      });
-
-      it('rejects a to index past the end of the list', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 0, to: 99 }),
-        ).rejects.toThrow(BadRequestException);
-      });
-
-      it('does not write anything when the indices are out of range', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 99, to: 0 }),
-        ).rejects.toThrow();
-        expect(prisma.$executeRaw).not.toHaveBeenCalled();
-      });
-
-      it('reports the valid range in the error', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 99, to: 0 }),
-        ).rejects.toThrow(/between 0 and 2/);
-      });
-
-      it('accepts the last valid index', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 2, to: 0 }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
-      });
-
-      it('is a no-op when from equals to', async () => {
-        await service.reorderWaypoints(ROAD_ID, { from: 1, to: 1 });
-
-        expect(prisma.$executeRaw).not.toHaveBeenCalled();
-      });
-    });
-
-    it('rejects a road with no waypoints rather than dividing by nothing', async () => {
-      givenWaypoints(0);
-
-      await expect(
-        service.reorderWaypoints(ROAD_ID, { from: 0, to: 0 }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('reports a missing road as not found', async () => {
-      prisma.road.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.reorderWaypoints(ROAD_ID, { from: 0, to: 1 }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    describe('roadId source', () => {
-      beforeEach(() => {
-        givenWaypoints(3);
-      });
-
-      it('acts on the path roadId, not the body', async () => {
-        await service.reorderWaypoints(ROAD_ID, { from: 0, to: 1 });
-
-        expect(prisma.road.findUnique).toHaveBeenCalledWith(
-          expect.objectContaining({ where: { id: ROAD_ID } }),
-        );
-      });
-
-      it('rejects a body roadId that disagrees with the path', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, {
-            roadId: OTHER_ROAD_ID,
-            from: 0,
-            to: 1,
-          }),
-        ).rejects.toThrow(BadRequestException);
-      });
-
-      it('accepts a body roadId that matches the path', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, {
-            roadId: ROAD_ID,
-            from: 0,
-            to: 1,
-          }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
-      });
-
-      it('accepts a body with no roadId at all', async () => {
-        await expect(
-          service.reorderWaypoints(ROAD_ID, { from: 0, to: 1 }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
-      });
-    });
   });
 
   describe('getRoadById — visibility (C5)', () => {
@@ -234,7 +42,8 @@ describe('RoadService', () => {
           where: {
             id: ROAD_ID,
             OR: [
-              { userId: 'user-1' },
+              { userId: 'user-1', archivedAt: null },
+              { isPublic: true, archivedAt: null },
               { favoriteRoads: { some: { userId: 'user-1' } } },
             ],
           },
@@ -264,6 +73,49 @@ describe('RoadService', () => {
       ).resolves.toMatchObject({ data: { isFavorite: true } });
     });
 
+    it('offers a signed-out reader only what its author published', async () => {
+      prisma.road.findFirst.mockResolvedValue({ id: ROAD_ID });
+
+      await service.getRoadById(ROAD_ID, null);
+
+      expect(prisma.road.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: ROAD_ID, isPublic: true, archivedAt: null },
+        }),
+      );
+    });
+
+    it('does not ask for favourites on behalf of nobody', async () => {
+      prisma.road.findFirst.mockResolvedValue({ id: ROAD_ID });
+
+      const result = await service.getRoadById(ROAD_ID, null);
+      const { include } = prisma.road.findFirst.mock.calls[0][0];
+
+      expect(include.favoriteRoads).toBe(false);
+      expect(include.wayPoints.include.favoriteWaypoints).toBe(false);
+      expect(result.data.isFavorite).toBe(false);
+    });
+
+    it('still sends the favourite arrays, empty, so the shape never varies', async () => {
+      prisma.road.findFirst.mockResolvedValue({
+        id: ROAD_ID,
+        wayPoints: [{ id: 'wp-1' }],
+      });
+
+      const result = await service.getRoadById(ROAD_ID, null);
+
+      expect(result.data.favoriteRoads).toEqual([]);
+      expect(result.data.wayPoints[0].favoriteWaypoints).toEqual([]);
+    });
+
+    it('hides an unpublished road from a signed-out reader', async () => {
+      prisma.road.findFirst.mockResolvedValue(null);
+
+      await expect(service.getRoadById(ROAD_ID, null)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
     it('reports an invisible road as not found rather than forbidden', async () => {
       prisma.road.findFirst.mockResolvedValue(null);
 
@@ -279,48 +131,6 @@ describe('RoadService', () => {
     });
   });
 
-  describe('getWaypointById — visibility (C5)', () => {
-    it('scopes the query to waypoints the caller may see', async () => {
-      prisma.wayPoint.findFirst.mockResolvedValue({ id: 'wp-1' });
-
-      await service.getWaypointById('wp-1', 'user-1');
-
-      expect(prisma.wayPoint.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            id: 'wp-1',
-            OR: [
-              { road: { userId: 'user-1' } },
-              { road: { favoriteRoads: { some: { userId: 'user-1' } } } },
-              { favoriteWaypoints: { some: { userId: 'user-1' } } },
-            ],
-          },
-        }),
-      );
-    });
-
-    it('reports an invisible waypoint as not found', async () => {
-      prisma.wayPoint.findFirst.mockResolvedValue(null);
-
-      await expect(service.getWaypointById('wp-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('includes the address for a visible waypoint', async () => {
-      prisma.wayPoint.findFirst.mockResolvedValue({
-        id: 'wp-1',
-        address: null,
-      });
-
-      await service.getWaypointById('wp-1', 'user-1');
-
-      expect(prisma.wayPoint.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { address: true } }),
-      );
-    });
-  });
-
   describe('deleteRoadById', () => {
     it('reports a road the caller does not own as not found', async () => {
       prisma.road.findFirst.mockResolvedValue(null);
@@ -330,24 +140,54 @@ describe('RoadService', () => {
       );
     });
 
-    it('does not delete anything when the road is not the caller’s', async () => {
+    it('does not touch anything when the road is not the caller’s', async () => {
       prisma.road.findFirst.mockResolvedValue(null);
 
       await expect(service.deleteRoadById(ROAD_ID, 'user-1')).rejects.toThrow();
       expect(prisma.road.delete).not.toHaveBeenCalled();
+      expect(prisma.road.update).not.toHaveBeenCalled();
       expect(prisma.wayPoint.deleteMany).not.toHaveBeenCalled();
     });
 
-    it('scopes the ownership re-check to the caller', async () => {
+    it('scopes the ownership re-check to the caller and to live roads', async () => {
       prisma.road.findFirst.mockResolvedValue({ id: ROAD_ID });
-      prisma.wayPoint.findMany.mockResolvedValue([]);
 
       await service.deleteRoadById(ROAD_ID, 'user-1');
 
       expect(prisma.road.findFirst).toHaveBeenCalledWith({
-        where: { id: ROAD_ID, userId: 'user-1' },
+        where: { id: ROAD_ID, userId: 'user-1', archivedAt: null },
         select: { id: true },
       });
+    });
+
+    it('archives the road instead of deleting it, so saved copies survive', async () => {
+      prisma.road.findFirst.mockResolvedValue({ id: ROAD_ID });
+
+      await service.deleteRoadById(ROAD_ID, 'user-1');
+
+      expect(prisma.road.delete).not.toHaveBeenCalled();
+      expect(prisma.wayPoint.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.addressInfo.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.road.update).toHaveBeenCalledWith({
+        where: { id: ROAD_ID },
+        data: { archivedAt: expect.any(Date), isPublic: false },
+      });
+    });
+
+    it('unpublishes as it archives, so the road leaves the discover feed', async () => {
+      prisma.road.findFirst.mockResolvedValue({ id: ROAD_ID });
+
+      await service.deleteRoadById(ROAD_ID, 'user-1');
+
+      expect(prisma.road.update.mock.calls[0][0].data.isPublic).toBe(false);
+    });
+
+    it('refuses to archive a road that is already archived', async () => {
+      prisma.road.findFirst.mockResolvedValue(null);
+
+      await expect(service.deleteRoadById(ROAD_ID, 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -527,7 +367,6 @@ describe('RoadService', () => {
       });
 
       expect(prisma.wayPoint.update).not.toHaveBeenCalled();
-
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     });
 
@@ -667,103 +506,266 @@ describe('RoadService', () => {
     });
   });
 
-  describe('addWaypointToRoad', () => {
-    const body = {
-      latitude: 1,
-      longitude: 2,
-      order: 2,
-      address: { address: 'Main St' },
-    };
-
-    beforeEach(() => {
-      prisma.wayPoint.create.mockResolvedValue({ id: 'wp-new' });
-      prisma.wayPoint.findUniqueOrThrow.mockResolvedValue({
-        id: 'wp-new',
-        order: 2,
-        address: { address: 'Main St' },
-      });
+  describe('getDiscoverRoads', () => {
+    const publicRoad = (id: string, nickName: string | null = 'wanderer') => ({
+      id,
+      title: 'Coastal loop',
+      description: 'A weekend drive',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      user: { nickName, firstName: 'Ada' },
+      wayPoints: [
+        { id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: null },
+        { id: 'wp-2', latitude: 3, longitude: 4, order: 2, address: null },
+      ],
     });
 
-    it('does not read the road back to renumber it', async () => {
-      await service.addWaypointToRoad(body, ROAD_ID);
+    it('returns an empty list without a second query when nothing is published', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
 
-      expect(prisma.road.findUnique).not.toHaveBeenCalled();
-      expect(prisma.wayPoint.update).not.toHaveBeenCalled();
+      const result = await service.getDiscoverRoads('user-1', 5);
+
+      expect(result.data).toEqual([]);
+      expect(prisma.road.findMany).not.toHaveBeenCalled();
     });
 
-    it('shifts existing waypoints and compacts, in two statements', async () => {
-      await service.addWaypointToRoad(body, ROAD_ID);
+    it('hydrates the randomly drawn ids and keeps their order', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { id: OTHER_ROAD_ID },
+        { id: ROAD_ID },
+      ]);
+      prisma.road.findMany.mockResolvedValue([
+        publicRoad(ROAD_ID),
+        publicRoad(OTHER_ROAD_ID),
+      ]);
 
-      expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
-    });
+      const result = await service.getDiscoverRoads('user-1', 2);
 
-    it('inserts at the requested position', async () => {
-      await service.addWaypointToRoad(body, ROAD_ID);
-
-      expect(prisma.wayPoint.create.mock.calls[0][0].data).toMatchObject({
-        order: 2,
-        roadId: ROAD_ID,
-      });
-    });
-
-    it('treats a requested position of 0 as the first position', async () => {
-      await service.addWaypointToRoad({ ...body, order: 0 }, ROAD_ID);
-
-      expect(prisma.wayPoint.create.mock.calls[0][0].data).toMatchObject({
-        order: 1,
-      });
-    });
-
-    it('reads the waypoint back after compacting', async () => {
-      const result = await service.addWaypointToRoad(
-        { ...body, order: 99 },
+      expect(prisma.road.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: [OTHER_ROAD_ID, ROAD_ID] } },
+        }),
+      );
+      expect(result.data.map((road) => road.id)).toEqual([
+        OTHER_ROAD_ID,
         ROAD_ID,
+      ]);
+    });
+
+    it('exposes a display name and stop count, never the owner record', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id: ROAD_ID }]);
+      prisma.road.findMany.mockResolvedValue([publicRoad(ROAD_ID)]);
+
+      const [road] = (await service.getDiscoverRoads(null, 1)).data;
+
+      expect(road.author).toBe('wanderer');
+      expect(road.stopCount).toBe(2);
+      expect(road).not.toHaveProperty('user');
+      expect(road).not.toHaveProperty('userId');
+    });
+
+    it('falls back to a first name, then to a generic author', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id: ROAD_ID }]);
+      prisma.road.findMany.mockResolvedValue([publicRoad(ROAD_ID, null)]);
+      expect((await service.getDiscoverRoads(null, 1)).data[0].author).toBe(
+        'Ada',
       );
 
-      expect(prisma.wayPoint.findUniqueOrThrow).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'wp-new' } }),
+      prisma.road.findMany.mockResolvedValue([
+        {
+          ...publicRoad(ROAD_ID, null),
+          user: { nickName: null, firstName: null },
+        },
+      ]);
+      expect((await service.getDiscoverRoads(null, 1)).data[0].author).toBe(
+        'A traveller',
       );
-      expect(result.data).toMatchObject({ order: 2 });
     });
   });
 
-  describe('deleteWaypointById', () => {
-    it('compacts the ordering in one statement rather than one per waypoint', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: ADDRESS_ID,
-      });
+  describe('archived roads', () => {
+    it('hides archived roads from the owner’s own list', async () => {
+      prisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.deleteWaypointById('wp-1');
+      await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
 
-      expect(prisma.wayPoint.update).not.toHaveBeenCalled();
-      expect(prisma.wayPoint.findMany).not.toHaveBeenCalled();
-      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.road.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1', archivedAt: null },
+        }),
+      );
     });
 
-    it('deletes the address the waypoint owned', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: ADDRESS_ID,
-      });
+    it('keeps archived roads out of the discover feed', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
 
-      await service.deleteWaypointById('wp-1');
+      await service.getDiscoverRoads('user-1', 5);
 
-      expect(prisma.addressInfo.delete).toHaveBeenCalledWith({
-        where: { id: ADDRESS_ID },
-      });
+      const sql = prisma.$queryRaw.mock.calls[0][0].join('');
+      expect(sql).toContain('"archivedAt" IS NULL');
     });
 
-    it('tolerates a waypoint with no address', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: null,
+    it('still lets someone who favourited an archived road read it', async () => {
+      prisma.road.findFirst.mockResolvedValue({
+        id: ROAD_ID,
+        favoriteRoads: [{ id: 'fav-1' }],
       });
 
-      await expect(service.deleteWaypointById('wp-1')).resolves.toMatchObject({
-        header: 'Delete Waypoint',
+      await service.getRoadById(ROAD_ID, 'user-2');
+
+      const { where } = prisma.road.findFirst.mock.calls[0][0];
+      expect(where.OR).toContainEqual({
+        favoriteRoads: { some: { userId: 'user-2' } },
       });
-      expect(prisma.addressInfo.delete).not.toHaveBeenCalled();
+      expect(where.OR).toContainEqual({ userId: 'user-2', archivedAt: null });
+    });
+  });
+
+  describe('community route access', () => {
+    it('lets any signed-in user open a published road they have not saved', async () => {
+      prisma.road.findFirst.mockResolvedValue({
+        id: ROAD_ID,
+        favoriteRoads: [],
+      });
+
+      await service.getRoadById(ROAD_ID, 'stranger');
+
+      const { where } = prisma.road.findFirst.mock.calls[0][0];
+      expect(where.OR).toContainEqual({ isPublic: true, archivedAt: null });
+    });
+
+    it('reports whether the caller has already saved each community road', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id: ROAD_ID }]);
+      prisma.road.findMany.mockResolvedValue([
+        {
+          id: ROAD_ID,
+          title: 'T',
+          description: 'D',
+          createdAt: new Date(),
+          user: { nickName: 'nick', firstName: null },
+          favoriteRoads: [{ id: 'fav-1' }],
+          wayPoints: [],
+        },
+      ]);
+
+      const [road] = (await service.getDiscoverRoads('user-1', 1)).data;
+
+      expect(road.isFavorite).toBe(true);
+      expect(road).not.toHaveProperty('favoriteRoads');
+    });
+
+    it('does not ask for favourites when nobody is signed in', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id: ROAD_ID }]);
+      prisma.road.findMany.mockResolvedValue([
+        {
+          id: ROAD_ID,
+          title: 'T',
+          description: 'D',
+          createdAt: new Date(),
+          user: { nickName: 'nick', firstName: null },
+          favoriteRoads: undefined,
+          wayPoints: [],
+        },
+      ]);
+
+      const [road] = (await service.getDiscoverRoads(null, 1)).data;
+
+      expect(prisma.road.findMany.mock.calls[0][0].select.favoriteRoads).toBe(
+        false,
+      );
+      expect(road.isFavorite).toBe(false);
+    });
+  });
+
+  describe('cloneRoad', () => {
+    const source = {
+      title: 'Coastal loop',
+      description: 'A weekend drive',
+      wayPoints: [
+        {
+          latitude: 1,
+          longitude: 2,
+          order: 1,
+          address: {
+            country: 'TR',
+            province: 'Istanbul',
+            district: 'Fatih',
+            address: 'A',
+          },
+        },
+        { latitude: 3, longitude: 4, order: 5, address: null },
+      ],
+    };
+
+    it('refuses to copy a road the caller cannot see', async () => {
+      prisma.road.findFirst.mockResolvedValue(null);
+
+      await expect(service.cloneRoad(ROAD_ID, 'user-2')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.road.create).not.toHaveBeenCalled();
+    });
+
+    it('scopes the source to what the caller may already read', async () => {
+      prisma.road.findFirst.mockResolvedValue(source);
+      prisma.road.create.mockResolvedValue({ id: OTHER_ROAD_ID });
+      prisma.road.findUnique.mockResolvedValue({ id: OTHER_ROAD_ID });
+
+      await service.cloneRoad(ROAD_ID, 'user-2');
+
+      const { where } = prisma.road.findFirst.mock.calls[0][0];
+      expect(where.id).toBe(ROAD_ID);
+      expect(where.OR).toContainEqual({ isPublic: true, archivedAt: null });
+    });
+
+    it('gives the copy to the caller and leaves it unpublished', async () => {
+      prisma.road.findFirst.mockResolvedValue(source);
+      prisma.road.create.mockResolvedValue({ id: OTHER_ROAD_ID });
+      prisma.road.findUnique.mockResolvedValue({ id: OTHER_ROAD_ID });
+
+      await service.cloneRoad(ROAD_ID, 'user-2');
+
+      expect(prisma.road.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            title: 'Coastal loop',
+            description: 'A weekend drive',
+            userId: 'user-2',
+            isPublic: false,
+          },
+        }),
+      );
+    });
+
+    it('duplicates the addresses rather than pointing at the original rows', async () => {
+      prisma.road.findFirst.mockResolvedValue(source);
+      prisma.road.create.mockResolvedValue({ id: OTHER_ROAD_ID });
+      prisma.road.findUnique.mockResolvedValue({ id: OTHER_ROAD_ID });
+
+      await service.cloneRoad(ROAD_ID, 'user-2');
+
+      const addresses = prisma.addressInfo.createMany.mock.calls[0][0].data;
+      const waypoints = prisma.wayPoint.createMany.mock.calls[0][0].data;
+
+      expect(addresses).toHaveLength(2);
+      expect(addresses[0]).toMatchObject({ address: 'A', district: 'Fatih' });
+      expect(addresses[1]).toMatchObject({ address: '', district: null });
+      expect(
+        waypoints.map((w: { addressInfoId: string }) => w.addressInfoId),
+      ).toEqual(addresses.map((a: { id: string }) => a.id));
+      expect(
+        waypoints.every((w: { roadId: string }) => w.roadId === OTHER_ROAD_ID),
+      ).toBe(true);
+    });
+
+    it('renumbers the copied stops from one', async () => {
+      prisma.road.findFirst.mockResolvedValue(source);
+      prisma.road.create.mockResolvedValue({ id: OTHER_ROAD_ID });
+      prisma.road.findUnique.mockResolvedValue({ id: OTHER_ROAD_ID });
+
+      await service.cloneRoad(ROAD_ID, 'user-2');
+
+      const waypoints = prisma.wayPoint.createMany.mock.calls[0][0].data;
+      expect(waypoints.map((w: { order: number }) => w.order)).toEqual([1, 2]);
     });
   });
 });

@@ -25,9 +25,9 @@ export class GoogleService {
   isConfigured(): boolean {
     return Boolean(
       this.config.get('GOOGLE_CLIENT_ID', { infer: true }) &&
-      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }) &&
-      this.config.get('GOOGLE_REDIRECT_URL', { infer: true }) &&
-      this.config.get('GOOGLE_SCOPES_API', { infer: true }),
+        this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }) &&
+        this.config.get('GOOGLE_REDIRECT_URL', { infer: true }) &&
+        this.config.get('GOOGLE_SCOPES_API', { infer: true }),
     );
   }
 
@@ -37,6 +37,51 @@ export class GoogleService {
         'Google sign-in is not configured on this server',
       );
     }
+  }
+
+  private nativeClientIds(): string[] {
+    return (this.config.get('GOOGLE_NATIVE_CLIENT_IDS', { infer: true }) ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+  }
+
+  isNativeConfigured(): boolean {
+    return this.nativeClientIds().length > 0;
+  }
+
+  async getEmailFromIdToken(idToken: string): Promise<string> {
+    const audience = this.nativeClientIds();
+
+    if (!audience.length) {
+      throw new ServiceUnavailableException(
+        'Google sign-in is not configured on this server',
+      );
+    }
+    if (!idToken) {
+      throw new BadRequestException('Missing Google id token');
+    }
+
+    let payload;
+    try {
+      const ticket = await new OAuth2Client().verifyIdToken({
+        idToken,
+        audience,
+      });
+      payload = ticket.getPayload();
+    } catch (error) {
+      this.logger.warn(`Rejected Google id token: ${String(error)}`);
+      throw new UnauthorizedException('Google sign-in failed');
+    }
+
+    if (!payload?.email) {
+      throw new UnauthorizedException('Google account has no email address');
+    }
+    if (payload.email_verified === false) {
+      throw new UnauthorizedException('Google email address is not verified');
+    }
+
+    return payload.email;
   }
 
   getAuthClient(): OAuth2Client {

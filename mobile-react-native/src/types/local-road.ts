@@ -6,6 +6,7 @@ export interface LocalWaypoint {
   longitude: number;
   order: number;
   address: WaypointAddressInput;
+  isFavorite?: boolean;
 }
 
 export interface LocalRoad {

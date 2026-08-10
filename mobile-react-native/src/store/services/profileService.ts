@@ -1,5 +1,5 @@
 import createApi from 'store/middlewares/createApi';
-import baseQuery from 'store/bases/baseQuery';
+import baseQuery, { MULTIPART } from 'store/bases/baseQuery';
 import {
   transformApiResponse,
   transformApiResponseWithToast,
@@ -35,6 +35,37 @@ export const profileService = createApi({
         transformApiResponse(res),
     }),
 
+    updatePhoto: builder.mutation<UserResponse, { uri: string }>({
+      query: ({ uri }) => {
+        const body = new FormData();
+        const extension = uri.split('.').pop()?.toLowerCase();
+        const type =
+          extension === 'png'
+            ? 'image/png'
+            : extension === 'webp'
+              ? 'image/webp'
+              : 'image/jpeg';
+
+        body.append('photo', {
+          uri,
+          name: `avatar.${extension ?? 'jpg'}`,
+          type,
+        } as unknown as Blob);
+
+        return {
+          url: '/user/photo',
+          method: 'POST',
+          body,
+          headers: { 'Content-Type': MULTIPART },
+        };
+      },
+      transformResponse: (res: ApiResponse<UserResponse>) =>
+        transformApiResponseWithToast(res),
+      invalidatesTags: (result) => [
+        { type: 'UserProfile' as const, id: result?.id },
+      ],
+    }),
+
     updateUser: builder.mutation<UserResponse, UserArgs>({
       query: (args) => ({
         url: '/user/update',
@@ -57,4 +88,8 @@ export const profileService = createApi({
   }),
 });
 
-export const { useGetUserQuery, useUpdateUserMutation } = profileService;
+export const {
+  useGetUserQuery,
+  useUpdateUserMutation,
+  useUpdatePhotoMutation,
+} = profileService;

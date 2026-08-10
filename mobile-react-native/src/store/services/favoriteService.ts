@@ -6,6 +6,7 @@ import {
 } from 'store/bases/transformApiResponse';
 import { roadService } from 'store/services/roadService';
 import {
+  applyFavoriteAnnotation,
   normalizeFavorites,
   removeFromFavorites,
 } from 'store/adapters/favoriteAdapter';
@@ -18,6 +19,8 @@ import {
   ToggleFavoriteResponse,
   ToggleFavoriteRoadArgs,
   ToggleFavoriteWaypointArgs,
+  UpdateFavoriteAnnotationArgs,
+  UpdateFavoriteAnnotationResponse,
 } from 'types/store/services/favoriteService-type';
 
 export const favoriteService = createApi({
@@ -159,11 +162,45 @@ export const favoriteService = createApi({
         }
       },
     }),
+    updateFavoriteAnnotation: builder.mutation<
+      UpdateFavoriteAnnotationResponse,
+      UpdateFavoriteAnnotationArgs
+    >({
+      query: ({ favoriteId, kind, title, description }) => ({
+        url: `/favorites/${kind}/${favoriteId}`,
+        method: 'PATCH',
+        body: { title, description },
+      }),
+      transformResponse: (res: ApiResponse<UpdateFavoriteAnnotationResponse>) =>
+        transformApiResponse(res),
+      async onQueryStarted(
+        { favoriteId, title, description },
+        { dispatch, queryFulfilled },
+      ) {
+        const patch = dispatch(
+          favoriteService.util.updateQueryData(
+            'getFavorites',
+            undefined,
+            (draft) =>
+              applyFavoriteAnnotation(draft, favoriteId, {
+                title,
+                description,
+              }),
+          ),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
   }),
 });
 
 export const {
   useGetFavoritesQuery,
+  useUpdateFavoriteAnnotationMutation,
   useToggleFavoriteWaypointMutation,
   useToggleFavoriteRoadMutation,
 } = favoriteService;

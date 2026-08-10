@@ -1,20 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
+import AuthScreenLayout from 'components/AuthScreenLayout';
 import FormField from 'components/FormField';
+import GoogleSignInButton from 'components/GoogleSignInButton';
 import PrimaryButton from 'components/PrimaryButton';
 import { useSignInMutation } from 'store/services/authenticationService';
 
-import { colors, spacing, typography } from 'theme';
+import { spacing, typography, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { SignInRequest } from 'types/libs/auth';
 import { RootStackParamList } from 'types/screens/screens';
 
@@ -23,6 +18,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Props = { navigation: NavigationProp<RootStackParamList> };
 
 const SignInScreen = ({ navigation }: Props) => {
+  const styles = useThemedStyles(createStyles);
+
   const [form, setForm] = useState<SignInRequest>({ email: '', password: '' });
   const [error, setError] = useState('');
   const [signIn, { isLoading }] = useSignInMutation();
@@ -56,99 +53,81 @@ const SignInScreen = ({ navigation }: Props) => {
     }
   }, [form, navigation, signIn, validationError]);
 
+  const goToRoutes = useCallback(
+    () => navigation.navigate('HomeTabNavigator', { screen: 'Routes' }),
+    [navigation],
+  );
+
   const goToSignUp = useCallback(
     () => navigation.navigate('SignUpScreen'),
     [navigation],
   );
 
+  const goToForgotPassword = useCallback(
+    () =>
+      navigation.navigate('ForgotPasswordScreen', {
+        email: form.email.trim() || undefined,
+      }),
+    [form.email, navigation],
+  );
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.flex}
+    <AuthScreenLayout
+      icon='navigate'
+      title='Welcome back'
+      subtitle='Sign in to pick up where you left off.'
+      footerText="Don't have an account?"
+      footerActionLabel='Sign up'
+      onFooterAction={goToSignUp}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps='handled'
+      <FormField
+        label='Email'
+        placeholder='you@example.com'
+        value={form.email}
+        onChangeText={handleInputChange('email')}
+        autoCapitalize='none'
+        autoComplete='email'
+        keyboardType='email-address'
+      />
+
+      <FormField
+        label='Password'
+        placeholder='Your password'
+        value={form.password}
+        onChangeText={handleInputChange('password')}
+        autoComplete='current-password'
+        isPassword
+        error={error}
+      />
+
+      <Pressable
+        onPress={goToForgotPassword}
+        hitSlop={10}
+        style={styles.forgot}
+        accessibilityRole='button'
       >
-        <View style={styles.container}>
-          <View style={styles.heading}>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>
-              Sign in to pick up where you left off.
-            </Text>
-          </View>
+        <Text style={styles.forgotText}>Forgot password?</Text>
+      </Pressable>
 
-          <FormField
-            label='Email'
-            placeholder='you@example.com'
-            value={form.email}
-            onChangeText={handleInputChange('email')}
-            autoCapitalize='none'
-            autoComplete='email'
-            keyboardType='email-address'
-          />
+      <PrimaryButton
+        label='Sign in'
+        onPress={handleSubmit}
+        isLoading={isLoading}
+      />
 
-          <FormField
-            label='Password'
-            placeholder='Your password'
-            value={form.password}
-            onChangeText={handleInputChange('password')}
-            autoComplete='current-password'
-            isPassword
-            error={error}
-          />
-
-          <PrimaryButton
-            label='Sign in'
-            onPress={handleSubmit}
-            isLoading={isLoading}
-          />
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
-            <Pressable onPress={goToSignUp} hitSlop={8}>
-              <Text style={styles.footerLink}>Sign up</Text>
-            </Pressable>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <GoogleSignInButton onSuccess={goToRoutes} />
+    </AuthScreenLayout>
   );
 };
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  container: { gap: spacing.lg },
-  heading: { gap: spacing.xs, marginBottom: spacing.sm },
-  title: {
-    ...typography.title,
-    fontSize: 26,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  footerText: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  footerLink: {
-    ...typography.label,
-    color: colors.primary,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    forgot: { alignSelf: 'flex-end', marginTop: -spacing.xs },
+    forgotText: {
+      ...typography.label,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+  });
 
 export default SignInScreen;

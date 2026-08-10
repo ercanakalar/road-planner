@@ -14,6 +14,7 @@ import {
   FavoriteEntry,
   FavoriteSectionKey,
 } from 'types/store/services/favoriteService-type';
+import { TransportMode } from 'types/transport-type';
 import { RootStackParamList } from './screens';
 
 export type WaypointRoute = NativeStackScreenProps<
@@ -32,7 +33,9 @@ export interface FavoriteSectionDescriptor {
 
 export interface FavoriteItemProps {
   item: FavoriteEntry;
+  isHighlighted?: boolean;
   onPress: (item: FavoriteEntry) => void;
+  onEdit: (item: FavoriteEntry) => void;
   onRemove: (item: FavoriteEntry) => void;
 }
 
@@ -48,7 +51,11 @@ export interface RoutesListProps {
   onRefresh: () => void;
   onToggleFavorite: (road: WaypointWithAddressAndId) => void;
   onDelete: (road: WaypointWithAddressAndId) => void;
+  onEdit: (road: WaypointWithAddressAndId) => void;
   onView: (roadId: string) => void;
+  onTogglePublic: (road: WaypointWithAddressAndId) => void;
+  onShare: (road: WaypointWithAddressAndId) => void;
+  sharingRoadId?: string | null;
 }
 
 export interface RouteSummary {
@@ -61,6 +68,7 @@ export interface MapSectionProps {
   routeCoordinates: RouteCoordinate[];
   draggingWaypointId?: string;
   summary?: RouteSummary;
+  transportMode: TransportMode;
   handleMarkerDragEnd: (
     event: MarkerDragStartEndEvent,
     waypointId: string,

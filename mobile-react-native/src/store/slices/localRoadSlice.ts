@@ -59,13 +59,20 @@ export const localRoadSlice = createSlice({
       state.activeRoadId = action.payload;
     },
 
-    localRoadRenamed(
+    localRoadDetailsChanged(
       state,
-      action: PayloadAction<{ roadId: string; title: string }>,
+      action: PayloadAction<{
+        roadId: string;
+        title: string;
+        description: string;
+      }>,
     ) {
-      const road = state.roads.find((item) => item.id === action.payload.roadId);
+      const road = state.roads.find(
+        (item) => item.id === action.payload.roadId,
+      );
       if (!road) return;
       road.title = action.payload.title;
+      road.description = action.payload.description;
       touch(road);
     },
 
@@ -122,6 +129,17 @@ export const localRoadSlice = createSlice({
       touch(road);
     },
 
+    localWaypointFavoriteToggled(state, action: PayloadAction<string>) {
+      const road = findActive(state);
+      const waypoint = road?.wayPoints.find(
+        (item) => item.id === action.payload,
+      );
+      if (!road || !waypoint) return;
+
+      waypoint.isFavorite = !waypoint.isFavorite;
+      touch(road);
+    },
+
     localWaypointDeleted(state, action: PayloadAction<string>) {
       const road = findActive(state);
       if (!road) return;
@@ -175,11 +193,12 @@ export const {
   localRoadsHydrated,
   localRoadCreated,
   localRoadSelected,
-  localRoadRenamed,
+  localRoadDetailsChanged,
   localRoadDeleted,
   localWaypointAdded,
   localWaypointMoved,
   localWaypointDeleted,
+  localWaypointFavoriteToggled,
   localWaypointsReordered,
   localRoadUploadStarted,
   localRoadUploadFinished,

@@ -10,16 +10,26 @@ import {
 } from 'react-native';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 
+import AvatarPicker from 'components/AvatarPicker';
 import ScreenState from 'components/ScreenState';
 import {
   useGetUserQuery,
+  useUpdatePhotoMutation,
   useUpdateUserMutation,
 } from 'store/services/profileService';
 import { useAppDispatch } from 'store/hook';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { showNotification } from 'services/notificationService';
 
-import { colors, radius, spacing, typography } from 'theme';
+import {
+  radius,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+  useThemedTextInputProps,
+} from 'theme';
+import type { ThemeColors } from 'theme';
 import { ProfileForm } from 'types/store/services/userService-type';
 import { RootStackParamList } from 'types/screens/screens';
 
@@ -41,6 +51,10 @@ const FIELDS: { key: keyof ProfileForm; label: string }[] = [
 ];
 
 const ProfileDetailScreen = ({ navigation, route }: Props) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const inputTheme = useThemedTextInputProps();
+
   const dispatch = useAppDispatch();
   const { userId } = route.params;
 
@@ -49,6 +63,15 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
     { skip: !userId },
   );
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+  const [updatePhoto, { isLoading: isUploadingPhoto }] =
+    useUpdatePhotoMutation();
+
+  const handlePickPhoto = useCallback(
+    (uri: string) => {
+      updatePhoto({ uri });
+    },
+    [updatePhoto],
+  );
 
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
 
@@ -109,6 +132,12 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps='handled'
     >
+      <AvatarPicker
+        photo={data.photo}
+        isUploading={isUploadingPhoto}
+        onPicked={handlePickPhoto}
+      />
+
       {FIELDS.map(({ key, label }) => (
         <View key={key} style={styles.field}>
           <Text style={styles.label}>{label}</Text>
@@ -116,7 +145,7 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
             value={form[key]}
             onChangeText={onChangeText(key)}
             style={styles.input}
-            placeholderTextColor={colors.textSubtle}
+            {...inputTheme}
             autoCapitalize='words'
           />
         </View>
@@ -152,49 +181,51 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  field: { gap: spacing.sm },
-  label: {
-    ...typography.label,
-    color: colors.textMuted,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: 15,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  inputDisabled: {
-    backgroundColor: colors.surfaceAlt,
-    color: colors.textMuted,
-  },
-  hint: {
-    ...typography.caption,
-    fontSize: 11,
-    color: colors.textSubtle,
-  },
-  button: {
-    marginTop: spacing.sm,
-    height: 50,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonPressed: { backgroundColor: colors.primaryDark },
-  buttonDisabled: { backgroundColor: colors.borderStrong },
-  buttonText: {
-    ...typography.body,
-    color: colors.textInverse,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      padding: spacing.lg,
+      gap: spacing.lg,
+    },
+    field: { gap: spacing.sm },
+    label: {
+      ...typography.label,
+      color: colors.textMuted,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      fontSize: 15,
+      color: colors.text,
+      backgroundColor: colors.surface,
+    },
+    inputDisabled: {
+      backgroundColor: colors.surfaceAlt,
+      color: colors.textMuted,
+    },
+    hint: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 16,
+      color: colors.textSubtle,
+    },
+    button: {
+      marginTop: spacing.sm,
+      height: 50,
+      borderRadius: radius.md,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonPressed: { backgroundColor: colors.primaryDark },
+    buttonDisabled: { backgroundColor: colors.borderStrong },
+    buttonText: {
+      ...typography.body,
+      color: colors.textInverse,
+    },
+  });
 
 export default ProfileDetailScreen;

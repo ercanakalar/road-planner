@@ -9,9 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from 'screens/home/HomeScreen';
 import MapScreen from 'screens/map/MapScreen';
 import LocalMapScreen from 'screens/map/local/LocalMapScreen';
+import Favorite from 'screens/map/favorites/Favorite';
 import AuthGate from 'screens/profile/auth/AuthGateScreen';
 
-import { colors, shadows, spacing } from 'theme';
+import { StyleSheet } from 'react-native';
+
+import { shadows, spacing, useTheme } from 'theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,6 +22,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: 'home-outline',
   Map: 'navigate-outline',
   Routes: 'map-outline',
+  Favourites: 'star-outline',
   Profile: 'person-outline',
 };
 
@@ -26,16 +30,13 @@ const ACTIVE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: 'home',
   Map: 'navigate',
   Routes: 'map',
+  Favourites: 'star',
   Profile: 'person',
 };
 
-/*
- * The session is restored once, before the navigator mounts (see SessionGate),
- * so this component no longer fires a refresh-token mutation on mount — the
- * old one called `.unwrap()` with no catch, which surfaced as an unhandled
- * rejection on every cold start without a token.
- */
 const HomeTabNavigator = () => {
+  const { colors } = useTheme();
+
   const insets = useSafeAreaInsets();
 
   const screenOptions = useMemo(
@@ -55,8 +56,9 @@ const HomeTabNavigator = () => {
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopWidth: 0,
-          height: 56 + insets.bottom,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
+          height: 62 + insets.bottom,
           paddingTop: spacing.sm,
           paddingBottom: insets.bottom || spacing.sm,
           ...shadows.md,
@@ -64,17 +66,20 @@ const HomeTabNavigator = () => {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          letterSpacing: -0.1,
+          marginTop: spacing.xxs,
         },
+        tabBarItemStyle: { paddingVertical: spacing.xxs },
         headerShown: false,
       }),
-    [insets.bottom],
+    [colors, insets.bottom],
   );
 
   return (
     <Tab.Navigator initialRouteName='Map' screenOptions={screenOptions}>
       <Tab.Screen name='Home' component={HomeScreen} />
-      {/* Usable without an account; anything built here stays on the device. */}
       <Tab.Screen name='Map' component={LocalMapScreen} />
+      <Tab.Screen name='Favourites' component={Favorite} />
       <Tab.Screen name='Routes' component={MapScreen} />
       <Tab.Screen name='Profile' component={AuthGate} />
     </Tab.Navigator>

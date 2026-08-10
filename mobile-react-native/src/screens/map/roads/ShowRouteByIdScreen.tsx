@@ -10,10 +10,13 @@ import EnhancedWaypointList from 'screens/map/roads/EnhancedWaypointList';
 import { MapSection } from './MapSection';
 
 import useMapLogic from 'hooks/useMapLogic';
-import { colors } from 'theme';
+import { useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 
 const ShowRouteByIdScreen = () => {
+  const styles = useThemedStyles(createStyles);
+
   const {
     roadId,
     mapRef,
@@ -69,6 +72,7 @@ const ShowRouteByIdScreen = () => {
           draggingWaypointId={draggingWaypointId}
           routeCoordinates={routeLine.coordinates}
           summary={summary}
+          transportMode={transportMode}
           handleMarkerDragEnd={handleMarkerDragEnd}
           onMapLongPress={handleMapLongPress}
           onMapPress={handleMapPress}
@@ -101,11 +105,12 @@ const ShowRouteByIdScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  sheetBackground: {
-    backgroundColor: colors.surface,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    sheetBackground: {
+      backgroundColor: colors.surface,
+    },
+  });
 
 export default memo(ShowRouteByIdScreen);

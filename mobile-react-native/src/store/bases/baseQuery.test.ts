@@ -2,11 +2,6 @@ import baseQuery from './baseQuery';
 import tokenStorage from 'services/tokenStorage';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 
-/*
- * `baseQuery` carries the retry, refresh and replay logic, so it is exercised
- * against a stubbed `fetch` rather than through a store.
- */
-
 const envelope = (data: unknown) =>
   JSON.stringify({ status: 'success', header: '', message: '', data });
 
@@ -26,6 +21,7 @@ const runQuery = (url: string, method = 'GET') => {
     endpoint: 'test',
     type: 'query' as const,
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = baseQuery()({ url, method }, api as any, {});
   return { result, api };
 };
@@ -56,6 +52,48 @@ describe('authorization', () => {
 
     const request = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+});
+
+describe('content type', () => {
+  const runWith = (headers?: Record<string, string>) => {
+    const api = {
+      signal: new AbortController().signal,
+      abort: jest.fn(),
+      dispatch: jest.fn(),
+      getState: () => ({ auth: { accessToken: 'access-1' } }),
+      extra: undefined,
+      endpoint: 'test',
+      type: 'query' as const,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return baseQuery()(
+      { url: '/x', method: 'POST', headers } as any,
+      api as any,
+      {},
+    );
+  };
+
+  it('defaults to JSON', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(200, envelope({ ok: true })),
+    );
+
+    await runWith();
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(request.headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('drops the header entirely for a multipart request', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(200, envelope({ ok: true })),
+    );
+
+    await runWith({ 'Content-Type': 'multipart/form-data' });
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(request.headers.get('Content-Type')).toBeNull();
   });
 });
 
@@ -105,9 +143,9 @@ describe('401 handling', () => {
     });
 
     expect(requestedUrls()).toEqual([
-      'http://api.test/road/own-roads',
-      'http://api.test/auth/refresh-token',
-      'http://api.test/road/own-roads',
+      'http://api.test/api/road/own-roads',
+      'http://api.test/api/auth/refresh-token',
+      'http://api.test/api/road/own-roads',
     ]);
     expect(api.dispatch).toHaveBeenCalledWith(
       sessionRefreshed({
@@ -140,7 +178,7 @@ describe('401 handling', () => {
     const { result, api } = runQuery('/road/own-roads');
     await expect(result).resolves.toMatchObject({ error: { status: 401 } });
 
-    expect(requestedUrls()).toEqual(['http://api.test/road/own-roads']);
+    expect(requestedUrls()).toEqual(['http://api.test/api/road/own-roads']);
     expect(api.dispatch).toHaveBeenCalledWith(sessionCleared());
   });
 
@@ -152,7 +190,7 @@ describe('401 handling', () => {
     const { result, api } = runQuery('/auth/sign-in', 'POST');
     await expect(result).resolves.toMatchObject({ error: { status: 401 } });
 
-    expect(requestedUrls()).toEqual(['http://api.test/auth/sign-in']);
+    expect(requestedUrls()).toEqual(['http://api.test/api/auth/sign-in']);
     expect(tokenStorage.clear).not.toHaveBeenCalled();
     expect(api.dispatch).not.toHaveBeenCalledWith(sessionCleared());
   });
@@ -172,7 +210,6 @@ describe('401 handling', () => {
           ),
         );
       }
-
       const seen = requestedUrls().filter((seenUrl) => seenUrl === url).length;
       return Promise.resolve(
         seen > 1

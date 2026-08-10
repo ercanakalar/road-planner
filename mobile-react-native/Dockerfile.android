@@ -1,0 +1,55 @@
+# Builds an installable Android APK without an Expo account or a local Android
+# Studio. Everything the build needs — JDK, Android SDK, Node — lives in here.
+#
+# This is a build tool, not a runtime image: it produces an APK into a mounted
+# directory and exits. See docker-compose.apk.yml at the repository root.
+FROM eclipse-temurin:17-jdk-jammy
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    ANDROID_HOME=/opt/android-sdk \
+    ANDROID_SDK_ROOT=/opt/android-sdk \
+    GRADLE_USER_HOME=/gradle-cache
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl unzip git ca-certificates python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 20 matches the version the mobile CI workflow uses.
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Android command line tools. `sdkmanager` expects to live under
+# cmdline-tools/latest, which is not how the archive unpacks.
+ARG CMDLINE_TOOLS_VERSION=11076708
+RUN mkdir -p "${ANDROID_HOME}/cmdline-tools" \
+    && curl -fsSL -o /tmp/tools.zip \
+       "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" \
+    && unzip -q /tmp/tools.zip -d "${ANDROID_HOME}/cmdline-tools" \
+    && mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest" \
+    && rm /tmp/tools.zip
+
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+
+# Licences must be accepted before anything will install, including the
+# components Gradle fetches for itself later.
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+# A baseline that covers current Expo SDK releases. The build script installs
+# anything else the generated Gradle files turn out to ask for, so this is a
+# head start rather than a hard requirement.
+RUN sdkmanager --install \
+      "platform-tools" \
+      "platforms;android-36" \
+      "platforms;android-35" \
+      "build-tools;36.0.0" \
+      "build-tools;35.0.0" \
+      "ndk;27.1.12297006" > /dev/null
+
+WORKDIR /app
+
+COPY scripts/build-android.sh /usr/local/bin/build-android
+COPY scripts/android-logcat.sh /usr/local/bin/android-logcat
+RUN chmod +x /usr/local/bin/build-android /usr/local/bin/android-logcat
+
+ENTRYPOINT ["/usr/local/bin/build-android"]

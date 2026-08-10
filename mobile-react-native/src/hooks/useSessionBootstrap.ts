@@ -36,7 +36,7 @@ export function useSessionBootstrap(): boolean {
           return;
         }
 
-        const decoded = await jwtService.decodeToken<JwtPayload>();
+        const decoded = await jwtService.decodeToken<JwtPayload>(accessToken);
         if (cancelled) return;
 
         dispatch(

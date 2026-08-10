@@ -5,6 +5,7 @@ import reducer, {
   localRoadsHydrated,
   localWaypointAdded,
   localWaypointDeleted,
+  localWaypointFavoriteToggled,
   localWaypointMoved,
   localWaypointsReordered,
   makeLocalRoad,
@@ -120,5 +121,26 @@ describe('localRoadSlice', () => {
     expect(next.roads[0].id).not.toBe(uploadedId);
     expect(next.isUploading).toBe(false);
     expect(next.activeRoadId).toBe(next.roads[0].id);
+  });
+
+  it('stars a stop on the device and unstars it again', () => {
+    let state = roadWithPins(2);
+    const [first] = state.roads[0].wayPoints;
+
+    expect(first.isFavorite).toBeUndefined();
+
+    state = reducer(state, localWaypointFavoriteToggled(first.id));
+    expect(state.roads[0].wayPoints[0].isFavorite).toBe(true);
+    expect(state.roads[0].wayPoints[1].isFavorite).toBeUndefined();
+
+    state = reducer(state, localWaypointFavoriteToggled(first.id));
+    expect(state.roads[0].wayPoints[0].isFavorite).toBe(false);
+  });
+
+  it('ignores a star for a stop that is not on the active route', () => {
+    const state = roadWithPins(1);
+    const next = reducer(state, localWaypointFavoriteToggled('wp-missing'));
+
+    expect(next.roads[0].wayPoints[0].isFavorite).toBeUndefined();
   });
 });

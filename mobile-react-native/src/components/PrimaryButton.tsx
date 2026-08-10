@@ -7,7 +7,8 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { colors, radius, spacing, typography } from 'theme';
+import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 
 interface Props {
   label: string;
@@ -15,6 +16,7 @@ interface Props {
   isLoading?: boolean;
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
+  tone?: 'default' | 'danger';
   style?: ViewStyle;
 }
 
@@ -24,10 +26,15 @@ const PrimaryButton = ({
   isLoading,
   disabled,
   variant = 'primary',
+  tone = 'default',
   style,
 }: Props) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   const isInactive = disabled || isLoading;
   const isSecondary = variant === 'secondary';
+  const isDanger = tone === 'danger' && !isSecondary;
 
   return (
     <Pressable
@@ -38,6 +45,7 @@ const PrimaryButton = ({
       style={({ pressed }) => [
         styles.button,
         isSecondary && styles.secondary,
+        isDanger && styles.danger,
         isInactive && styles.disabled,
         pressed && !isInactive && styles.pressed,
         style,
@@ -56,27 +64,32 @@ const PrimaryButton = ({
   );
 };
 
-const styles = StyleSheet.create({
-  button: {
-    height: 50,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  secondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pressed: { opacity: 0.85 },
-  disabled: { backgroundColor: colors.borderStrong },
-  label: {
-    ...typography.body,
-    color: colors.textInverse,
-  },
-  labelSecondary: { color: colors.primary },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    button: {
+      minHeight: 54,
+      borderRadius: radius.md,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+    },
+    secondary: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    danger: { backgroundColor: colors.danger },
+    pressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
+    disabled: { backgroundColor: colors.borderStrong, opacity: 0.7 },
+    label: {
+      ...typography.body,
+      fontWeight: '600',
+      letterSpacing: -0.1,
+      color: colors.textInverse,
+    },
+    labelSecondary: { color: colors.primary },
+  });
 
 export default memo(PrimaryButton);

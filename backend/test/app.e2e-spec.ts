@@ -34,11 +34,15 @@ describe('Application wiring (e2e)', () => {
 
   describe('global prefix', () => {
     it('serves routes under /api', async () => {
-      await request(app.getHttpServer()).get('/api/road/some-id').expect(401);
+      await request(app.getHttpServer())
+        .get('/api/road/waypoint/some-id')
+        .expect(401);
     });
 
     it('does not serve routes without the prefix', async () => {
-      await request(app.getHttpServer()).get('/road/some-id').expect(404);
+      await request(app.getHttpServer())
+        .get('/road/waypoint/some-id')
+        .expect(404);
     });
 
     it('has no root route', async () => {
@@ -48,7 +52,6 @@ describe('Application wiring (e2e)', () => {
 
   describe('deny-by-default authentication', () => {
     it.each([
-      ['get', '/api/road/road-1'],
       ['get', '/api/road/waypoint/wp-1'],
       ['post', '/api/road/own-roads'],
       ['post', '/api/road/create'],
@@ -60,6 +63,14 @@ describe('Application wiring (e2e)', () => {
       ['post', '/api/auth/sign-out'],
     ])('rejects an unauthenticated %s %s', async (method, path) => {
       await request(app.getHttpServer())[method as 'get'](path).expect(401);
+    });
+
+    it('lets an unauthenticated caller reach a road, without a token', async () => {
+      const response = await request(app.getHttpServer()).get(
+        '/api/road/00000000-0000-4000-8000-000000000000',
+      );
+
+      expect(response.status).not.toBe(401);
     });
 
     it('rejects a malformed Authorization header with 401, not 500', async () => {

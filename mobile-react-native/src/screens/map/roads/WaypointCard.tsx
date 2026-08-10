@@ -2,7 +2,8 @@ import React, { memo, useCallback } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 
 import WaypointOptions from 'screens/map/roads/WaypointOptions';
-import { colors, radius, shadows, spacing, typography } from 'theme';
+import { radius, shadows, spacing, typography, useThemedStyles } from 'theme';
+import type { ThemeColors } from 'theme';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { WaypointOption } from 'types/transport-type';
 
@@ -27,6 +28,8 @@ const WaypointCard = ({
   onToggleSelection,
   onOptionSelect,
 }: WaypointCardProps) => {
+  const styles = useThemedStyles(createStyles);
+
   const handlePress = useCallback(
     () => onToggleSelection(item.id),
     [item.id, onToggleSelection],
@@ -90,56 +93,57 @@ const WaypointCard = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sm,
-  },
-  cardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  cardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceAlt,
-    ...shadows.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  content: { flex: 1 },
-  title: {
-    ...typography.body,
-    color: colors.text,
-    marginBottom: 2,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  badge: {
-    width: 28,
-    height: 28,
-    backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeSelected: {
-    backgroundColor: colors.accent,
-  },
-  badgeText: {
-    ...typography.caption,
-    color: colors.textInverse,
-    fontWeight: '700',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.sm,
+    },
+    cardSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    cardActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surfaceAlt,
+      ...shadows.lg,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    content: { flex: 1 },
+    title: {
+      ...typography.body,
+      color: colors.text,
+      marginBottom: 2,
+    },
+    subtitle: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+    badge: {
+      width: 28,
+      height: 28,
+      backgroundColor: colors.primary,
+      borderRadius: radius.pill,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    badgeSelected: {
+      backgroundColor: colors.accent,
+    },
+    badgeText: {
+      ...typography.caption,
+      color: colors.textInverse,
+      fontWeight: '700',
+    },
+  });
 
 export default memo(WaypointCard);

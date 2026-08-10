@@ -1,15 +1,11 @@
 import {
   EMPTY_FAVORITES,
+  applyFavoriteAnnotation,
   normalizeFavorites,
   removeFromFavorites,
 } from './favoriteAdapter';
 import { RawFavorites } from 'types/store/services/favoriteService-type';
 
-/*
- * Fixture mirrors the select in `backend/src/favorites/favorites.service.ts`
- * (`getAllFavorites`): a favourite row carries its own id, and the road or
- * waypoint it points at is nested underneath.
- */
 const raw = {
   ownRoads: [
     {
@@ -66,7 +62,26 @@ describe('normalizeFavorites', () => {
       kind: 'road',
       title: 'Coast run',
       subtitle: 'Weekend loop',
+      annotationTitle: undefined,
+      annotationDescription: undefined,
+      defaultTitle: 'Coast run',
+      isOwn: true,
+      isWithdrawn: false,
     });
+  });
+
+  it('marks a saved road whose owner has removed the original', () => {
+    const withdrawn = {
+      ...raw,
+      ownRoads: [
+        {
+          ...raw.ownRoads[0],
+          road: { ...raw.ownRoads[0].road!, archivedAt: '2026-08-03T00:00:00Z' },
+        },
+      ],
+    } satisfies RawFavorites;
+
+    expect(normalizeFavorites(withdrawn).ownRoads[0].isWithdrawn).toBe(true);
   });
 
   it('points targetId at the waypoint and titles it from the address', () => {
@@ -76,6 +91,10 @@ describe('normalizeFavorites', () => {
       kind: 'waypoint',
       title: 'Sultanahmet Sq',
       subtitle: 'Fatih, İstanbul',
+      annotationTitle: undefined,
+      annotationDescription: undefined,
+      defaultTitle: 'Sultanahmet Sq',
+      isOwn: true,
     });
   });
 
@@ -92,6 +111,49 @@ describe('normalizeFavorites', () => {
 
   it('keeps a section that genuinely has no rows', () => {
     expect(normalizeFavorites(raw).othersRoads).toEqual([]);
+  });
+});
+
+describe('annotations', () => {
+  it("prefers the user's own label over the target's name", () => {
+    const annotated = normalizeFavorites({
+      ...raw,
+      ownRoads: [{ ...raw.ownRoads[0], title: 'Sunday drive' }],
+    });
+
+    expect(annotated.ownRoads[0].title).toBe('Sunday drive');
+    expect(annotated.ownRoads[0].defaultTitle).toBe('Coast run');
+    expect(annotated.ownRoads[0].annotationTitle).toBe('Sunday drive');
+  });
+
+  it('applies an annotation to the cached entry', () => {
+    const draft = normalizeFavorites(raw);
+    applyFavoriteAnnotation(draft, 'fav-road-1', {
+      title: 'Sunday drive',
+      description: 'With a coffee stop',
+    });
+
+    expect(draft.ownRoads[0].title).toBe('Sunday drive');
+    expect(draft.ownRoads[0].subtitle).toBe('With a coffee stop');
+  });
+
+  it('falls back to the original name when the label is cleared', () => {
+    const draft = normalizeFavorites({
+      ...raw,
+      ownRoads: [{ ...raw.ownRoads[0], title: 'Sunday drive' }],
+    });
+    applyFavoriteAnnotation(draft, 'fav-road-1', { title: '' });
+
+    expect(draft.ownRoads[0].title).toBe('Coast run');
+    expect(draft.ownRoads[0].annotationTitle).toBeUndefined();
+  });
+
+  it('leaves untouched fields alone', () => {
+    const draft = normalizeFavorites(raw);
+    applyFavoriteAnnotation(draft, 'fav-road-1', { description: 'Notes' });
+
+    expect(draft.ownRoads[0].title).toBe('Coast run');
+    expect(draft.ownRoads[0].subtitle).toBe('Notes');
   });
 });
 

@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
 
+import { useAppSelector } from 'store/hook';
+
 import WaypointList from 'screens/map/roads/WaypointList';
 import { useModeDurations } from 'hooks/useRouteDirections';
 
@@ -11,20 +13,23 @@ interface Props {
   transportMode: TransportMode;
   onTransportModeChange: (mode: TransportMode) => void;
   onDeleteWaypoint: (waypointId: string) => void;
+  onToggleFavoriteWaypoint: (waypointId: string) => void;
   onReorder: (params: { from: number; to: number }) => void;
   onReorderingChange?: (isReordering: boolean) => void;
 }
-
 
 const LocalWaypointList = ({
   waypoints,
   transportMode,
   onTransportModeChange,
   onDeleteWaypoint,
+  onToggleFavoriteWaypoint,
   onReorder,
   onReorderingChange,
 }: Props) => {
   const [selectedPair, setSelectedPair] = useState<string[]>([]);
+
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   const durations = useModeDurations(waypoints, selectedPair);
 
@@ -39,11 +44,15 @@ const LocalWaypointList = ({
 
   const handleOptionSelect = useCallback(
     (option: WaypointOption, item: WaypointWithAddress) => {
-      if (option !== 'delete') return;
+      if (option === 'favorite') {
+        onToggleFavoriteWaypoint(item.id);
+        return;
+      }
+
       onDeleteWaypoint(item.id);
       setSelectedPair((previous) => previous.filter((id) => id !== item.id));
     },
-    [onDeleteWaypoint],
+    [onDeleteWaypoint, onToggleFavoriteWaypoint],
   );
 
   return (
@@ -52,10 +61,10 @@ const LocalWaypointList = ({
       selectedPair={selectedPair}
       durations={durations}
       transportMode={transportMode}
-      showFavoriteAction={false}
       onTransportModeChange={onTransportModeChange}
       onToggleSelection={toggleSelection}
       onOptionSelect={handleOptionSelect}
+      showFavoriteAction={isLoggedIn}
       onReorder={onReorder}
       onReorderingChange={onReorderingChange}
     />

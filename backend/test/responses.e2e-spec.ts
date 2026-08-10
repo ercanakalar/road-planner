@@ -104,6 +104,8 @@ describe('Response contract (e2e)', () => {
       prisma.road.findUnique.mockResolvedValue({
         id: ROAD_ID,
         title: 'Trip',
+        archivedAt: null,
+        user: { nickName: 'ada', firstName: 'Ada' },
         wayPoints: [],
       });
 
@@ -122,6 +124,8 @@ describe('Response contract (e2e)', () => {
       prisma.road.findUnique.mockResolvedValue({
         id: ROAD_ID,
         title: 'Trip',
+        archivedAt: null,
+        user: { nickName: 'ada', firstName: 'Ada' },
         wayPoints: [],
       });
 
@@ -251,7 +255,6 @@ describe('Response contract (e2e)', () => {
       ).expect(409);
 
       expect(response.body.message).toBe('That value is already taken.');
-
       expect(JSON.stringify(response.body)).not.toMatch(/Permit_name_key/);
     });
 

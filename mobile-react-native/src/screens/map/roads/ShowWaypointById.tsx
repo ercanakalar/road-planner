@@ -2,11 +2,24 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
+import LocateButton from 'components/LocateButton';
 import ScreenState from 'components/ScreenState';
 import useWaypointLogic from 'hooks/useWaypointLogic';
-import { colors, radius, shadows, spacing, typography } from 'theme';
+import { darkMapStyle, lightMapStyle } from 'constants/mapStyles';
+import {
+  radius,
+  shadows,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+} from 'theme';
+import type { ThemeColors } from 'theme';
 
 const ShowWaypointByIdScreen = () => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   const { mapRef, data, isLoading, isError, initialRegion } =
     useWaypointLogic();
 
@@ -34,8 +47,10 @@ const ShowWaypointByIdScreen = () => {
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         showsUserLocation
-        showsMyLocationButton
+        showsMyLocationButton={false}
         initialRegion={initialRegion}
+        userInterfaceStyle={isDark ? 'dark' : 'light'}
+        customMapStyle={isDark ? darkMapStyle : lightMapStyle}
       >
         <Marker
           coordinate={{ latitude: data.latitude, longitude: data.longitude }}
@@ -44,9 +59,9 @@ const ShowWaypointByIdScreen = () => {
         />
       </MapView>
 
+      <LocateButton mapRef={mapRef} style={styles.locateButton} />
+
       <View style={styles.infoCard}>
-        {/* The detail endpoint does not join the address table, so the card
-            falls back to coordinates rather than rendering blank lines. */}
         <Text style={styles.title} numberOfLines={2}>
           {data.address?.address ?? 'Saved place'}
         </Text>
@@ -59,27 +74,33 @@ const ShowWaypointByIdScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  infoCard: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    left: spacing.lg,
-    right: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.xs,
-    ...shadows.md,
-  },
-  title: {
-    ...typography.heading,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    locateButton: {
+      position: 'absolute',
+      right: spacing.lg,
+      bottom: 130,
+    },
+    infoCard: {
+      position: 'absolute',
+      bottom: spacing.xl,
+      left: spacing.lg,
+      right: spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      gap: spacing.xs,
+      ...shadows.md,
+    },
+    title: {
+      ...typography.heading,
+      color: colors.text,
+    },
+    subtitle: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
+  });
 
 export default memo(ShowWaypointByIdScreen);

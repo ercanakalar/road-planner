@@ -8,9 +8,22 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ResetPasswordDto, SignInDto, SignUpDto } from 'src/auth/dto/auth.dto';
+import {
+  ChangePasswordDto,
+  ResetPasswordDto,
+  SignInDto,
+  SignUpDto,
+  VerifyResetCodeDto,
+} from 'src/auth/dto/auth.dto';
 import { HelperService } from 'src/auth/helper/helper.service';
 import { ok } from 'src/common/http/api-response';
+import {
+  RESET_CODE_LOCKOUT_HOURS,
+  RESET_CODE_MAX_ATTEMPTS,
+  RESET_CODE_TTL_MINUTES,
+} from 'src/auth/constants/password-reset';
+import { PasswordResetLockedException } from 'src/auth/exception/password-reset-locked.exception';
+import { PasswordResetChannel, Prisma } from '@prisma/client';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { EmailService } from 'src/notification/email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -32,8 +45,10 @@ const DUMMY_PASSWORD_HASH =
 const FORGOT_PASSWORD_RESPONSE = ok({
   header: 'Password Reset Requested',
   message:
-    'If an account exists for that address, a password reset link has been sent.',
+    'If an account exists for that address, a reset code has been sent to it.',
 });
+
+const INVALID_CODE_MESSAGE = 'That code is incorrect or has expired';
 
 @Injectable()
 export class AuthService {
@@ -286,7 +301,6 @@ export class AuthService {
 
   async forgotPassword(email: string) {
     const user = await this.findUserByEmail(email);
-
     if (!user?.manuelAuth) {
       return FORGOT_PASSWORD_RESPONSE;
     }
@@ -294,15 +308,11 @@ export class AuthService {
     const { token, tokenHash, expiresAt } =
       this.helperService.createPasswordResetToken();
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.passwordReset.updateMany({
-        where: { userId: user.id, usedAt: null },
-        data: { usedAt: new Date() },
-      });
-
-      await tx.passwordReset.create({
-        data: { userId: user.id, tokenHash, expiresAt },
-      });
+    await this.supersedeAndCreate(user.id, {
+      channel: PasswordResetChannel.LINK,
+      tokenHash,
+      expiresAt,
+      verifiedAt: new Date(),
     });
 
     const frontendUrl = this.config.get('FRONTEND_URL', { infer: true });
@@ -316,6 +326,134 @@ export class AuthService {
     });
 
     return FORGOT_PASSWORD_RESPONSE;
+  }
+
+  async requestPasswordResetCode(email: string) {
+    const user = await this.findUserByEmail(email);
+    if (!user?.manuelAuth) return FORGOT_PASSWORD_RESPONSE;
+
+    const locked = await this.findActiveLockout(user.id);
+    if (locked) return FORGOT_PASSWORD_RESPONSE;
+
+    const { code, codeHash, expiresAt } =
+      await this.helperService.createPasswordResetCode();
+
+    await this.supersedeAndCreate(user.id, {
+      channel: PasswordResetChannel.CODE,
+      codeHash,
+      expiresAt,
+    });
+
+    await this.emailService.sendEmail({
+      to: email,
+      subject: 'Your password reset code',
+      text: `Your password reset code is ${code}. It expires in ${RESET_CODE_TTL_MINUTES} minutes.`,
+      html: `<p>Your password reset code is <strong>${code}</strong>.</p><p>It expires in ${RESET_CODE_TTL_MINUTES} minutes. If you did not ask for it, you can ignore this email.</p>`,
+    });
+
+    return FORGOT_PASSWORD_RESPONSE;
+  }
+
+  private async supersedeAndCreate(
+    userId: string,
+    data: Omit<Prisma.PasswordResetUncheckedCreateInput, 'userId'>,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.passwordReset.updateMany({
+        where: { userId, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      await tx.passwordReset.create({ data: { userId, ...data } });
+    });
+  }
+
+  private async findActiveLockout(userId: string) {
+    return this.prisma.passwordReset.findFirst({
+      where: {
+        userId,
+        usedAt: null,
+        channel: PasswordResetChannel.CODE,
+        lockedUntil: { gt: new Date() },
+      },
+      select: { lockedUntil: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async verifyResetCode({ email, code }: VerifyResetCodeDto) {
+    const user = await this.findUserByEmail(email);
+
+    if (!user?.manuelAuth) {
+      await this.helperService.comparePassword(DUMMY_PASSWORD_HASH, code);
+      throw new BadRequestException(INVALID_CODE_MESSAGE);
+    }
+
+    const grant = await this.prisma.passwordReset.findFirst({
+      where: {
+        userId: user.id,
+        usedAt: null,
+        channel: PasswordResetChannel.CODE,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!grant) {
+      await this.helperService.comparePassword(DUMMY_PASSWORD_HASH, code);
+      throw new BadRequestException(INVALID_CODE_MESSAGE);
+    }
+
+    const now = new Date();
+
+    if (grant.lockedUntil && grant.lockedUntil > now) {
+      throw new PasswordResetLockedException(grant.lockedUntil);
+    }
+
+    if (grant.expiresAt <= now) {
+      throw new BadRequestException(INVALID_CODE_MESSAGE);
+    }
+
+    const isValid =
+      grant.codeHash !== null &&
+      (await this.helperService.isResetCodeValid(grant.codeHash, code));
+
+    if (!isValid) {
+      const attempts = grant.attempts + 1;
+      const lockedUntil =
+        attempts >= RESET_CODE_MAX_ATTEMPTS
+          ? new Date(now.getTime() + RESET_CODE_LOCKOUT_HOURS * 60 * 60 * 1000)
+          : null;
+
+      await this.prisma.passwordReset.update({
+        where: { id: grant.id },
+        data: { attempts, ...(lockedUntil ? { lockedUntil } : {}) },
+      });
+
+      if (lockedUntil) throw new PasswordResetLockedException(lockedUntil);
+
+      throw new BadRequestException({
+        message: INVALID_CODE_MESSAGE,
+        attemptsRemaining: RESET_CODE_MAX_ATTEMPTS - attempts,
+      });
+    }
+
+    const { token, tokenHash, expiresAt } =
+      this.helperService.createPasswordResetToken();
+
+    const verified = await this.prisma.passwordReset.updateMany({
+      where: { id: grant.id, usedAt: null, verifiedAt: null },
+      data: { verifiedAt: now, tokenHash, expiresAt, attempts: 0 },
+    });
+
+    if (verified.count === 0) {
+      throw new BadRequestException(INVALID_CODE_MESSAGE);
+    }
+
+    return ok({
+      header: 'Code Verified',
+      message: 'Enter a new password to finish.',
+      data: { resetToken: token, expiresAt: expiresAt.toISOString() },
+    });
   }
 
   async resetPassword(resetPasswordData: ResetPasswordDto, token: string) {
@@ -339,6 +477,7 @@ export class AuthService {
       if (
         !grant ||
         grant.usedAt !== null ||
+        grant.verifiedAt === null ||
         grant.expiresAt <= new Date() ||
         !grant.user.manuelAuth
       ) {
@@ -365,6 +504,57 @@ export class AuthService {
     return ok({
       header: 'Password Reset Successful',
       message: 'Password has been reset successfully',
+    });
+  }
+
+  async changePassword(userId: string, body: ChangePasswordDto) {
+    if (body.newPassword !== body.confirmPassword) {
+      throw new BadRequestException(
+        'newPassword and confirmPassword do not match',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        manuelAuth: { select: { id: true, password: true } },
+      },
+    });
+
+    if (!user?.manuelAuth) {
+      throw new BadRequestException(
+        'This account does not sign in with a password',
+      );
+    }
+
+    const isCurrentValid = await this.helperService.comparePassword(
+      user.manuelAuth.password,
+      body.currentPassword,
+    );
+
+    if (!isCurrentValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (body.currentPassword === body.newPassword) {
+      throw new BadRequestException(
+        'New password must differ from the current one',
+      );
+    }
+
+    const hashedPassword = await this.helperService.toHashPassword(
+      body.newPassword,
+    );
+
+    await this.prisma.manuelAuth.update({
+      where: { id: user.manuelAuth.id },
+      data: { password: hashedPassword },
+    });
+
+    return ok({
+      header: 'Password Changed',
+      message: 'Your password has been updated',
     });
   }
 
