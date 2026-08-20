@@ -7,51 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────────────────────
-// SOFT DELETE: REMOVED, DELIBERATELY
-//
-// Every model used to carry a nullable `deletedAt` plus an index on it. It was
-// never implemented: no code path anywhere wrote the column, so it was NULL in
-// every row of every table, and `deleteRoadById` issued a hard DELETE. The only
-// reads were six `deletedAt: null` filters, which therefore matched everything.
-//
-// Unenforced, it was worse than absent, because it implied a protection that did
-// not exist — `findUserByEmail` ignored it, so a "soft-deleted" user could still
-// sign in. It would also silently defeat every cascade rule below, since a soft
-// delete never triggers one.
-//
-// Nothing is lost by removing it: the columns were provably always NULL. If
-// retention or audit is needed later, the right shape is an append-only audit
-// table or an archive schema, designed against an actual requirement rather than
-// a column that looks like one.
-// ─────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────
-// AUTH MODELS
-//
-// `Tokens` used to hold access token, refresh token, reset token and reset
-// expiry in one row keyed uniquely by userId, reachable through three separate
-// unique foreign keys (Tokens.userId, ManuelAuth.tokenId, GoogleAuth.tokenId).
-// That shape caused three distinct problems, so it is replaced by two
-// purpose-specific tables:
-//
-//   * One session per user meant signing in on a phone silently invalidated a
-//     tablet. `Session` is one row per device.
-//   * Session and password-reset lifecycles were coupled, so signing out left a
-//     live reset token behind. `PasswordReset` is separate.
-//   * Three navigation paths to one row meant three places for them to
-//     disagree. Both new tables hang off `User` alone.
-// ─────────────────────────────────────────────────────────────
-
 model ManuelAuth {
   id       String @id @default(uuid())
-  /// Denormalised from User.email; kept in sync by AuthService. citext for the
-  /// same reason as User.email.
   email    String @unique @db.Citext
   password String @db.VarChar(255)
   userId   String @unique
-  /// Cascade: credentials are meaningless without their user. Was Restrict,
-  /// which made a user impossible to delete at all.
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -68,25 +28,17 @@ model GoogleAuth {
   updatedAt DateTime @updatedAt
 }
 
-/// One row per signed-in device.
 model Session {
   id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// SHA-256 of the refresh token. Never the token itself: a database
-  /// disclosure must not hand over live sessions.
   refreshTokenHash String @unique
 
-  /// Mirrors the refresh JWT's own expiry, so expired rows can be swept without
-  /// decoding every token.
   expiresAt  DateTime
-  /// Set on sign-out, on rotation-reuse detection, and on password reset.
   revokedAt  DateTime?
-  /// Updated on each successful refresh, for "last active" reporting.
   lastUsedAt DateTime  @default(now())
 
-  /// Free-text client hint, for showing a user their own session list.
   userAgent String?
 
   createdAt DateTime @default(now())
@@ -97,49 +49,24 @@ model Session {
   @@index([expiresAt])
 }
 
-/// A single-use password-reset grant.
 model PasswordReset {
   id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Which client asked, and therefore what was emailed.
-  ///
-  /// `LINK` mails a URL carrying the token and is usable straight away — that
-  /// is the browser flow. `CODE` mails five digits that must be exchanged for a
-  /// token first, because a link is useless in a native app.
   channel PasswordResetChannel @default(LINK)
 
-  /// scrypt hash of the emailed numeric code. Null on the `LINK` channel.
-  ///
-  /// A slow KDF rather than the SHA-256 used for `tokenHash`: a five-digit code
-  /// has ~17 bits of entropy, so a fast digest of one is trivially reversed by
-  /// enumerating all 100,000 values. The attempt limit is the primary defence
-  /// and this is the second.
   codeHash String?
 
-  /// Failed code submissions against this request.
   attempts Int @default(0)
 
-  /// Set once `attempts` reaches the limit; no code is accepted until it passes.
   lockedUntil DateTime?
 
-  /// When the request became usable.
-  ///
-  /// On `LINK` that is creation: possessing the emailed URL is the proof. On
-  /// `CODE` it is when the right digits arrived, and `tokenHash` is written at
-  /// the same moment so the low-entropy code never authorizes a change alone.
   verifiedAt DateTime?
 
-  /// SHA-256 of the token that authorizes the change. Set at creation on the
-  /// `LINK` channel and at verification on `CODE`.
-  ///
-  /// The original implementation stored and emailed the *same* digest, so the
-  /// stored value was the value that granted the reset.
   tokenHash String? @unique
 
   expiresAt DateTime
-  /// Set when consumed, so a used request is auditable rather than deleted.
   usedAt    DateTime?
 
   createdAt DateTime @default(now())
@@ -152,14 +79,6 @@ enum PasswordResetChannel {
   LINK
   CODE
 }
-
-// ─────────────────────────────────────────────────────────────
-// PERMISSION MODELS
-//
-// `Permit` is a role; `Permission` is a single grant. The names are kept as-is
-// because renaming them would churn every call site and migration for no
-// behavioural gain.
-// ─────────────────────────────────────────────────────────────
 
 model Permit {
   id          String       @id @default(uuid())
@@ -181,15 +100,9 @@ model Permission {
   updatedAt DateTime @updatedAt
 }
 
-// ─────────────────────────────────────────────────────────────
-// USER MODEL
-// ─────────────────────────────────────────────────────────────
-
 model User {
   id String @id @default(uuid())
 
-  /// `citext` so uniqueness is case-insensitive. As plain text, `Foo@x.com` and
-  /// `foo@x.com` were two separate accounts.
   email String @unique @db.Citext
 
   firstName String?
@@ -216,39 +129,17 @@ model User {
   @@index([nickName])
 }
 
-// ─────────────────────────────────────────────────────────────
-// ROAD & WAYPOINT MODELS
-// ─────────────────────────────────────────────────────────────
-
 model Road {
   id String @id @default(uuid())
 
-  /// Non-null with Cascade. It was nullable with SetNull, so deleting a user
-  /// left ownerless roads that could never be listed, authorized or cleaned up —
-  /// and made `road.userId !== user.userId` compare null against undefined.
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   title       String
   description String
 
-  /// Opt-in. A road is private to its owner unless they publish it, which is
-  /// what the discover feed reads. Defaulting this to true would retroactively
-  /// expose every existing route, including the addresses of its stops.
   isPublic Boolean @default(false)
 
-  /// When the owner removed this road from their own list.
-  ///
-  /// Deleting the row is not an option once the road can be published: another
-  /// user may have saved it, and their copy must keep working. So the owner's
-  /// delete retires the road instead — it leaves their list and the discover
-  /// feed, while everyone who favourited it keeps full access.
-  ///
-  /// This is a soft delete, which this schema removed once before. The
-  /// difference is that this one is enforced: every read path filters on it,
-  /// and the tests below the service cover the archived case. The earlier
-  /// `deletedAt` was written by nothing and read by six filters that therefore
-  /// matched every row.
   archivedAt DateTime?
 
   wayPoints     WayPoint[]
@@ -266,22 +157,11 @@ model WayPoint {
   latitude  Float
   longitude Float
 
-  /// Position within the road, 1-based and contiguous.
-  ///
-  /// Assigned by the service from the payload's ordering, never taken from the
-  /// request verbatim: duplicates and gaps were both representable, and every
-  /// write path renumbered afterwards anyway.
   order Int
 
-  /// Non-null with Cascade, for the same reason as Road.userId: an orphaned
-  /// waypoint is unreachable and unauthorizable.
   roadId String
   road   Road   @relation(fields: [roadId], references: [id], onDelete: Cascade)
 
-  /// One address per waypoint, owned by it. The relation was many-to-one while
-  /// the code created a fresh address per waypoint and deleted addresses by id
-  /// on road deletion — so a shared address would have been destroyed out from
-  /// under another road.
   addressInfoId String?      @unique
   address       AddressInfo? @relation(fields: [addressInfoId], references: [id], onDelete: SetNull)
 
@@ -290,18 +170,6 @@ model WayPoint {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  /// Two waypoints on one road cannot share a position.
-  ///
-  /// Created by the migration as `DEFERRABLE INITIALLY DEFERRED`, which
-  /// `schema.prisma` has no syntax for — Prisma's own diff reports no drift for it,
-  /// which was checked before relying on it. Deferral is what makes a reorder
-  /// possible at all: permuting positions with a single
-  /// `UPDATE … FROM (VALUES …)` transiently duplicates a value, and a
-  /// non-deferrable index rejects that mid-statement even though the end state is
-  /// unique. It still rejects a genuine duplicate at commit.
-  ///
-  /// It also supersedes the previous `@@index([roadId, order])`, which the
-  /// migration drops: a unique index serves the same ordered lookups.
   @@unique([roadId, order])
 }
 
@@ -319,13 +187,6 @@ model AddressInfo {
 
   @@index([country, province, district])
 }
-
-// ─────────────────────────────────────────────────────────────
-// FAVORITES
-//
-// Cascade on both sides: a favourite is a link, meaningless once either end is
-// gone. `userId` was Restrict, which blocked user deletion outright.
-// ─────────────────────────────────────────────────────────────
 
 model FavoriteRoad {
   id     String @id @default(uuid())

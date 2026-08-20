@@ -2,7 +2,7 @@ import appConfig from 'constants/appConfig';
 
 export const SHARE_PATH = 'share';
 
-export const APP_SCHEME = 'com.ercanakalar.mobilereactnative';
+export const APP_SCHEME = 'net.travelroutes.travelroutes';
 
 const trimBase = (value: string): string => value.trim().replace(/\/+$/, '');
 

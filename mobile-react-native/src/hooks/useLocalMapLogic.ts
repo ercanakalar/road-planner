@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 
-import { reverseGeocode } from 'services/googleMapsService';
+import { RoutePlace, reverseGeocode } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
@@ -20,6 +20,7 @@ import {
   localWaypointsReordered,
 } from 'store/slices/localRoadSlice';
 import { useRouteLine } from 'hooks/useRouteDirections';
+import useRouteSearch from 'hooks/useRouteSearch';
 import {
   MapLongPressEvent,
   MarkerDragEndEvent,
@@ -101,6 +102,7 @@ const useLocalMapLogic = () => {
   );
 
   const routeLine = useRouteLine(waypoints, transportMode);
+  const routeSearch = useRouteSearch(waypoints, transportMode);
 
   const waypointsRef = useRef(waypoints);
   waypointsRef.current = waypoints;
@@ -244,6 +246,51 @@ const useLocalMapLogic = () => {
     [dispatch],
   );
 
+  const focusOnPlace = useCallback((place: RoutePlace) => {
+    mapRef.current?.animateToRegion(
+      {
+        latitude: place.latitude,
+        longitude: place.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      600,
+    );
+  }, []);
+
+  const handleAddPlaceAsStop = useCallback(
+    async (place: RoutePlace) => {
+      setIsSavingPin(true);
+
+      try {
+        const address = await reverseGeocode(place).catch(() => ({
+          address: place.address,
+          country: '',
+          province: '',
+          district: '',
+        }));
+
+        dispatch(
+          localWaypointAdded({
+            latitude: place.latitude,
+            longitude: place.longitude,
+            address: { ...address, address: place.name },
+            insertAtIndex: place.insertAfterIndex + 1,
+          }),
+        );
+
+        showNotification({
+          type: 'success',
+          header: 'Added to your route',
+          message: `${place.name} is now a stop on this route.`,
+        });
+      } finally {
+        setIsSavingPin(false);
+      }
+    },
+    [dispatch],
+  );
+
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
     () =>
       contextMenuWaypoint
@@ -301,11 +348,14 @@ const useLocalMapLogic = () => {
     roads,
     waypoints,
     routeLine,
+    routeSearch,
     transportMode,
     setTransportMode,
     draggingWaypointId,
     contextMenuProps,
     onPlaceSelected,
+    focusOnPlace,
+    handleAddPlaceAsStop,
     handleMarkerDragEnd,
     handleMapLongPress,
     handleMapPress,

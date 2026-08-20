@@ -2,8 +2,8 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import FormField from 'components/FormField';
-import PrimaryButton from 'components/PrimaryButton';
+import FormField from 'components/ui/FormField';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useChangePasswordMutation } from 'store/services/authenticationService';
 import { showNotification } from 'services/notificationService';
 

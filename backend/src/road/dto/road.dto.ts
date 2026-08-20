@@ -3,7 +3,6 @@ import {
   ArrayMaxSize,
   IsBoolean,
   IsArray,
-  IsDefined,
   IsIn,
   IsInt,
   IsNumber,
@@ -127,10 +126,10 @@ export class AddWaypointDto {
   @Min(0)
   order!: number;
 
-  @IsDefined({ message: 'address is required' })
+  @IsOptional()
   @ValidateNested()
   @Type(() => RequiredAddressInputDto)
-  address!: RequiredAddressInputDto;
+  address?: RequiredAddressInputDto;
 }
 
 export class UpdateWaypointDto {
@@ -149,10 +148,10 @@ export class UpdateWaypointDto {
   @Min(0)
   order?: number;
 
-  @IsDefined({ message: 'address is required' })
+  @IsOptional()
   @ValidateNested()
   @Type(() => RequiredAddressInputDto)
-  address!: RequiredAddressInputDto;
+  address?: RequiredAddressInputDto;
 }
 
 export class ReorderWaypointsDto {

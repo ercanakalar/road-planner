@@ -2,10 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
-import AuthScreenLayout from 'components/AuthScreenLayout';
-import FormField from 'components/FormField';
-import GoogleSignInButton from 'components/GoogleSignInButton';
-import PrimaryButton from 'components/PrimaryButton';
+import AuthScreenLayout from 'components/auth/AuthScreenLayout';
+import FormField from 'components/ui/FormField';
+import GoogleSignInButton from 'components/auth/GoogleSignInButton';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useSignInMutation } from 'store/services/authenticationService';
 
 import { spacing, typography, useThemedStyles } from 'theme';
@@ -115,7 +115,7 @@ const SignInScreen = ({ navigation }: Props) => {
         isLoading={isLoading}
       />
 
-      <GoogleSignInButton onSuccess={goToRoutes} />
+      {/* <GoogleSignInButton onSuccess={goToRoutes} /> */}
     </AuthScreenLayout>
   );
 };

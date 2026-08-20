@@ -11,26 +11,13 @@ cp .env.example .env
 npm start
 ```
 
-`src/constants/appConfig.ts` is git-ignored. It reads `EXPO_PUBLIC_BASE_URL` and
-`EXPO_PUBLIC_MAP_API_KEY` from `.env`, falling back to `http://localhost:3000`.
+`src/constants/appConfig.ts` is git-ignored. It reads `EXPO_PUBLIC_BASE_URL`
+from `.env`, falling back to `http://localhost:3000`.
 
 `EXPO_PUBLIC_BASE_URL` is the backend's address **without** the `/api` prefix —
 NestJS sets that prefix globally and `src/constants/apiUrl.ts` adds it to every
 request. Writing it in anyway is harmless; the prefix is never doubled.
 
-### Google Maps keys
-
-Two separate keys are involved:
-
-| Key | Used by | Configured in |
-| --- | --- | --- |
-| `EXPO_PUBLIC_MAP_API_KEY` | Directions, Geocoding, Places REST calls | `.env` → `appConfig.ts` |
-| `GOOGLE_MAPS_API_KEY` | The native map SDK rendering the map itself | `.env` → substituted into `app.json` at prebuild |
-
-Both are shipped inside the app binary, so restrict them in the Google Cloud
-console — Android package name + SHA-1, iOS bundle id, and only the APIs above.
-
-## Features
 
 ### The Map tab works signed out
 
@@ -48,6 +35,61 @@ so a partial failure leaves the rest on the device to retry.
 The signed-out map and the account-backed route screen render through the same
 components (`MapSection`, `WaypointList`, `ContextMenu`, `PlacesSearchBar`);
 only the persistence target differs, so the two cannot drift apart.
+
+### Following a route as you drive it
+
+Once a route is drawn, a **navigate** button appears under the locate button.
+It is a toggle: on, `useLiveLocation` watches the device position
+(`expo-location`, a fix every 10m or 2s) and the map recentres on each one. The
+first fix zooms in close enough to read the road; every fix after that only
+moves the camera, so a zoom chosen by hand mid-journey survives. Panning the
+map switches following off — carrying on recentring would drag the map back
+out from under your finger.
+
+The road already driven draws at 0.6 opacity. `splitRouteAtLocation`
+(`utils/geo`) cuts the drawn line at the point nearest the current position and
+the two halves share that point, so the faded road behind and the full-strength
+road ahead meet under the marker rather than leaving a gap at it. A polyline has
+no opacity of its own — `strokeColor` is all there is — so the fade goes into
+the colour itself via `withAlpha`, casing and line together.
+
+The split only applies within 200m of the line. A drawn route is a
+simplification of the road and a fix has error of its own, but past that the
+journey has been left rather than rounded off, and dimming half of it because
+you are in the next town would be a lie about where you are.
+
+Both the watch and the button live in `MapSection`, so both map screens get
+this without either of them knowing about it. The subscription exists only
+while following is on: a location watch left running is the fastest way to
+flatten a battery.
+
+### Searching along the route
+
+Once a route has two stops, an **On the way** chip appears over the map.
+`RouteSearchSheet` searches the journey itself rather than the map view: a
+free-text box for anything (*sushi*, *car wash*, *playground*), one-tap
+categories from `constants/placeCategories`, and a corridor width from 500m to
+10km. The route is the boundary of the search, so nothing comes back that is
+further than that from the line that will actually be driven — a cafe two
+streets off the motorway is a result, one the same distance from the
+destination as the crow flies is not.
+
+Results are drawn on the map in a colour the route's own pins never use, and
+each row shows its rating, how far off the route it is, and whether it is open.
+The **+** on a row adds it as a stop *where it is passed*: the backend returns
+`insertAfterIndex`, so a lunch stop lands between the two stops it actually sits
+between rather than at the end of the journey. Tapping the row instead just
+shows it on the map, leaving the route alone.
+
+One search costs the backend a dozen billed Places lookups, so `useRouteSearch`
+debounces harder than the autocomplete beside it (600ms), asks for nothing until
+there is both a route and something to look for, and `mapsService` caches each
+search. A route too long to blanket at the chosen radius is searched in circles
+that no longer touch; the sheet says so rather than letting a short list read as
+an empty stretch of road.
+
+Both map screens use it — the signed-out device map and the account-backed route
+screen — through the same sheet; only where the new stop is written differs.
 
 ### Sharing a route by link
 
@@ -70,7 +112,7 @@ a 404 rather than outliving the deletion.
 serves `/.well-known/assetlinks.json` naming this package and its signing
 SHA-256.** Set `EXPO_PUBLIC_SHARE_LINK_BASE_URL` (app) and `SHARE_LINK_BASE_URL`
 (backend) to that host. With neither set the app shares
-`com.ercanakalar.mobilereactnative://share/<token>`, which does open the app when
+`net.travelroutes.travelroutes://share/<token>`, which does open the app when
 tapped but which chat apps will not render as a tappable link — so on a plain
 LAN setup, expect to paste it into a browser rather than tap it in WhatsApp.
 
@@ -152,7 +194,13 @@ as cancelled, so no caller is left awaiting a promise that never settles.
 
 ```
 src/
-  components/   Reusable UI (ConfirmModal, EditDetailsModal, ScreenState, …)
+  components/   Shared UI, grouped by what it knows about
+    ui/         Domain-agnostic primitives: buttons, fields, layout, states
+    feedback/   Errors, toasts and confirmation, app-wide
+    auth/       Sign-in surface and session gating
+    map/        The map, its controls and the waypoint list
+    road/       Road details and the local-road upload prompt
+    profile/    Avatar and theme controls
   hooks/        useMapLogic, useLocalMapLogic, useRouteDirections, bootstrap
   navigators/   Root stack + bottom tabs
   screens/      Feature screens (map/local is the signed-out Map tab)
@@ -161,6 +209,17 @@ src/
   theme/        Design tokens — colours, spacing, radii, shadows, elevation
   types/        Shared types
 ```
+
+Two rules keep that arrangement honest. **`components/` never imports from
+`screens/`** — a component that needs a screen's data takes it as a prop, which
+is what let `MapSection` and `WaypointList` be shared by the signed-out map and
+the account-backed one instead of one screen reaching into the other's folder.
+And **`ui/` never imports from a domain folder**, so a primitive stays a
+primitive.
+
+Imports name the file rather than a folder barrel — `components/ui/PrimaryButton`,
+not `components/ui`. A barrel makes every screen that wants one control pull in
+all of them, which is startup time a phone pays for and nobody asked for.
 
 ### Data layer
 
@@ -182,16 +241,34 @@ Server state lives entirely in RTK Query; Redux slices hold only client state
 
 ### Maps and network cost
 
-Every Google call goes through `services/googleMapsService`, which caches by
-request (bounded LRU) and de-duplicates concurrent identical requests. One
-Directions response supplies both the polyline and the distance/duration, and
-the driving-mode lookup is shared between the drawn line and the mode selector.
+The app does not talk to Google. Every lookup goes through
+`services/mapsService`, which calls the backend's `/api/maps/*` endpoints; the
+backend calls Google and caches the answers. Coordinates go out, a drawn line
+and an address come back — the polyline arrives already decoded, which is why
+there is no polyline library in this project any more.
 
-Because callers share one in-flight promise, `fetchDirections` and
-`reverseGeocode` deliberately take no `AbortSignal` — one screen must not be
-able to cancel a request another is awaiting. They are debounced instead.
-Places autocomplete is per-caller, so it does abort, and it uses a session
-token so a search plus its details lookup is billed once.
+`mapsService` keeps a cache of its own (bounded LRU, de-duplicating concurrent
+identical requests) so a redraw makes no round trip at all. Because callers
+share one in-flight promise, `fetchDirections` and `reverseGeocode` deliberately
+take no `AbortSignal` — one screen must not be able to cancel a request another
+is awaiting. They are debounced instead. Places autocomplete is per-caller, so
+it does abort, and it carries a session token so a search plus its details
+lookup is billed once.
+
+Comparing modes is one request: `fetchModeDurations` posts the journey and the
+list of modes, and the backend asks Google for each of them in parallel.
+
+`searchPlacesAlongRoute` is the most expensive call the app makes — the backend
+fans one out into a dozen Places lookups to cover the route in circles — so it
+is cached like the rest and debounced hardest (600ms). It takes no
+`AbortSignal` for the same reason `fetchDirections` does not; a result that
+arrives after the search has moved on is dropped by the hook instead.
+
+Adding or moving a waypoint on a saved road sends coordinates only. The server
+names the pin as it stores it, so the write is one round trip instead of a
+lookup followed by a save; the list shows *Locating…* for as long as that takes.
+Roads kept on the device still geocode through `/api/maps/geocode/reverse`,
+since there is no server-side write to hang the lookup off.
 
 ## Checks
 
@@ -229,7 +306,7 @@ docker compose -f docker-compose.apk.yml run --rm build-apk
 The APK is written to `apk-output/`. Copy it to the phone and open it, or:
 
 ```bash
-adb install -r apk-output/road-planner-release.apk
+adb install -r apk-output/travel-routes-release.apk
 ```
 
 The first run downloads the Android SDK and Gradle dependencies and takes a
@@ -253,10 +330,6 @@ means the phone itself, and `10.0.2.2` means the host only to the Android
 emulator; use the backend machine's address on the network the phone is on.
 Confirm it from the phone's browser before building — `/api/health` answers.
 
-`EXPO_PUBLIC_MAP_API_KEY` is used twice: for the REST calls listed above, and —
-via `app.config.js` — as the Google Maps key written into `AndroidManifest.xml`.
-Without it the map renders as an empty grey grid.
-
 Android blocks plain HTTP in a release build. `app.config.js` opts the manifest
 back in automatically when `EXPO_PUBLIC_BASE_URL` starts with `http://`, which
 is fine while testing but not something to ship — serve the API over HTTPS for a
@@ -267,7 +340,7 @@ real release and the opt-in disappears on its own.
 The signing key is generated on the first run into a named volume and reused
 afterwards, so the certificate fingerprint stays the same between builds. The
 build prints its SHA-1; register that against package
-`com.ercanakalar.mobilereactnative` in the Android OAuth client, or Google
+`net.travelroutes.travelroutes` in the Android OAuth client, or Google
 sign-in is refused.
 
 Deleting the `apk-keystore` volume generates a new key with a new fingerprint,

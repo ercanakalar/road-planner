@@ -10,8 +10,8 @@ import {
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import FormField from 'components/FormField';
-import PrimaryButton from 'components/PrimaryButton';
+import FormField from 'components/ui/FormField';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useRequestPasswordResetCodeMutation } from 'store/services/authenticationService';
 import passwordResetLockout from 'services/passwordResetLockout';
 import { formatWait } from 'utils/formatDuration';

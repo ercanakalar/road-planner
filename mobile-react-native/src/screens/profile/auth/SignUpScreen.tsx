@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
-import AuthScreenLayout from 'components/AuthScreenLayout';
-import FormField from 'components/FormField';
-import GoogleSignInButton from 'components/GoogleSignInButton';
-import PrimaryButton from 'components/PrimaryButton';
+import AuthScreenLayout from 'components/auth/AuthScreenLayout';
+import FormField from 'components/ui/FormField';
+import GoogleSignInButton from 'components/auth/GoogleSignInButton';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useSignUpMutation } from 'store/services/authenticationService';
 import { RootStackParamList } from 'types/screens/screens';
 
@@ -115,7 +115,7 @@ export default function SignUpScreen() {
         isLoading={isLoading}
       />
 
-      <GoogleSignInButton label='Sign up with Google' />
+      {/* <GoogleSignInButton label='Sign up with Google' /> */}
     </AuthScreenLayout>
   );
 }

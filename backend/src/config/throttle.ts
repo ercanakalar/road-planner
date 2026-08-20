@@ -18,6 +18,16 @@ export const throttlerOptions: ThrottlerModuleOptions = {
   skipIf: shouldSkipThrottle,
 };
 
+export const MAPS_THROTTLE = {
+  directions: { default: { ttl: MINUTE, limit: 60 } },
+
+  geocode: { default: { ttl: MINUTE, limit: 40 } },
+
+  places: { default: { ttl: MINUTE, limit: 90 } },
+
+  routeSearch: { default: { ttl: MINUTE, limit: 12 } },
+} as const;
+
 export const AUTH_THROTTLE = {
   signIn: { default: { ttl: MINUTE, limit: 10 } },
 

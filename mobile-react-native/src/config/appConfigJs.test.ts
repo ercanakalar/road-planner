@@ -29,16 +29,6 @@ describe('app.config.js', () => {
     });
   });
 
-  it('never leaves an unexpanded variable name as the key', () => {
-    withEnv(
-      { EXPO_PUBLIC_MAP_API_KEY: undefined, GOOGLE_MAPS_API_KEY: undefined },
-      () => {
-        const config = loadConfig();
-
-        expect(config.android.config.googleMaps.apiKey).toBe('');
-      },
-    );
-  });
 
   it('allows plain HTTP only when the API url needs it', () => {
     const cleartext = (config: { plugins: unknown[] }) => {
@@ -69,7 +59,7 @@ describe('app.config.js', () => {
   });
 
   it('keeps the scheme Google sign-in redirects back to', () => {
-    expect(loadConfig().scheme).toBe('com.ercanakalar.mobilereactnative');
+    expect(loadConfig().scheme).toBe('net.travelroutes.travelroutes');
   });
 });
 

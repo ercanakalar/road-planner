@@ -201,7 +201,7 @@ to anyone who can pull it.
 
 `docker-compose.yml`:
 
-- The hardcoded database password is now `${POSTGRES_PASSWORD:-road-map}` — still works
+- The hardcoded database password is now `${POSTGRES_PASSWORD:-travel-routes}` — still works
   out of the box, overridable for anything that is not a laptop.
 - Backend secrets come from `backend/.env` via `env_file` with `required: false`, not
   from this file, which is in version control. `required: false` matters: without it

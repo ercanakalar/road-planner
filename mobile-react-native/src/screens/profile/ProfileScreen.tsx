@@ -10,8 +10,8 @@ import {
 import { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import ScreenState from 'components/ScreenState';
-import { useConfirm } from 'components/ConfirmProvider';
+import ScreenState from 'components/ui/ScreenState';
+import { useConfirm } from 'components/feedback/ConfirmProvider';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { useLogoutMutation } from 'store/services/authenticationService';
 import { useGetUserQuery } from 'store/services/profileService';

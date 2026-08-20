@@ -144,3 +144,52 @@ describe('localRoadSlice', () => {
     expect(next.roads[0].wayPoints[0].isFavorite).toBeUndefined();
   });
 });
+
+describe('adding a place found along the route', () => {
+  const insertAt = (
+    state: ReturnType<typeof reducer>,
+    latitude: number,
+    index: number,
+  ) =>
+    reducer(
+      state,
+      localWaypointAdded({
+        latitude,
+        longitude: 1,
+        address,
+        insertAtIndex: index,
+      }),
+    );
+
+  it('drops the stop between the two it is passed between', () => {
+    const state = insertAt(roadWithPins(2), 99, 1);
+
+    expect(state.roads[0].wayPoints.map((point) => point.latitude)).toEqual([
+      1, 99, 2,
+    ]);
+  });
+
+  it('renumbers the stops it pushed along', () => {
+    const state = insertAt(roadWithPins(3), 99, 1);
+
+    expect(state.roads[0].wayPoints.map((point) => point.order)).toEqual([
+      1, 2, 3, 4,
+    ]);
+  });
+
+  it('appends when no position is given, as a dropped pin does', () => {
+    const state = addPin(roadWithPins(2), 99);
+
+    expect(state.roads[0].wayPoints.map((point) => point.latitude)).toEqual([
+      1, 2, 99,
+    ]);
+  });
+
+  it('keeps a position past the end of the route inside it', () => {
+    const state = insertAt(roadWithPins(2), 99, 9);
+
+    expect(state.roads[0].wayPoints.map((point) => point.latitude)).toEqual([
+      1, 2, 99,
+    ]);
+  });
+});

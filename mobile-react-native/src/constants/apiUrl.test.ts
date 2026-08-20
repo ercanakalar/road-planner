@@ -22,8 +22,8 @@ describe('apiBaseUrl', () => {
   });
 
   it('leaves a path that is not the prefix alone', () => {
-    expect(apiBaseUrl('https://example.com/road-planner')).toBe(
-      'https://example.com/road-planner/api',
+    expect(apiBaseUrl('https://example.com/travel-routes')).toBe(
+      'https://example.com/travel-routes/api',
     );
   });
 });

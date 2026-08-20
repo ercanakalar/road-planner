@@ -11,9 +11,9 @@ import {
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import Container from 'components/Container';
-import useRefreshControlColors from 'components/useRefreshControlColors';
-import PrimaryButton from 'components/PrimaryButton';
+import Container from 'components/ui/Container';
+import useRefreshControlColors from 'hooks/useRefreshControlColors';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useAppSelector } from 'store/hook';
 import {
   useGetDiscoverRoadsQuery,

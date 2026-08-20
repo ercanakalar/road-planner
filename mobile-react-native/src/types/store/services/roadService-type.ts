@@ -14,12 +14,6 @@ export interface Road {
   deletedAt: string | null;
 }
 
-export interface RoadDetail {
-  id: string;
-  userId: string;
-  title: string;
-  description?: string;
-}
 
 export interface Address {
   id: string;
@@ -45,9 +39,6 @@ export interface Waypoint {
   deletedAt: string | null;
 }
 
-export interface FavoriteEntity {
-  id: string;
-}
 
 export interface WaypointAddressInput {
   address: string;
@@ -62,7 +53,7 @@ export interface WaypointInput {
   longitude: number;
   order?: number;
   description?: string;
-  address: WaypointAddressInput;
+  address?: WaypointAddressInput;
 }
 
 export type GetOwnRoadsArgs = void;

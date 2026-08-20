@@ -7,7 +7,7 @@ import {
 } from 'store/services/roadService';
 import { useToggleFavoriteWaypointMutation } from 'store/services/favoriteService';
 
-import WaypointList from './WaypointList';
+import WaypointList from 'components/map/WaypointList';
 import { useModeDurations } from 'hooks/useRouteDirections';
 import { showNotification } from 'services/notificationService';
 

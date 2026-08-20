@@ -1,10 +1,7 @@
 import { ExecutionContext } from '@nestjs/common';
 
-export type Mocked<T> = {
-  [K in keyof T]: T[K] extends (...args: infer A) => infer R
-    ? jest.Mock<R, A extends any[] ? A : any[]>
-    : T[K];
-};
+import { UNNAMED_PLACE } from 'src/maps/services/geocoding.service';
+import { AddressResult } from 'src/maps/types/maps.types';
 
 const PRISMA_MODELS = [
   'user',
@@ -65,6 +62,19 @@ export function createPrismaMock(): PrismaMock {
   mock.$executeRaw = jest.fn().mockResolvedValue(0);
 
   return mock;
+}
+
+export function createGeocodingMock(fallback: AddressResult = UNNAMED_PLACE): {
+  reverseGeocode: jest.Mock;
+  resolveAddress: jest.Mock;
+} {
+  return {
+    reverseGeocode: jest.fn().mockResolvedValue(fallback),
+    resolveAddress: jest.fn(
+      (_coordinate: unknown, supplied?: { address?: string }) =>
+        Promise.resolve(supplied?.address ? supplied : fallback),
+    ),
+  };
 }
 
 export function createConfigMock(values: Record<string, unknown> = {}) {

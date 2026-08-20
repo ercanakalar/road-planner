@@ -12,7 +12,7 @@ import {
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import PrimaryButton from 'components/PrimaryButton';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import {
   useRequestPasswordResetCodeMutation,
   useVerifyResetCodeMutation,

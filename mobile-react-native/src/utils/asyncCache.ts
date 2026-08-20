@@ -48,4 +48,3 @@ export function createAsyncCache<T>(maxEntries = 40) {
   };
 }
 
-export type AsyncCache<T> = ReturnType<typeof createAsyncCache<T>>;

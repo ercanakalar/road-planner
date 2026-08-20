@@ -2,7 +2,9 @@ import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PaginationQueryDto } from '../../src/common/dto/pagination.dto';
+import { GeocodingService } from '../../src/maps/services/geocoding.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { createGeocodingMock } from '../../src/testing/mocks';
 import { RoadService } from '../../src/road/services/road/road.service';
 import { RoadVisibility } from '../../src/road/services/visibility/road-visibility';
 import { WaypointService } from '../../src/road/services/waypoint/waypoint.service';
@@ -61,6 +63,7 @@ describeIntegration('Road writes (integration)', () => {
     waypoints = new WaypointService(
       prisma as unknown as PrismaService,
       visibility,
+      createGeocodingMock() as unknown as GeocodingService,
     );
   });
 

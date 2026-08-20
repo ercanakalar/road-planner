@@ -6,10 +6,7 @@ import {
   transformApiResponseWithToast,
 } from 'store/bases/transformApiResponse';
 import { ApiResponse } from 'types/store/bases';
-import {
-  WaypointWithAddress,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
+import { WaypointWithAddress } from 'types/map-screen-type';
 import {
   AddWaypointArgs,
   AddWaypointResponse,
@@ -39,9 +36,17 @@ import {
   UpdateRoadByIdResponse,
   UpdateWaypointByWaypointIdArgs,
   UpdateWaypointByWaypointIdResponse,
+  WaypointAddressInput,
 } from 'types/store/services/roadService-type';
 
 export const TEMP_WAYPOINT_ID = 'temp-waypoint-id';
+
+export const PENDING_ADDRESS: WaypointAddressInput = {
+  address: 'Locating…',
+  country: '',
+  province: '',
+  district: '',
+};
 
 const withSequentialOrder = (
   waypoints: WaypointWithAddress[],
@@ -227,7 +232,7 @@ export const roadService = createApi({
           latitude: waypoint.latitude,
           longitude: waypoint.longitude,
           order: waypoint.order,
-          address: waypoint.address,
+          ...(waypoint.address ? { address: waypoint.address } : {}),
         },
       }),
       transformResponse: (res: ApiResponse<AddWaypointResponse>) =>
@@ -254,7 +259,10 @@ export const roadService = createApi({
                 favoriteWaypoints: [],
                 createdAt: now,
                 updatedAt: now,
-                address: { id: TEMP_WAYPOINT_ID, ...waypoint.address },
+                address: {
+                  id: TEMP_WAYPOINT_ID,
+                  ...(waypoint.address ?? PENDING_ADDRESS),
+                },
               });
             },
           ),
@@ -316,7 +324,7 @@ export const roadService = createApi({
         body: {
           latitude: waypoint.latitude,
           longitude: waypoint.longitude,
-          address: waypoint.address,
+          ...(waypoint.address ? { address: waypoint.address } : {}),
         },
       }),
       transformResponse: (
@@ -340,7 +348,10 @@ export const roadService = createApi({
               if (!target) return;
               target.latitude = waypoint.latitude;
               target.longitude = waypoint.longitude;
-              target.address = { ...target.address, ...waypoint.address };
+              target.address = {
+                ...target.address,
+                ...(waypoint.address ?? PENDING_ADDRESS),
+              };
             },
           ),
         );
@@ -387,10 +398,6 @@ export const roadService = createApi({
     }),
   }),
 });
-
-export const selectRoadWaypoints = (
-  road: WaypointWithAddressAndId | undefined,
-): WaypointWithAddress[] => road?.wayPoints ?? [];
 
 export const {
   useGetOwnRoadsQuery,

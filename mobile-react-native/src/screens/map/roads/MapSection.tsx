@@ -1,12 +1,23 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import LocateButton from 'components/LocateButton';
+import { RoutePlace } from 'services/mapsService';
+import { showNotification } from 'services/notificationService';
 import { useAppSelector } from 'store/hook';
 import useInitialRegion from 'hooks/useInitialRegion';
-import { createRouteLineStyles } from 'constants/transportStyles';
+import useLiveLocation from 'hooks/useLiveLocation';
+import { createRouteLineStyles, RouteLineStyle } from 'constants/transportStyles';
 import { darkMapStyle, lightMapStyle } from 'constants/mapStyles';
 import {
   radius,
@@ -18,11 +29,32 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { MapSectionProps } from 'types/screens/mapScreenType';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { RouteCoordinate, WaypointWithAddress } from 'types/map-screen-type';
+import { withAlpha } from 'utils/color';
+import { splitRouteAtLocation } from 'utils/geo';
+import { metersToDistance } from 'utils/secondsToHour';
 
 const EDGE_PADDING = { top: 90, right: 70, bottom: 260, left: 70 };
 const DEFAULT_DELTA = 0.08;
 const LOCATE_BUTTON_TOP_OFFSET = 62;
+const FOLLOW_BUTTON_TOP_OFFSET = LOCATE_BUTTON_TOP_OFFSET + 52;
+
+/** How faded the road already driven is drawn. */
+const TRAVELLED_OPACITY = 0.6;
+
+/**
+ * How far from the line still counts as being on it.
+ *
+ * A drawn route is a simplification of the road and a fix has error of its
+ * own, so the two rarely agree to the metre. Past this, though, the journey
+ * has been left rather than merely rounded off — and dimming half the route
+ * because someone is in the next town would be a lie about where they are.
+ */
+const ON_ROUTE_METERS = 200;
+
+/** Close enough to see the next turn, when following starts. */
+const FOLLOW_DELTA = 0.01;
+const FOLLOW_ANIMATION_MS = 500;
 
 type MarkerProps = {
   waypoint: WaypointWithAddress;
@@ -74,6 +106,101 @@ const WaypointMarker = memo(
 
 WaypointMarker.displayName = 'WaypointMarker';
 
+/**
+ * A search result, drawn small and in a colour the route's own pins never use,
+ * so what was found stays visibly separate from what was planned until it is
+ * added.
+ */
+const FoundPlaceMarker = memo(
+  ({
+    place,
+    onPress,
+  }: {
+    place: RoutePlace;
+    onPress?: (place: RoutePlace) => void;
+  }) => {
+    const { colors } = useTheme();
+
+    const handlePress = useCallback(() => onPress?.(place), [onPress, place]);
+
+    const coordinate = useMemo(
+      () => ({ latitude: place.latitude, longitude: place.longitude }),
+      [place.latitude, place.longitude],
+    );
+
+    return (
+      <Marker
+        coordinate={coordinate}
+        onPress={handlePress}
+        tracksViewChanges={false}
+        pinColor={colors.warning}
+        title={place.name}
+        description={`${metersToDistance(place.distanceFromRouteMeters)} off route`}
+      />
+    );
+  },
+);
+
+FoundPlaceMarker.displayName = 'FoundPlaceMarker';
+
+/**
+ * One stretch of route: a wide casing with the line drawn over it.
+ *
+ * `dimmed` fades the road already driven. A polyline has no opacity of its
+ * own, so the fade goes into the colour — which is also why both layers have
+ * to be faded together, or the casing would show through the line.
+ */
+const RouteLine = memo(
+  ({
+    coordinates,
+    lineStyle,
+    dimmed = false,
+  }: {
+    coordinates: RouteCoordinate[];
+    lineStyle: RouteLineStyle;
+    dimmed?: boolean;
+  }) => {
+    // Two points make the shortest line there is; one makes none.
+    if (coordinates.length < 2) return null;
+
+    const fade = (color: string) =>
+      dimmed ? withAlpha(color, TRAVELLED_OPACITY) : color;
+
+    return (
+      <>
+        <Polyline
+          coordinates={coordinates}
+          strokeColor={fade(lineStyle.casing)}
+          strokeWidth={lineStyle.width + 4}
+          lineCap='round'
+          lineJoin='round'
+        />
+        <Polyline
+          coordinates={coordinates}
+          strokeColor={fade(lineStyle.color)}
+          strokeWidth={lineStyle.width}
+          lineDashPattern={lineStyle.dashPattern}
+          lineCap='round'
+          lineJoin='round'
+        />
+      </>
+    );
+  },
+);
+
+RouteLine.displayName = 'RouteLine';
+
+const FOLLOW_UNAVAILABLE_NOTICE = {
+  denied: {
+    header: 'Location permission needed',
+    message: 'Allow location access to follow your progress along the route.',
+  },
+  unavailable: {
+    header: 'Location unavailable',
+    message: 'Your position could not be read, so following was switched off.',
+  },
+};
+
 const MapSectionComponent = ({
   waypoints,
   routeCoordinates,
@@ -84,6 +211,8 @@ const MapSectionComponent = ({
   onMapLongPress,
   onMapPress,
   mapRef,
+  foundPlaces,
+  onFoundPlacePress,
 }: MapSectionProps) => {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -97,6 +226,86 @@ const MapSectionComponent = ({
   );
   const autoFitRoute = useAppSelector((state) => state.settings.autoFitRoute);
   const { region: userRegion, isResolving } = useInitialRegion();
+
+  const hasRoute = routeCoordinates.length > 1;
+
+  const [isFollowing, setIsFollowing] = useState(false);
+  const { location: liveLocation, status: followStatus } = useLiveLocation(
+    isFollowing && hasRoute,
+  );
+
+  const stopFollowing = useCallback(() => setIsFollowing(false), []);
+  const toggleFollowing = useCallback(
+    () => setIsFollowing((following) => !following),
+    [],
+  );
+
+  /**
+   * The route cut at where the driver is.
+   *
+   * Only once they are actually on it: a fix from three streets away would
+   * otherwise grey out the half of the journey nearest to them, which is not
+   * the half they have driven.
+   */
+  const progress = useMemo(() => {
+    if (!liveLocation) return null;
+
+    const split = splitRouteAtLocation(routeCoordinates, liveLocation);
+
+    return split && split.distanceFromRouteMeters <= ON_ROUTE_METERS
+      ? split
+      : null;
+  }, [liveLocation, routeCoordinates]);
+
+  const hasZoomedToFollowRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFollowing) hasZoomedToFollowRef.current = false;
+  }, [isFollowing]);
+
+  /**
+   * Keeps the driver on screen.
+   *
+   * The first fix zooms in close enough to read the road; every fix after that
+   * only moves the camera, so a zoom chosen by hand mid-journey survives.
+   */
+  useEffect(() => {
+    if (!isFollowing || !liveLocation) return;
+
+    if (hasZoomedToFollowRef.current) {
+      mapRef.current?.animateCamera(
+        { center: liveLocation },
+        { duration: FOLLOW_ANIMATION_MS },
+      );
+      return;
+    }
+
+    hasZoomedToFollowRef.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        ...liveLocation,
+        latitudeDelta: FOLLOW_DELTA,
+        longitudeDelta: FOLLOW_DELTA,
+      },
+      FOLLOW_ANIMATION_MS,
+    );
+  }, [isFollowing, liveLocation, mapRef]);
+
+  useEffect(() => {
+    if (followStatus !== 'denied' && followStatus !== 'unavailable') return;
+
+    setIsFollowing(false);
+    showNotification({
+      type: 'info',
+      ...FOLLOW_UNAVAILABLE_NOTICE[followStatus],
+    });
+  }, [followStatus]);
+
+  // A route swapped underneath a follow — a different road opened, the last
+  // stop deleted — leaves nothing to follow along.
+  useEffect(() => {
+    if (!hasRoute) setIsFollowing(false);
+  }, [hasRoute]);
 
   const initialRegion = useMemo<Region>(() => {
     const first = waypoints[0];
@@ -143,6 +352,9 @@ const MapSectionComponent = ({
         style={StyleSheet.absoluteFill}
         onLongPress={onMapLongPress}
         onPress={onMapPress}
+        // Dragging the map is a decision to look somewhere else. Carrying on
+        // recentring would drag it straight back out from under the finger.
+        onPanDrag={isFollowing ? stopFollowing : undefined}
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
@@ -152,25 +364,29 @@ const MapSectionComponent = ({
         userInterfaceStyle={isDark ? 'dark' : 'light'}
         customMapStyle={isDark ? darkMapStyle : lightMapStyle}
       >
-        {routeCoordinates.length > 1 ? (
+        {progress ? (
           <>
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeColor={lineStyle.casing}
-              strokeWidth={lineStyle.width + 4}
-              lineCap='round'
-              lineJoin='round'
+            <RouteLine
+              coordinates={progress.travelled}
+              lineStyle={lineStyle}
+              dimmed
             />
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeColor={lineStyle.color}
-              strokeWidth={lineStyle.width}
-              lineDashPattern={lineStyle.dashPattern}
-              lineCap='round'
-              lineJoin='round'
+            <RouteLine
+              coordinates={progress.remaining}
+              lineStyle={lineStyle}
             />
           </>
-        ) : null}
+        ) : (
+          <RouteLine coordinates={routeCoordinates} lineStyle={lineStyle} />
+        )}
+
+        {foundPlaces?.map((place) => (
+          <FoundPlaceMarker
+            key={place.placeId}
+            place={place}
+            onPress={onFoundPlacePress}
+          />
+        ))}
 
         {waypoints.map((waypoint, index) => (
           <WaypointMarker
@@ -192,6 +408,32 @@ const MapSectionComponent = ({
           { top: insets.top + LOCATE_BUTTON_TOP_OFFSET },
         ]}
       />
+
+      {hasRoute ? (
+        <Pressable
+          onPress={toggleFollowing}
+          hitSlop={8}
+          accessibilityRole='button'
+          accessibilityLabel={
+            isFollowing
+              ? 'Stop following my position along the route'
+              : 'Follow my position along the route'
+          }
+          accessibilityState={{ selected: isFollowing }}
+          style={({ pressed }) => [
+            styles.followButton,
+            { top: insets.top + FOLLOW_BUTTON_TOP_OFFSET },
+            isFollowing && styles.followButtonActive,
+            pressed && styles.followButtonPressed,
+          ]}
+        >
+          <Ionicons
+            name={isFollowing ? 'navigate' : 'navigate-outline'}
+            size={20}
+            color={isFollowing ? colors.textInverse : colors.primary}
+          />
+        </Pressable>
+      ) : null}
 
       {summary ? (
         <View style={styles.summary} pointerEvents='none'>
@@ -215,6 +457,21 @@ const createStyles = (colors: ThemeColors) =>
       position: 'absolute',
       right: spacing.lg,
     },
+    followButton: {
+      position: 'absolute',
+      right: spacing.lg,
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: radius.pill,
+      ...shadows.md,
+    },
+    followButtonActive: {
+      backgroundColor: colors.primary,
+    },
+    followButtonPressed: { opacity: 0.85 },
     summary: {
       position: 'absolute',
       left: spacing.lg,

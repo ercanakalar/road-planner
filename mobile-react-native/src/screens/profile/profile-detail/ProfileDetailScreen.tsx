@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 
-import AvatarPicker from 'components/AvatarPicker';
-import ScreenState from 'components/ScreenState';
+import AvatarPicker from 'components/profile/AvatarPicker';
+import ScreenState from 'components/ui/ScreenState';
 import {
   useGetUserQuery,
   useUpdatePhotoMutation,

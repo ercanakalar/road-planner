@@ -2,10 +2,10 @@ import React, { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import PrimaryButton from 'components/PrimaryButton';
-import ThemeModeSelector from 'components/ThemeModeSelector';
+import PrimaryButton from 'components/ui/PrimaryButton';
+import ThemeModeSelector from 'components/profile/ThemeModeSelector';
 import ChangePasswordSection from './ChangePasswordSection';
-import { useConfirm } from 'components/ConfirmProvider';
+import { useConfirm } from 'components/feedback/ConfirmProvider';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { SettingKey, settingToggled } from 'store/slices/settingsSlice';
 import {
