@@ -12,13 +12,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 jest.mock('expo-location', () => ({
   PermissionStatus: { GRANTED: 'granted', DENIED: 'denied' },
-  Accuracy: { Balanced: 3 },
+  Accuracy: { Balanced: 3, High: 4 },
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'denied',
   })),
   getCurrentPositionAsync: jest.fn(async () => ({
     coords: { latitude: 41, longitude: 29 },
   })),
+  watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
 }));
 
 jest.mock('react-native-toast-message', () => ({
@@ -32,7 +33,6 @@ jest.mock(
     __esModule: true,
     default: {
       baseUrl: 'http://api.test',
-      mapApiKey: 'test-key',
       shareLinkBaseUrl: '',
     },
   }),

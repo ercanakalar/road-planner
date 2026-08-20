@@ -70,8 +70,5 @@ export function useInitialRegion(): InitialRegionState {
   return state;
 }
 
-export const resetInitialRegionCache = () => {
-  cached = null;
-};
 
 export default useInitialRegion;

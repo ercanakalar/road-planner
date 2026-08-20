@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 
-import FormField from 'components/FormField';
-import PrimaryButton from 'components/PrimaryButton';
+import FormField from 'components/ui/FormField';
+import PrimaryButton from 'components/ui/PrimaryButton';
 import { useResetPasswordMutation } from 'store/services/authenticationService';
 import { showNotification } from 'services/notificationService';
 

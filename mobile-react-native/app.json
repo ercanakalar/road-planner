@@ -2,7 +2,7 @@
   "expo": {
     "name": "mobile-react-native",
     "slug": "mobile-react-native",
-    "scheme": "com.ercanakalar.mobilereactnative",
+    "scheme": "net.travelroutes.travelroutes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +20,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ercanakalar.mobilereactnative",
+      "bundleIdentifier": "net.travelroutes.travelroutes",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is shown on the map so you can see where you are relative to the stops on a route.",
         "NSPhotoLibraryUsageDescription": "Your photos are used only to set your profile picture."
@@ -32,7 +32,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ercanakalar.mobilereactnative",
+      "package": "net.travelroutes.travelroutes",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"

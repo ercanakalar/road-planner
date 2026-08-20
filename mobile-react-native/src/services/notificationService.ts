@@ -17,7 +17,6 @@ export const setNotificationsEnabled = (enabled: boolean) => {
   notificationsEnabled = enabled;
 };
 
-export const areNotificationsEnabled = () => notificationsEnabled;
 
 export function showNotification({
   type = 'info',

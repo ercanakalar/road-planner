@@ -252,12 +252,12 @@ describe('AddWaypointDto', () => {
     );
   });
 
-  it('requires an address', async () => {
+  it('accepts coordinates alone, since the server geocodes them', async () => {
     const { address: _address, ...withoutAddress } = valid();
 
     await expect(
       collectDtoErrors(AddWaypointDto, withoutAddress),
-    ).resolves.not.toEqual([]);
+    ).resolves.toEqual([]);
   });
 
   it('requires the address line within the address', async () => {
@@ -292,6 +292,14 @@ describe('UpdateWaypointDto', () => {
   it('accepts an explicit order', async () => {
     await expect(
       collectDtoErrors(UpdateWaypointDto, { ...clientPayload(), order: 3 }),
+    ).resolves.toEqual([]);
+  });
+
+  it('accepts a move with no address, since the server geocodes it', async () => {
+    const { address: _address, ...withoutAddress } = clientPayload();
+
+    await expect(
+      collectDtoErrors(UpdateWaypointDto, withoutAddress),
     ).resolves.toEqual([]);
   });
 

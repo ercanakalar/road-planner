@@ -6,13 +6,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 
-import ThemedToast from 'components/ThemedToast';
+import ThemedToast from 'components/feedback/ThemedToast';
 import RootNavigator from 'navigators/RootNavigator';
 import linking from 'navigators/linking';
-import ErrorBoundary from 'components/ErrorBoundary';
-import SessionGate from 'components/SessionGate';
-import ConfirmProvider from 'components/ConfirmProvider';
-import LocalRoadMigrationPrompt from 'components/LocalRoadMigrationPrompt';
+import ErrorBoundary from 'components/feedback/ErrorBoundary';
+import SessionGate from 'components/auth/SessionGate';
+import ConfirmProvider from 'components/feedback/ConfirmProvider';
+import LocalRoadMigrationPrompt from 'components/road/LocalRoadMigrationPrompt';
 import store from 'store';
 import { ThemeProvider, useTheme } from 'theme';
 

@@ -10,8 +10,8 @@ import {
   useUpdateWaypointByIdMutation,
 } from 'store/services/roadService';
 import { ShowRouteByIdRouteProp } from 'types/map-screen-type';
+import { RoutePlace } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
-import { reverseGeocode } from 'services/googleMapsService';
 import {
   MapLongPressEvent,
   MarkerDragEndEvent,
@@ -26,6 +26,7 @@ import {
   stopDraggingWaypoint,
 } from 'store/slices/mapSlice';
 import { useRouteLine } from 'hooks/useRouteDirections';
+import useRouteSearch from 'hooks/useRouteSearch';
 import { TransportMode } from 'types/transport-type';
 import { ContextMenuOption } from 'types/components/contextMenu';
 
@@ -67,6 +68,7 @@ const useMapLogic = () => {
   const [updateWaypoint] = useUpdateWaypointByIdMutation();
 
   const routeLine = useRouteLine(waypoints, transportMode);
+  const routeSearch = useRouteSearch(waypoints, transportMode);
 
   const contextMenuWaypoint = useMemo(
     () =>
@@ -107,14 +109,12 @@ const useMapLogic = () => {
     dispatch(closeContextMenu());
 
     try {
-      const address = await reverseGeocode(clickedLocation);
       await addWaypoint({
         roadId,
         waypoint: {
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
           order: waypointsRef.current.length + 1,
-          address,
         },
       }).unwrap();
     } catch {
@@ -152,11 +152,10 @@ const useMapLogic = () => {
       dispatch(stopDraggingWaypoint());
 
       try {
-        const address = await reverseGeocode({ latitude, longitude });
         await updateWaypoint({
           roadId,
           waypointId,
-          waypoint: { latitude, longitude, address },
+          waypoint: { latitude, longitude },
         }).unwrap();
       } catch {
         showNotification({
@@ -207,6 +206,46 @@ const useMapLogic = () => {
       );
     },
     [dispatch],
+  );
+
+  const focusOnPlace = useCallback((place: RoutePlace) => {
+    mapRef.current?.animateToRegion(
+      {
+        latitude: place.latitude,
+        longitude: place.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      600,
+    );
+  }, []);
+
+  const handleAddPlaceAsStop = useCallback(
+    async (place: RoutePlace) => {
+      try {
+        await addWaypoint({
+          roadId,
+          waypoint: {
+            latitude: place.latitude,
+            longitude: place.longitude,
+            order: place.insertAfterIndex + 2,
+          },
+        }).unwrap();
+
+        showNotification({
+          type: 'success',
+          header: 'Added to your route',
+          message: `${place.name} is now a stop on this route.`,
+        });
+      } catch {
+        showNotification({
+          type: 'error',
+          header: 'Error',
+          message: 'Failed to add waypoint.',
+        });
+      }
+    },
+    [addWaypoint, roadId],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
@@ -265,11 +304,14 @@ const useMapLogic = () => {
     isLoading,
     waypoints,
     routeLine,
+    routeSearch,
     transportMode,
     setTransportMode,
     draggingWaypointId,
     contextMenuProps,
     onPlaceSelected,
+    focusOnPlace,
+    handleAddPlaceAsStop,
     handleMarkerDragEnd,
     handleMapLongPress,
     handleMapPress,

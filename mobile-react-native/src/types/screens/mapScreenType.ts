@@ -10,6 +10,7 @@ import {
   WaypointWithAddress,
   WaypointWithAddressAndId,
 } from 'types/map-screen-type';
+import { RoutePlace } from 'services/mapsService';
 import {
   FavoriteEntry,
   FavoriteSectionKey,
@@ -76,4 +77,6 @@ export interface MapSectionProps {
   onMapLongPress: (event: LongPressEvent) => void;
   onMapPress: () => void;
   mapRef: React.RefObject<MapView | null>;
+  foundPlaces?: RoutePlace[];
+  onFoundPlacePress?: (place: RoutePlace) => void;
 }

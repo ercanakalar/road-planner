@@ -10,13 +10,14 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import PlacesSearchBar from 'components/PlacesSearchBar';
-import ContextMenu from 'components/ContextMenu';
-import ScreenState from 'components/ScreenState';
-import EditDetailsModal, { DetailsDraft } from 'components/EditDetailsModal';
-import { useConfirm } from 'components/ConfirmProvider';
-import BottomSheetHandle from 'components/BottomSheetHandle';
-import { MapSection } from 'screens/map/roads/MapSection';
+import PlacesSearchBar from 'components/map/PlacesSearchBar';
+import RouteSearchSheet from 'components/map/RouteSearchSheet';
+import ContextMenu from 'components/ui/ContextMenu';
+import ScreenState from 'components/ui/ScreenState';
+import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
+import { useConfirm } from 'components/feedback/ConfirmProvider';
+import BottomSheetHandle from 'components/ui/BottomSheetHandle';
+import { MapSection } from 'components/map/MapSection';
 import LocalWaypointList from './LocalWaypointList';
 import LocalRoadPicker from './LocalRoadPicker';
 
@@ -38,6 +39,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { RoutePlace } from 'services/mapsService';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 
 const LocalMapScreen = () => {
@@ -62,11 +64,14 @@ const LocalMapScreen = () => {
     roads,
     waypoints,
     routeLine,
+    routeSearch,
     transportMode,
     setTransportMode,
     draggingWaypointId,
     contextMenuProps,
     onPlaceSelected,
+    focusOnPlace,
+    handleAddPlaceAsStop,
     handleMarkerDragEnd,
     handleMapLongPress,
     handleMapPress,
@@ -74,6 +79,27 @@ const LocalMapScreen = () => {
     handleDeleteWaypointById,
     handleToggleFavoriteWaypoint,
   } = useLocalMapLogic();
+
+  const [isSearchingRoute, setIsSearchingRoute] = useState(false);
+
+  const openRouteSearch = useCallback(() => setIsSearchingRoute(true), []);
+  const closeRouteSearch = useCallback(() => setIsSearchingRoute(false), []);
+
+  const handleShowOnMap = useCallback(
+    (place: RoutePlace) => {
+      setIsSearchingRoute(false);
+      focusOnPlace(place);
+    },
+    [focusOnPlace],
+  );
+
+  const handleAddStop = useCallback(
+    (place: RoutePlace) => {
+      setIsSearchingRoute(false);
+      handleAddPlaceAsStop(place);
+    },
+    [handleAddPlaceAsStop],
+  );
 
   const snapPoints = useMemo(() => {
     const points = [0.22, 0.45, 0.75].map((ratio) =>
@@ -157,6 +183,8 @@ const LocalMapScreen = () => {
           handleMarkerDragEnd={handleMarkerDragEnd}
           onMapLongPress={handleMapLongPress}
           onMapPress={handleMapPress}
+          foundPlaces={routeSearch.places}
+          onFoundPlacePress={focusOnPlace}
         />
 
         <View style={[styles.searchSlot, { top: insets.top }]}>
@@ -225,15 +253,35 @@ const LocalMapScreen = () => {
           ) : null}
         </View>
 
+        {routeSearch.isRoutable ? (
+          <Pressable
+            style={[styles.onTheWay, { top: insets.top + 112 }]}
+            onPress={openRouteSearch}
+            accessibilityRole='button'
+            accessibilityLabel='Search for places along this route'
+          >
+            <Ionicons
+              name='restaurant-outline'
+              size={15}
+              color={colors.primary}
+            />
+            <Text style={styles.onTheWayText}>
+              {routeSearch.places.length > 0
+                ? `${routeSearch.places.length} on the way`
+                : 'On the way'}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {isSavingPin ? (
-          <View style={[styles.pill, { top: insets.top + 112 }]}>
+          <View style={[styles.pill, { top: insets.top + 158 }]}>
             <Text style={styles.pillText}>Looking up that place…</Text>
           </View>
         ) : null}
 
         {!isLoggedIn && waypoints.length > 0 ? (
           <View
-            style={[styles.pill, styles.localPill, { top: insets.top + 112 }]}
+            style={[styles.pill, styles.localPill, { top: insets.top + 158 }]}
           >
             <Ionicons
               name='phone-portrait-outline'
@@ -287,6 +335,14 @@ const LocalMapScreen = () => {
         onSelect={handlePickRoad}
         onClose={closePicker}
       />
+
+      <RouteSearchSheet
+        visible={isSearchingRoute}
+        search={routeSearch}
+        onClose={closeRouteSearch}
+        onShowOnMap={handleShowOnMap}
+        onAddStop={handleAddStop}
+      />
     </>
   );
 };
@@ -331,6 +387,22 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       backgroundColor: colors.surface,
       ...shadows.sm,
+    },
+    onTheWay: {
+      position: 'absolute',
+      left: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    onTheWayText: {
+      ...typography.label,
+      color: colors.text,
     },
     pill: {
       position: 'absolute',

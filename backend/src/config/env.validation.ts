@@ -144,6 +144,11 @@ export class EnvironmentVariables {
   @Transform(blankAsUnset)
   @IsString()
   @IsOptional()
+  MAP_API_KEY?: string;
+
+  @Transform(blankAsUnset)
+  @IsString()
+  @IsOptional()
   GOOGLE_CLIENT_ID?: string;
 
   @Transform(blankAsUnset)

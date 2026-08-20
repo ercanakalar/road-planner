@@ -1,8 +1,4 @@
-export interface IUser {
-  email: string;
-  firstName: string;
-  lastName: string;
-}
+
 export interface IAuthState {
   isLoading: boolean;
   isLoggedIn: boolean;
@@ -25,10 +21,3 @@ export const authInitialState: IAuthState = {
   userId: null,
 };
 
-export interface SetAuthAction {
-  payload: {
-    accessToken: string;
-    refreshToken: string;
-    user: any;
-  };
-}

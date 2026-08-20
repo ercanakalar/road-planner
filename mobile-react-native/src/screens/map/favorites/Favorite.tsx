@@ -15,11 +15,11 @@ import {
   useRoute,
 } from '@react-navigation/native';
 
-import Container from 'components/Container';
-import useRefreshControlColors from 'components/useRefreshControlColors';
-import ScreenState from 'components/ScreenState';
-import EditDetailsModal, { DetailsDraft } from 'components/EditDetailsModal';
-import { useConfirm } from 'components/ConfirmProvider';
+import Container from 'components/ui/Container';
+import useRefreshControlColors from 'hooks/useRefreshControlColors';
+import ScreenState from 'components/ui/ScreenState';
+import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
+import { useConfirm } from 'components/feedback/ConfirmProvider';
 import { FavoriteSection } from './FavoriteSection';
 import { FavoriteItem } from './FavoriteItem';
 

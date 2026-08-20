@@ -9,9 +9,9 @@ import {
 } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-import ScreenState from 'components/ScreenState';
-import PrimaryButton from 'components/PrimaryButton';
-import { MapSection } from './MapSection';
+import ScreenState from 'components/ui/ScreenState';
+import PrimaryButton from 'components/ui/PrimaryButton';
+import { MapSection } from 'components/map/MapSection';
 import {
   useCloneRoadMutation,
   useGetSharedRoadQuery,

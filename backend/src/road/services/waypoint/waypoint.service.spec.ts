@@ -1,8 +1,13 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { GeocodingService } from 'src/maps/services/geocoding.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { createPrismaMock, PrismaMock } from 'src/testing/mocks';
+import {
+  createGeocodingMock,
+  createPrismaMock,
+  PrismaMock,
+} from 'src/testing/mocks';
 import { RoadVisibility } from '../visibility/road-visibility';
 import { WaypointService } from './waypoint.service';
 
@@ -13,6 +18,7 @@ const ADDRESS_ID = 'd3a1e1c4-3b5f-4e0c-9f4d-2c3d4e5f6071';
 describe('WaypointService', () => {
   let service: WaypointService;
   let prisma: PrismaMock;
+  let geocoding: ReturnType<typeof createGeocodingMock>;
 
   const orderedPositions = (callIndex = 0) => {
     const { values } = prisma.$executeRaw.mock.calls[callIndex][0];
@@ -34,12 +40,14 @@ describe('WaypointService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    geocoding = createGeocodingMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WaypointService,
         RoadVisibility,
         { provide: PrismaService, useValue: prisma },
+        { provide: GeocodingService, useValue: geocoding },
       ],
     }).compile();
 
@@ -301,6 +309,131 @@ describe('WaypointService', () => {
         expect.objectContaining({ where: { id: 'wp-new' } }),
       );
       expect(result.data).toMatchObject({ order: 2 });
+    });
+
+    describe('addressing', () => {
+      const pinOnly = { latitude: 1, longitude: 2, order: 2 };
+
+      const storedAddress = () =>
+        prisma.addressInfo.create.mock.calls[0][0].data;
+
+      it('keeps an address the caller supplied', async () => {
+        await service.addWaypointToRoad(body, ROAD_ID);
+
+        expect(storedAddress()).toMatchObject({ address: 'Main St' });
+        expect(geocoding.reverseGeocode).not.toHaveBeenCalled();
+      });
+
+      it('names a bare pin from its coordinates', async () => {
+        geocoding.resolveAddress.mockResolvedValue({
+          address: 'Bağdat Cd. 1',
+          country: 'Türkiye',
+          province: 'İstanbul',
+          district: 'Kadıköy',
+        });
+
+        await service.addWaypointToRoad(pinOnly, ROAD_ID);
+
+        expect(geocoding.resolveAddress).toHaveBeenCalledWith(
+          pinOnly,
+          undefined,
+        );
+        expect(storedAddress()).toMatchObject({
+          address: 'Bağdat Cd. 1',
+          district: 'Kadıköy',
+        });
+      });
+
+      it('looks the address up before opening a transaction', async () => {
+        const order: string[] = [];
+
+        geocoding.resolveAddress.mockImplementation(() => {
+          order.push('geocode');
+          return Promise.resolve({ address: 'Somewhere' });
+        });
+        prisma.$transaction.mockImplementation(async (run: any) => {
+          order.push('transaction');
+          return run(prisma);
+        });
+
+        await service.addWaypointToRoad(pinOnly, ROAD_ID);
+
+        expect(order).toEqual(['geocode', 'transaction']);
+      });
+    });
+  });
+
+  describe('updateWaypointWithRoadId', () => {
+    const moved = { latitude: 9, longitude: 9 };
+
+    beforeEach(() => {
+      prisma.wayPoint.findUnique.mockResolvedValue({
+        id: 'wp-1',
+        addressInfoId: ADDRESS_ID,
+      });
+    });
+
+    it('renames the waypoint for where it was dragged to', async () => {
+      geocoding.resolveAddress.mockResolvedValue({
+        address: 'Somewhere else',
+        country: 'Türkiye',
+        province: '',
+        district: '',
+      });
+
+      await service.updateWaypointWithRoadId(moved, 'wp-1');
+
+      expect(geocoding.resolveAddress).toHaveBeenCalledWith(moved, undefined);
+      expect(prisma.addressInfo.update).toHaveBeenCalledWith({
+        where: { id: ADDRESS_ID },
+        data: {
+          address: 'Somewhere else',
+          country: 'Türkiye',
+          province: '',
+          district: '',
+        },
+      });
+    });
+
+    it('keeps an address the caller supplied', async () => {
+      await service.updateWaypointWithRoadId(
+        { ...moved, address: { address: 'Home' } },
+        'wp-1',
+      );
+
+      expect(prisma.addressInfo.update.mock.calls[0][0].data).toMatchObject({
+        address: 'Home',
+      });
+      expect(geocoding.reverseGeocode).not.toHaveBeenCalled();
+    });
+
+    it('creates an address for a waypoint that had none', async () => {
+      prisma.wayPoint.findUnique.mockResolvedValue({
+        id: 'wp-1',
+        addressInfoId: null,
+      });
+      prisma.addressInfo.create.mockResolvedValue({ id: ADDRESS_ID });
+      geocoding.resolveAddress.mockResolvedValue({
+        address: 'Somewhere else',
+        country: '',
+        province: '',
+        district: '',
+      });
+
+      await service.updateWaypointWithRoadId(moved, 'wp-1');
+
+      expect(prisma.addressInfo.create.mock.calls[0][0].data).toMatchObject({
+        address: 'Somewhere else',
+      });
+    });
+
+    it('does not geocode a waypoint that does not exist', async () => {
+      prisma.wayPoint.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateWaypointWithRoadId(moved, 'wp-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(geocoding.resolveAddress).not.toHaveBeenCalled();
     });
   });
 

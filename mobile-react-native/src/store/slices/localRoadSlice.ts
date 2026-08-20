@@ -89,6 +89,7 @@ export const localRoadSlice = createSlice({
         latitude: number;
         longitude: number;
         address: WaypointAddressInput;
+        insertAtIndex?: number;
       }>,
     ) {
       let road = findActive(state);
@@ -98,13 +99,24 @@ export const localRoadSlice = createSlice({
         state.activeRoadId = road.id;
       }
 
-      road.wayPoints.push({
+      const { insertAtIndex, ...values } = action.payload;
+
+      const waypoint = {
         id: createLocalId('wp'),
-        latitude: action.payload.latitude,
-        longitude: action.payload.longitude,
+        latitude: values.latitude,
+        longitude: values.longitude,
         order: road.wayPoints.length + 1,
-        address: action.payload.address,
-      });
+        address: values.address,
+      };
+
+      if (insertAtIndex === undefined) {
+        road.wayPoints.push(waypoint);
+      } else {
+        const at = Math.min(Math.max(insertAtIndex, 0), road.wayPoints.length);
+        road.wayPoints.splice(at, 0, waypoint);
+        road.wayPoints = resequence(road.wayPoints);
+      }
+
       touch(road);
     },
 

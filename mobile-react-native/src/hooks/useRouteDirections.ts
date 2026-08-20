@@ -4,8 +4,9 @@ import {
   DirectionsRequest,
   DirectionsResult,
   fetchDirections,
+  fetchModeDurations,
   peekDirections,
-} from 'services/googleMapsService';
+} from 'services/mapsService';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
@@ -20,13 +21,18 @@ const DEBOUNCE_MS = 350;
 const EMPTY_COORDINATES: DirectionsResult['coordinates'] = [];
 const EMPTY_DURATIONS: Partial<Record<TransportMode, number>> = {};
 
+const toCoordinate = ({ latitude, longitude }: WaypointWithAddress) => ({
+  latitude,
+  longitude,
+});
+
 const toRequest = (
   waypoints: WaypointWithAddress[],
   mode: TransportMode,
 ): Omit<DirectionsRequest, 'mode'> & { mode: TransportMode } => ({
-  origin: waypoints[0],
-  destination: waypoints[waypoints.length - 1],
-  waypoints: waypoints.slice(1, -1),
+  origin: toCoordinate(waypoints[0]),
+  destination: toCoordinate(waypoints[waypoints.length - 1]),
+  waypoints: waypoints.slice(1, -1).map(toCoordinate),
   mode,
 });
 
@@ -136,19 +142,15 @@ export function useModeDurations(
     let cancelled = false;
 
     const timer = setTimeout(() => {
-      Promise.all(
-        TRANSPORT_MODES.map((mode) =>
-          fetchDirections(toRequest(points, mode)).catch(() => null),
-        ),
-      ).then((results) => {
-        if (cancelled) return;
-        const next: Partial<Record<TransportMode, number>> = {};
-        TRANSPORT_MODES.forEach((mode, index) => {
-          const seconds = results[index]?.durationSeconds;
-          if (seconds !== undefined) next[mode] = seconds;
+      const { mode: _mode, ...request } = toRequest(points, 'driving');
+
+      fetchModeDurations(request, TRANSPORT_MODES)
+        .then((next) => {
+          if (!cancelled) setDurations(next);
+        })
+        .catch(() => {
+          if (!cancelled) setDurations(EMPTY_DURATIONS);
         });
-        setDurations(next);
-      });
     }, DEBOUNCE_MS);
 
     return () => {

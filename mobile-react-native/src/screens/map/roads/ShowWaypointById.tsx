@@ -2,8 +2,8 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
-import LocateButton from 'components/LocateButton';
-import ScreenState from 'components/ScreenState';
+import LocateButton from 'components/map/LocateButton';
+import ScreenState from 'components/ui/ScreenState';
 import useWaypointLogic from 'hooks/useWaypointLogic';
 import { darkMapStyle, lightMapStyle } from 'constants/mapStyles';
 import {

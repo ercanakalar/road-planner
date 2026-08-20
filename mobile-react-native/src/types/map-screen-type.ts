@@ -1,7 +1,4 @@
-import {
-  NativeStackNavigationProp,
-  NativeStackScreenProps,
-} from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 
 import { RootStackParamList } from './screens/screens';
@@ -11,10 +8,6 @@ export type MapScreenNavigationProp = NativeStackNavigationProp<
   'MapScreen'
 >;
 
-export type ShowRouteByIdScreenType = NativeStackScreenProps<
-  RootStackParamList,
-  'ShowRouteByIdScreen'
->;
 
 export type ShowRouteByIdRouteProp = RouteProp<
   RootStackParamList,

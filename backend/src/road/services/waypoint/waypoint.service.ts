@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { ok } from 'src/common/http/api-response';
+import { GeocodingService } from 'src/maps/services/geocoding.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AddWaypointDto,
@@ -25,6 +26,7 @@ export class WaypointService {
   constructor(
     private prisma: PrismaService,
     private visibility: RoadVisibility,
+    private geocoding: GeocodingService,
   ) {}
 
   async getWaypointById(id: string, userId: string) {
@@ -47,11 +49,13 @@ export class WaypointService {
   async addWaypointToRoad(body: AddWaypointDto, roadId: string) {
     const insertAt = Math.max(body.order, 1);
 
+    const address = await this.geocoding.resolveAddress(body, body.address);
+
     const waypoint = await this.prisma.$transaction(async (tx) => {
       const addressInfoId = randomUUID();
 
       await tx.addressInfo.create({
-        data: { id: addressInfoId, ...addressColumns(body.address) },
+        data: { id: addressInfoId, ...addressColumns(address) },
       });
 
       await tx.$executeRaw(Prisma.sql`
@@ -109,7 +113,7 @@ export class WaypointService {
   }
 
   async updateWaypointWithRoadId(body: UpdateWaypointDto, waypointId: string) {
-    const { latitude, longitude, address } = body;
+    const { latitude, longitude } = body;
 
     if (!waypointId) {
       throw new BadRequestException('waypointId is required');
@@ -124,27 +128,19 @@ export class WaypointService {
       throw new NotFoundException('Waypoint not found');
     }
 
+    const address = await this.geocoding.resolveAddress(body, body.address);
+
     const updatedWaypoint = await this.prisma.$transaction(async (prisma) => {
       let addressInfoId = waypoint.addressInfoId;
 
       if (addressInfoId) {
         await prisma.addressInfo.update({
           where: { id: addressInfoId },
-          data: {
-            country: address.country,
-            province: address.province,
-            district: address.district,
-            address: address.address,
-          },
+          data: addressColumns(address),
         });
       } else {
         const createdAddress = await prisma.addressInfo.create({
-          data: {
-            country: address.country,
-            province: address.province,
-            district: address.district,
-            address: address.address,
-          },
+          data: addressColumns(address),
         });
 
         addressInfoId = createdAddress.id;

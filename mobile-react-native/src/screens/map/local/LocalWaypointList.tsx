@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 
 import { useAppSelector } from 'store/hook';
 
-import WaypointList from 'screens/map/roads/WaypointList';
+import WaypointList from 'components/map/WaypointList';
 import { useModeDurations } from 'hooks/useRouteDirections';
 
 import { WaypointWithAddress } from 'types/map-screen-type';

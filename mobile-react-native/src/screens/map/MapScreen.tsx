@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import Container from 'components/Container';
-import ScreenHeader from 'components/ScreenHeader';
-import ScreenState from 'components/ScreenState';
-import EditDetailsModal, { DetailsDraft } from 'components/EditDetailsModal';
-import { useConfirm } from 'components/ConfirmProvider';
+import Container from 'components/ui/Container';
+import ScreenHeader from 'components/ui/ScreenHeader';
+import ScreenState from 'components/ui/ScreenState';
+import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
+import { useConfirm } from 'components/feedback/ConfirmProvider';
 import RoutesList from './roads/RouteList';
 
 import { useAppDispatch, useAppSelector } from 'store/hook';

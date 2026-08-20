@@ -6,11 +6,10 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import RouteCard from 'screens/map/roads/RouteCard';
-import ScreenState from 'components/ScreenState';
-import useRefreshControlColors from 'components/useRefreshControlColors';
+import RouteCard from './RouteCard';
+import ScreenState from 'components/ui/ScreenState';
+import useRefreshControlColors from 'hooks/useRefreshControlColors';
 import { spacing, useThemedStyles } from 'theme';
-import type { ThemeColors } from 'theme';
 import { WaypointWithAddressAndId } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 
@@ -88,7 +87,7 @@ const RoutesList = ({
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = () =>
   StyleSheet.create({
     listContent: {
       paddingHorizontal: spacing.lg,

@@ -8,6 +8,7 @@ import { ConfigModule } from './config/config.module';
 import { throttlerOptions } from './config/throttle';
 import { FavoritesModule } from './favorites/favorites.module';
 import { HealthModule } from './health/health.module';
+import { MapsModule } from './maps/maps.module';
 import { NotificationModule } from './notification/notification.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +24,7 @@ import { UserModule } from './user/user.module';
     NotificationModule,
     AuthModule,
     UserModule,
+    MapsModule,
     RoadModule,
     PermissionsModule,
     FavoritesModule,
