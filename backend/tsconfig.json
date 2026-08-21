@@ -15,18 +15,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-
-    // Full strict mode. Previously only a subset was enabled, which let
-    // `AccessTokenType = {}` pass as a payload contract that accepted any object.
     "strict": true,
     "noImplicitOverride": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true
   },
-  // `include` rather than `exclude`: a bare exclude pulls prisma/seed.ts into the
-  // program, which shifts the inferred rootDir and emits to dist/src/ instead of
-  // dist/ — breaking `start:prod` (`node dist/main`).
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist", "coverage"]
 }
