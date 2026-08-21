@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: travel-route-secrets
+type: Opaque
+stringData:
+  DATABASE_URL: 'postgresql://USERNAME:PASSWORD@CLOUD_SQL_IP:5432/postgres'
+  GOOGLE_CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID'
+  GOOGLE_CLIENT_SECRET: 'YOUR_GOOGLE_CLIENT_SECRET'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: travel-route-config
+data:
+  NODE_ENV: 'production'
+  PORT: '3000'
+  FRONTEND_URL: 'https://your-domain.com'
+
+  GOOGLE_OAUTH2_ACCESS_TYPE: 'offline'
+  GOOGLE_OAUTH2_PROMPT: 'consent'
+  GOOGLE_OAUTH2_USERINFO_URL: 'https://www.googleapis.com/oauth2/v3/userinfo'
+  GOOGLE_REDIRECT_URL: 'https://api.your-domain.com/auth/google/callback'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travel-route-api
+  labels:
+    app: travel-route-api
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: travel-route-api
+
+  template:
+    metadata:
+      labels:
+        app: travel-route-api
+
+    spec:
+      containers:
+        - name: travel-route-api
+
+          image: ercan1995akalar/travel-route-backend:latest
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: travel-route-config
+
+            - secretRef:
+                name: travel-route-secrets
+
+          resources:
+            requests:
+              cpu: '250m'
+              memory: '256Mi'
+
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: travel-route-api
+spec:
+  type: LoadBalancer
+
+  selector:
+    app: travel-route-api
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000

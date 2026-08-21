@@ -1,69 +1,67 @@
-ARG NODE_VERSION=22-slim
-
-FROM node:${NODE_VERSION} AS base
-
-RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends openssl procps \
-  && rm -rf /var/lib/apt/lists/*
+# Stage 1: Dependencies
+FROM node:20-alpine AS dependencies
 
 WORKDIR /app
-
-FROM base AS deps
 
 COPY package*.json ./
 RUN npm ci
 
-FROM base AS builder
 
-COPY --from=deps /app/node_modules ./node_modules
+# Stage 2: Build
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY --from=dependencies /app/node_modules ./node_modules
+
 COPY package*.json ./
-COPY prisma ./prisma/
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+COPY prisma.config.ts ./
+COPY prisma ./prisma
+COPY src ./src
+
+# Required by prisma.config.ts during build.
+# This is NOT a real database connection.
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
+# Generate Prisma Client
 RUN npx prisma generate
 
-COPY tsconfig*.json nest-cli.json ./
-COPY src ./src/
+# Build NestJS
 RUN npm run build
 
-RUN npm prune --omit=dev
 
-FROM base AS development
+# Stage 3: Production dependencies
+FROM node:20-alpine AS production-deps
 
-COPY --from=deps /app/node_modules ./node_modules
+WORKDIR /app
+
 COPY package*.json ./
-COPY prisma ./prisma/
-RUN npx prisma generate
+RUN npm ci --omit=dev
 
-USER node
 
-EXPOSE 3000
-CMD ["npm", "run", "start:dev"]
+# Stage 4: Production
+FROM node:20-alpine AS production
 
-FROM base AS migrator
+WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
-COPY --chown=node:node package*.json ./
-COPY --chown=node:node prisma ./prisma/
+COPY --from=production-deps /app/node_modules ./node_modules
 
-USER node
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-CMD ["npx", "prisma", "migrate", "deploy"]
+COPY --from=build /app/dist ./dist
 
-FROM base AS production
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
-ENV NODE_ENV=production
-
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/dist ./dist
-COPY --chown=node:node package*.json ./
-COPY --chown=node:node prisma ./prisma/
+COPY package*.json ./
 
 USER node
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
-
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
