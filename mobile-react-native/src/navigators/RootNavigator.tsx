@@ -14,6 +14,7 @@ import SharedRouteScreen from 'screens/map/roads/SharedRouteScreen';
 import ShowWaypointById from 'screens/map/roads/ShowWaypointById';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
+import KvkkScreen from 'screens/profile/legal/KvkkScreen';
 
 import { useTheme } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
@@ -94,6 +95,11 @@ const RootNavigator = () => {
         name='SettingsScreen'
         component={SettingsScreen}
         options={{ title: 'Settings' }}
+      />
+      <Stack.Screen
+        name='KvkkScreen'
+        component={KvkkScreen}
+        options={{ title: 'KVKK consent' }}
       />
     </Stack.Navigator>
   );

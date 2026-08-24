@@ -20,15 +20,14 @@ const withEnv = (env: Record<string, string | undefined>, run: () => void) => {
 };
 
 describe('app.config.js', () => {
-  it('reads the Google Maps key from the environment', () => {
+  it('leaves the native map configuration to app.json', () => {
     withEnv({ EXPO_PUBLIC_MAP_API_KEY: 'a-real-key' }, () => {
       const config = loadConfig();
 
-      expect(config.android.config.googleMaps.apiKey).toBe('a-real-key');
-      expect(config.ios.config.googleMapsApiKey).toBe('a-real-key');
+      expect(config.android.config).toBeUndefined();
+      expect(config.ios.config).toBeUndefined();
     });
   });
-
 
   it('allows plain HTTP only when the API url needs it', () => {
     const cleartext = (config: { plugins: unknown[] }) => {
