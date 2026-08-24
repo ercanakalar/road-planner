@@ -14,6 +14,7 @@ import userReducer from './slices/userSlice';
 import mapReducer from './slices/mapSlice';
 import settingsReducer from './slices/settingsSlice';
 import localRoadReducer from './slices/localRoadSlice';
+import kvkkReducer from './slices/kvkkSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   map: mapReducer,
   settings: settingsReducer,
   localRoad: localRoadReducer,
+  kvkk: kvkkReducer,
   [authenticationService.reducerPath]: authenticationService.reducer,
   [profileService.reducerPath]: profileService.reducer,
   [roadService.reducerPath]: roadService.reducer,

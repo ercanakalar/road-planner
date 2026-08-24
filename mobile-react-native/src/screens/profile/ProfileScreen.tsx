@@ -84,6 +84,11 @@ const ProfileScreen = ({ navigation }: Props) => {
     [navigation],
   );
 
+  const goToKvkk = useCallback(
+    () => navigation.navigate('KvkkScreen'),
+    [navigation],
+  );
+
   if (isLoading) {
     return <ScreenState variant='loading' title='Loading profile…' />;
   }
@@ -107,6 +112,11 @@ const ProfileScreen = ({ navigation }: Props) => {
       <View style={styles.group}>
         <Row icon='person-outline' label='Edit profile' onPress={goToProfile} />
         <Row icon='settings-outline' label='Settings' onPress={goToSettings} />
+        <Row
+          icon='shield-checkmark-outline'
+          label='KVKK consent'
+          onPress={goToKvkk}
+        />
       </View>
 
       <Pressable

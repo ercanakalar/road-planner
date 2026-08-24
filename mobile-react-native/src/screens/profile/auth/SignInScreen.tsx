@@ -4,7 +4,6 @@ import { NavigationProp } from '@react-navigation/native';
 
 import AuthScreenLayout from 'components/auth/AuthScreenLayout';
 import FormField from 'components/ui/FormField';
-import GoogleSignInButton from 'components/auth/GoogleSignInButton';
 import PrimaryButton from 'components/ui/PrimaryButton';
 import { useSignInMutation } from 'store/services/authenticationService';
 
@@ -53,13 +52,13 @@ const SignInScreen = ({ navigation }: Props) => {
     }
   }, [form, navigation, signIn, validationError]);
 
-  const goToRoutes = useCallback(
-    () => navigation.navigate('HomeTabNavigator', { screen: 'Routes' }),
+  const goToSignUp = useCallback(
+    () => navigation.navigate('SignUpScreen'),
     [navigation],
   );
 
-  const goToSignUp = useCallback(
-    () => navigation.navigate('SignUpScreen'),
+  const goToKvkk = useCallback(
+    () => navigation.navigate('KvkkScreen'),
     [navigation],
   );
 
@@ -115,7 +114,21 @@ const SignInScreen = ({ navigation }: Props) => {
         isLoading={isLoading}
       />
 
-      {/* <GoogleSignInButton onSuccess={goToRoutes} /> */}
+      {/* Google sign-in is off for now. To bring it back: import
+          components/auth/GoogleSignInButton, add a goToRoutes callback
+          navigating to HomeTabNavigator/Routes, and render
+          <GoogleSignInButton onSuccess={goToRoutes} /> here. */}
+
+      {/* The Profile tab is this screen until someone signs in, and the KVKK
+          consent has to stay as easy to take back as it was to give. */}
+      <Pressable
+        onPress={goToKvkk}
+        hitSlop={10}
+        style={styles.kvkk}
+        accessibilityRole='button'
+      >
+        <Text style={styles.kvkkText}>KVKK consent</Text>
+      </Pressable>
     </AuthScreenLayout>
   );
 };
@@ -127,6 +140,12 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.label,
       fontWeight: '700',
       color: colors.primary,
+    },
+    kvkk: { alignSelf: 'center' },
+    kvkkText: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textDecorationLine: 'underline',
     },
   });
 

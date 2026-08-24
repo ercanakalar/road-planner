@@ -3,7 +3,6 @@ import { NavigationProp, useNavigation } from '@react-navigation/native';
 
 import AuthScreenLayout from 'components/auth/AuthScreenLayout';
 import FormField from 'components/ui/FormField';
-import GoogleSignInButton from 'components/auth/GoogleSignInButton';
 import PrimaryButton from 'components/ui/PrimaryButton';
 import { useSignUpMutation } from 'store/services/authenticationService';
 import { RootStackParamList } from 'types/screens/screens';
@@ -115,7 +114,9 @@ export default function SignUpScreen() {
         isLoading={isLoading}
       />
 
-      {/* <GoogleSignInButton label='Sign up with Google' /> */}
+      {/* Google sign-up is off for now. To bring it back: import
+          components/auth/GoogleSignInButton and render
+          <GoogleSignInButton label='Sign up with Google' /> here. */}
     </AuthScreenLayout>
   );
 }

@@ -1,9 +1,11 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 
+import kvkkStorage from 'services/kvkkStorage';
 import localRoadStorage from 'services/localRoadStorage';
 import preferencesStorage from 'services/preferencesStorage';
 import { setNotificationsEnabled } from 'services/notificationService';
 import { localRoadSlice } from 'store/slices/localRoadSlice';
+import { kvkkAccepted, kvkkWithdrawn } from 'store/slices/kvkkSlice';
 import {
   settingsRestored,
   settingSet,
@@ -33,6 +35,20 @@ persistenceMiddleware.startListening({
   effect: async (_action, listenerApi) => {
     const { localRoad } = listenerApi.getState() as RootState;
     await localRoadStorage.save(localRoad.roads);
+  },
+});
+
+persistenceMiddleware.startListening({
+  actionCreator: kvkkAccepted,
+  effect: async (action) => {
+    await kvkkStorage.save(action.payload);
+  },
+});
+
+persistenceMiddleware.startListening({
+  actionCreator: kvkkWithdrawn,
+  effect: async () => {
+    await kvkkStorage.clear();
   },
 });
 
