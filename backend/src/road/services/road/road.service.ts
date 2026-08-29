@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../../generated/prisma/client';
 import { randomUUID } from 'crypto';
 
 import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
@@ -371,14 +371,12 @@ export class RoadService {
       await applyWaypointValues(
         tx,
         id,
-        kept.map(
-          (w): WaypointValues => ({
-            id: w.id as string,
-            latitude: w.latitude,
-            longitude: w.longitude,
-            order: w.order,
-          }),
-        ),
+        kept.map((w): WaypointValues => ({
+          id: w.id as string,
+          latitude: w.latitude,
+          longitude: w.longitude,
+          order: w.order,
+        })),
       );
 
       const addressUpdates: AddressValues[] = [];

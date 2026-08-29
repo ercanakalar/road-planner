@@ -23,7 +23,10 @@ import {
   RESET_CODE_TTL_MINUTES,
 } from 'src/auth/constants/password-reset';
 import { PasswordResetLockedException } from 'src/auth/exception/password-reset-locked.exception';
-import { PasswordResetChannel, Prisma } from '@prisma/client';
+import {
+  PasswordResetChannel,
+  Prisma,
+} from '../../../generated/prisma/client';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { EmailService } from 'src/notification/email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';

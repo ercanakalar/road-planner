@@ -18,7 +18,11 @@ async function bootstrap(): Promise<void> {
     corsOrigins: config.get('CORS_ORIGINS', { infer: true }),
   });
 
-  const port = config.get('PORT', { infer: true });
+  const port = parseInt(
+    process.env.PORT || config.get('PORT', { infer: true }) || '3000',
+    10,
+  );
+
   await app.listen(port);
 
   logger.log(`Listening on port ${port} under /${API_PREFIX}`);

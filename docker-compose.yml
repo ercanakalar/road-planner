@@ -12,10 +12,6 @@ services:
               required: false
         environment:
             NODE_ENV: development
-            DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-road-map}@test-db:5432/${POSTGRES_DB:-roaddb}?schema=public
-        depends_on:
-            test-db:
-                condition: service_healthy
         volumes:
             - ./backend:/app
             - backend-uploads:/app/uploads
