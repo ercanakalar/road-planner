@@ -16,8 +16,8 @@ unquote() {
   esac
 }
 
-for name in DATABASE_URL FRONTEND_URL SHARE_LINK_BASE_URL GOOGLE_REDIRECT_URL \
-            ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY ACCESS_EXPIRES_IN \
+for name in DATABASE_URL DATABASE_URL_UNPOOLED FRONTEND_URL SHARE_LINK_BASE_URL \
+            GOOGLE_REDIRECT_URL ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY ACCESS_EXPIRES_IN \
             REFRESH_EXPIRES_IN ROAD_SHARE_EXPIRE_IN CORS_ORIGINS UPLOAD_DIR \
             MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_FROM \
             MAIL_TLS_REJECT_UNAUTHORIZED GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET \
@@ -53,7 +53,12 @@ esac
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   echo "Applying migrations..."
 
-  if ! npx --no-install prisma migrate deploy; then
+  # Prisma Migrate over Neon's pooled (PgBouncer transaction-mode) endpoint is
+  # a documented failure mode - prepared statements and SET don't persist
+  # across statements. DATABASE_URL_UNPOOLED, when set, is used for this one
+  # command only; the app itself keeps running on the pooled DATABASE_URL.
+  if ! env DATABASE_URL="${DATABASE_URL_UNPOOLED:-${DATABASE_URL}}" \
+        npx --no-install prisma migrate deploy; then
     # Inside a container `localhost` is the container, so a database that is
     # anywhere else is unreachable by that name. A Cloud SQL socket is the one
     # case where localhost is right, and it carries host=/cloudsql/... instead.

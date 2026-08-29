@@ -31,6 +31,7 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 .env
+.env.production
 .env.development.local
 .env.test.local
 .env.production
@@ -48,3 +49,4 @@ pids
 
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 uploads/
+.neon

@@ -5,3 +5,10 @@
 /mobile-react-native/package-lock.json
 /mobile-react-native/android
 /mobile-react-native/ios
+
+docker-compose.prod.yml
+
+skills-lock.json
+
+.claude
+.agents

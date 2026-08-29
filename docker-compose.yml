@@ -40,6 +40,8 @@ services:
             context: ./mobile-react-native
         image: ercanakalar/road-map-mobile
         container_name: road-map-mobile
+        depends_on:
+            - backend
         ports:
             - '8081:8081'
             - '19000:19000'
@@ -47,7 +49,14 @@ services:
             - '19002:19002'
         environment:
             EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
-            REACT_NATIVE_PACKAGER_HOSTNAME: 192.168.1.104
+            # This machine's LAN IP. The phone is a real device outside Docker's
+            # network, so it must reach `backend` at the host's address and the
+            # port mapping above (3000:3000) — the container name `backend` only
+            # resolves inside the compose network, not from the phone. Update
+            # both this and EXPO_PUBLIC_BASE_URL below if the machine's IP
+            # changes (a different network, a new DHCP lease, etc).
+            REACT_NATIVE_PACKAGER_HOSTNAME: 
+            EXPO_PUBLIC_BASE_URL: http://:3000
         volumes:
             - ./mobile-react-native:/app
             - /app/node_modules

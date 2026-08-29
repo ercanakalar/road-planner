@@ -427,3 +427,26 @@ so changing one means building again.
 **`/api/maps/*` answers 503.**
 `MAP_API_KEY` is missing or was not stored. Everything else keeps working;
 this is deliberate. Re-run `scripts/setup-cloudrun.sh` with the key filled in.
+
+**The deploy reports success but nothing actually changes.**
+Check whether traffic is pinned to a specific revision instead of tracking
+latest:
+
+```bash
+gcloud run services describe <SERVICE_NAME> --region <REGION> \
+  --format="value(spec.traffic)"
+```
+
+`spec.traffic` is the service's traffic split. If this names a
+`revisionName` instead of showing `latestRevision: True`, every new deploy
+builds and ships fine but never receives traffic — a specific, previously
+pinned revision keeps serving every request, however old its config is.
+Fix with:
+
+```bash
+gcloud run services update-traffic <SERVICE_NAME> --to-latest \
+  --region <REGION>
+```
+
+See [`CLOUD_RUN_SOURCE_DEPLOY.md`](./CLOUD_RUN_SOURCE_DEPLOY.md) for the
+incident this was written from.
