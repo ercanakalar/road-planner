@@ -64,7 +64,8 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
         echo "DATABASE_URL points at localhost. Inside a container that is the" >&2
         echo "container itself, not the machine running Docker." >&2
         echo >&2
-        echo "  another compose service : @test-db:5432, the service name" >&2
+        echo "  another compose service : @db:5432 in docker-compose.prod.yml," >&2
+        echo "                            @test-db:5432 in docker-compose.yml" >&2
         echo "  the host machine        : @host.docker.internal:5432" >&2
         echo "                            (Linux also needs" >&2
         echo "                             --add-host=host.docker.internal:host-gateway)" >&2
