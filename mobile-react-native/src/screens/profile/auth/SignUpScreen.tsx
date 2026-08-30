@@ -6,6 +6,7 @@ import FormField from 'components/ui/FormField';
 import PrimaryButton from 'components/ui/PrimaryButton';
 import { useSignUpMutation } from 'store/services/authenticationService';
 import { RootStackParamList } from 'types/screens/screens';
+import GoogleSignInButton from 'components/GoogleSignInButton';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
@@ -114,9 +115,7 @@ export default function SignUpScreen() {
         isLoading={isLoading}
       />
 
-      {/* Google sign-up is off for now. To bring it back: import
-          components/auth/GoogleSignInButton and render
-          <GoogleSignInButton label='Sign up with Google' /> here. */}
+      <GoogleSignInButton label='Sign up with Google' />
     </AuthScreenLayout>
   );
 }

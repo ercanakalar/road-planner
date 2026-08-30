@@ -6,15 +6,8 @@ services:
         image: road-planner-android-builder
         environment:
             BUILD_TYPE: ${BUILD_TYPE:-release}
-            EXPO_PUBLIC_BASE_URL: ${EXPO_PUBLIC_BASE_URL:-}
-            EXPO_PUBLIC_MAP_API_KEY: ${EXPO_PUBLIC_MAP_API_KEY:-}
-            EXPO_PUBLIC_SHARE_LINK_BASE_URL: ${EXPO_PUBLIC_SHARE_LINK_BASE_URL:-}
-            EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID:-}
-            EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:-}
-            EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:-}
         env_file:
-            - path: ./mobile-react-native/.env
-              required: false
+            - ./mobile-react-native/.env
         volumes:
             - ./mobile-react-native:/app
             - apk-keystore:/keystore
