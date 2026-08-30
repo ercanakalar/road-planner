@@ -6,6 +6,8 @@
 /mobile-react-native/android
 /mobile-react-native/ios
 
+/apk-output
+
 docker-compose.prod.yml
 
 skills-lock.json

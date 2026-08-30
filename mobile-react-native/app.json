@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile-react-native",
-    "slug": "mobile-react-native",
+    "name": "Travel Routes",
+    "slug": "Travel Routes",
     "scheme": "net.travelroutes.travelroutes",
     "version": "1.0.0",
     "orientation": "portrait",

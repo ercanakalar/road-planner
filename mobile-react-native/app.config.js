@@ -3,6 +3,7 @@ const withCleartextTraffic = require('./plugins/withCleartextTraffic');
 const readEnv = () => ({
   baseUrl: process.env.EXPO_PUBLIC_BASE_URL ?? '',
   shareLinkBaseUrl: process.env.EXPO_PUBLIC_SHARE_LINK_BASE_URL ?? '',
+  mapsApiKey: process.env.EXPO_PUBLIC_MAP_API_KEY ?? '',
 });
 
 const shareIntentFilters = (shareLinkBaseUrl) => {

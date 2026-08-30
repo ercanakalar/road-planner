@@ -9,12 +9,13 @@ import type { AppDispatch } from 'store';
 
 const authMiddleware = createListenerMiddleware();
 
-const { signIn, signUp, validateRefreshToken } =
+const { signIn, signUp, signInWithGoogle, validateRefreshToken } =
   authenticationService.endpoints;
 
 const isSessionIssued = isAnyOf(
   signIn.matchFulfilled,
   signUp.matchFulfilled,
+  signInWithGoogle.matchFulfilled,
   validateRefreshToken.matchFulfilled,
 );
 

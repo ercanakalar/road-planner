@@ -11,6 +11,7 @@ import { spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { SignInRequest } from 'types/libs/auth';
 import { RootStackParamList } from 'types/screens/screens';
+import GoogleSignInButton from 'components/GoogleSignInButton';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -114,13 +115,10 @@ const SignInScreen = ({ navigation }: Props) => {
         isLoading={isLoading}
       />
 
-      {/* Google sign-in is off for now. To bring it back: import
-          components/auth/GoogleSignInButton, add a goToRoutes callback
-          navigating to HomeTabNavigator/Routes, and render
-          <GoogleSignInButton onSuccess={goToRoutes} /> here. */}
 
-      {/* The Profile tab is this screen until someone signs in, and the KVKK
-          consent has to stay as easy to take back as it was to give. */}
+      <GoogleSignInButton />
+
+
       <Pressable
         onPress={goToKvkk}
         hitSlop={10}
