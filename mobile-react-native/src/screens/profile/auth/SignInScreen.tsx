@@ -18,133 +18,135 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Props = { navigation: NavigationProp<RootStackParamList> };
 
 const SignInScreen = ({ navigation }: Props) => {
-  const styles = useThemedStyles(createStyles);
+    const styles = useThemedStyles(createStyles);
 
-  const [form, setForm] = useState<SignInRequest>({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [signIn, { isLoading }] = useSignInMutation();
+    const [form, setForm] = useState<SignInRequest>({
+        email: '',
+        password: '',
+    });
+    const [error, setError] = useState('');
+    const [signIn, { isLoading }] = useSignInMutation();
 
-  const handleInputChange = useCallback(
-    (field: keyof SignInRequest) => (value: string) => {
-      setForm((previous) => ({ ...previous, [field]: value }));
-      setError('');
-    },
-    [],
-  );
+    const handleInputChange = useCallback(
+        (field: keyof SignInRequest) => (value: string) => {
+            setForm((previous) => ({ ...previous, [field]: value }));
+            setError('');
+        },
+        [],
+    );
 
-  const validationError = useMemo(() => {
-    if (!form.email || !form.password) return 'Both fields are required.';
-    if (!EMAIL_PATTERN.test(form.email)) return 'Enter a valid email address.';
-    return '';
-  }, [form.email, form.password]);
+    const validationError = useMemo(() => {
+        if (!form.email || !form.password) return 'Both fields are required.';
+        if (!EMAIL_PATTERN.test(form.email))
+            return 'Enter a valid email address.';
+        return '';
+    }, [form.email, form.password]);
 
-  const handleSubmit = useCallback(async () => {
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    const handleSubmit = useCallback(async () => {
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
 
-    try {
-      await signIn(form).unwrap();
-      setError('');
-      navigation.navigate('HomeTabNavigator', { screen: 'Routes' });
-    } catch {
-      setError('Sign-in failed. Please check your credentials.');
-    }
-  }, [form, navigation, signIn, validationError]);
+        try {
+            await signIn(form).unwrap();
+            setError('');
+            navigation.navigate('HomeTabNavigator', { screen: 'Routes' });
+        } catch {
+            setError('Sign-in failed. Please check your credentials.');
+        }
+    }, [form, navigation, signIn, validationError]);
 
-  const goToSignUp = useCallback(
-    () => navigation.navigate('SignUpScreen'),
-    [navigation],
-  );
+    const goToSignUp = useCallback(
+        () => navigation.navigate('SignUpScreen'),
+        [navigation],
+    );
 
-  const goToKvkk = useCallback(
-    () => navigation.navigate('KvkkScreen'),
-    [navigation],
-  );
+    const goToKvkk = useCallback(
+        () => navigation.navigate('KvkkScreen'),
+        [navigation],
+    );
 
-  const goToForgotPassword = useCallback(
-    () =>
-      navigation.navigate('ForgotPasswordScreen', {
-        email: form.email.trim() || undefined,
-      }),
-    [form.email, navigation],
-  );
+    const goToForgotPassword = useCallback(
+        () =>
+            navigation.navigate('ForgotPasswordScreen', {
+                email: form.email.trim() || undefined,
+            }),
+        [form.email, navigation],
+    );
 
-  return (
-    <AuthScreenLayout
-      icon='navigate'
-      title='Welcome back'
-      subtitle='Sign in to pick up where you left off.'
-      footerText="Don't have an account?"
-      footerActionLabel='Sign up'
-      onFooterAction={goToSignUp}
-    >
-      <FormField
-        label='Email'
-        placeholder='you@example.com'
-        value={form.email}
-        onChangeText={handleInputChange('email')}
-        autoCapitalize='none'
-        autoComplete='email'
-        keyboardType='email-address'
-      />
+    return (
+        <AuthScreenLayout
+            icon='navigate'
+            title='Welcome back'
+            subtitle='Sign in to pick up where you left off.'
+            footerText="Don't have an account?"
+            footerActionLabel='Sign up'
+            onFooterAction={goToSignUp}
+        >
+            <FormField
+                label='Email'
+                placeholder='you@example.com'
+                value={form.email}
+                onChangeText={handleInputChange('email')}
+                autoCapitalize='none'
+                autoComplete='email'
+                keyboardType='email-address'
+            />
 
-      <FormField
-        label='Password'
-        placeholder='Your password'
-        value={form.password}
-        onChangeText={handleInputChange('password')}
-        autoComplete='current-password'
-        isPassword
-        error={error}
-      />
+            <FormField
+                label='Password'
+                placeholder='Your password'
+                value={form.password}
+                onChangeText={handleInputChange('password')}
+                autoComplete='current-password'
+                isPassword
+                error={error}
+            />
 
-      <Pressable
-        onPress={goToForgotPassword}
-        hitSlop={10}
-        style={styles.forgot}
-        accessibilityRole='button'
-      >
-        <Text style={styles.forgotText}>Forgot password?</Text>
-      </Pressable>
+            <Pressable
+                onPress={goToForgotPassword}
+                hitSlop={10}
+                style={styles.forgot}
+                accessibilityRole='button'
+            >
+                <Text style={styles.forgotText}>Forgot password?</Text>
+            </Pressable>
 
-      <PrimaryButton
-        label='Sign in'
-        onPress={handleSubmit}
-        isLoading={isLoading}
-      />
+            <PrimaryButton
+                label='Sign in'
+                onPress={handleSubmit}
+                isLoading={isLoading}
+            />
 
+            <GoogleSignInButton />
 
-      <GoogleSignInButton />
-
-
-      <Pressable
-        onPress={goToKvkk}
-        hitSlop={10}
-        style={styles.kvkk}
-        accessibilityRole='button'
-      >
-        <Text style={styles.kvkkText}>KVKK consent</Text>
-      </Pressable>
-    </AuthScreenLayout>
-  );
+            <Pressable
+                onPress={goToKvkk}
+                hitSlop={10}
+                style={styles.kvkk}
+                accessibilityRole='button'
+            >
+                <Text style={styles.kvkkText}>KVKK consent</Text>
+            </Pressable>
+        </AuthScreenLayout>
+    );
 };
 
 const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    forgot: { alignSelf: 'flex-end', marginTop: -spacing.xs },
-    forgotText: {
-      ...typography.label,
-      fontWeight: '700',
-      color: colors.primary,
-    },
-    kvkk: { alignSelf: 'center' },
-    kvkkText: {
-      ...typography.caption,
-      color: colors.textMuted,
-      textDecorationLine: 'underline',
-    },
-  });
+    StyleSheet.create({
+        forgot: { alignSelf: 'flex-end', marginTop: -spacing.xs },
+        forgotText: {
+            ...typography.label,
+            fontWeight: '700',
+            color: colors.primary,
+        },
+        kvkk: { alignSelf: 'center' },
+        kvkkText: {
+            ...typography.caption,
+            color: colors.textMuted,
+            textDecorationLine: 'underline',
+        },
+    });
 
 export default SignInScreen;

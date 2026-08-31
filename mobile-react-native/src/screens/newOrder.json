@@ -1,0 +1,65 @@
+[
+  {
+    "address": " Demirlibahçe, Plevne Cd. No:8, 06340 Mamak/Ankara, Türkiy",
+    "id": 1,
+    "latitude": 39.9373193,
+    "longitude": 32.8775523,
+    "order": 1
+  },
+  {
+    "address": "Fidanlık, Kurtuluş, Celal Bayar Blv., 06420 Çankaya/Ankara, Türkiye",
+    "id": 2,
+    "latitude": 39.9283269,
+    "longitude": 32.8654476,
+    "order": 2
+  },
+  {
+    "address": "Emniyet, Ankara Büyükşehir Belediyesi, Hipodrom Cd. No:06560, 06560 Yenimahalle/Ankara, Türkiye",
+    "id": 3,
+    "latitude": 39.9409097,
+    "longitude": 32.8377803,
+    "order": 3
+  },
+  {
+    "address": "Işınlar, İvedik Cd. 46/5, 06170 Yenimahalle/Ankara, Türkiye",
+    "id": 4,
+    "latitude": 39.9582303,
+    "longitude": 32.8172487,
+    "order": 4
+  },
+  {
+    "address": "Gayret, İvedik Cd. No: 50, 06170 Yenimahalle/Ankara, Türkiye",
+    "id": 5,
+    "latitude": 39.9620885,
+    "longitude": 32.8110612,
+    "order": 5
+  },
+  {
+    "address": "25 Mart, Ahmet Ayık Park, Çınardibi Cd. 4 B, 06200 Yenimahalle/Ankara, Türkiye",
+    "id": 6,
+    "latitude": 39.9569244,
+    "longitude": 32.7950965,
+    "order": 6
+  },
+  {
+    "address": "Nüfus, 06200 Yenimahalle/Ankara, Türkiye",
+    "id": "9",
+    "latitude": 39.95739151642648,
+    "longitude": 32.789982073009014,
+    "order": 7
+  },
+  {
+    "address": "Bahçekapı, Eşref Bitlis Kışlası, Fatih Sultan Mehmet Blv, 06797 Etimesgut/Ankara, Türkiye",
+    "id": 7,
+    "latitude": 39.945225,
+    "longitude": 32.7375667,
+    "order": 8
+  },
+  {
+    "address": "Yeni Batı, İstanbul Yolu Metro İstasyonu, 06370 Yenimahalle/Ankara, Türkiye",
+    "id": 8,
+    "latitude": 39.9795356,
+    "longitude": 32.65884,
+    "order": 9
+  }
+]

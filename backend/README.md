@@ -11,6 +11,7 @@ roads and waypoints. Access control is JWT-based with table-driven RBAC.
 | [`docs/REVIEW.md`](./docs/REVIEW.md) | Baseline audit of database, backend, authentication and authorization, with a six-step remediation plan |
 | [`docs/changes/`](./docs/changes/) | One document per remediation step: what changed, why, and how it was verified |
 | [`docs/changes/07-maps-on-the-server.md`](./docs/changes/07-maps-on-the-server.md) | Why the Google Maps key and every map call moved off the phone |
+| [`docs/changes/08-google-sign-in.md`](./docs/changes/08-google-sign-in.md) | Why Google sign-in stalled on the phone, and where the profile it returns is stored |
 | [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Releasing: accounts, database, keys and cost, step by step for a first deploy |
 
 ## Getting started

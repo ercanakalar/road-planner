@@ -18,6 +18,7 @@ import {
   VerifyResetCodeArgs,
   VerifyResetCodeResponse,
   ResetPasswordArgs,
+  GoogleSignInResponse,
 } from '../../types/store/services/authenticationService-type';
 import { ApiResponse } from 'types/store/bases';
 
@@ -54,18 +55,19 @@ export const authenticationService = createApi({
         transformApiResponseWithToast(res),
     }),
 
-    signInWithGoogle: builder.mutation<SignInArgsResponse, { idToken: string }>(
-      {
-        query: ({ idToken }) => ({
-          url: '/auth/google/token',
-          method: 'POST',
-          body: { idToken },
-        }),
-        extraOptions: { maxRetries: 0 },
-        transformResponse: (res: ApiResponse<SignInArgsResponse>) =>
-          transformApiResponseWithToast(res),
-      },
-    ),
+    signInWithGoogle: builder.mutation<
+      GoogleSignInResponse,
+      { idToken: string }
+    >({
+      query: ({ idToken }) => ({
+        url: '/auth/google/token',
+        method: 'POST',
+        body: { idToken },
+      }),
+      extraOptions: { maxRetries: 0 },
+      transformResponse: (res: ApiResponse<GoogleSignInResponse>) =>
+        transformApiResponseWithToast(res),
+    }),
 
     logout: builder.mutation<void, void>({
       query: () => ({

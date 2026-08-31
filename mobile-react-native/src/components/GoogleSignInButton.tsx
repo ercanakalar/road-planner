@@ -23,9 +23,13 @@ const GoogleSignInButton = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { isAvailable, isBusy, signIn } = useGoogleAuth(onSuccess);
+  const { isAvailable, isBusy, error, unavailableReason, signIn } =
+    useGoogleAuth(onSuccess);
 
-  if (!isAvailable) return null;
+  // Nothing configured for this platform: the button would have nowhere to go.
+  if (!isAvailable && !unavailableReason) return null;
+
+  const isDisabled = isBusy || !isAvailable;
 
   return (
     <View style={styles.wrapper}>
@@ -37,14 +41,14 @@ const GoogleSignInButton = ({
 
       <Pressable
         onPress={signIn}
-        disabled={isBusy}
+        disabled={isDisabled}
         accessibilityRole='button'
         accessibilityLabel={label}
-        accessibilityState={{ busy: isBusy, disabled: isBusy }}
+        accessibilityState={{ busy: isBusy, disabled: isDisabled }}
         style={({ pressed }) => [
           styles.button,
           pressed && styles.pressed,
-          isBusy && styles.busy,
+          isDisabled && styles.busy,
         ]}
       >
         {isBusy ? (
@@ -54,6 +58,18 @@ const GoogleSignInButton = ({
         )}
         <Text style={styles.label}>{label}</Text>
       </Pressable>
+
+      {/* A sign-in that goes nowhere has to say why. Every failure below used to
+          leave the button spinning with nothing on screen to explain it. */}
+      {unavailableReason ? (
+        <Text style={styles.note}>{unavailableReason}</Text>
+      ) : null}
+
+      {error ? (
+        <Text style={styles.error} accessibilityRole='alert'>
+          {error.message}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -89,6 +105,16 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.body,
       fontWeight: '600',
       color: colors.text,
+    },
+    note: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: -spacing.sm,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginTop: -spacing.sm,
     },
   });
 
