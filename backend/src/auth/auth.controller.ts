@@ -141,9 +141,9 @@ export class AuthController {
   ) {
     this.googleService.verifyState(state);
 
-    const { email } = await this.googleService.getAuthClientData(code);
+    const profile = await this.googleService.getAuthClientData(code);
 
-    return this.authService.signInWithGoogle(email);
+    return this.authService.signInWithGoogle(profile);
   }
 
   @Public()
@@ -151,9 +151,11 @@ export class AuthController {
   @Post('google/token')
   @HttpCode(HttpStatus.OK)
   async signInWithGoogleIdToken(@Body() body: GoogleIdTokenDto) {
-    const email = await this.googleService.getEmailFromIdToken(body.idToken);
+    const profile = await this.googleService.getProfileFromIdToken(
+      body.idToken,
+    );
 
-    return this.authService.signInWithGoogle(email);
+    return this.authService.signInWithGoogle(profile);
   }
 
   @UseGuards(PermissionsGuard)

@@ -16,6 +16,7 @@ import {
   VerifyResetCodeDto,
 } from 'src/auth/dto/auth.dto';
 import { HelperService } from 'src/auth/helper/helper.service';
+import { GoogleProfile } from 'src/auth/type/auth.types';
 import { ok } from 'src/common/http/api-response';
 import {
   RESET_CODE_LOCKOUT_HOURS,
@@ -23,10 +24,7 @@ import {
   RESET_CODE_TTL_MINUTES,
 } from 'src/auth/constants/password-reset';
 import { PasswordResetLockedException } from 'src/auth/exception/password-reset-locked.exception';
-import {
-  PasswordResetChannel,
-  Prisma,
-} from '../../../generated/prisma/client';
+import { PasswordResetChannel, Prisma } from '../../../generated/prisma/client';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { EmailService } from 'src/notification/email/email.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -41,6 +39,86 @@ const USER_AUTH_SELECT = {
     select: { id: true },
   },
 } as const;
+
+/**
+ * Google sign-in reads and writes the profile columns the account picker fills
+ * in, which password sign-in has no reason to touch.
+ */
+const USER_GOOGLE_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  photo: true,
+  nickName: true,
+  googleAuth: {
+    select: { id: true },
+  },
+} as const;
+
+type GoogleUserRow = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  photo: string | null;
+  nickName: string | null;
+};
+
+/**
+ * Google serves avatars from rotating URLs on this host. One already on file is
+ * therefore refreshed on every sign-in — the previous one stops resolving —
+ * while a photo the user uploaded here is left exactly as it is.
+ */
+const GOOGLE_PHOTO_HOST = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\//i;
+
+const isBlank = (value: string | null): boolean => !value?.trim();
+
+const googleProfileFields = (profile: GoogleProfile) => ({
+  ...(profile.firstName ? { firstName: profile.firstName } : {}),
+  ...(profile.lastName ? { lastName: profile.lastName } : {}),
+  ...(profile.photo ? { photo: profile.photo } : {}),
+});
+
+/**
+ * What of the Google profile to write over an account that already exists.
+ *
+ * A name or photo the user set here is theirs, and signing in again is not a
+ * request to have it replaced — only the empty fields are filled. The one
+ * exception is an avatar that came from Google in the first place, which is
+ * refreshed because its URL does not stay valid.
+ */
+const googleProfilePatch = (
+  existing: GoogleUserRow,
+  profile: GoogleProfile,
+): Prisma.UserUpdateInput => {
+  const patch: Prisma.UserUpdateInput = {};
+
+  if (profile.firstName && isBlank(existing.firstName)) {
+    patch.firstName = profile.firstName;
+  }
+  if (profile.lastName && isBlank(existing.lastName)) {
+    patch.lastName = profile.lastName;
+  }
+
+  const photoIsGoogles =
+    isBlank(existing.photo) || GOOGLE_PHOTO_HOST.test(existing.photo ?? '');
+
+  if (profile.photo && photoIsGoogles && profile.photo !== existing.photo) {
+    patch.photo = profile.photo;
+  }
+
+  return patch;
+};
+
+const toGoogleUserView = ({
+  id,
+  email,
+  firstName,
+  lastName,
+  photo,
+  nickName,
+}: GoogleUserRow) => ({ id, email, firstName, lastName, photo, nickName });
 
 const DUMMY_PASSWORD_HASH =
   'scrypt$N=32768,r=8,p=1$00000000000000000000000000000000$' + '0'.repeat(128);
@@ -561,8 +639,13 @@ export class AuthService {
     });
   }
 
-  async signInWithGoogle(email: string) {
-    const existingUser = await this.findUserByEmail(email);
+  async signInWithGoogle(profile: GoogleProfile) {
+    const { email } = profile;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+      select: USER_GOOGLE_SELECT,
+    });
     const userPermit = await this.getDefaultPermit();
 
     if (!existingUser) {
@@ -570,8 +653,10 @@ export class AuthService {
         const newUser = await tx.user.create({
           data: {
             email,
+            ...googleProfileFields(profile),
             permit: { connect: { id: userPermit.id } },
           },
+          select: USER_GOOGLE_SELECT,
         });
 
         await tx.googleAuth.create({
@@ -580,13 +665,18 @@ export class AuthService {
 
         const tokens = await this.createSession(newUser, tx);
 
-        return { userId: newUser.id, ...tokens };
+        return { user: newUser, ...tokens };
       });
 
       return ok({
         header: 'Google Sign In Successful',
         message: 'New user created and signed in with Google',
-        data: created,
+        data: {
+          userId: created.user.id,
+          accessToken: created.accessToken,
+          refreshToken: created.refreshToken,
+          user: toGoogleUserView(created.user),
+        },
       });
     }
 
@@ -597,13 +687,28 @@ export class AuthService {
         });
       }
 
-      return this.createSession(existingUser, tx);
+      const patch = googleProfilePatch(existingUser, profile);
+
+      const user = Object.keys(patch).length
+        ? await tx.user.update({
+            where: { id: existingUser.id },
+            data: patch,
+            select: USER_GOOGLE_SELECT,
+          })
+        : existingUser;
+
+      return { user, ...(await this.createSession(user, tx)) };
     });
 
     return ok({
       header: 'Google Sign In Successful',
       message: 'User signed in with Google',
-      data: { userId: existingUser.id, ...issued },
+      data: {
+        userId: issued.user.id,
+        accessToken: issued.accessToken,
+        refreshToken: issued.refreshToken,
+        user: toGoogleUserView(issued.user),
+      },
     });
   }
 }

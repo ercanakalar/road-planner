@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Logger,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,7 +9,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OAuth2Client } from 'google-auth-library';
 
 import { createConfigMock } from 'src/testing/mocks';
-import { GoogleService } from './google.service';
+import { GoogleService, isUsablePhoto, splitName } from './google.service';
+
+/**
+ * A token shaped like a JWT but signed by nobody: verification is stubbed in
+ * these tests, and the payload exists only so the audience can be read back
+ * out of it for the log.
+ */
+const idTokenWithAudience = (aud: string): string =>
+  `header.${Buffer.from(JSON.stringify({ aud })).toString('base64url')}.signature`;
 
 const googleConfig = {
   ACCESS_KEY: 'access-secret-at-least-32-chars-long!!',
@@ -231,6 +240,25 @@ describe('GoogleService', () => {
       });
     });
 
+    it('returns the name and avatar alongside the email', async () => {
+      stubGoogle({
+        id: '11223344',
+        email: 'user@example.com',
+        verified_email: true,
+        given_name: 'Ada',
+        family_name: 'Lovelace',
+        picture: 'https://lh3.googleusercontent.com/a/photo.jpg',
+      });
+
+      await expect(service.getAuthClientData('code')).resolves.toEqual({
+        email: 'user@example.com',
+        googleId: '11223344',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        photo: 'https://lh3.googleusercontent.com/a/photo.jpg',
+      });
+    });
+
     it('accepts the string "true" as verified', async () => {
       stubGoogle({ email: 'user@example.com', verified_email: 'true' });
 
@@ -275,7 +303,7 @@ describe('GoogleService', () => {
       await expect(service.getAuthClientData('')).rejects.toThrow();
     });
 
-    it('returns nothing but the email', async () => {
+    it('returns nothing but the email when Google sent nothing else', async () => {
       stubGoogle({ email: 'user@example.com', verified_email: true });
 
       const result = await service.getAuthClientData('code');
@@ -284,7 +312,7 @@ describe('GoogleService', () => {
     });
   });
 
-  describe('getEmailFromIdToken', () => {
+  describe('getProfileFromIdToken', () => {
     const verifyIdToken = jest.fn();
 
     beforeEach(() => {
@@ -297,13 +325,19 @@ describe('GoogleService', () => {
     afterEach(() => jest.restoreAllMocks());
 
     const withNative = () =>
-      build({ GOOGLE_NATIVE_CLIENT_IDS: 'ios-id.apps, android-id.apps' });
+      build({
+        GOOGLE_CLIENT_ID: undefined,
+        GOOGLE_NATIVE_CLIENT_IDS: 'ios-id.apps, android-id.apps',
+      });
 
-    it('is unavailable until native client ids are configured', async () => {
-      const bare = await build({ GOOGLE_NATIVE_CLIENT_IDS: '' });
+    it('is unavailable until a client id is configured', async () => {
+      const bare = await build({
+        GOOGLE_CLIENT_ID: undefined,
+        GOOGLE_NATIVE_CLIENT_IDS: '',
+      });
 
       expect(bare.isNativeConfigured()).toBe(false);
-      await expect(bare.getEmailFromIdToken('t')).rejects.toThrow(
+      await expect(bare.getProfileFromIdToken('t')).rejects.toThrow(
         ServiceUnavailableException,
       );
       expect(verifyIdToken).not.toHaveBeenCalled();
@@ -315,12 +349,46 @@ describe('GoogleService', () => {
         getPayload: () => ({ email: 'a@b.c', email_verified: true }),
       });
 
-      await native.getEmailFromIdToken('token-1');
+      await native.getProfileFromIdToken('token-1');
 
       expect(verifyIdToken).toHaveBeenCalledWith({
         idToken: 'token-1',
         audience: ['ios-id.apps', 'android-id.apps'],
       });
+    });
+
+    it('also accepts a token addressed to the web client of the same project', async () => {
+      verifyIdToken.mockResolvedValue({
+        getPayload: () => ({ email: 'a@b.c', email_verified: true }),
+      });
+
+      const both = await build({
+        GOOGLE_NATIVE_CLIENT_IDS: 'android-id.apps',
+      });
+
+      await both.getProfileFromIdToken('token-1');
+
+      expect(verifyIdToken).toHaveBeenCalledWith({
+        idToken: 'token-1',
+        audience: ['android-id.apps', 'client-id'],
+      });
+    });
+
+    it('lists a client id only once', async () => {
+      const duplicated = await build({
+        GOOGLE_NATIVE_CLIENT_IDS: 'client-id, android-id.apps',
+      });
+
+      expect(duplicated.acceptedAudiences()).toEqual([
+        'client-id',
+        'android-id.apps',
+      ]);
+    });
+
+    it('is available on the web client id alone', async () => {
+      const webOnly = await build({ GOOGLE_NATIVE_CLIENT_IDS: '' });
+
+      expect(webOnly.isNativeConfigured()).toBe(true);
     });
 
     it('returns the verified email', async () => {
@@ -329,14 +397,80 @@ describe('GoogleService', () => {
         getPayload: () => ({ email: 'a@b.c', email_verified: true }),
       });
 
-      await expect(native.getEmailFromIdToken('t')).resolves.toBe('a@b.c');
+      await expect(native.getProfileFromIdToken('t')).resolves.toEqual({
+        email: 'a@b.c',
+      });
+    });
+
+    it('returns the name and avatar carried by the token', async () => {
+      const native = await withNative();
+      verifyIdToken.mockResolvedValue({
+        getPayload: () => ({
+          sub: '11223344',
+          email: 'a@b.c',
+          email_verified: true,
+          given_name: 'Ada',
+          family_name: 'Lovelace',
+          picture: 'https://lh3.googleusercontent.com/a/photo.jpg',
+        }),
+      });
+
+      await expect(native.getProfileFromIdToken('t')).resolves.toEqual({
+        email: 'a@b.c',
+        googleId: '11223344',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        photo: 'https://lh3.googleusercontent.com/a/photo.jpg',
+      });
     });
 
     it('rejects a token Google will not verify', async () => {
       const native = await withNative();
       verifyIdToken.mockRejectedValue(new Error('bad signature'));
 
-      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+      await expect(native.getProfileFromIdToken('t')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('names the offending audience in the log so it can be fixed', async () => {
+      const native = await withNative();
+      verifyIdToken.mockRejectedValue(new Error('Wrong recipient'));
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      await expect(
+        native.getProfileFromIdToken(idTokenWithAudience('web-id.apps')),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('addressed to web-id.apps'),
+      );
+    });
+
+    it('says nothing about the audience when it was accepted', async () => {
+      const native = await withNative();
+      verifyIdToken.mockRejectedValue(new Error('Token used too late'));
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      await expect(
+        native.getProfileFromIdToken(idTokenWithAudience('ios-id.apps')),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.not.stringContaining('addressed to'),
+      );
+    });
+
+    it('survives a token it cannot even split apart', async () => {
+      const native = await withNative();
+      verifyIdToken.mockRejectedValue(new Error('bad signature'));
+      jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+      await expect(native.getProfileFromIdToken('not-a-jwt')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -347,7 +481,7 @@ describe('GoogleService', () => {
         getPayload: () => ({ email: 'a@b.c', email_verified: false }),
       });
 
-      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+      await expect(native.getProfileFromIdToken('t')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -356,7 +490,7 @@ describe('GoogleService', () => {
       const native = await withNative();
       verifyIdToken.mockResolvedValue({ getPayload: () => ({}) });
 
-      await expect(native.getEmailFromIdToken('t')).rejects.toThrow(
+      await expect(native.getProfileFromIdToken('t')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -364,10 +498,65 @@ describe('GoogleService', () => {
     it('rejects an empty token before calling Google', async () => {
       const native = await withNative();
 
-      await expect(native.getEmailFromIdToken('')).rejects.toThrow(
+      await expect(native.getProfileFromIdToken('')).rejects.toThrow(
         BadRequestException,
       );
       expect(verifyIdToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('splitName', () => {
+    it('prefers the structured name Google returns', () => {
+      expect(
+        splitName({ given_name: 'Ada', family_name: 'Lovelace', name: 'x y' }),
+      ).toEqual({ firstName: 'Ada', lastName: 'Lovelace' });
+    });
+
+    it('takes a given name without a family name', () => {
+      expect(splitName({ given_name: 'Ada' })).toEqual({ firstName: 'Ada' });
+    });
+
+    it('splits a single display name on the first space', () => {
+      expect(splitName({ name: 'Ada Lovelace' })).toEqual({
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+      });
+    });
+
+    it('keeps every remaining part as the last name', () => {
+      expect(splitName({ name: 'Ada  King Lovelace' })).toEqual({
+        firstName: 'Ada',
+        lastName: 'King Lovelace',
+      });
+    });
+
+    it('accepts a mononym', () => {
+      expect(splitName({ name: 'Prince' })).toEqual({ firstName: 'Prince' });
+    });
+
+    it('reports no name rather than an empty one', () => {
+      expect(splitName({})).toEqual({});
+      expect(splitName({ name: '   ' })).toEqual({});
+      expect(splitName({ given_name: ' ', family_name: '' })).toEqual({});
+    });
+  });
+
+  describe('isUsablePhoto', () => {
+    it('accepts the https url Google returns', () => {
+      expect(isUsablePhoto('https://lh3.googleusercontent.com/a/p.jpg')).toBe(
+        true,
+      );
+    });
+
+    it.each(['http://insecure.example/p.jpg', 'javascript:alert(1)', '', '  '])(
+      'refuses %p',
+      (photo) => {
+        expect(isUsablePhoto(photo)).toBe(false);
+      },
+    );
+
+    it('refuses a missing photo', () => {
+      expect(isUsablePhoto(undefined)).toBe(false);
     });
   });
 });

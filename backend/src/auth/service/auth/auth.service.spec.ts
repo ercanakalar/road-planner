@@ -1064,20 +1064,39 @@ describe('AuthService', () => {
   });
 
   describe('signInWithGoogle', () => {
+    const googleProfile = (overrides: Record<string, unknown> = {}) => ({
+      email: 'g@example.com',
+      googleId: 'google-sub-1',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+      ...overrides,
+    });
+
+    const googleUser = (overrides: Record<string, unknown> = {}) => ({
+      id: 'user-1',
+      email: 'user@example.com',
+      firstName: null,
+      lastName: null,
+      photo: null,
+      nickName: null,
+      googleAuth: null,
+      ...overrides,
+    });
+
     beforeEach(() => {
       prisma.permit.findUnique.mockResolvedValue({ id: 'permit-1' });
     });
 
     it('issues this API’s tokens for a new Google user', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue({
-        id: 'new-user',
-        email: 'g@example.com',
-      });
+      prisma.user.create.mockResolvedValue(
+        googleUser({ id: 'new-user', email: 'g@example.com' }),
+      );
       prisma.session.create.mockResolvedValue({ id: SESSION_ID });
       prisma.googleAuth.create.mockResolvedValue({ id: 'google-1' });
 
-      const result = await service.signInWithGoogle('g@example.com');
+      const result = await service.signInWithGoogle(googleProfile());
 
       expect(result.data.accessToken).toBe('access-token');
       expect(result.data.refreshToken).toBe(REFRESH_TOKEN);
@@ -1085,13 +1104,12 @@ describe('AuthService', () => {
 
     it('does not persist Google’s tokens', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue({
-        id: 'new-user',
-        email: 'g@example.com',
-      });
+      prisma.user.create.mockResolvedValue(
+        googleUser({ id: 'new-user', email: 'g@example.com' }),
+      );
       prisma.session.create.mockResolvedValue({ id: SESSION_ID });
 
-      await service.signInWithGoogle('g@example.com');
+      await service.signInWithGoogle(googleProfile());
 
       const { data } = prisma.session.create.mock.calls[0][0];
       expect(data.refreshTokenHash).toBe(REFRESH_TOKEN_HASH);
@@ -1100,11 +1118,71 @@ describe('AuthService', () => {
       );
     });
 
-    it('links a Google identity to an existing account', async () => {
-      prisma.user.findUnique.mockResolvedValue(existingUser());
+    it('stores the name and avatar Google returned for a new account', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(
+        googleUser({ id: 'new-user', email: 'g@example.com' }),
+      );
       prisma.session.create.mockResolvedValue({ id: SESSION_ID });
 
-      const result = await service.signInWithGoogle('user@example.com');
+      await service.signInWithGoogle(googleProfile());
+
+      expect(prisma.user.create.mock.calls[0][0].data).toMatchObject({
+        email: 'g@example.com',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+      });
+    });
+
+    it('creates an account even when Google sent nothing but an email', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(
+        googleUser({ id: 'new-user', email: 'g@example.com' }),
+      );
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle({ email: 'g@example.com' });
+
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(Object.keys(data)).toEqual(
+        expect.not.arrayContaining(['firstName', 'lastName', 'photo']),
+      );
+    });
+
+    it('returns the stored profile so the app can show it at once', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(
+        googleUser({
+          id: 'new-user',
+          email: 'g@example.com',
+          firstName: 'Ada',
+          lastName: 'Lovelace',
+          photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+        }),
+      );
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      const result = await service.signInWithGoogle(googleProfile());
+
+      expect(result.data.user).toEqual({
+        id: 'new-user',
+        email: 'g@example.com',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+        nickName: null,
+      });
+    });
+
+    it('links a Google identity to an existing account', async () => {
+      prisma.user.findUnique.mockResolvedValue(googleUser());
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      const result = await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
 
       expect(result.data.userId).toBe('user-1');
       expect(prisma.googleAuth.create).toHaveBeenCalled();
@@ -1112,13 +1190,119 @@ describe('AuthService', () => {
 
     it('reuses an existing Google link', async () => {
       prisma.user.findUnique.mockResolvedValue(
-        existingUser({ googleAuth: { id: 'google-1' } }),
+        googleUser({ googleAuth: { id: 'google-1' } }),
+      );
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.googleAuth.create).not.toHaveBeenCalled();
+    });
+
+    it('fills in a profile the account never had', async () => {
+      prisma.user.findUnique.mockResolvedValue(googleUser());
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.user.update.mock.calls[0][0].data).toEqual({
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+      });
+    });
+
+    it('leaves a name the user set here alone', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        googleUser({ firstName: 'Mine', lastName: 'Own' }),
+      );
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.user.update.mock.calls[0][0].data).toEqual({
+        photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+      });
+    });
+
+    it('leaves an avatar uploaded here alone', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        googleUser({ photo: '/api/user/photo/mine.jpg' }),
+      );
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.user.update.mock.calls[0][0].data).toEqual({
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+      });
+    });
+
+    it('refreshes a Google avatar whose url has rotated', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        googleUser({
+          firstName: 'Ada',
+          lastName: 'Lovelace',
+          photo: 'https://lh3.googleusercontent.com/a/old.jpg',
+        }),
+      );
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.user.update.mock.calls[0][0].data).toEqual({
+        photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+      });
+    });
+
+    it('writes nothing when the stored profile is already current', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        googleUser({
+          googleAuth: { id: 'google-1' },
+          firstName: 'Ada',
+          lastName: 'Lovelace',
+          photo: 'https://lh3.googleusercontent.com/a/new.jpg',
+        }),
       );
       prisma.session.create.mockResolvedValue({ id: SESSION_ID });
 
-      await service.signInWithGoogle('user@example.com');
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
 
-      expect(prisma.googleAuth.create).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('signs in against the profile columns, not the password ones', async () => {
+      prisma.user.findUnique.mockResolvedValue(googleUser());
+      prisma.user.update.mockResolvedValue(googleUser());
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(
+        googleProfile({ email: 'user@example.com' }),
+      );
+
+      expect(prisma.user.findUnique.mock.calls[0][0].select).toMatchObject({
+        firstName: true,
+        lastName: true,
+        photo: true,
+      });
     });
   });
 });

@@ -17,6 +17,8 @@ export type RefreshTokenType = {
 };
 
 export type GoogleAuthClient = {
+  /** Google's stable account id — `id` from userinfo, `sub` in an id token. */
+  id?: string;
   email: string;
   verified_email?: boolean | string;
   email_verified?: boolean | string;
@@ -24,4 +26,17 @@ export type GoogleAuthClient = {
   given_name?: string;
   family_name?: string;
   picture?: string;
+};
+
+/**
+ * The subset of a Google account this application stores. Assembled either from
+ * a verified id token (native sign-in) or from the userinfo endpoint (the web
+ * OAuth callback), so both paths can feed the same persistence code.
+ */
+export type GoogleProfile = {
+  email: string;
+  googleId?: string;
+  firstName?: string;
+  lastName?: string;
+  photo?: string;
 };

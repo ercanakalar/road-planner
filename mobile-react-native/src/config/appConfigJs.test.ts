@@ -60,6 +60,16 @@ describe('app.config.js', () => {
   it('keeps the scheme Google sign-in redirects back to', () => {
     expect(loadConfig().scheme).toBe('net.travelroutes.travelroutes');
   });
+
+  it('keeps the application id that scheme has to equal', () => {
+    // useGoogleAuth builds `<application id>:/oauthredirect` from these, and a
+    // native Google client accepts no other redirect. Changing either without
+    // registering a new OAuth client breaks sign-in on that platform.
+    const config = loadConfig();
+
+    expect(config.android.package).toBe('net.travelroutes.travelroutes');
+    expect(config.ios.bundleIdentifier).toBe('net.travelroutes.travelroutes');
+  });
 });
 
 describe('android share intent filters', () => {

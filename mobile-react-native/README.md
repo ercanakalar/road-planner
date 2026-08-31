@@ -190,6 +190,79 @@ if (await confirm({ title: 'Delete route?', tone: 'danger' })) remove();
 Every field is optional. A second request while one is open resolves the first
 as cancelled, so no caller is left awaiting a promise that never settles.
 
+## Google sign-in
+
+Optional. With no client id configured the button is not rendered and
+email/password sign-in is unaffected.
+
+The flow is: the app opens Google in a browser tab, receives an authorization
+code at its own URI scheme, exchanges that code for an **id token**, and posts
+the token to `POST /api/auth/google/token`. The API verifies the token's
+signature and audience with Google, stores the name and avatar it carries, and
+answers with this API's own session — the same access/refresh pair
+email/password sign-in returns. Google's tokens are never persisted.
+
+### What has to match
+
+Three things are checked by Google or by the API, and each rejects a mismatch:
+
+| Value | Has to be |
+| --- | --- |
+| The redirect URI | `net.travelroutes.travelroutes:/oauthredirect` — the app's own application id. Registered implicitly by the Android/iOS client type; nothing to paste. |
+| The client id compiled into the build | An OAuth client of the **platform being built** (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `..._IOS_...`). A web client id here is refused by Google. |
+| The audience the API accepts | The same client id, listed in the backend's `GOOGLE_NATIVE_CLIENT_IDS` (its `GOOGLE_CLIENT_ID` is always accepted as well). |
+
+An Android OAuth client is keyed by package name **and** signing certificate, so
+a debug build and a release build are two different clients:
+
+```bash
+# release — the APK build prints this fingerprint itself
+docker compose -f docker-compose.apk.yml run --rm build-apk
+
+# debug — the key `expo run:android` signs with
+keytool -list -v -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android
+```
+
+Create one client per fingerprint in **Google Cloud console → APIs & Services →
+Credentials → OAuth client ID → Android**, package
+`net.travelroutes.travelroutes`. Put the one for the build you are making in
+`.env`, and list *both* on the backend so either build can sign in.
+
+### Development
+
+Expo Go cannot be used for this. It is one shared app under one shared package
+name, so Google's redirect never reaches your code — the account picker opens,
+returns to nothing, and there is no configuration that fixes it. The app detects
+Expo Go and says so under the button instead of spinning.
+
+Use a development build, which is the same code with this app's own package name:
+
+```bash
+npx expo run:android          # or: npx expo run:ios
+```
+
+### Production
+
+The release APK is signed by the keystore in the `apk-keystore` volume, so its
+fingerprint — and therefore its OAuth client — is stable across rebuilds. See
+[Signing and Google sign-in](#signing-and-google-sign-in).
+
+### When it does not work
+
+Every failure names itself under the button, and the details are logged with
+a `[google-sign-in]` prefix (`npx expo start`, or `logcat` for a release build).
+The ones worth recognising:
+
+| On screen | Cause |
+| --- | --- |
+| *Google sign-in needs a development build* | Running in Expo Go. |
+| *The server would not accept this Google account…* | The API verified the token and refused its audience. Add this build's client id to `GOOGLE_NATIVE_CLIENT_IDS` and restart the API — it names the offending audience in its own log. |
+| *Google sign-in is not configured on the server* | The API has neither `GOOGLE_NATIVE_CLIENT_IDS` nor `GOOGLE_CLIENT_ID`. |
+| *Could not reach the server…* | `EXPO_PUBLIC_BASE_URL` is not an address this phone can open. `http://<address>/api/health` from the phone's browser answers. |
+| *Google issued no id token…* | The compiled client id is not one for this platform — typically the web client id on Android. |
+| `redirect_uri_mismatch`, `invalid_client` | The signing certificate does not match the one on the OAuth client. A debug build signed with a release client's fingerprint fails here. |
+
 ## Architecture
 
 ```
@@ -341,7 +414,8 @@ The signing key is generated on the first run into a named volume and reused
 afterwards, so the certificate fingerprint stays the same between builds. The
 build prints its SHA-1; register that against package
 `net.travelroutes.travelroutes` in the Android OAuth client, or Google
-sign-in is refused.
+sign-in is refused. The rest of that setup is under
+[Google sign-in](#google-sign-in).
 
 Deleting the `apk-keystore` volume generates a new key with a new fingerprint,
 and Android refuses to install an update signed by a different key — uninstall
