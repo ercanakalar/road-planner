@@ -13,7 +13,7 @@ import type { AppDispatch, RootState } from 'store';
 const TITLE_MAX_LENGTH = 255;
 const WAYPOINTS_MAX = 500;
 
-export interface UploadResult {
+interface UploadResult {
   uploaded: number;
   failed: number;
 }

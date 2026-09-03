@@ -13,7 +13,7 @@ export const resolveScheme = (
   return mode;
 };
 
-export interface ThemeContextValue {
+interface ThemeContextValue {
   colors: ThemeColors;
   scheme: ColorScheme;
   mode: ThemeMode;

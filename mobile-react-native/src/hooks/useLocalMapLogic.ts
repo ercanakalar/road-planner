@@ -60,7 +60,7 @@ const toSharedWaypoint = (
     : [],
 });
 
-export const selectActiveLocalRoad = (
+const selectActiveLocalRoad = (
   roads: LocalRoad[],
   activeRoadId?: string,
 ): LocalRoad | undefined =>

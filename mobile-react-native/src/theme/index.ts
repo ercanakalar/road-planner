@@ -87,7 +87,7 @@ type Elevation = Pick<
 const elevation = (level: 1 | 2 | 3): Elevation =>
   Platform.select<Elevation>({
     ios: {
-      shadowColor: '#0F172A',
+      shadowColor: '#202124',
       shadowOffset: { width: 0, height: level * 2 },
       shadowOpacity: 0.05 + level * 0.03,
       shadowRadius: level * 6,

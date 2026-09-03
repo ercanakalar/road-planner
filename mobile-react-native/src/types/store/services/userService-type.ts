@@ -2,7 +2,7 @@ export type GetUserByIdArgs = {
   userId: string;
 };
 
-export type UserProfileData = {
+type UserProfileData = {
   id: string;
   firstName: string;
   lastName: string;

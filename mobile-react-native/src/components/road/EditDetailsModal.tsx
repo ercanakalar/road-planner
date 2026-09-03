@@ -24,7 +24,7 @@ import {
 import type { ThemeColors } from 'theme';
 
 export const TITLE_MAX_LENGTH = 255;
-export const DESCRIPTION_MAX_LENGTH = 2000;
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 export interface DetailsDraft {
   title: string;

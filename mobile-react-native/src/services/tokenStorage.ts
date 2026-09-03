@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import localStorageService from './localStorageService';
 import { TokenType } from 'types/libs/auth';
 
-export type TokenPair = {
+type TokenPair = {
   accessToken: string | null;
   refreshToken: string | null;
 };

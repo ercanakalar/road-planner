@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 
 import { ToastType } from 'src/common/type/status.type';
 import { PrismaService } from 'src/prisma/prisma.service';

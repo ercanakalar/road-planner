@@ -39,9 +39,9 @@ import {
   WaypointAddressInput,
 } from 'types/store/services/roadService-type';
 
-export const TEMP_WAYPOINT_ID = 'temp-waypoint-id';
+const TEMP_WAYPOINT_ID = 'temp-waypoint-id';
 
-export const PENDING_ADDRESS: WaypointAddressInput = {
+const PENDING_ADDRESS: WaypointAddressInput = {
   address: 'Locating…',
   country: '',
   province: '',

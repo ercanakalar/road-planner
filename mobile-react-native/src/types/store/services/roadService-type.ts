@@ -15,7 +15,7 @@ export interface Road {
 }
 
 
-export interface Address {
+interface Address {
   id: string;
   country: string;
   province: string;

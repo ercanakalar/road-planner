@@ -5,8 +5,11 @@ dist/
 src/constants/appConfig.ts
 
 .env
+.env.production
 .expo
 
 ios/
 
 *.apk
+
+.icon-build/

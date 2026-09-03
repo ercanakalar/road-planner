@@ -4,9 +4,9 @@ import type { Region } from 'react-native-maps';
 
 import { TURKEY_REGION, USER_LOCATION_DELTA } from 'constants/regions';
 
-export type LocationStatus = 'pending' | 'granted' | 'denied' | 'unavailable';
+type LocationStatus = 'pending' | 'granted' | 'denied' | 'unavailable';
 
-export interface InitialRegionState {
+interface InitialRegionState {
   region: Region;
   status: LocationStatus;
   isResolving: boolean;

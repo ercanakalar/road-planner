@@ -294,6 +294,13 @@ Imports name the file rather than a folder barrel — `components/ui/PrimaryButt
 not `components/ui`. A barrel makes every screen that wants one control pull in
 all of them, which is startup time a phone pays for and nobody asked for.
 
+One hazard worth knowing about, because it is silent: a module must not exist as
+both `.ts` and `.tsx`. Metro resolves `sourceExts` in order — `ts` before `tsx` —
+and so does `tsc`, so the `.tsx` twin is never loaded by anything. `useMapLogic`
+and `useWaypointLogic` each had a pair, and the `.tsx` half was dead: editing it
+changed nothing at runtime, and no tool said a word. If a change to a file seems
+to have no effect, check for a same-named sibling with the other extension.
+
 ### Data layer
 
 Server state lives entirely in RTK Query; Redux slices hold only client state
@@ -366,6 +373,84 @@ holds the retry, refresh and replay logic.
   `MAX_PAGE_SIZE` 200). The app requests the maximum page and does not page
   further — see `src/constants/pagination.ts` for what real paging needs.
 - No component or end-to-end tests; the map interactions are unverified by CI.
+
+## Brand and store images
+
+### Palette
+
+`theme/palettes.ts` holds the only two colour objects in the app — Google
+Maps' own palette: Google Blue primary, red destination pins, green for start
+and success, over Google's greys (`#202124`, `#5F6368`, `#DADCE0`), one
+palette per scheme. Everything else reads them through `useTheme()` /
+`useThemedStyles()`, so a colour is changed in one place.
+
+Values are Google's own Material/Maps steps, picked at the step that clears
+the contrast each token needs rather than the brightest one. `primary` is Blue
+**700** (`#1967D2`) rather than the Blue 600 (`#1A73E8`) Google uses for
+buttons, because it also sets small label text on `primarySoft`, where 600
+falls to 3.93:1.
+
+Three constraints are load-bearing, and the comment at the top of the file
+repeats them:
+
+- Waypoint pins colour by position — start `success`, destination `accent`,
+  stops `primary` — and a place found along the route uses `place`. All four
+  share a screen, so they stay far apart in hue (green ~145°, red ~1°, blue
+  ~215°, olive ~77°); the closest pair is 63° apart. `place` exists because
+  these markers used `warning`, which sits 33° from `accent` and read as a
+  second destination pin.
+- The three route modes are drawn over the same map — driving ~215°, transit
+  ~272°, walking ~145°. Each casing is a lighter halo of its own hue holding
+  ≥ 3:1 against the line it outlines; a *darker* same-hue casing cannot reach
+  3:1 at all, which is why the outline lightens rather than deepens.
+- `primary` is used for small label text, so it holds ≥ 4.5:1 against
+  `surface`, `background`, `surfaceAlt` and `primarySoft`.
+- `text` and `textMuted` clear 4.5:1 on all three backgrounds; `textSubtle` is
+  placeholder-only and clears 3:1. In dark that pushes `textMuted` one step
+  lighter than Google's `#9AA0A6`, which reaches only 3.96:1 on `surfaceAlt`.
+
+### Icons
+
+Every launcher and store image is generated from one vector source:
+
+```bash
+node scripts/generate-icons.mjs
+```
+
+It renders through the Chromium that Playwright installs — set `CHROME_BIN` to
+point at another one — and writes:
+
+| File | Size | Purpose |
+| --- | --- | --- |
+| `assets/icon.png` | 1024² | iOS, and the base Expo resizes from. Opaque: iOS paints transparency black |
+| `assets/adaptive-icon.png` | 1024² | Android adaptive foreground, transparent |
+| `assets/adaptive-icon-background.png` | 1024² | Adaptive background layer |
+| `assets/monochrome-icon.png` | 1024² | Android 13 themed icons; the launcher tints whatever is opaque |
+| `assets/splash-icon.png` | 1024² | Splash mark, light scheme |
+| `assets/splash-icon-dark.png` | 1024² | Splash mark, dark scheme |
+| `assets/favicon.png` | 192² | Expo web |
+| `store-assets/play-store-icon.png` | 512² | Play Console store icon, 32-bit |
+| `store-assets/feature-graphic.png` | 1024×500 | Play Console feature graphic |
+
+Android crops an adaptive icon to a shape the launcher picks and only promises
+the centred circle 66dp of the 108dp canvas across. The script measures the
+rendered artwork against that circle and fails rather than shipping a mark that
+a round launcher would clip.
+
+`config/appAssets.test.ts` guards the other half: that every path `app.json`
+names is a PNG that exists at the size the stores expect, that the iOS icon
+carries no alpha, and that the splash opens on the same background the app then
+draws. An SVG in `expo.icon` is the failure worth knowing about — Expo does not
+read one, and silently ships its own placeholder icon instead.
+
+### Still needed before the listing goes live
+
+Neither can be produced from this repository:
+
+- Screenshots — the Play Console wants at least two phone screenshots.
+- A privacy policy URL. The app already collects location and an optional
+  profile photo, and shows a KVKK notice (`components/legal/`), but Play needs
+  the policy hosted at a public URL.
 
 ## Building an installable APK with Docker
 

@@ -3,7 +3,7 @@ import { WaypointWithAddress } from 'types/map-screen-type';
 import { WaypointInput } from 'types/store/services/roadService-type';
 import type { AppDispatch } from 'store';
 
-export class RoadDetailsUpdateError extends Error {}
+class RoadDetailsUpdateError extends Error {}
 
 const toWaypointInput = (waypoint: WaypointWithAddress): WaypointInput => ({
   id: waypoint.id,

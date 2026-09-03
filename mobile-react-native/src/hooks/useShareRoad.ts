@@ -4,15 +4,15 @@ import { Platform, Share } from 'react-native';
 import { buildShareLink } from 'constants/shareLinks';
 import { useLazyShareRoadQuery } from 'store/services/roadService';
 
-export interface ShareableRoad {
+interface ShareableRoad {
   id: string;
   title: string;
 }
 
-export const shareMessage = (title: string, url: string): string =>
+const shareMessage = (title: string, url: string): string =>
   `${title}\n${url}`;
 
-export interface ShareRoadState {
+interface ShareRoadState {
   shareRoad: (road: ShareableRoad) => Promise<void>;
   sharingRoadId: string | null;
 }

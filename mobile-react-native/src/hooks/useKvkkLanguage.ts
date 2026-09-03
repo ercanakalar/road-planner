@@ -4,7 +4,7 @@ import { KVKK_COPY, deviceKvkkLanguage } from 'constants/kvkk';
 import { useAppSelector } from 'store/hook';
 import { KvkkCopy, KvkkLanguage } from 'types/kvkk';
 
-export interface KvkkLanguageState {
+interface KvkkLanguageState {
   language: KvkkLanguage;
   copy: KvkkCopy;
   setLanguage: (language: KvkkLanguage) => void;

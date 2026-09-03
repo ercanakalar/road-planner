@@ -1,6 +1,6 @@
 export type KvkkLanguage = 'tr' | 'en';
 
-export const isKvkkLanguage = (value: unknown): value is KvkkLanguage =>
+const isKvkkLanguage = (value: unknown): value is KvkkLanguage =>
   value === 'tr' || value === 'en';
 
 export type KvkkSectionId =
@@ -13,7 +13,7 @@ export type KvkkSectionId =
   | 'rights'
   | 'withdrawal';
 
-export interface KvkkSection {
+interface KvkkSection {
   id: KvkkSectionId;
   title: string;
   body: string;

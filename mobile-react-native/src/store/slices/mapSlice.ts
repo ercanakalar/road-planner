@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { RouteCoordinate } from 'types/map-screen-type';
 
-export interface MapState {
+interface MapState {
   clickedLocation?: RouteCoordinate;
   contextMenuWaypointId?: string;
   isContextMenuVisible: boolean;

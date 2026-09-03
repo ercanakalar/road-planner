@@ -218,7 +218,7 @@ See [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml).
 src/
   auth/            Sign-up/in/out, refresh, password reset, Google OAuth
     helper/        Password hashing and JWT issuing
-    strategy/      Passport JWT strategies (access, refresh)
+    strategy/      AccessStrategy, the one Passport JWT strategy in use
   common/
     decorators/    @Public, @GetUser, @RequirePermission
     guards/        AccessGuard (global), AdminGuard, PermissionsGuard, RoadOwnerGuard
@@ -232,6 +232,45 @@ src/
   testing/         Shared test doubles (excluded from the build)
   user/            Profile read and update
 ```
+
+## Database indexes
+
+Every index is there to serve a query someone can point at. Three rules keep the
+set honest, and `prisma/migrations/20260902210000_prune_and_cover_indexes`
+applies them:
+
+**A `@unique` field is already indexed.** Postgres builds an index to enforce the
+constraint, so a second `@@index` on the same column only costs writes. `User`
+carried duplicates on both `email` and `nickName`.
+
+**A composite index answers queries on its leftmost columns.** `@@index([userId,
+revokedAt])` already serves `where userId`, so a separate `@@index([userId])` is
+dead weight. The same holds for a `@@unique([userId, roadId])`.
+
+**Index through to the sort, not just the filter.** Every list endpoint ends with
+`order by createdAt desc, id desc`. An index that stops at the filter columns
+makes Postgres read every matching row and sort it to return one page. Indexing
+through the sort columns turns that into a backward index scan that stops at the
+page size:
+
+| Listing | Before | After |
+| --- | --- | --- |
+| Owner's roads | 150 rows + top-N heapsort | 50 rows, no sort |
+| Favourites | 150 rows + top-N heapsort | 50 rows, no sort |
+| Discover feed | 6000 rows + top-N heapsort | 50 rows, no sort |
+
+Measured with `EXPLAIN ANALYZE` on 200 users / 30k roads / 30k favourites. The
+discover feed is the one that mattered: it read every public road in the table to
+return a page of 50, so its cost grew with the table rather than with the page.
+
+One thing that looks removable and is not: `FavoriteRoad.roadId`,
+`FavoriteWaypoint.waypointId` and `PasswordReset.userId` are indexed even though
+no query filters on them alone. Postgres does not index a foreign key
+automatically, and `ON DELETE CASCADE` scans those columns on every parent delete.
+
+`Session.expiresAt` and `PasswordReset.expiresAt` were dropped because nothing
+reads them in a `where` — both are written, then compared on a row already loaded
+by id or token hash. A job that sweeps expired rows would want them back.
 
 ## Map lookups
 

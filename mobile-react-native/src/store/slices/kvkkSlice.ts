@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { KVKK_CONSENT_VERSION } from 'constants/kvkk';
 import { KvkkConsentRecord } from 'types/kvkk';
 
-export interface KvkkState {
+interface KvkkState {
   /** False until the stored consent has been read off the device. */
   isHydrated: boolean;
   consent: KvkkConsentRecord | null;

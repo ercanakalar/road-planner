@@ -6,14 +6,14 @@ import { RouteCoordinate } from 'types/map-screen-type';
 const WATCH_DISTANCE_METERS = 10;
 const WATCH_INTERVAL_MS = 2000;
 
-export type LiveLocationStatus =
+type LiveLocationStatus =
   | 'idle'
   | 'starting'
   | 'watching'
   | 'denied'
   | 'unavailable';
 
-export interface LiveLocationState {
+interface LiveLocationState {
   location?: RouteCoordinate;
   status: LiveLocationStatus;
 }

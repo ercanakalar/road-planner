@@ -9,7 +9,7 @@ export interface IAuthState {
   userId: string | null;
 }
 
-export type IAuthUserState = 'initial' | 'error' | 'authenticated';
+type IAuthUserState = 'initial' | 'error' | 'authenticated';
 
 export const authInitialState: IAuthState = {
   isLoading: false,

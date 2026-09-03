@@ -118,7 +118,7 @@ const FoundPlaceMarker = memo(
         coordinate={coordinate}
         onPress={handlePress}
         tracksViewChanges={false}
-        pinColor={colors.warning}
+        pinColor={colors.place}
         title={place.name}
         description={`${metersToDistance(place.distanceFromRouteMeters)} off route`}
       />
