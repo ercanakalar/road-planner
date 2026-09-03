@@ -1,11 +1,9 @@
 import { Prisma } from '../../../generated/prisma/client';
 
 import {
-  applyAddressValues,
   applyWaypointOrder,
   applyWaypointValues,
   compactWaypointOrder,
-  linkWaypointAddresses,
   positionByRank,
   RawExecutor,
 } from './waypoint-writes';
@@ -91,8 +89,8 @@ describe('applyWaypointValues', () => {
     const { tx, statements } = createExecutor();
 
     await applyWaypointValues(tx, ROAD_ID, [
-      { id: 'wp-1', latitude: 1.5, longitude: 2.5, order: 1 },
-      { id: 'wp-2', latitude: 3.5, longitude: 4.5, order: 2 },
+      { id: 'wp-1', latitude: 1.5, longitude: 2.5, order: 1, address: 'A St' },
+      { id: 'wp-2', latitude: 3.5, longitude: 4.5, order: 2, address: 'B St' },
     ]);
 
     expect(statements).toHaveLength(1);
@@ -101,77 +99,31 @@ describe('applyWaypointValues', () => {
       1.5,
       2.5,
       1,
+      'A St',
       'wp-2',
       3.5,
       4.5,
       2,
+      'B St',
       ROAD_ID,
     ]);
+  });
+
+  it('passes a null address through, for COALESCE to leave alone', async () => {
+    const { tx, statements } = createExecutor();
+
+    await applyWaypointValues(tx, ROAD_ID, [
+      { id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: null },
+    ]);
+
+    // Coercing this to '' would blank the stop's name on every reorder.
+    expect(statements[0].values).toEqual(['wp-1', 1, 2, 1, null, ROAD_ID]);
   });
 
   it('issues nothing for an empty list', async () => {
     const { tx, statements } = createExecutor();
 
     await applyWaypointValues(tx, ROAD_ID, []);
-
-    expect(statements).toHaveLength(0);
-  });
-});
-
-describe('applyAddressValues', () => {
-  it('writes nulls through rather than coercing them', async () => {
-    const { tx, statements } = createExecutor();
-
-    await applyAddressValues(tx, [
-      {
-        id: 'addr-1',
-        country: null,
-        province: null,
-        district: null,
-        address: 'Main St',
-      },
-    ]);
-
-    expect(statements[0].values).toEqual([
-      'addr-1',
-      null,
-      null,
-      null,
-      'Main St',
-    ]);
-  });
-
-  it('issues nothing for an empty list', async () => {
-    const { tx, statements } = createExecutor();
-
-    await applyAddressValues(tx, []);
-
-    expect(statements).toHaveLength(0);
-  });
-});
-
-describe('linkWaypointAddresses', () => {
-  it('pairs each waypoint with its address', async () => {
-    const { tx, statements } = createExecutor();
-
-    await linkWaypointAddresses(tx, ROAD_ID, [
-      { waypointId: 'wp-1', addressInfoId: 'addr-1' },
-      { waypointId: 'wp-2', addressInfoId: 'addr-2' },
-    ]);
-
-    expect(statements[0].values).toEqual([
-      'wp-1',
-      'addr-1',
-      'wp-2',
-      'addr-2',
-      ROAD_ID,
-    ]);
-  });
-
-  it('issues nothing for an empty list', async () => {
-    const { tx, statements } = createExecutor();
-
-    await linkWaypointAddresses(tx, ROAD_ID, []);
 
     expect(statements).toHaveLength(0);
   });

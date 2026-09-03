@@ -5,17 +5,11 @@ export interface WaypointPosition {
   order: number;
 }
 
-export interface AddressValues {
-  id: string;
-  country: string | null;
-  province: string | null;
-  district: string | null;
-  address: string;
-}
-
 export interface WaypointValues extends WaypointPosition {
   latitude: number;
   longitude: number;
+  /** null leaves the stored address alone; a string replaces it. */
+  address: string | null;
 }
 
 export type RawExecutor = {
@@ -54,65 +48,20 @@ export function applyWaypointValues(
   const values = Prisma.join(
     waypoints.map(
       (w) =>
-        Prisma.sql`(${w.id}::text, ${w.latitude}::double precision, ${w.longitude}::double precision, ${w.order}::int)`,
+        Prisma.sql`(${w.id}::text, ${w.latitude}::double precision, ${w.longitude}::double precision, ${w.order}::int, ${w.address}::text)`,
     ),
   );
 
+  // COALESCE is what lets a caller reorder or nudge a stop without having to
+  // resend its address: a null in that column means "leave what is there".
   return tx.$executeRaw(Prisma.sql`
     UPDATE "WayPoint" AS wp
        SET latitude = v.lat,
            longitude = v.lng,
            "order" = v.ord,
+           address = COALESCE(v.address, wp.address),
            "updatedAt" = NOW()
-      FROM (VALUES ${values}) AS v(id, lat, lng, ord)
-     WHERE wp.id = v.id
-       AND wp."roadId" = ${roadId}
-  `);
-}
-
-export function applyAddressValues(
-  tx: RawExecutor,
-  addresses: readonly AddressValues[],
-): Promise<number> {
-  if (addresses.length === 0) return Promise.resolve(0);
-
-  const values = Prisma.join(
-    addresses.map(
-      (a) =>
-        Prisma.sql`(${a.id}::text, ${a.country}::text, ${a.province}::text, ${a.district}::text, ${a.address}::text)`,
-    ),
-  );
-
-  return tx.$executeRaw(Prisma.sql`
-    UPDATE "AddressInfo" AS ai
-       SET country = v.country,
-           province = v.province,
-           district = v.district,
-           address = v.address,
-           "updatedAt" = NOW()
-      FROM (VALUES ${values}) AS v(id, country, province, district, address)
-     WHERE ai.id = v.id
-  `);
-}
-
-export function linkWaypointAddresses(
-  tx: RawExecutor,
-  roadId: string,
-  links: readonly { waypointId: string; addressInfoId: string }[],
-): Promise<number> {
-  if (links.length === 0) return Promise.resolve(0);
-
-  const values = Prisma.join(
-    links.map(
-      (l) => Prisma.sql`(${l.waypointId}::text, ${l.addressInfoId}::text)`,
-    ),
-  );
-
-  return tx.$executeRaw(Prisma.sql`
-    UPDATE "WayPoint" AS wp
-       SET "addressInfoId" = v.address_id,
-           "updatedAt" = NOW()
-      FROM (VALUES ${values}) AS v(id, address_id)
+      FROM (VALUES ${values}) AS v(id, lat, lng, ord, address)
      WHERE wp.id = v.id
        AND wp."roadId" = ${roadId}
   `);

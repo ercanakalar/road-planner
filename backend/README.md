@@ -1,6 +1,6 @@
-# Road Planner — Backend
+# Travel Routes — Backend
 
-NestJS 10 + Prisma 6 + PostgreSQL API for the Road Planner app. Users register
+NestJS 10 + Prisma 6 + PostgreSQL API for the Travel Routes app. Users register
 (email/password or Google), build roads out of ordered waypoints, and favourite
 roads and waypoints. Access control is JWT-based with table-driven RBAC.
 
@@ -228,7 +228,7 @@ src/
   permissions/     Permit (role) administration
   maps/            Google Maps proxy: directions, geocoding, place search
   prisma/          PrismaService
-  road/            Roads, waypoints, addresses, share links
+  road/            Roads, waypoints, share links
   testing/         Shared test doubles (excluded from the build)
   user/            Profile read and update
 ```
@@ -328,6 +328,19 @@ Adding or moving a waypoint no longer requires the caller to supply an address:
 reverse-geocoded server-side when it is absent. A caller that already knows the
 address — a road being migrated off a phone — keeps it, and no lookup is spent.
 A failed lookup stores the waypoint as *Dropped pin* rather than losing it.
+
+`address` is a single string on `WayPoint`: Google's `formatted_address` as it
+read when the stop was placed. It was a table of its own — `AddressInfo`, joined
+one-to-one, with country/province/district split out — which meant a create on
+add, an update on move, a relink on replace and a delete when orphaned, all to
+hold one line of text per waypoint that no query filtered or joined on for its
+own sake. The formatted address already reads "Sultanahmet, Fatih/İstanbul,
+Türkiye", so the app splits it on commas where it wants a place and a locality
+on separate lines.
+
+It is a label, not a record of the place. Nothing refreshes it but moving the
+stop, and it is never queried — treat it as cached display text, and read
+coordinates when you need to know where something is.
 
 Three things stand between `MAP_API_KEY` and the internet, because these routes
 are `@Public()` — a shared road opens from a link, and the offline map runs

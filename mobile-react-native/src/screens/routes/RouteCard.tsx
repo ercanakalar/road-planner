@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import ContextMenu from 'components/ui/ContextMenu';
 import {
   radius,
   shadows,
@@ -17,6 +18,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { ContextMenuOption } from 'types/components/contextMenu';
 import { WaypointWithAddressAndId } from 'types/map-screen-type';
 
 type Props = {
@@ -42,24 +44,44 @@ const RouteCard = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleView = useCallback(() => onView(item.id), [item.id, onView]);
+
+  const openMenu = useCallback(() => setIsMenuOpen(true), []);
+  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
 
   const handleToggleFavorite = useCallback(
     () => onToggleFavorite(item),
     [item, onToggleFavorite],
   );
 
-  const handleDelete = useCallback(() => onDelete(item), [item, onDelete]);
-
-  const handleEdit = useCallback(() => onEdit(item), [item, onEdit]);
-
   const handleTogglePublic = useCallback(
     () => onTogglePublic(item),
     [item, onTogglePublic],
   );
 
-  const handleShare = useCallback(() => onShare(item), [item, onShare]);
+  const options = useMemo<ContextMenuOption[]>(
+    () => [
+      {
+        label: 'Share a link',
+        icon: 'share-social-outline',
+        action: () => onShare(item),
+      },
+      {
+        label: 'Edit details',
+        icon: 'create-outline',
+        action: () => onEdit(item),
+      },
+      {
+        label: 'Delete route',
+        icon: 'trash-outline',
+        tone: 'danger',
+        action: () => onDelete(item),
+      },
+    ],
+    [item, onDelete, onEdit, onShare],
+  );
 
   const stopCount = item.wayPoints?.length ?? 0;
 
@@ -91,6 +113,31 @@ const RouteCard = ({
             size={22}
             color={item.isFavorite ? colors.warning : colors.textSubtle}
           />
+        </Pressable>
+
+        <Pressable
+          onPress={openMenu}
+          disabled={isSharing}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.iconButton,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole='button'
+          accessibilityState={{ busy: !!isSharing }}
+          accessibilityLabel={`Options for route ${item.title}`}
+        >
+          {/* The share sheet is opened from this menu, so its spinner belongs
+              on the button that opened it. */}
+          {isSharing ? (
+            <ActivityIndicator size='small' color={colors.textSubtle} />
+          ) : (
+            <Ionicons
+              name='ellipsis-vertical'
+              size={20}
+              color={colors.textSubtle}
+            />
+          )}
         </Pressable>
       </View>
 
@@ -142,70 +189,15 @@ const RouteCard = ({
           </Pressable>
         </View>
 
-        <View style={styles.footerActions}>
-          <Pressable
-            onPress={handleShare}
-            disabled={isSharing}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityRole='button'
-            accessibilityState={{ busy: !!isSharing }}
-            accessibilityLabel={`Send a link to route ${item.title}`}
-          >
-            {isSharing ? (
-              <ActivityIndicator size='small' color={colors.textSubtle} />
-            ) : (
-              <Ionicons
-                name='share-social-outline'
-                size={18}
-                color={colors.textSubtle}
-              />
-            )}
-          </Pressable>
-
-          <Pressable
-            onPress={handleEdit}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityRole='button'
-            accessibilityLabel={`Edit route ${item.title}`}
-          >
-            <Ionicons
-              name='create-outline'
-              size={18}
-              color={colors.textSubtle}
-            />
-          </Pressable>
-
-          <Pressable
-            onPress={handleDelete}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityRole='button'
-            accessibilityLabel={`Delete route ${item.title}`}
-          >
-            <Ionicons
-              name='trash-outline'
-              size={18}
-              color={colors.textSubtle}
-            />
-          </Pressable>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={colors.textSubtle}
-          />
-        </View>
+        <Ionicons name='chevron-forward' size={18} color={colors.textSubtle} />
       </View>
+
+      <ContextMenu
+        visible={isMenuOpen}
+        title={item.title}
+        options={options}
+        onClose={closeMenu}
+      />
     </Pressable>
   );
 };
@@ -245,11 +237,6 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: spacing.xs,
-    },
-    footerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
     },
     metaRow: {
       flexDirection: 'row',

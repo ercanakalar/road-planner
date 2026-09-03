@@ -6,7 +6,7 @@ import { KvkkCopy, KvkkLanguage } from 'types/kvkk';
  * older version stops counting, so everyone is asked again for the new text.
  * Consent given to a text nobody showed them is not consent.
  */
-export const KVKK_CONSENT_VERSION = '2026-08-24';
+export const KVKK_CONSENT_VERSION = '2026-09-03';
 
 export const KVKK_CONTACT_EMAIL = 'kvkk@travelroutes.net';
 
@@ -14,7 +14,7 @@ const TR: KvkkCopy = {
   languageLabel: 'Türkçe',
   title: 'Kişisel Verilerin Korunması',
   subtitle:
-    'Road Planner’ı kullanmaya başlamadan önce hangi verilerinizi, neden işlediğimizi okuyun.',
+    'Travel Routes’u kullanmaya başlamadan önce hangi verilerinizi, neden işlediğimizi okuyun.',
   updatedLabel: 'Son güncelleme',
   bindingNote:
     'Bu metnin İngilizce çevirisi bilgilendirme amaçlıdır; uyuşmazlık hâlinde Türkçe metin esas alınır.',
@@ -22,7 +22,7 @@ const TR: KvkkCopy = {
     {
       id: 'controller',
       title: 'Veri sorumlusu',
-      body: `Road Planner uygulamasını işleten ekip, 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur. Bu metinle ilgili her soru ve talebiniz için ${KVKK_CONTACT_EMAIL} adresine yazabilirsiniz.`,
+      body: `Travel Routes uygulamasını işleten ekip, 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur. Bu metinle ilgili her soru ve talebiniz için ${KVKK_CONTACT_EMAIL} adresine yazabilirsiniz.`,
     },
     {
       id: 'data',
@@ -71,7 +71,7 @@ const TR: KvkkCopy = {
   declineLabel: 'Kabul etmiyorum',
   declinedTitle: 'Onay olmadan devam edilemez',
   declinedBody:
-    'Road Planner, rotalarınızı kaydetmek ve haritada göstermek için bu verileri işlemek zorunda; onay vermeden uygulamayı kullanamayız. Metni yeniden okuyabilir ya da uygulamayı kapatabilirsiniz. Kararınızı sonra değiştirebilirsiniz.',
+    'Travel Routes, rotalarınızı kaydetmek ve haritada göstermek için bu verileri işlemek zorunda; onay vermeden uygulamayı kullanamayız. Metni yeniden okuyabilir ya da uygulamayı kapatabilirsiniz. Kararınızı sonra değiştirebilirsiniz.',
   declinedBackLabel: 'Metne dön',
   updatedNotice:
     'Aydınlatma metni güncellendi. Devam etmek için yeni metni onaylamanız gerekiyor.',
@@ -90,7 +90,7 @@ const EN: KvkkCopy = {
   languageLabel: 'English',
   title: 'Protection of Personal Data',
   subtitle:
-    'Before you start using Road Planner, read which of your data we process and why.',
+    'Before you start using Travel Routes, read which of your data we process and why.',
   updatedLabel: 'Last updated',
   bindingNote:
     'This is an English translation provided for convenience. The Turkish text is the binding one.',
@@ -98,7 +98,7 @@ const EN: KvkkCopy = {
     {
       id: 'controller',
       title: 'Data controller',
-      body: `The team operating Road Planner is the data controller under Turkish law no. 6698 on the Protection of Personal Data (KVKK). Write to ${KVKK_CONTACT_EMAIL} with any question or request about this notice.`,
+      body: `The team operating Travel Routes is the data controller under Turkish law no. 6698 on the Protection of Personal Data (KVKK). Write to ${KVKK_CONTACT_EMAIL} with any question or request about this notice.`,
     },
     {
       id: 'data',
@@ -147,7 +147,7 @@ const EN: KvkkCopy = {
   declineLabel: 'I do not accept',
   declinedTitle: 'We cannot continue without consent',
   declinedBody:
-    'Road Planner has to process this data to save your routes and draw them on the map, so the app cannot be used without your consent. You can read the notice again or close the app. You can change your mind later.',
+    'Travel Routes has to process this data to save your routes and draw them on the map, so the app cannot be used without your consent. You can read the notice again or close the app. You can change your mind later.',
   declinedBackLabel: 'Back to the notice',
   updatedNotice:
     'The notice has changed. To continue, please accept the new text.',

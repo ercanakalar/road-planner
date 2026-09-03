@@ -8,9 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from 'screens/home/HomeScreen';
 import MapScreen from 'screens/map/MapScreen';
-import LocalMapScreen from 'screens/map/local/LocalMapScreen';
-import Favorite from 'screens/map/favorites/Favorite';
-import AuthGate from 'screens/profile/auth/AuthGateScreen';
+import RoutesScreen from 'screens/routes/RoutesScreen';
+import FavoritesScreen from 'screens/favorites/FavoritesScreen';
+import AuthGate from 'screens/profile/AuthGateScreen';
 
 import { StyleSheet } from 'react-native';
 
@@ -78,9 +78,9 @@ const HomeTabNavigator = () => {
   return (
     <Tab.Navigator initialRouteName='Map' screenOptions={screenOptions}>
       <Tab.Screen name='Home' component={HomeScreen} />
-      <Tab.Screen name='Map' component={LocalMapScreen} />
-      <Tab.Screen name='Favourites' component={Favorite} />
-      <Tab.Screen name='Routes' component={MapScreen} />
+      <Tab.Screen name='Map' component={MapScreen} />
+      <Tab.Screen name='Favourites' component={FavoritesScreen} />
+      <Tab.Screen name='Routes' component={RoutesScreen} />
       <Tab.Screen name='Profile' component={AuthGate} />
     </Tab.Navigator>
   );

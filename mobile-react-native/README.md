@@ -1,6 +1,6 @@
-# Road Planner — mobile
+# Travel Routes — mobile
 
-Expo / React Native client for the Road Planner API.
+Expo / React Native client for the Travel Routes API.
 
 ## Setup
 
@@ -276,7 +276,12 @@ src/
     profile/    Avatar and theme controls
   hooks/        useMapLogic, useLocalMapLogic, useRouteDirections, bootstrap
   navigators/   Root stack + bottom tabs
-  screens/      Feature screens (map/local is the signed-out Map tab)
+  screens/      One folder per bottom tab, plus what each tab pushes
+    home/       Discover feed
+    map/        The Map tab: pick a road, drop stops, save it
+    routes/     The Routes tab and the route detail screens it opens
+    favorites/  The Favourites tab
+    profile/    The Profile tab: auth gate, settings, legal
   services/     Platform + third-party access (Google Maps, storage)
   store/        RTK Query APIs, slices, middleware, adapters
   theme/        Design tokens — colours, spacing, radii, shadows, elevation
@@ -300,6 +305,30 @@ and so does `tsc`, so the `.tsx` twin is never loaded by anything. `useMapLogic`
 and `useWaypointLogic` each had a pair, and the `.tsx` half was dead: editing it
 changed nothing at runtime, and no tool said a word. If a change to a file seems
 to have no effect, check for a same-named sibling with the other extension.
+
+### Addresses
+
+A stop carries one string: Google's formatted address as it read when the pin
+was placed. `utils/address.ts` is the only thing that reads it.
+
+It arrives cleaned — the API drops the noise on the way in — but the column also
+holds rows written before that cleaning existed, and a route carried off a phone
+brings whatever it was saved with, so the same rules run again on the way out.
+Dropped: Plus Codes standing in for a street name (`7GXR+8C`), "Unnamed Road",
+a postcode on its own, punctuation-only segments, and a segment repeated. That
+last one folds Turkish case first — "KADIKÖY" and "Kadıköy" are the same place,
+and a plain `toLowerCase()` says they are not.
+
+Three readers, so a card never has to slice the string itself:
+
+| | |
+| --- | --- |
+| `addressName` | The first segment — the place. Marker titles, card headings |
+| `addressLocality` | The middle segments — where it is. Subtitles; drops the country, which repeats on every stop of a domestic route |
+| `fullAddress` | The whole cleaned line, country included. What Copy address puts on the clipboard |
+
+Each returns `''` for a stop that was never named, so callers use `||` for their
+fallback rather than testing for null.
 
 ### Data layer
 

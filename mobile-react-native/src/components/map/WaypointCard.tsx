@@ -6,6 +6,7 @@ import { radius, shadows, spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { WaypointOption } from 'types/transport-type';
+import { addressLocality, addressName } from 'utils/address';
 
 type WaypointCardProps = {
   item: WaypointWithAddress;
@@ -40,9 +41,7 @@ const WaypointCard = ({
     [item, onOptionSelect],
   );
 
-  const locality = [item.address?.district, item.address?.province]
-    .filter(Boolean)
-    .join(', ');
+  const locality = addressLocality(item.address);
 
   return (
     <Pressable
@@ -70,7 +69,7 @@ const WaypointCard = ({
 
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={1}>
-            {item.address?.address ?? 'Unnamed stop'}
+            {addressName(item.address) || 'Unnamed stop'}
           </Text>
           {locality ? (
             <Text style={styles.subtitle} numberOfLines={1}>
@@ -137,7 +136,9 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     badgeSelected: {
-      backgroundColor: colors.accent,
+      // Same colour the map gives the A and B pins, so the two views name the
+      // pair the same way.
+      backgroundColor: colors.selection,
     },
     badgeText: {
       ...typography.caption,

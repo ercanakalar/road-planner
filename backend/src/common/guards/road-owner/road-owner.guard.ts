@@ -35,11 +35,11 @@ export class RoadOwnerGuard implements CanActivate {
     });
 
     if (!road) {
-      throw new NotFoundException('Road not found');
+      throw new NotFoundException('Route not found');
     }
 
     if (!road.userId || road.userId !== userId) {
-      throw new ForbiddenException('You do not own this road');
+      throw new ForbiddenException('You do not own this route');
     }
 
     return true;
@@ -69,7 +69,7 @@ export class RoadOwnerGuard implements CanActivate {
     }
 
     throw new ForbiddenException(
-      'Route is missing a road or waypoint identifier',
+      'Request is missing a route or waypoint identifier',
     );
   }
 }

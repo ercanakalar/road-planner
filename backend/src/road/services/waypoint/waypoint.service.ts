@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
-import { randomUUID } from 'crypto';
 
 import { ok } from 'src/common/http/api-response';
 import { GeocodingService } from 'src/maps/services/geocoding.service';
@@ -19,7 +18,6 @@ import {
   applyWaypointOrder,
   compactWaypointOrder,
 } from '../road/waypoint-writes';
-import { addressColumns } from '../road/address-columns';
 
 @Injectable()
 export class WaypointService {
@@ -32,7 +30,6 @@ export class WaypointService {
   async getWaypointById(id: string, userId: string) {
     const waypoint = await this.prisma.wayPoint.findFirst({
       where: this.visibility.waypoint(id, userId),
-      include: { address: true },
     });
 
     if (!waypoint) {
@@ -52,12 +49,6 @@ export class WaypointService {
     const address = await this.geocoding.resolveAddress(body, body.address);
 
     const waypoint = await this.prisma.$transaction(async (tx) => {
-      const addressInfoId = randomUUID();
-
-      await tx.addressInfo.create({
-        data: { id: addressInfoId, ...addressColumns(address) },
-      });
-
       await tx.$executeRaw(Prisma.sql`
         UPDATE "WayPoint"
            SET "order" = "order" + 1,
@@ -72,17 +63,14 @@ export class WaypointService {
           longitude: body.longitude,
           order: insertAt,
           roadId,
-          addressInfoId,
+          address,
         },
         select: { id: true },
       });
 
       await compactWaypointOrder(tx, roadId);
 
-      return tx.wayPoint.findUniqueOrThrow({
-        where: { id: created.id },
-        include: { address: true },
-      });
+      return tx.wayPoint.findUniqueOrThrow({ where: { id: created.id } });
     });
 
     return ok({
@@ -96,12 +84,8 @@ export class WaypointService {
     await this.prisma.$transaction(async (tx) => {
       const deleted = await tx.wayPoint.delete({
         where: { id: waypointId },
-        select: { roadId: true, addressInfoId: true },
+        select: { roadId: true },
       });
-
-      if (deleted.addressInfoId) {
-        await tx.addressInfo.delete({ where: { id: deleted.addressInfoId } });
-      }
 
       await compactWaypointOrder(tx, deleted.roadId);
     });
@@ -121,7 +105,7 @@ export class WaypointService {
 
     const waypoint = await this.prisma.wayPoint.findUnique({
       where: { id: waypointId },
-      select: { id: true, addressInfoId: true },
+      select: { id: true },
     });
 
     if (!waypoint) {
@@ -130,40 +114,9 @@ export class WaypointService {
 
     const address = await this.geocoding.resolveAddress(body, body.address);
 
-    const updatedWaypoint = await this.prisma.$transaction(async (prisma) => {
-      let addressInfoId = waypoint.addressInfoId;
-
-      if (addressInfoId) {
-        await prisma.addressInfo.update({
-          where: { id: addressInfoId },
-          data: addressColumns(address),
-        });
-      } else {
-        const createdAddress = await prisma.addressInfo.create({
-          data: addressColumns(address),
-        });
-
-        addressInfoId = createdAddress.id;
-      }
-
-      await prisma.wayPoint.update({
-        where: { id: waypointId },
-        data: {
-          latitude,
-          longitude,
-          address: addressInfoId
-            ? {
-                connect: { id: addressInfoId },
-              }
-            : undefined,
-        },
-        include: { address: true },
-      });
-
-      return prisma.wayPoint.findUnique({
-        where: { id: waypointId },
-        include: { address: true },
-      });
+    const updatedWaypoint = await this.prisma.wayPoint.update({
+      where: { id: waypointId },
+      data: { latitude, longitude, address },
     });
 
     return ok({
@@ -188,7 +141,7 @@ export class WaypointService {
       });
 
       if (!road) {
-        throw new NotFoundException('Road not found');
+        throw new NotFoundException('Route not found');
       }
 
       const waypoints = await tx.wayPoint.findMany({

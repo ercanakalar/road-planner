@@ -23,14 +23,6 @@ export type RouteCoordinate = {
   longitude: number;
 };
 
-type WaypointAddress = {
-  id: string;
-  address: string;
-  country: string;
-  district: string;
-  province: string;
-};
-
 type FavoriteWaypoint = {
   id: string;
   userId: string;
@@ -53,8 +45,8 @@ export type WaypointWithAddress = {
   longitude: number;
   order: number;
   roadId: string;
-  addressInfoId: string;
-  address: WaypointAddress;
+  /** Google's formatted address for the stop, or '' for a bare dropped pin. */
+  address: string;
   description?: string;
   createdAt: string;
   updatedAt: string;

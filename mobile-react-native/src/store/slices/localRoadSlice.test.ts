@@ -12,12 +12,7 @@ import reducer, {
 } from './localRoadSlice';
 import { LocalRoad } from 'types/local-road';
 
-const address = {
-  address: 'Somewhere',
-  country: 'TR',
-  province: 'İstanbul',
-  district: 'Fatih',
-};
+const address = 'Somewhere, Fatih, İstanbul, TR';
 
 const addPin = (state: ReturnType<typeof reducer>, latitude: number) =>
   reducer(state, localWaypointAdded({ latitude, longitude: 1, address }));
@@ -79,7 +74,7 @@ describe('localRoadSlice', () => {
   it('moves a pin and keeps its new address', () => {
     const state = roadWithPins(1);
     const waypointId = state.roads[0].wayPoints[0].id;
-    const moved = { ...address, address: 'Elsewhere' };
+    const moved = 'Elsewhere, Fatih, İstanbul, TR';
 
     const next = reducer(
       state,

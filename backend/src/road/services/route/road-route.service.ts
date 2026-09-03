@@ -71,7 +71,7 @@ export class RoadRouteService {
     });
 
     if (!road) {
-      throw new NotFoundException('Road not found');
+      throw new NotFoundException('Route not found');
     }
 
     return road.wayPoints;

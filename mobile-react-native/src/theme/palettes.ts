@@ -29,6 +29,7 @@ export interface ThemeColors {
   overlay: string;
 
   place: string;
+  selection: string;
 
   route: string;
   routeCasing: string;
@@ -50,6 +51,10 @@ export interface ThemeColors {
 //     ~215°, olive ~77°; the closest pair is 63°. `warning` is deliberately
 //     not among them: it sits 33° from `accent` and reads as a second
 //     destination pin.
+//   - `selection` marks the two waypoints being compared, on the map and in
+//     the list alike. It temporarily replaces whichever of the four a pin
+//     would otherwise use, so it is a fifth hue kept clear of them all —
+//     violet ~282°, 67° from its nearest neighbour.
 //   - The three route modes are drawn over the same map — driving ~215°,
 //     transit ~272°, walking ~145° — and each casing is a lighter halo of
 //     its own hue holding >= 3:1 against the line it outlines.
@@ -93,6 +98,7 @@ export const lightColors: ThemeColors = {
   overlay: 'rgba(32, 33, 36, 0.45)',
 
   place: '#5B7F00',
+  selection: '#7B1FA2',
 
   route: '#1967D2',
   routeCasing: '#AECBFA',
@@ -133,6 +139,7 @@ export const darkColors: ThemeColors = {
   overlay: 'rgba(0, 0, 0, 0.7)',
 
   place: '#C5D96B',
+  selection: '#D7AEFB',
 
   route: '#8AB4F8',
   routeCasing: '#1F3A63',

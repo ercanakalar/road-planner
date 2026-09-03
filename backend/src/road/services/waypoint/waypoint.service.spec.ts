@@ -13,7 +13,6 @@ import { WaypointService } from './waypoint.service';
 
 const ROAD_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 const OTHER_ROAD_ID = 'c2f0d0b3-2a4e-4d9b-8e3c-1b2c3d4e5f60';
-const ADDRESS_ID = 'd3a1e1c4-3b5f-4e0c-9f4d-2c3d4e5f6071';
 
 describe('WaypointService', () => {
   let service: WaypointService;
@@ -238,17 +237,19 @@ describe('WaypointService', () => {
       );
     });
 
-    it('includes the address for a visible waypoint', async () => {
+    it('returns the address with the waypoint, off its own column', async () => {
       prisma.wayPoint.findFirst.mockResolvedValue({
         id: 'wp-1',
-        address: null,
+        address: 'Main St',
       });
 
-      await service.getWaypointById('wp-1', 'user-1');
+      const result = await service.getWaypointById('wp-1', 'user-1');
 
-      expect(prisma.wayPoint.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { address: true } }),
-      );
+      // No `include`: the address is a column on WayPoint, not a relation.
+      expect(
+        prisma.wayPoint.findFirst.mock.calls[0][0].include,
+      ).toBeUndefined();
+      expect(result.data).toMatchObject({ address: 'Main St' });
     });
   });
 
@@ -257,7 +258,7 @@ describe('WaypointService', () => {
       latitude: 1,
       longitude: 2,
       order: 2,
-      address: { address: 'Main St' },
+      address: 'Main St',
     };
 
     beforeEach(() => {
@@ -265,7 +266,7 @@ describe('WaypointService', () => {
       prisma.wayPoint.findUniqueOrThrow.mockResolvedValue({
         id: 'wp-new',
         order: 2,
-        address: { address: 'Main St' },
+        address: 'Main St',
       });
     });
 
@@ -315,22 +316,17 @@ describe('WaypointService', () => {
       const pinOnly = { latitude: 1, longitude: 2, order: 2 };
 
       const storedAddress = () =>
-        prisma.addressInfo.create.mock.calls[0][0].data;
+        prisma.wayPoint.create.mock.calls[0][0].data.address;
 
       it('keeps an address the caller supplied', async () => {
         await service.addWaypointToRoad(body, ROAD_ID);
 
-        expect(storedAddress()).toMatchObject({ address: 'Main St' });
+        expect(storedAddress()).toBe('Main St');
         expect(geocoding.reverseGeocode).not.toHaveBeenCalled();
       });
 
       it('names a bare pin from its coordinates', async () => {
-        geocoding.resolveAddress.mockResolvedValue({
-          address: 'Bağdat Cd. 1',
-          country: 'Türkiye',
-          province: 'İstanbul',
-          district: 'Kadıköy',
-        });
+        geocoding.resolveAddress.mockResolvedValue('Bağdat Cd. 1');
 
         await service.addWaypointToRoad(pinOnly, ROAD_ID);
 
@@ -338,10 +334,7 @@ describe('WaypointService', () => {
           pinOnly,
           undefined,
         );
-        expect(storedAddress()).toMatchObject({
-          address: 'Bağdat Cd. 1',
-          district: 'Kadıköy',
-        });
+        expect(storedAddress()).toBe('Bağdat Cd. 1');
       });
 
       it('looks the address up before opening a transaction', async () => {
@@ -349,7 +342,7 @@ describe('WaypointService', () => {
 
         geocoding.resolveAddress.mockImplementation(() => {
           order.push('geocode');
-          return Promise.resolve({ address: 'Somewhere' });
+          return Promise.resolve('Somewhere');
         });
         prisma.$transaction.mockImplementation(async (run: any) => {
           order.push('transaction');
@@ -367,64 +360,41 @@ describe('WaypointService', () => {
     const moved = { latitude: 9, longitude: 9 };
 
     beforeEach(() => {
-      prisma.wayPoint.findUnique.mockResolvedValue({
-        id: 'wp-1',
-        addressInfoId: ADDRESS_ID,
-      });
+      prisma.wayPoint.findUnique.mockResolvedValue({ id: 'wp-1' });
     });
 
     it('renames the waypoint for where it was dragged to', async () => {
-      geocoding.resolveAddress.mockResolvedValue({
-        address: 'Somewhere else',
-        country: 'Türkiye',
-        province: '',
-        district: '',
-      });
+      geocoding.resolveAddress.mockResolvedValue('Somewhere else');
 
       await service.updateWaypointWithRoadId(moved, 'wp-1');
 
       expect(geocoding.resolveAddress).toHaveBeenCalledWith(moved, undefined);
-      expect(prisma.addressInfo.update).toHaveBeenCalledWith({
-        where: { id: ADDRESS_ID },
-        data: {
-          address: 'Somewhere else',
-          country: 'Türkiye',
-          province: '',
-          district: '',
-        },
+      expect(prisma.wayPoint.update).toHaveBeenCalledWith({
+        where: { id: 'wp-1' },
+        data: { latitude: 9, longitude: 9, address: 'Somewhere else' },
       });
     });
 
     it('keeps an address the caller supplied', async () => {
       await service.updateWaypointWithRoadId(
-        { ...moved, address: { address: 'Home' } },
+        { ...moved, address: 'Home' },
         'wp-1',
       );
 
-      expect(prisma.addressInfo.update.mock.calls[0][0].data).toMatchObject({
+      expect(prisma.wayPoint.update.mock.calls[0][0].data).toMatchObject({
         address: 'Home',
       });
       expect(geocoding.reverseGeocode).not.toHaveBeenCalled();
     });
 
-    it('creates an address for a waypoint that had none', async () => {
-      prisma.wayPoint.findUnique.mockResolvedValue({
-        id: 'wp-1',
-        addressInfoId: null,
-      });
-      prisma.addressInfo.create.mockResolvedValue({ id: ADDRESS_ID });
-      geocoding.resolveAddress.mockResolvedValue({
-        address: 'Somewhere else',
-        country: '',
-        province: '',
-        district: '',
-      });
+    it('names a waypoint that had no address, in the same write', async () => {
+      geocoding.resolveAddress.mockResolvedValue('Somewhere else');
 
       await service.updateWaypointWithRoadId(moved, 'wp-1');
 
-      expect(prisma.addressInfo.create.mock.calls[0][0].data).toMatchObject({
-        address: 'Somewhere else',
-      });
+      // One statement now: there is no address row to create or link first.
+      expect(prisma.wayPoint.update).toHaveBeenCalledTimes(1);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('does not geocode a waypoint that does not exist', async () => {
@@ -439,10 +409,7 @@ describe('WaypointService', () => {
 
   describe('deleteWaypointById', () => {
     it('compacts the ordering in one statement rather than one per waypoint', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: ADDRESS_ID,
-      });
+      prisma.wayPoint.delete.mockResolvedValue({ roadId: ROAD_ID });
 
       await service.deleteWaypointById('wp-1');
 
@@ -451,29 +418,17 @@ describe('WaypointService', () => {
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     });
 
-    it('deletes the address the waypoint owned', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: ADDRESS_ID,
-      });
-
-      await service.deleteWaypointById('wp-1');
-
-      expect(prisma.addressInfo.delete).toHaveBeenCalledWith({
-        where: { id: ADDRESS_ID },
-      });
-    });
-
-    it('tolerates a waypoint with no address', async () => {
-      prisma.wayPoint.delete.mockResolvedValue({
-        roadId: ROAD_ID,
-        addressInfoId: null,
-      });
+    it('takes the address with the row, leaving nothing orphaned', async () => {
+      prisma.wayPoint.delete.mockResolvedValue({ roadId: ROAD_ID });
 
       await expect(service.deleteWaypointById('wp-1')).resolves.toMatchObject({
         header: 'Delete Waypoint',
       });
-      expect(prisma.addressInfo.delete).not.toHaveBeenCalled();
+
+      // The address is a column, so deleting the waypoint is the whole job.
+      expect(prisma.wayPoint.delete.mock.calls[0][0].select).toEqual({
+        roadId: true,
+      });
     });
   });
 });

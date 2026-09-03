@@ -25,7 +25,10 @@ const MenuRow = memo(
 
     const handlePress = useCallback(() => {
       onClose();
-      option.action();
+      // The sheet is a native modal, and a row may open another one — a
+      // confirmation, say. Starting that in the same frame as this one closes
+      // loses it on Android, so let the close land first.
+      requestAnimationFrame(option.action);
     }, [onClose, option]);
 
     return (

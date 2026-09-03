@@ -10,12 +10,7 @@ import {
 
 const UUID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 
-const address = () => ({
-  country: 'Türkiye',
-  province: 'İstanbul',
-  district: 'Kadıköy',
-  address: 'Bağdat Cd. 1',
-});
+const address = () => 'Bağdat Cd. 1, Kadıköy/İstanbul, Türkiye';
 
 const waypoint = (
   overrides: Record<string, unknown> = {},
@@ -110,23 +105,30 @@ describe('WaypointInputDto', () => {
     ).resolves.not.toEqual([]);
   });
 
-  it('validates the nested address', async () => {
+  it('rejects an address that is not text', async () => {
+    await expect(
+      collectDtoErrors(WaypointInputDto, waypoint({ address: 12345 })),
+    ).resolves.not.toEqual([]);
+  });
+
+  it('rejects the address object the old API took', async () => {
+    // The column is a single string now; a client still sending the old
+    // shape should be told, not silently stored as "[object Object]".
     await expect(
       collectDtoErrors(
         WaypointInputDto,
-        waypoint({ address: { address: 12345 } }),
+        waypoint({ address: { address: 'Bağdat Cd. 1' } }),
       ),
     ).resolves.not.toEqual([]);
   });
 
-  it('strips unknown properties from the nested address', async () => {
+  it('trims the address', async () => {
     const result = await validateDto(
       WaypointInputDto,
-      waypoint({ address: { ...address(), id: UUID, createdAt: 'now' } }),
+      waypoint({ address: '  Bağdat Cd. 1  ' }),
     );
 
-    expect(result.address).not.toHaveProperty('id');
-    expect(result.address).not.toHaveProperty('createdAt');
+    expect(result.address).toBe('Bağdat Cd. 1');
   });
 });
 
@@ -229,7 +231,7 @@ describe('CreateRoadDto', () => {
           id: UUID,
           roadId: UUID,
           createdAt: '2026-01-01T00:00:00Z',
-          address: { ...address(), id: UUID, createdAt: 'x', deletedAt: null },
+          address: address(),
         },
       ],
     });
@@ -260,12 +262,9 @@ describe('AddWaypointDto', () => {
     ).resolves.toEqual([]);
   });
 
-  it('requires the address line within the address', async () => {
+  it('rejects an address that is not text', async () => {
     await expect(
-      collectDtoErrors(AddWaypointDto, {
-        ...valid(),
-        address: { country: 'Türkiye' },
-      }),
+      collectDtoErrors(AddWaypointDto, { ...valid(), address: 12345 }),
     ).resolves.not.toEqual([]);
   });
 

@@ -8,7 +8,6 @@ import { RoadService } from './road.service';
 
 const ROAD_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 const OTHER_ROAD_ID = 'c2f0d0b3-2a4e-4d9b-8e3c-1b2c3d4e5f60';
-const ADDRESS_ID = 'd3a1e1c4-3b5f-4e0c-9f4d-2c3d4e5f6071';
 
 describe('RoadService', () => {
   let service: RoadService;
@@ -167,7 +166,6 @@ describe('RoadService', () => {
 
       expect(prisma.road.delete).not.toHaveBeenCalled();
       expect(prisma.wayPoint.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.addressInfo.deleteMany).not.toHaveBeenCalled();
       expect(prisma.road.update).toHaveBeenCalledWith({
         where: { id: ROAD_ID },
         data: { archivedAt: expect.any(Date), isPublic: false },
@@ -214,7 +212,7 @@ describe('RoadService', () => {
 
       await expect(
         service.createRoad({ title: 'T', description: 'D' }, 'user-1'),
-      ).resolves.toMatchObject({ header: 'Road Created' });
+      ).resolves.toMatchObject({ header: 'Route Created' });
       expect(prisma.wayPoint.create).not.toHaveBeenCalled();
     });
 
@@ -237,7 +235,6 @@ describe('RoadService', () => {
       expect(prisma.wayPoint.create).not.toHaveBeenCalled();
       expect(prisma.wayPoint.createMany).toHaveBeenCalledTimes(1);
       expect(prisma.wayPoint.createMany.mock.calls[0][0].data).toHaveLength(2);
-      expect(prisma.addressInfo.createMany).toHaveBeenCalledTimes(1);
     });
 
     it('assigns contiguous 1-based positions from the payload ranking', async () => {
@@ -284,30 +281,7 @@ describe('RoadService', () => {
       expect(rows.map((r: { order: number }) => r.order)).toEqual([1, 2]);
     });
 
-    it('links a supplied addressInfoId instead of creating an address', async () => {
-      prisma.road.create.mockResolvedValue({ id: ROAD_ID });
-      prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
-
-      await service.createRoad(
-        {
-          title: 'T',
-          description: 'D',
-          waypoints: [
-            { latitude: 1, longitude: 2, order: 1, addressInfoId: ADDRESS_ID },
-          ],
-        },
-        'user-1',
-      );
-
-      expect(prisma.addressInfo.createMany).not.toHaveBeenCalled();
-      expect(prisma.wayPoint.createMany.mock.calls[0][0].data[0]).toMatchObject(
-        {
-          addressInfoId: ADDRESS_ID,
-        },
-      );
-    });
-
-    it('stores an absent address part as null, not an empty string', async () => {
+    it('writes the address onto the waypoint itself', async () => {
       prisma.road.create.mockResolvedValue({ id: ROAD_ID });
       prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
 
@@ -320,21 +294,35 @@ describe('RoadService', () => {
               latitude: 1,
               longitude: 2,
               order: 1,
-              address: { address: 'Main St' },
+              address: 'Main St',
             },
           ],
         },
         'user-1',
       );
 
-      expect(
-        prisma.addressInfo.createMany.mock.calls[0][0].data[0],
-      ).toMatchObject({
-        country: null,
-        province: null,
-        district: null,
-        address: 'Main St',
-      });
+      expect(prisma.wayPoint.createMany.mock.calls[0][0].data[0]).toMatchObject(
+        { address: 'Main St' },
+      );
+    });
+
+    it('stores a stop with no address as an empty string, not null', async () => {
+      // The column is NOT NULL, so an unnamed pin has to save as ''.
+      prisma.road.create.mockResolvedValue({ id: ROAD_ID });
+      prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
+
+      await service.createRoad(
+        {
+          title: 'T',
+          description: 'D',
+          waypoints: [{ latitude: 1, longitude: 2, order: 1 }],
+        },
+        'user-1',
+      );
+
+      expect(prisma.wayPoint.createMany.mock.calls[0][0].data[0]).toMatchObject(
+        { address: '' },
+      );
     });
 
     it('does not return the owner id', async () => {
@@ -350,8 +338,10 @@ describe('RoadService', () => {
   });
 
   describe('updateRoadById', () => {
-    const existing = (ids: string[]) =>
-      ids.map((id) => ({ id, addressInfoId: `addr-${id}` }));
+    const existing = (ids: string[]) => ids.map((id) => ({ id }));
+
+    /** The values bound into the surviving-waypoint UPDATE. */
+    const updateValues = () => prisma.$executeRaw.mock.calls[0][0].values;
 
     it('updates surviving waypoints in one statement rather than one each', async () => {
       prisma.wayPoint.findMany.mockResolvedValue(existing(['wp-1', 'wp-2']));
@@ -386,7 +376,7 @@ describe('RoadService', () => {
       });
     });
 
-    it('deletes the addresses of removed waypoints', async () => {
+    it('reads back only the ids it needs to diff against', async () => {
       prisma.wayPoint.findMany.mockResolvedValue(existing(['wp-1', 'wp-2']));
       prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
 
@@ -396,8 +386,11 @@ describe('RoadService', () => {
         waypoints: [{ id: 'wp-1', latitude: 1, longitude: 1, order: 1 }],
       });
 
-      expect(prisma.addressInfo.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['addr-wp-2'] } },
+      // Deleting the row takes its address with it, so there is nothing else
+      // to look up and nothing left orphaned.
+      expect(prisma.wayPoint.findMany).toHaveBeenCalledWith({
+        where: { roadId: ROAD_ID },
+        select: { id: true },
       });
     });
 
@@ -447,39 +440,18 @@ describe('RoadService', () => {
             latitude: 1,
             longitude: 1,
             order: 1,
-            address: { address: 'New St' },
+            address: 'New St',
           },
         ],
       });
 
-      expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
-      expect(prisma.addressInfo.createMany).not.toHaveBeenCalled();
+      // Position and address travel together, so one statement does both
+      // where it used to take an UPDATE each plus a link.
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(updateValues()).toContain('New St');
     });
 
-    it('creates an address for a surviving waypoint that has none', async () => {
-      prisma.wayPoint.findMany.mockResolvedValue([
-        { id: 'wp-1', addressInfoId: null },
-      ]);
-      prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
-
-      await service.updateRoadById(ROAD_ID, {
-        title: 'T',
-        description: 'D',
-        waypoints: [
-          {
-            id: 'wp-1',
-            latitude: 1,
-            longitude: 1,
-            order: 1,
-            address: { address: 'New St' },
-          },
-        ],
-      });
-
-      expect(prisma.addressInfo.createMany).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not touch addresses when the payload carries none', async () => {
+    it('leaves the stored address alone when the payload carries none', async () => {
       prisma.wayPoint.findMany.mockResolvedValue(existing(['wp-1']));
       prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, wayPoints: [] });
 
@@ -489,8 +461,9 @@ describe('RoadService', () => {
         waypoints: [{ id: 'wp-1', latitude: 1, longitude: 1, order: 1 }],
       });
 
-      expect(prisma.addressInfo.createMany).not.toHaveBeenCalled();
-      expect(prisma.addressInfo.deleteMany).not.toHaveBeenCalled();
+      // A null in the address column is what COALESCE reads as "keep it", so
+      // reordering a route cannot blank the names of its stops.
+      expect(updateValues()).toContain(null);
     });
 
     it('clears every waypoint when the payload has none', async () => {
@@ -681,18 +654,8 @@ describe('RoadService', () => {
       title: 'Coastal loop',
       description: 'A weekend drive',
       wayPoints: [
-        {
-          latitude: 1,
-          longitude: 2,
-          order: 1,
-          address: {
-            country: 'TR',
-            province: 'Istanbul',
-            district: 'Fatih',
-            address: 'A',
-          },
-        },
-        { latitude: 3, longitude: 4, order: 5, address: null },
+        { latitude: 1, longitude: 2, order: 1, address: 'A' },
+        { latitude: 3, longitude: 4, order: 5, address: '' },
       ],
     };
 
@@ -736,22 +699,21 @@ describe('RoadService', () => {
       );
     });
 
-    it('duplicates the addresses rather than pointing at the original rows', async () => {
+    it('copies the addresses onto the new waypoints', async () => {
       prisma.road.findFirst.mockResolvedValue(source);
       prisma.road.create.mockResolvedValue({ id: OTHER_ROAD_ID });
       prisma.road.findUnique.mockResolvedValue({ id: OTHER_ROAD_ID });
 
       await service.cloneRoad(ROAD_ID, 'user-2');
 
-      const addresses = prisma.addressInfo.createMany.mock.calls[0][0].data;
       const waypoints = prisma.wayPoint.createMany.mock.calls[0][0].data;
 
-      expect(addresses).toHaveLength(2);
-      expect(addresses[0]).toMatchObject({ address: 'A', district: 'Fatih' });
-      expect(addresses[1]).toMatchObject({ address: '', district: null });
-      expect(
-        waypoints.map((w: { addressInfoId: string }) => w.addressInfoId),
-      ).toEqual(addresses.map((a: { id: string }) => a.id));
+      // The copy carries its own addresses. Nothing is shared with the
+      // original, so editing one route cannot rename a stop in the other.
+      expect(waypoints.map((w: { address: string }) => w.address)).toEqual([
+        'A',
+        '',
+      ]);
       expect(
         waypoints.every((w: { roadId: string }) => w.roadId === OTHER_ROAD_ID),
       ).toBe(true);

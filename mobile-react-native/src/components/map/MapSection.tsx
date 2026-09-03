@@ -30,9 +30,12 @@ import {
 import type { ThemeColors } from 'theme';
 import { MapSectionProps } from 'types/screens/mapScreenType';
 import { RouteCoordinate, WaypointWithAddress } from 'types/map-screen-type';
+import { addressLocality, addressName } from 'utils/address';
 import { withAlpha } from 'utils/color';
 import { splitRouteAtLocation } from 'utils/geo';
 import { metersToDistance } from 'utils/secondsToHour';
+
+const EMPTY_SELECTION: readonly string[] = [];
 
 const EDGE_PADDING = { top: 90, right: 70, bottom: 260, left: 70 };
 const DEFAULT_DELTA = 0.08;
@@ -51,8 +54,12 @@ type MarkerProps = {
   index: number;
   total: number;
   isDraggable: boolean;
+  /** 0 for A, 1 for B, -1 when this stop is not part of the compared pair. */
+  selectionIndex: number;
   onDragEnd: MapSectionProps['handleMarkerDragEnd'];
 };
+
+const SELECTION_LABELS = ['A', 'B'];
 
 const pinColor = (colors: ThemeColors, index: number, total: number) => {
   if (index === 0) return colors.success;
@@ -61,8 +68,27 @@ const pinColor = (colors: ThemeColors, index: number, total: number) => {
 };
 
 const WaypointMarker = memo(
-  ({ waypoint, index, total, isDraggable, onDragEnd }: MarkerProps) => {
+  ({
+    waypoint,
+    index,
+    total,
+    isDraggable,
+    selectionIndex,
+    onDragEnd,
+  }: MarkerProps) => {
     const { colors } = useTheme();
+    const styles = useThemedStyles(createStyles);
+    const isSelected = selectionIndex >= 0;
+
+    // A marker drawn from child views renders blank if it is told never to
+    // redraw before those children have laid out. Track changes until the
+    // badge has painted once, then stop — redrawing every frame is what makes
+    // a map with custom markers stutter.
+    const [isBadgePainted, setIsBadgePainted] = useState(false);
+
+    useEffect(() => {
+      if (!isSelected) setIsBadgePainted(false);
+    }, [isSelected]);
 
     const handleDragEnd = useCallback(
       (event: Parameters<MapSectionProps['handleMarkerDragEnd']>[0]) =>
@@ -75,21 +101,35 @@ const WaypointMarker = memo(
       [waypoint.latitude, waypoint.longitude],
     );
 
+    const label = isSelected
+      ? `${SELECTION_LABELS[selectionIndex]}. `
+      : `${index + 1}. `;
+
     return (
       <Marker
         coordinate={coordinate}
         draggable={isDraggable}
         onDragEnd={handleDragEnd}
-        tracksViewChanges={false}
-        pinColor={pinColor(colors, index, total)}
-        title={`${index + 1}. ${waypoint.address?.address ?? 'Waypoint'}`}
+        tracksViewChanges={isSelected && !isBadgePainted}
+        pinColor={isSelected ? colors.selection : pinColor(colors, index, total)}
+        title={`${label}${addressName(waypoint.address) || 'Waypoint'}`}
         description={
-          isDraggable
-            ? 'Drag to reposition'
-            : (waypoint.address?.district ?? '')
+          isDraggable ? 'Drag to reposition' : addressLocality(waypoint.address)
         }
         opacity={isDraggable ? 0.85 : 1}
-      />
+        anchor={isSelected ? { x: 0.5, y: 0.5 } : undefined}
+      >
+        {isSelected ? (
+          <View
+            style={styles.selectionPin}
+            onLayout={() => setIsBadgePainted(true)}
+          >
+            <Text style={styles.selectionPinText}>
+              {SELECTION_LABELS[selectionIndex]}
+            </Text>
+          </View>
+        ) : null}
+      </Marker>
     );
   },
 );
@@ -190,6 +230,7 @@ const MapSectionComponent = ({
   mapRef,
   foundPlaces,
   onFoundPlacePress,
+  selectedWaypointIds = EMPTY_SELECTION,
 }: MapSectionProps) => {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -355,6 +396,7 @@ const MapSectionComponent = ({
             index={index}
             total={waypoints.length}
             isDraggable={draggingWaypointId === waypoint.id}
+            selectionIndex={selectedWaypointIds.indexOf(waypoint.id)}
             onDragEnd={handleMarkerDragEnd}
           />
         ))}
@@ -413,6 +455,22 @@ const MapSectionComponent = ({
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1 },
+    selectionPin: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      backgroundColor: colors.selection,
+      borderWidth: 3,
+      borderColor: colors.textInverse,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.md,
+    },
+    selectionPinText: {
+      ...typography.label,
+      color: colors.textInverse,
+      fontWeight: '700',
+    },
     locateButton: {
       position: 'absolute',
       right: spacing.lg,

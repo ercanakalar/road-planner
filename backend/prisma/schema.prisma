@@ -156,8 +156,10 @@ model WayPoint {
   roadId String
   road   Road   @relation(fields: [roadId], references: [id], onDelete: Cascade)
 
-  addressInfoId String?      @unique
-  address       AddressInfo? @relation(fields: [addressInfoId], references: [id], onDelete: SetNull)
+  /// The formatted address Google returned for these coordinates, kept as it
+  /// was at save time. It is a label for the pin, not a record of the place:
+  /// nothing queries it, and it is refreshed only when the stop is moved.
+  address String @default("")
 
   favoriteWaypoints FavoriteWaypoint[]
 
@@ -165,19 +167,6 @@ model WayPoint {
   updatedAt DateTime @updatedAt
 
   @@unique([roadId, order])
-}
-
-model AddressInfo {
-  id       String  @id @default(uuid())
-  country  String?
-  province String?
-  district String?
-  address  String
-
-  wayPoint WayPoint?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model FavoriteRoad {

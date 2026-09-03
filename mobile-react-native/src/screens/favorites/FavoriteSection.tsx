@@ -20,18 +20,20 @@ export const FavoriteSection = memo(
       <Pressable
         style={({ pressed }) => [
           styles.header,
+          // Collapsed, the header is the whole card and rounds on all corners.
+          !isExpanded && styles.headerCollapsed,
           pressed && styles.headerPressed,
         ]}
         onPress={handleToggle}
         accessibilityRole='button'
         accessibilityState={{ expanded: isExpanded }}
-        accessibilityLabel={`${section.title}, ${section.data.length} items`}
+        accessibilityLabel={`${section.title}, ${section.count} items`}
       >
         <View style={styles.titleContainer}>
           <MaterialIcons name={section.icon} size={20} color={colors.primary} />
           <Text style={styles.title}>{section.title}</Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{section.data.length}</Text>
+            <Text style={styles.badgeText}>{section.count}</Text>
           </View>
         </View>
 
@@ -54,12 +56,18 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
-      backgroundColor: colors.surface,
-      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.surfaceAlt,
+      borderTopLeftRadius: radius.md,
+      borderTopRightRadius: radius.md,
+    },
+    headerCollapsed: {
+      borderBottomLeftRadius: radius.md,
+      borderBottomRightRadius: radius.md,
+      marginBottom: spacing.md,
     },
     headerPressed: {
-      backgroundColor: colors.surfaceAlt,
+      backgroundColor: colors.border,
     },
     titleContainer: {
       flexDirection: 'row',
@@ -68,13 +76,12 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     title: {
-      ...typography.label,
-      fontSize: 15,
-      lineHeight: 21,
-      color: colors.text,
+      ...typography.overline,
+      color: colors.textMuted,
+      flex: 1,
     },
     badge: {
-      backgroundColor: colors.primarySoft,
+      backgroundColor: colors.surface,
       paddingHorizontal: spacing.sm,
       paddingVertical: 1,
       borderRadius: radius.pill,

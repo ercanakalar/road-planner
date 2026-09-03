@@ -122,7 +122,7 @@ const HomeScreen = () => {
         }
       >
         <View style={styles.heading}>
-          <Text style={styles.title}>Road Planner</Text>
+          <Text style={styles.title}>Travel Routes</Text>
           <Text style={styles.subtitle}>
             Plan multi-stop routes and compare how long each leg takes.
           </Text>

@@ -18,10 +18,13 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { DiscoverRoad } from 'types/store/services/roadService-type';
+import { addressLocality, addressName } from 'utils/address';
 
 const placeOf = (road: DiscoverRoad, index: number) => {
   const waypoint = road.wayPoints[index];
-  return waypoint?.address?.district ?? waypoint?.address?.address ?? null;
+  return (
+    addressLocality(waypoint?.address) || addressName(waypoint?.address) || null
+  );
 };
 
 interface Props {

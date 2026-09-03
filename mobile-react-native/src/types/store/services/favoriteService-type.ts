@@ -11,12 +11,8 @@ interface FavoriteWaypointTarget {
   id: string;
   latitude: number;
   longitude: number;
-  address?: {
-    country?: string | null;
-    province?: string | null;
-    district?: string | null;
-    address?: string | null;
-  } | null;
+  /** The whole formatted address on one line, as Google returned it. */
+  address?: string | null;
 }
 
 export interface FavoriteRoadRow {
@@ -53,6 +49,8 @@ export interface FavoriteEntry {
   defaultTitle: string;
   isOwn: boolean;
   isWithdrawn?: boolean;
+  /** Places only: the full address, for copying. Absent for a saved route. */
+  address?: string;
 }
 
 export type FavoriteSectionKey =
