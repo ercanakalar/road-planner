@@ -1,4 +1,4 @@
-import React, { ReactNode, memo } from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { spacing, typography, useThemedStyles } from 'theme';
@@ -7,19 +7,15 @@ import type { ThemeColors } from 'theme';
 interface Props {
   title: string;
   subtitle?: string;
-  action?: ReactNode;
 }
 
-const ScreenHeader = ({ title, subtitle, action }: Props) => {
+const ScreenHeader = ({ title, subtitle }: Props) => {
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.header}>
-      <View style={styles.text}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
-      {action}
+      <Text style={styles.title}>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 };
@@ -27,18 +23,15 @@ const ScreenHeader = ({ title, subtitle, action }: Props) => {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.md,
+      gap: spacing.xxs,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
-      paddingBottom: spacing.xs,
+      paddingBottom: spacing.md,
     },
-    text: { flex: 1, gap: spacing.xxs },
+    // Title and subtitle share an edge. Centring one and not the other read as
+    // a mistake, and a centred display title fights the left-aligned list
+    // under it.
     title: {
-      width: '100%',
-      textAlign: 'center',
       ...typography.display,
       color: colors.text,
     },

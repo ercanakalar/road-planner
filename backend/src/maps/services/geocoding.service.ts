@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { GoogleMapsClient } from './google-maps.client';
 import { AddressResult, LatLng } from '../types/maps.types';
 import { formatCoordinate } from '../utils/coordinates';
+import { cleanAddress } from '../utils/address';
 import { createTtlCache } from '../utils/ttl-cache';
 
 const CACHE = { ttlMs: 24 * 60 * 60 * 1000, maxEntries: 1000 };
@@ -62,8 +63,10 @@ export class GeocodingService {
 
       const components = result.address_components ?? [];
 
+      const address = cleanAddress(result.formatted_address);
+
       return {
-        address: result.formatted_address || UNNAMED_PLACE.address,
+        address: address || UNNAMED_PLACE.address,
         country: pickComponent(components, ['country']),
         province: pickComponent(components, PROVINCE_TYPES),
         district: pickComponent(components, DISTRICT_TYPES),
@@ -71,12 +74,20 @@ export class GeocodingService {
     });
   }
 
-  async resolveAddress<T extends Partial<AddressResult>>(
-    coordinate: LatLng,
-    supplied?: T,
-  ): Promise<AddressResult | T> {
-    if (supplied?.address) return supplied;
+  /**
+   * The address to label a saved stop with: what the caller already knows if it
+   * knows anything, and Google's answer otherwise. Never throws — a stop with
+   * no name is worth keeping, a failed save is not.
+   */
+  async resolveAddress(coordinate: LatLng, supplied?: string): Promise<string> {
+    // A supplied address is whatever a client sent, so it is cleaned on the
+    // same terms as Google's — this is the one door everything stored comes
+    // through.
+    const given = cleanAddress(supplied);
+    if (given) return given;
 
-    return this.reverseGeocode(coordinate).catch(() => UNNAMED_PLACE);
+    return this.reverseGeocode(coordinate)
+      .then((result) => result.address)
+      .catch(() => UNNAMED_PLACE.address);
   }
 }

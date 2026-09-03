@@ -13,6 +13,7 @@ import EnhancedWaypointList from './EnhancedWaypointList';
 import { MapSection } from 'components/map/MapSection';
 
 import useMapLogic from 'hooks/useMapLogic';
+import useWaypointPair from 'hooks/useWaypointPair';
 import { RoutePlace } from 'services/mapsService';
 import { radius, shadows, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -42,6 +43,8 @@ const ShowRouteByIdScreen = () => {
     handleMapLongPress,
     handleMapPress,
   } = useMapLogic();
+
+  const waypointPair = useWaypointPair();
 
   const { height: windowHeight } = useWindowDimensions();
   const [isReordering, setIsReordering] = useState(false);
@@ -107,6 +110,7 @@ const ShowRouteByIdScreen = () => {
           onMapPress={handleMapPress}
           foundPlaces={routeSearch.places}
           onFoundPlacePress={focusOnPlace}
+          selectedWaypointIds={waypointPair.selected}
         />
 
         <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
@@ -148,6 +152,9 @@ const ShowRouteByIdScreen = () => {
         <EnhancedWaypointList
           roadId={roadId}
           transportMode={transportMode}
+          selectedPair={waypointPair.selected}
+          onToggleSelection={waypointPair.toggle}
+          onForgetSelection={waypointPair.forget}
           onTransportModeChange={setTransportMode}
           onReorderingChange={handleReorderingChange}
         />

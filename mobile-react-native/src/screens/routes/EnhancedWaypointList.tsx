@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 
 import {
   useDeleteWaypointByIdMutation,
@@ -8,6 +8,7 @@ import {
 import { useToggleFavoriteWaypointMutation } from 'store/services/favoriteService';
 
 import WaypointList from 'components/map/WaypointList';
+import useCopyAddress from 'hooks/useCopyAddress';
 import { useModeDurations } from 'hooks/useRouteDirections';
 import { showNotification } from 'services/notificationService';
 
@@ -19,6 +20,10 @@ const EMPTY_WAYPOINTS: never[] = [];
 interface Props {
   roadId: string;
   transportMode: TransportMode;
+  /** Owned by the screen, because the map has to badge the same two stops. */
+  selectedPair: string[];
+  onToggleSelection: (waypointId: string) => void;
+  onForgetSelection: (waypointId: string) => void;
   onTransportModeChange: (mode: TransportMode) => void;
   onReorderingChange?: (isReordering: boolean) => void;
 }
@@ -26,11 +31,12 @@ interface Props {
 const EnhancedWaypointList = ({
   roadId,
   transportMode,
+  selectedPair,
+  onToggleSelection,
+  onForgetSelection,
   onTransportModeChange,
   onReorderingChange,
 }: Props) => {
-  const [selectedPair, setSelectedPair] = useState<string[]>([]);
-
   const { waypoints } = useGetRoadByIdQuery(
     { roadId },
     {
@@ -46,23 +52,13 @@ const EnhancedWaypointList = ({
   const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
 
   const durations = useModeDurations(waypoints, selectedPair);
-
-  const toggleSelection = useCallback((id: string) => {
-    setSelectedPair((previous) => {
-      if (previous.includes(id)) {
-        return previous.filter((item) => item !== id);
-      }
-      return previous.length < 2 ? [...previous, id] : [previous[1], id];
-    });
-  }, []);
+  const copyAddress = useCopyAddress();
 
   const handleDelete = useCallback(
     async (waypointId: string) => {
       try {
         await deleteWaypointById({ roadId, waypointId }).unwrap();
-        setSelectedPair((previous) =>
-          previous.filter((id) => id !== waypointId),
-        );
+        onForgetSelection(waypointId);
       } catch {
         showNotification({
           type: 'error',
@@ -71,7 +67,7 @@ const EnhancedWaypointList = ({
         });
       }
     },
-    [deleteWaypointById, roadId],
+    [deleteWaypointById, onForgetSelection, roadId],
   );
 
   const toggleFavorite = useCallback(
@@ -95,9 +91,10 @@ const EnhancedWaypointList = ({
   const handleOptionSelect = useCallback(
     (option: WaypointOption, item: WaypointWithAddress) => {
       if (option === 'delete') return handleDelete(item.id);
+      if (option === 'copy') return copyAddress(item.address);
       if (option === 'favorite') return toggleFavorite(item);
     },
-    [handleDelete, toggleFavorite],
+    [copyAddress, handleDelete, toggleFavorite],
   );
 
   const handleReorder = useCallback(
@@ -114,7 +111,7 @@ const EnhancedWaypointList = ({
       durations={durations}
       transportMode={transportMode}
       onTransportModeChange={onTransportModeChange}
-      onToggleSelection={toggleSelection}
+      onToggleSelection={onToggleSelection}
       onOptionSelect={handleOptionSelect}
       onReorder={handleReorder}
       onReorderingChange={onReorderingChange}

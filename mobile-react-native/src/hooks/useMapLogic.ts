@@ -10,6 +10,7 @@ import {
   useUpdateWaypointByIdMutation,
 } from 'store/services/roadService';
 import { ShowRouteByIdRouteProp } from 'types/map-screen-type';
+import { addressName } from 'utils/address';
 import { RoutePlace } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
 import {
@@ -283,7 +284,7 @@ const useMapLogic = () => {
     () => ({
       visible: isContextMenuVisible,
       title: contextMenuWaypoint
-        ? contextMenuWaypoint.address?.address
+        ? addressName(contextMenuWaypoint.address) || 'Dropped pin'
         : 'Dropped pin',
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,

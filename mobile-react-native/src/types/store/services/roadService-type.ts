@@ -15,37 +15,18 @@ export interface Road {
 }
 
 
-interface Address {
-  id: string;
-  country: string;
-  province: string;
-  district: string;
-  address: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
 export interface Waypoint {
   id: string;
   latitude: number;
   longitude: number;
   order: number;
   roadId: string;
-  addressInfoId: string;
-  address?: Address;
+  address: string;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
 }
 
-
-export interface WaypointAddressInput {
-  address: string;
-  country: string;
-  province: string;
-  district: string;
-}
 
 export interface WaypointInput {
   id?: string;
@@ -53,7 +34,7 @@ export interface WaypointInput {
   longitude: number;
   order?: number;
   description?: string;
-  address?: WaypointAddressInput;
+  address?: string;
 }
 
 export type GetOwnRoadsArgs = void;

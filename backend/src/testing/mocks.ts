@@ -13,7 +13,6 @@ const PRISMA_MODELS = [
   'permission',
   'road',
   'wayPoint',
-  'addressInfo',
   'favoriteRoad',
   'favoriteWaypoint',
 ] as const;
@@ -70,9 +69,8 @@ export function createGeocodingMock(fallback: AddressResult = UNNAMED_PLACE): {
 } {
   return {
     reverseGeocode: jest.fn().mockResolvedValue(fallback),
-    resolveAddress: jest.fn(
-      (_coordinate: unknown, supplied?: { address?: string }) =>
-        Promise.resolve(supplied?.address ? supplied : fallback),
+    resolveAddress: jest.fn((_coordinate: unknown, supplied?: string) =>
+      Promise.resolve(supplied || fallback.address),
     ),
   };
 }

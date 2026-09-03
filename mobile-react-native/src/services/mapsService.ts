@@ -3,7 +3,6 @@ import tokenStorage from 'services/tokenStorage';
 import { createAsyncCache } from 'utils/asyncCache';
 import { RouteCoordinate } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
-import { WaypointAddressInput } from 'types/store/services/roadService-type';
 
 const REQUEST_TIMEOUT_MS = 12000;
 
@@ -189,13 +188,25 @@ export async function fetchModeDurations(
   );
 }
 
-const geocodeCache = createAsyncCache<WaypointAddressInput>(80);
+/**
+ * What `/maps/geocode/reverse` answers. The waypoint itself stores only the
+ * formatted `address`; the components are still returned for callers that want
+ * to name a place before one is saved.
+ */
+export interface ReverseGeocodeResult {
+  address: string;
+  country: string;
+  province: string;
+  district: string;
+}
+
+const geocodeCache = createAsyncCache<ReverseGeocodeResult>(80);
 
 export async function reverseGeocode(
   coordinate: LatLng,
-): Promise<WaypointAddressInput> {
+): Promise<ReverseGeocodeResult> {
   return geocodeCache.resolve(coordKey(coordinate), () =>
-    request<WaypointAddressInput>('/maps/geocode/reverse', {
+    request<ReverseGeocodeResult>('/maps/geocode/reverse', {
       params: {
         latitude: String(coordinate.latitude),
         longitude: String(coordinate.longitude),

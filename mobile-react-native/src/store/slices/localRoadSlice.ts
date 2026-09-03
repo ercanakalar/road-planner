@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { createLocalId } from 'services/localRoadStorage';
 import { LocalRoad, LocalRoadState, LocalWaypoint } from 'types/local-road';
-import { WaypointAddressInput } from 'types/store/services/roadService-type';
 
 const initialState: LocalRoadState = {
   roads: [],
@@ -88,7 +87,7 @@ export const localRoadSlice = createSlice({
       action: PayloadAction<{
         latitude: number;
         longitude: number;
-        address: WaypointAddressInput;
+        address: string;
         insertAtIndex?: number;
       }>,
     ) {
@@ -126,7 +125,7 @@ export const localRoadSlice = createSlice({
         waypointId: string;
         latitude: number;
         longitude: number;
-        address: WaypointAddressInput;
+        address: string;
       }>,
     ) {
       const road = findActive(state);

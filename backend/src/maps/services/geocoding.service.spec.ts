@@ -126,7 +126,7 @@ describe('GeocodingService', () => {
 
   describe('resolveAddress', () => {
     it('keeps an address the caller supplied, without asking Google', async () => {
-      const supplied = { address: 'Home', country: 'TR' };
+      const supplied = 'Home';
 
       await expect(service.resolveAddress(KADIKOY, supplied)).resolves.toBe(
         supplied,
@@ -137,24 +137,41 @@ describe('GeocodingService', () => {
     it('looks up an address when the caller sent none', async () => {
       client.get.mockResolvedValue(FULL_ADDRESS);
 
-      await expect(service.resolveAddress(KADIKOY)).resolves.toMatchObject({
-        address: 'Bağdat Cd. 1, Kadıköy/İstanbul',
-      });
+      await expect(service.resolveAddress(KADIKOY)).resolves.toBe(
+        'Bağdat Cd. 1, Kadıköy/İstanbul',
+      );
     });
 
     it('looks up an address when the one sent is blank', async () => {
       client.get.mockResolvedValue(FULL_ADDRESS);
 
+      await expect(service.resolveAddress(KADIKOY, '')).resolves.toBe(
+        'Bağdat Cd. 1, Kadıköy/İstanbul',
+      );
+    });
+
+    it('cleans an address the caller supplied', async () => {
+      // The client's string is user input; it goes through the same door.
       await expect(
-        service.resolveAddress(KADIKOY, { address: '' }),
-      ).resolves.toMatchObject({ address: 'Bağdat Cd. 1, Kadıköy/İstanbul' });
+        service.resolveAddress(KADIKOY, '7GXR+8C, Kadıköy,  , Kadıköy'),
+      ).resolves.toBe('Kadıköy');
+      expect(client.get).not.toHaveBeenCalled();
+    });
+
+    it('looks up an address when the supplied one was all noise', async () => {
+      client.get.mockResolvedValue(FULL_ADDRESS);
+
+      await expect(
+        service.resolveAddress(KADIKOY, 'Unnamed Road, 34710'),
+      ).resolves.toBe('Bağdat Cd. 1, Kadıköy/İstanbul');
     });
 
     it('costs the user nothing when the lookup fails', async () => {
       client.get.mockRejectedValue(new Error('Map service is unavailable'));
 
-      await expect(service.resolveAddress(KADIKOY)).resolves.toEqual(
-        UNNAMED_PLACE,
+      // A stop with no name is worth keeping; a failed save is not.
+      await expect(service.resolveAddress(KADIKOY)).resolves.toBe(
+        UNNAMED_PLACE.address,
       );
     });
   });

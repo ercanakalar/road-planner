@@ -10,12 +10,7 @@ const toWaypointInput = (waypoint: WaypointWithAddress): WaypointInput => ({
   latitude: waypoint.latitude,
   longitude: waypoint.longitude,
   order: waypoint.order,
-  address: {
-    address: waypoint.address?.address ?? '',
-    country: waypoint.address?.country ?? '',
-    province: waypoint.address?.province ?? '',
-    district: waypoint.address?.district ?? '',
-  },
+  address: waypoint.address,
 });
 
 export const updateRoadDetails =

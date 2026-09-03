@@ -26,33 +26,6 @@ import {
 } from 'src/common/dto/constants';
 import { trim } from 'src/common/dto/transforms';
 
-export class AddressInputDto {
-  @IsOptional()
-  @Transform(trim)
-  @IsString()
-  @MaxLength(SHORT_TEXT_MAX_LENGTH)
-  country?: string;
-
-  @IsOptional()
-  @Transform(trim)
-  @IsString()
-  @MaxLength(SHORT_TEXT_MAX_LENGTH)
-  province?: string;
-
-  @IsOptional()
-  @Transform(trim)
-  @IsString()
-  @MaxLength(SHORT_TEXT_MAX_LENGTH)
-  district?: string;
-
-  @Transform(trim)
-  @IsString()
-  @MaxLength(LONG_TEXT_MAX_LENGTH)
-  address!: string;
-}
-
-export class RequiredAddressInputDto extends AddressInputDto {}
-
 export class WaypointInputDto {
   @IsOptional()
   @IsUUID()
@@ -77,13 +50,10 @@ export class WaypointInputDto {
   type?: 'start' | 'end' | 'waypoint';
 
   @IsOptional()
-  @ValidateNested()
-  @Type(() => AddressInputDto)
-  address?: AddressInputDto;
-
-  @IsOptional()
-  @IsUUID()
-  addressInfoId?: string;
+  @Transform(trim)
+  @IsString()
+  @MaxLength(LONG_TEXT_MAX_LENGTH)
+  address?: string;
 }
 
 export class CreateRoadDto {
@@ -127,9 +97,10 @@ export class AddWaypointDto {
   order!: number;
 
   @IsOptional()
-  @ValidateNested()
-  @Type(() => RequiredAddressInputDto)
-  address?: RequiredAddressInputDto;
+  @Transform(trim)
+  @IsString()
+  @MaxLength(LONG_TEXT_MAX_LENGTH)
+  address?: string;
 }
 
 export class UpdateWaypointDto {
@@ -149,9 +120,10 @@ export class UpdateWaypointDto {
   order?: number;
 
   @IsOptional()
-  @ValidateNested()
-  @Type(() => RequiredAddressInputDto)
-  address?: RequiredAddressInputDto;
+  @Transform(trim)
+  @IsString()
+  @MaxLength(LONG_TEXT_MAX_LENGTH)
+  address?: string;
 }
 
 export class ReorderWaypointsDto {

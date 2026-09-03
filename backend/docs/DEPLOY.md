@@ -64,7 +64,7 @@ You do **not** need Docker locally. Cloud Build builds the image in the cloud.
 gcloud auth login
 
 # Project ids are globally unique, so add something of your own to the end.
-gcloud projects create travel-routes-prod-1234 --name="Road Planner"
+gcloud projects create travel-routes-prod-1234 --name="Travel Routes"
 gcloud config set project travel-routes-prod-1234
 ```
 

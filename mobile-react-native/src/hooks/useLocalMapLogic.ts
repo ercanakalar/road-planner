@@ -3,6 +3,7 @@ import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 
 import { RoutePlace, reverseGeocode } from 'services/mapsService';
+import { addressName } from 'utils/address';
 import { showNotification } from 'services/notificationService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
@@ -43,8 +44,7 @@ const toSharedWaypoint = (
   longitude: waypoint.longitude,
   order: waypoint.order,
   roadId,
-  addressInfoId: '',
-  address: { id: waypoint.id, ...waypoint.address },
+  address: waypoint.address,
   createdAt: '',
   updatedAt: '',
   favoriteWaypoints: waypoint.isFavorite
@@ -142,7 +142,7 @@ const useLocalMapLogic = () => {
     setIsSavingPin(true);
 
     try {
-      const address = await reverseGeocode(clickedLocation);
+      const { address } = await reverseGeocode(clickedLocation);
       dispatch(
         localWaypointAdded({
           latitude: clickedLocation.latitude,
@@ -175,7 +175,7 @@ const useLocalMapLogic = () => {
       dispatch(stopDraggingWaypoint());
 
       try {
-        const address = await reverseGeocode({ latitude, longitude });
+        const { address } = await reverseGeocode({ latitude, longitude });
         dispatch(
           localWaypointMoved({ waypointId, latitude, longitude, address }),
         );
@@ -263,18 +263,15 @@ const useLocalMapLogic = () => {
       setIsSavingPin(true);
 
       try {
-        const address = await reverseGeocode(place).catch(() => ({
+        const { address } = await reverseGeocode(place).catch(() => ({
           address: place.address,
-          country: '',
-          province: '',
-          district: '',
         }));
 
         dispatch(
           localWaypointAdded({
             latitude: place.latitude,
             longitude: place.longitude,
-            address: { ...address, address: place.name },
+            address: place.name || address,
             insertAtIndex: place.insertAfterIndex + 1,
           }),
         );
@@ -326,7 +323,7 @@ const useLocalMapLogic = () => {
     () => ({
       visible: isContextMenuVisible,
       title: contextMenuWaypoint
-        ? contextMenuWaypoint.address?.address
+        ? addressName(contextMenuWaypoint.address) || 'Dropped pin'
         : 'Dropped pin',
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,

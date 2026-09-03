@@ -15,6 +15,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { addressLocality, addressName } from 'utils/address';
 
 const ShowWaypointByIdScreen = () => {
   const { colors, isDark } = useTheme();
@@ -37,9 +38,7 @@ const ShowWaypointByIdScreen = () => {
     );
   }
 
-  const locality = [data.address?.district, data.address?.province]
-    .filter(Boolean)
-    .join(', ');
+  const locality = addressLocality(data.address);
 
   return (
     <View style={styles.container}>
@@ -63,7 +62,7 @@ const ShowWaypointByIdScreen = () => {
 
       <View style={styles.infoCard}>
         <Text style={styles.title} numberOfLines={2}>
-          {data.address?.address ?? 'Saved place'}
+          {addressName(data.address) || 'Saved place'}
         </Text>
         <Text style={styles.subtitle}>
           {locality ||

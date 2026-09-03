@@ -1,11 +1,10 @@
-import { WaypointAddressInput } from 'types/store/services/roadService-type';
-
 export interface LocalWaypoint {
   id: string;
   latitude: number;
   longitude: number;
   order: number;
-  address: WaypointAddressInput;
+  /** Google's formatted address, or '' for a bare dropped pin. */
+  address: string;
   isFavorite?: boolean;
 }
 

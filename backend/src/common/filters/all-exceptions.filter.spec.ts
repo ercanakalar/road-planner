@@ -62,9 +62,9 @@ describe('AllExceptionsFilter', () => {
     });
 
     it('keeps the exception message', () => {
-      filter.catch(new NotFoundException('Road not found'), host);
+      filter.catch(new NotFoundException('Route not found'), host);
 
-      expect(body().message).toBe('Road not found');
+      expect(body().message).toBe('Route not found');
     });
 
     it('preserves a validation message array', () => {

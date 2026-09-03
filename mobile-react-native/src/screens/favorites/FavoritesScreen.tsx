@@ -5,7 +5,6 @@ import {
   SectionListData,
   SectionListRenderItemInfo,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import {
@@ -16,12 +15,17 @@ import {
 } from '@react-navigation/native';
 
 import Container from 'components/ui/Container';
-import useRefreshControlColors from 'hooks/useRefreshControlColors';
+import ScreenHeader from 'components/ui/ScreenHeader';
 import ScreenState from 'components/ui/ScreenState';
 import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
 import { useConfirm } from 'components/feedback/ConfirmProvider';
+import useCopyAddress from 'hooks/useCopyAddress';
+import useRefreshControlColors from 'hooks/useRefreshControlColors';
 import { FavoriteSection } from './FavoriteSection';
 import { FavoriteItem } from './FavoriteItem';
+import FavoritesSearch from './FavoritesSearch';
+import { countFavorites, searchFavorites } from './searchFavorites';
+import { buildSections } from './sections';
 
 import {
   useGetFavoritesQuery,
@@ -29,46 +33,41 @@ import {
   useToggleFavoriteWaypointMutation,
   useUpdateFavoriteAnnotationMutation,
 } from 'store/services/favoriteService';
+import { EMPTY_FAVORITES } from 'store/adapters/favoriteAdapter';
 import { useAppSelector } from 'store/hook';
 import { showNotification } from 'services/notificationService';
 
-import { spacing, typography, useThemedStyles } from 'theme';
+import { radius, spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import {
   FavoriteEntry,
   FavoriteSectionKey,
 } from 'types/store/services/favoriteService-type';
-import {
-  FavoriteSectionDescriptor,
-  MaterialIconName,
-} from 'types/screens/mapScreenType';
+import { FavoriteSectionDescriptor } from 'types/screens/mapScreenType';
 import { HomeTabParamList, RootStackParamList } from 'types/screens/screens';
-
-const SECTIONS: {
-  key: FavoriteSectionKey;
-  title: string;
-  icon: MaterialIconName;
-}[] = [
-  { key: 'ownRoads', title: 'My roads', icon: 'directions-car' },
-  { key: 'ownWaypoints', title: 'My places', icon: 'location-on' },
-  { key: 'othersRoads', title: "Others' roads", icon: 'public' },
-  { key: 'othersWaypoints', title: "Others' places", icon: 'place' },
-];
 
 const HIGHLIGHT_MS = 4000;
 
-const Favorite = () => {
+/**
+ * Below this, everything fits on a screen or two and a search field is one
+ * more thing between you and it.
+ */
+const SEARCHABLE_FROM = 8;
+
+const FavoritesScreen = () => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<HomeTabParamList, 'Favourites'>>();
   const confirm = useConfirm();
+  const copyAddress = useCopyAddress();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  const [expanded, setExpanded] = useState<FavoriteSectionKey | null>(
-    'ownRoads',
-  );
+  // Sections start open and are collapsed one at a time, so "My roads" and
+  // "My places" can be read together — the pairing most of this screen is for.
+  const [collapsed, setCollapsed] = useState<readonly FavoriteSectionKey[]>([]);
+  const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<FavoriteEntry | null>(null);
 
   const highlightTargetId = route.params?.highlightTargetId;
@@ -85,7 +84,7 @@ const Favorite = () => {
   }, [highlightTargetId]);
 
   const {
-    data: favorites,
+    data: favorites = EMPTY_FAVORITES,
     isLoading,
     isFetching,
     isError,
@@ -98,13 +97,43 @@ const Favorite = () => {
   const [updateAnnotation, { isLoading: isSavingAnnotation }] =
     useUpdateFavoriteAnnotationMutation();
 
+  const isSearching = query.trim().length > 0;
+
+  const matches = useMemo(
+    () => searchFavorites(favorites, query),
+    [favorites, query],
+  );
+
+  const totalCount = useMemo(() => countFavorites(favorites), [favorites]);
+  const matchCount = useMemo(() => countFavorites(matches), [matches]);
+
+  const isExpanded = useCallback(
+    // A search that hid its own results would look broken, so searching opens
+    // everything it matched.
+    (key: FavoriteSectionKey) => isSearching || !collapsed.includes(key),
+    [collapsed, isSearching],
+  );
+
   const toggleSection = useCallback((key: FavoriteSectionKey) => {
-    setExpanded((previous) => (previous === key ? null : key));
+    setCollapsed((previous) =>
+      previous.includes(key)
+        ? previous.filter((candidate) => candidate !== key)
+        : [...previous, key],
+    );
   }, []);
+
+  const clearSearch = useCallback(() => setQuery(''), []);
 
   const handleEdit = useCallback((item: FavoriteEntry) => setEditing(item), []);
 
   const closeEditor = useCallback(() => setEditing(null), []);
+
+  const handleCopyAddress = useCallback(
+    (item: FavoriteEntry) => {
+      void copyAddress(item.address);
+    },
+    [copyAddress],
+  );
 
   const handleSaveAnnotation = useCallback(
     async ({ title, description }: DetailsDraft) => {
@@ -176,22 +205,9 @@ const Favorite = () => {
     [navigation],
   );
 
-  const sections = useMemo<FavoriteSectionDescriptor[]>(
-    () =>
-      SECTIONS.map((section) => ({
-        ...section,
-        data: expanded === section.key ? (favorites?.[section.key] ?? []) : [],
-      })),
-    [expanded, favorites],
-  );
-
-  const totalCount = useMemo(
-    () =>
-      SECTIONS.reduce(
-        (total, section) => total + (favorites?.[section.key]?.length ?? 0),
-        0,
-      ),
-    [favorites],
+  const sections = useMemo(
+    () => buildSections(matches, isExpanded),
+    [isExpanded, matches],
   );
 
   const renderSectionHeader = useCallback(
@@ -201,12 +217,21 @@ const Favorite = () => {
       section: SectionListData<FavoriteEntry, FavoriteSectionDescriptor>;
     }) => (
       <FavoriteSection
-        section={{ ...section, data: favorites?.[section.key] ?? [] }}
-        isExpanded={expanded === section.key}
+        section={section}
+        isExpanded={isExpanded(section.key)}
         onToggle={toggleSection}
       />
     ),
-    [expanded, favorites, toggleSection],
+    [isExpanded, toggleSection],
+  );
+
+  const renderSectionFooter = useCallback(
+    ({
+      section,
+    }: {
+      section: SectionListData<FavoriteEntry, FavoriteSectionDescriptor>;
+    }) => (section.data.length > 0 ? <View style={styles.cardFoot} /> : null),
+    [styles.cardFoot],
   );
 
   const renderItem = useCallback(
@@ -217,9 +242,10 @@ const Favorite = () => {
         onPress={handleItemPress}
         onEdit={handleEdit}
         onRemove={handleRemove}
+        onCopyAddress={handleCopyAddress}
       />
     ),
-    [handleEdit, handleItemPress, handleRemove, highlighted],
+    [handleCopyAddress, handleEdit, handleItemPress, handleRemove, highlighted],
   );
 
   const keyExtractor = useCallback(
@@ -243,7 +269,7 @@ const Favorite = () => {
   const body =
     isLoading || isUninitialized ? (
       <ScreenState variant='loading' title='Loading favourites…' />
-    ) : !favorites && isError ? (
+    ) : isError && totalCount === 0 ? (
       <ScreenState
         variant='error'
         title='Could not load favourites'
@@ -258,15 +284,26 @@ const Favorite = () => {
         title='Nothing saved yet'
         message='Star a route or a stop and it will show up here.'
       />
+    ) : matchCount === 0 ? (
+      <ScreenState
+        variant='empty'
+        icon='search-outline'
+        title='No matches'
+        message={`Nothing saved matches “${query.trim()}”.`}
+        actionLabel='Clear search'
+        onAction={clearSearch}
+      />
     ) : (
       <SectionList<FavoriteEntry, FavoriteSectionDescriptor>
         sections={sections}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
-        SectionSeparatorComponent={SectionSpacer}
+        renderSectionFooter={renderSectionFooter}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps='handled'
+        keyboardDismissMode='on-drag'
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -283,14 +320,22 @@ const Favorite = () => {
   return (
     <Container>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Favourites</Text>
-          <Text style={styles.subtitle}>
-            {totalCount === 0
-              ? 'Nothing saved yet'
-              : `${totalCount} saved item${totalCount === 1 ? '' : 's'}`}
-          </Text>
-        </View>
+        <ScreenHeader
+          title='Favourites'
+          // With nothing saved, the empty state below already says so — and
+          // says it better than a subtitle can.
+          subtitle={
+            isSearching
+              ? `${matchCount} of ${totalCount} shown`
+              : totalCount === 0
+                ? undefined
+                : `${totalCount} saved item${totalCount === 1 ? '' : 's'}`
+          }
+        />
+
+        {totalCount >= SEARCHABLE_FROM ? (
+          <FavoritesSearch value={query} onChange={setQuery} />
+        ) : null}
 
         {body}
       </View>
@@ -313,41 +358,23 @@ const Favorite = () => {
   );
 };
 
-const SectionSpacer = () => {
-  const styles = useThemedStyles(createStyles);
-
-  return <View style={styles.sectionSpacer} />;
-};
-
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
-      gap: 2,
-      width: '100%',
-    },
-    title: {
-      width: '100%',
-      textAlign: 'center',
-      ...typography.display,
-      color: colors.text,
-    },
-    subtitle: {
-      ...typography.body,
-      color: colors.textMuted,
-    },
     listContent: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.xs,
       paddingBottom: spacing.xxl,
-      gap: spacing.xxs,
     },
-    sectionSpacer: {
-      height: spacing.lg,
+    // Rounds off the last row, so a header and its rows read as one card, and
+    // holds the gap before the next section.
+    cardFoot: {
+      height: spacing.sm,
+      backgroundColor: colors.surface,
+      borderBottomLeftRadius: radius.md,
+      borderBottomRightRadius: radius.md,
+      marginBottom: spacing.md,
     },
   });
 
-export default Favorite;
+export default FavoritesScreen;

@@ -1,227 +1,438 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Container from 'components/ui/Container';
-import ScreenHeader from 'components/ui/ScreenHeader';
+import PlacesSearchBar from 'components/map/PlacesSearchBar';
+import RouteSearchSheet from 'components/map/RouteSearchSheet';
+import ContextMenu from 'components/ui/ContextMenu';
 import ScreenState from 'components/ui/ScreenState';
 import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
 import { useConfirm } from 'components/feedback/ConfirmProvider';
-import RoutesList from './roads/RouteList';
+import BottomSheetHandle from 'components/ui/BottomSheetHandle';
+import { MapSection } from 'components/map/MapSection';
+import LocalWaypointList from './LocalWaypointList';
+import useWaypointPair from 'hooks/useWaypointPair';
+import LocalRoadPicker from './LocalRoadPicker';
 
+import useLocalMapLogic from 'hooks/useLocalMapLogic';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
-  useDeleteRoadByIdMutation,
-  useGetOwnRoadsQuery,
-} from 'store/services/roadService';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
-import { updateRoadDetails } from 'store/actions/roadActions';
-import { showNotification } from 'services/notificationService';
-import useShareRoad from 'hooks/useShareRoad';
+  localRoadCreated,
+  localRoadDeleted,
+  localRoadDetailsChanged,
+  localRoadSelected,
+} from 'store/slices/localRoadSlice';
 
-import { spacing, useThemedStyles } from 'theme';
-import type { ThemeColors } from 'theme';
 import {
-  MapScreenProps,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
+  radius,
+  shadows,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+} from 'theme';
+import type { ThemeColors } from 'theme';
+import { RoutePlace } from 'services/mapsService';
+import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 
-const EMPTY_ROADS: WaypointWithAddressAndId[] = [];
-
-const MapScreen = ({ navigation }: MapScreenProps) => {
+const MapScreen = () => {
+  const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   const dispatch = useAppDispatch();
-  const confirm = useConfirm();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
 
+  const confirm = useConfirm();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const { shareRoad, sharingRoadId } = useShareRoad();
-  const [editing, setEditing] = useState<WaypointWithAddressAndId | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
 
   const {
-    data: roads = EMPTY_ROADS,
-    refetch,
-    isFetching,
-    isLoading,
-    isError,
-  } = useGetOwnRoadsQuery(undefined, { skip: !isLoggedIn });
+    mapRef,
+    bottomSheetRef,
+    isHydrated,
+    isSavingPin,
+    activeRoad,
+    roads,
+    waypoints,
+    routeLine,
+    routeSearch,
+    transportMode,
+    setTransportMode,
+    draggingWaypointId,
+    contextMenuProps,
+    onPlaceSelected,
+    focusOnPlace,
+    handleAddPlaceAsStop,
+    handleMarkerDragEnd,
+    handleMapLongPress,
+    handleMapPress,
+    handleReorder,
+    handleDeleteWaypointById,
+    handleToggleFavoriteWaypoint,
+  } = useLocalMapLogic();
 
-  const [deleteRoadById] = useDeleteRoadByIdMutation();
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [isSearchingRoute, setIsSearchingRoute] = useState(false);
 
-  const stopCount = useMemo(
-    () =>
-      roads.reduce((total, road) => total + (road.wayPoints?.length ?? 0), 0),
-    [roads],
-  );
+  const openRouteSearch = useCallback(() => setIsSearchingRoute(true), []);
+  const closeRouteSearch = useCallback(() => setIsSearchingRoute(false), []);
 
-  const handleDeleteRoad = useCallback(
-    async (road: WaypointWithAddressAndId) => {
-      const confirmed = await confirm({
-        title: 'Remove route',
-        message: `“${road.title}” leaves your list and stops being shared. Anyone who saved it keeps their copy.`,
-        confirmLabel: 'Remove',
-        icon: 'trash-outline',
-        tone: 'danger',
-      });
-      if (confirmed) deleteRoadById({ roadId: road.id });
+  const handleShowOnMap = useCallback(
+    (place: RoutePlace) => {
+      setIsSearchingRoute(false);
+      focusOnPlace(place);
     },
-    [confirm, deleteRoadById],
+    [focusOnPlace],
   );
 
-  const handleTogglePublic = useCallback(
-    async (road: WaypointWithAddressAndId) => {
-      const next = !road.isPublic;
-
-      if (next) {
-        const confirmed = await confirm({
-          title: 'Share this route',
-          message: `“${road.title}” and its stops become visible to everyone, next to your name. You can stop sharing at any time.`,
-          confirmLabel: 'Share',
-          icon: 'globe-outline',
-        });
-        if (!confirmed) return;
-      }
-
-      await dispatch(
-        updateRoadDetails({
-          roadId: road.id,
-          title: road.title,
-          description: road.description,
-          isPublic: next,
-        }),
-      );
+  const handleAddStop = useCallback(
+    (place: RoutePlace) => {
+      setIsSearchingRoute(false);
+      handleAddPlaceAsStop(place);
     },
-    [confirm, dispatch],
+    [handleAddPlaceAsStop],
   );
 
-  const handleToggleFavorite = useCallback(
-    (road: WaypointWithAddressAndId) => {
-      toggleFavoriteRoad({ roadId: road.id });
+  const snapPoints = useMemo(() => {
+    const points = [0.22, 0.45, 0.75].map((ratio) =>
+      Math.round(windowHeight * ratio),
+    );
+    return Array.from(new Set(points)).sort((a, b) => a - b);
+  }, [windowHeight]);
+
+  const summary = useMemo(() => {
+    if (routeLine.durationSeconds === undefined) return undefined;
+    return {
+      duration: secondsToHour(routeLine.durationSeconds),
+      distance: metersToDistance(routeLine.distanceMeters),
+    };
+  }, [routeLine.distanceMeters, routeLine.durationSeconds]);
+
+  const handleNewRoad = useCallback(() => {
+    dispatch(localRoadCreated(`Route ${roads.length + 1}`));
+  }, [dispatch, roads.length]);
+
+  const [isPickingRoad, setIsPickingRoad] = useState(false);
+
+  const handleSwitchRoad = useCallback(() => {
+    if (roads.length > 1) setIsPickingRoad(true);
+  }, [roads.length]);
+
+  const handlePickRoad = useCallback(
+    (roadId: string) => {
+      dispatch(localRoadSelected(roadId));
+      setIsPickingRoad(false);
     },
-    [toggleFavoriteRoad],
+    [dispatch],
   );
 
-  const handleRefresh = useCallback(() => {
-    if (isLoggedIn) refetch();
-  }, [isLoggedIn, refetch]);
+  const handleDeleteRoad = useCallback(async () => {
+    if (!activeRoad) return;
+    const confirmed = await confirm({
+      title: 'Delete route',
+      message: `“${activeRoad.title}” and its ${activeRoad.wayPoints.length} stop${
+        activeRoad.wayPoints.length === 1 ? '' : 's'
+      } will be removed from this device.`,
+      confirmLabel: 'Delete',
+      icon: 'trash-outline',
+      tone: 'danger',
+    });
+    if (confirmed) dispatch(localRoadDeleted(activeRoad.id));
+  }, [activeRoad, confirm, dispatch]);
 
-  const handleView = useCallback(
-    (roadId: string) => navigation.navigate('ShowRouteByIdScreen', { roadId }),
-    [navigation],
-  );
+  const closePicker = useCallback(() => setIsPickingRoad(false), []);
 
-  const handleEdit = useCallback(
-    (road: WaypointWithAddressAndId) => setEditing(road),
-    [],
-  );
-
-  const closeEditor = useCallback(() => setEditing(null), []);
+  const openDetailsEditor = useCallback(() => setIsEditingDetails(true), []);
+  const closeDetailsEditor = useCallback(() => setIsEditingDetails(false), []);
 
   const handleSaveDetails = useCallback(
-    async ({ title, description, isPublic }: DetailsDraft) => {
-      if (!editing) return;
-      setIsSaving(true);
-
-      try {
-        await dispatch(
-          updateRoadDetails({
-            roadId: editing.id,
-            title,
-            description,
-            isPublic,
-          }),
-        );
-        setEditing(null);
-      } catch {
-        showNotification({
-          type: 'error',
-          header: 'Could not save',
-          message: 'Your changes were not applied. Please try again.',
-        });
-      } finally {
-        setIsSaving(false);
-      }
+    ({ title, description }: DetailsDraft) => {
+      if (!activeRoad) return;
+      dispatch(
+        localRoadDetailsChanged({ roadId: activeRoad.id, title, description }),
+      );
+      setIsEditingDetails(false);
     },
-    [dispatch, editing],
+    [activeRoad, dispatch],
   );
 
-  if (!isLoggedIn) {
-    return (
-      <Container>
-        <ScreenState
-          variant='empty'
-          icon='lock-closed-outline'
-          title='Sign in to see your routes'
-          message='Your saved routes live with your account. The Map tab works without one.'
-        />
-      </Container>
-    );
+  if (!isHydrated) {
+    return <ScreenState variant='loading' title='Opening the map…' />;
   }
 
+  const waypointPair = useWaypointPair();
+
+  const sheetGesturesEnabled = !draggingWaypointId && !isReordering;
+
   return (
-    <Container>
+    <>
       <View style={styles.container}>
-        <ScreenHeader
-          title='My Roads'
-          subtitle={
-            roads.length === 0
-              ? 'Nothing saved yet'
-              : `${roads.length} road${roads.length === 1 ? '' : 's'} · ${stopCount} stop${
-                  stopCount === 1 ? '' : 's'
-                }`
-          }
+        <MapSection
+          mapRef={mapRef}
+          waypoints={waypoints}
+          draggingWaypointId={draggingWaypointId}
+          routeCoordinates={routeLine.coordinates}
+          summary={summary}
+          transportMode={transportMode}
+          handleMarkerDragEnd={handleMarkerDragEnd}
+          onMapLongPress={handleMapLongPress}
+          onMapPress={handleMapPress}
+          foundPlaces={routeSearch.places}
+          onFoundPlacePress={focusOnPlace}
+          selectedWaypointIds={waypointPair.selected}
         />
 
-        {isLoading ? (
-          <ScreenState variant='loading' title='Loading your routes…' />
-        ) : isError ? (
-          <ScreenState
-            variant='error'
-            title='Could not load routes'
-            message='Check your connection and try again.'
-            actionLabel='Retry'
-            onAction={handleRefresh}
-          />
-        ) : (
-          <RoutesList
-            data={roads}
-            isRefreshing={isFetching}
-            onRefresh={handleRefresh}
-            onToggleFavorite={handleToggleFavorite}
-            onDelete={handleDeleteRoad}
-            onEdit={handleEdit}
-            onView={handleView}
-            onTogglePublic={handleTogglePublic}
-            onShare={shareRoad}
-            sharingRoadId={sharingRoadId}
-          />
-        )}
+        <View style={[styles.searchSlot, { top: insets.top }]}>
+          <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
+        </View>
+
+        <View style={[styles.toolbar, { top: insets.top + 64 }]}>
+          <Pressable
+            style={styles.roadChip}
+            onPress={roads.length > 1 ? handleSwitchRoad : openDetailsEditor}
+            accessibilityRole='button'
+            accessibilityLabel={
+              roads.length > 1 ? 'Switch route' : 'Edit route details'
+            }
+          >
+            <Ionicons
+              name='git-branch-outline'
+              size={15}
+              color={colors.primary}
+            />
+            <Text style={styles.roadChipText} numberOfLines={1}>
+              {activeRoad?.title ?? 'New route'}
+            </Text>
+            {roads.length > 1 ? (
+              <Ionicons
+                name='chevron-down'
+                size={14}
+                color={colors.textMuted}
+              />
+            ) : null}
+          </Pressable>
+
+          <Pressable
+            style={styles.iconChip}
+            onPress={handleNewRoad}
+            accessibilityRole='button'
+            accessibilityLabel='Start a new route'
+          >
+            <Ionicons name='add' size={18} color={colors.primary} />
+          </Pressable>
+
+          {activeRoad ? (
+            <Pressable
+              style={styles.iconChip}
+              onPress={openDetailsEditor}
+              accessibilityRole='button'
+              accessibilityLabel='Edit route name and description'
+            >
+              <Ionicons
+                name='create-outline'
+                size={16}
+                color={colors.primary}
+              />
+            </Pressable>
+          ) : null}
+
+          {activeRoad ? (
+            <Pressable
+              style={styles.iconChip}
+              onPress={handleDeleteRoad}
+              accessibilityRole='button'
+              accessibilityLabel='Delete this route'
+            >
+              <Ionicons name='trash-outline' size={16} color={colors.danger} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {routeSearch.isRoutable ? (
+          <Pressable
+            style={[styles.onTheWay, { top: insets.top + 112 }]}
+            onPress={openRouteSearch}
+            accessibilityRole='button'
+            accessibilityLabel='Search for places along this route'
+          >
+            <Ionicons
+              name='restaurant-outline'
+              size={15}
+              color={colors.primary}
+            />
+            <Text style={styles.onTheWayText}>
+              {routeSearch.places.length > 0
+                ? `${routeSearch.places.length} on the way`
+                : 'On the way'}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {isSavingPin ? (
+          <View style={[styles.pill, { top: insets.top + 158 }]}>
+            <Text style={styles.pillText}>Looking up that place…</Text>
+          </View>
+        ) : null}
+
+        {!isLoggedIn && waypoints.length > 0 ? (
+          <View
+            style={[styles.pill, styles.localPill, { top: insets.top + 158 }]}
+          >
+            <Ionicons
+              name='phone-portrait-outline'
+              size={13}
+              color={colors.warning}
+            />
+            <Text style={styles.pillText}>Saved on this device</Text>
+          </View>
+        ) : null}
+
+        <ContextMenu {...contextMenuProps} />
       </View>
 
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        index={0}
+        enablePanDownToClose={false}
+        enableContentPanningGesture={sheetGesturesEnabled}
+        enableHandlePanningGesture={sheetGesturesEnabled}
+        enableDynamicSizing={false}
+        handleComponent={BottomSheetHandle}
+        backgroundStyle={styles.sheetBackground}
+      >
+        <LocalWaypointList
+          waypoints={waypoints}
+          transportMode={transportMode}
+          selectedPair={waypointPair.selected}
+          onToggleSelection={waypointPair.toggle}
+          onForgetSelection={waypointPair.forget}
+          onTransportModeChange={setTransportMode}
+          onDeleteWaypoint={handleDeleteWaypointById}
+          onToggleFavoriteWaypoint={handleToggleFavoriteWaypoint}
+          onReorder={handleReorder}
+          onReorderingChange={setIsReordering}
+        />
+      </BottomSheet>
+
       <EditDetailsModal
-        visible={editing !== null}
-        heading='Edit route'
-        initialTitle={editing?.title}
-        initialDescription={editing?.description}
+        visible={isEditingDetails}
+        heading='Route details'
+        hint='Saved on this device until you sign in and upload it.'
+        initialTitle={activeRoad?.title}
+        initialDescription={activeRoad?.description}
         titleLabel='Route name'
-        isSaving={isSaving}
-        showPublishToggle
-        initialIsPublic={editing?.isPublic ?? false}
         onSave={handleSaveDetails}
-        onCancel={closeEditor}
+        onCancel={closeDetailsEditor}
       />
-    </Container>
+
+      <LocalRoadPicker
+        visible={isPickingRoad}
+        roads={roads}
+        activeRoadId={activeRoad?.id}
+        onSelect={handlePickRoad}
+        onClose={closePicker}
+      />
+
+      <RouteSearchSheet
+        visible={isSearchingRoute}
+        search={routeSearch}
+        onClose={closeRouteSearch}
+        onShowOnMap={handleShowOnMap}
+        onAddStop={handleAddStop}
+      />
+    </>
   );
 };
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      gap: spacing.md,
-      backgroundColor: colors.background,
+    container: { flex: 1, backgroundColor: colors.background },
+    searchSlot: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
     },
+    toolbar: {
+      position: 'absolute',
+      left: spacing.lg,
+      right: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    roadChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      maxWidth: '65%',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    roadChipText: {
+      ...typography.label,
+      color: colors.text,
+      flexShrink: 1,
+    },
+    iconChip: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    onTheWay: {
+      position: 'absolute',
+      left: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    onTheWayText: {
+      ...typography.label,
+      color: colors.text,
+    },
+    pill: {
+      position: 'absolute',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    localPill: {
+      backgroundColor: colors.surface,
+    },
+    pillText: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 16,
+      color: colors.textMuted,
+    },
+    sheetBackground: { backgroundColor: colors.surface },
   });
 
 export default MapScreen;

@@ -45,14 +45,13 @@ export class RoadSharingService {
           ? { where: { userId }, select: { id: true } }
           : false,
         wayPoints: {
-          include: { address: true },
           orderBy: { order: 'asc' },
         },
       },
     });
 
     if (!road || road.archivedAt) {
-      throw new NotFoundException('The shared road no longer exists');
+      throw new NotFoundException('The shared route no longer exists');
     }
 
     const { user, favoriteRoads, ...rest } = road;

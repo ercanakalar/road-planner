@@ -1,4 +1,9 @@
 import {
+  addressLocality,
+  addressName,
+  fullAddress,
+} from 'utils/address';
+import {
   FavoriteEntry,
   FavoriteRoadRow,
   FavoriteSectionKey,
@@ -7,7 +12,8 @@ import {
   RawFavorites,
 } from 'types/store/services/favoriteService-type';
 
-const FAVORITE_SECTIONS: readonly FavoriteSectionKey[] = [
+/** The four buckets the API splits favourites into, in the order they show. */
+export const FAVORITE_SECTION_KEYS: readonly FavoriteSectionKey[] = [
   'ownRoads',
   'ownWaypoints',
   'othersRoads',
@@ -43,25 +49,25 @@ const toWaypointEntry =
   (isOwn: boolean) =>
   (row: FavoriteWaypointRow): FavoriteEntry => {
     const address = row.waypoint?.address;
-    const locality = [address?.district, address?.province]
-      .filter(Boolean)
-      .join(', ');
     const coordinates = row.waypoint
       ? `${row.waypoint.latitude.toFixed(4)}, ${row.waypoint.longitude.toFixed(4)}`
       : undefined;
 
-    const defaultTitle = address?.address ?? 'Saved place';
+    // A pin dropped away from any address arrives with nothing usable — a Plus
+    // Code, or an empty string — and coordinates are then the only honest label.
+    const defaultTitle = addressName(address) || coordinates || 'Saved place';
 
     return {
       favoriteId: row.id,
       targetId: row.waypoint?.id ?? row.id,
       kind: 'waypoint',
       title: row.title || defaultTitle,
-      subtitle: row.description || locality || coordinates,
+      subtitle: row.description || addressLocality(address) || coordinates,
       annotationTitle: row.title ?? undefined,
       annotationDescription: row.description ?? undefined,
       defaultTitle,
       isOwn,
+      address: fullAddress(address) || undefined,
     };
   };
 
@@ -80,7 +86,7 @@ export const applyFavoriteAnnotation = (
   favoriteId: string,
   annotation: { title?: string | null; description?: string | null },
 ) => {
-  FAVORITE_SECTIONS.forEach((section) => {
+  FAVORITE_SECTION_KEYS.forEach((section) => {
     const entry = draft[section].find(
       (candidate) => candidate.favoriteId === favoriteId,
     );
@@ -101,7 +107,7 @@ export const removeFromFavorites = (
   draft: NormalizedFavorites,
   targetId: string,
 ) => {
-  FAVORITE_SECTIONS.forEach((section) => {
+  FAVORITE_SECTION_KEYS.forEach((section) => {
     draft[section] = draft[section].filter(
       (entry) => entry.targetId !== targetId,
     );

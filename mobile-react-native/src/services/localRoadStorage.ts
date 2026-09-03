@@ -18,6 +18,24 @@ const isLocalRoad = (value: unknown): value is LocalRoad => {
   );
 };
 
+/**
+ * Routes saved before the address became a plain string hold `{ address, country,
+ * … }` under that key. Left alone they would render as "[object Object]", so the
+ * shape is corrected on the way in rather than everywhere it is read.
+ */
+const withFlatAddresses = (road: LocalRoad): LocalRoad => ({
+  ...road,
+  wayPoints: road.wayPoints.map((waypoint) => {
+    const address: unknown = waypoint.address;
+
+    if (typeof address === 'string') return waypoint;
+
+    const legacy = (address as { address?: unknown } | null)?.address;
+
+    return { ...waypoint, address: typeof legacy === 'string' ? legacy : '' };
+  }),
+});
+
 export const localRoadStorage = {
   async load(): Promise<LocalRoad[]> {
     try {
@@ -25,7 +43,9 @@ export const localRoadStorage = {
       if (!raw) return [];
 
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(isLocalRoad) : [];
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.filter(isLocalRoad).map(withFlatAddresses);
     } catch {
       return [];
     }

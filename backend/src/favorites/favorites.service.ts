@@ -89,7 +89,7 @@ export class FavoritesService {
 
           return ok({
             header: 'Removed Favorite',
-            message: 'Favorite road removed successfully',
+            message: 'Favorite route removed successfully',
           });
         }
 
@@ -103,12 +103,12 @@ export class FavoritesService {
         });
 
         if (!road) {
-          throw new NotFoundException('Road not found');
+          throw new NotFoundException('Route not found');
         }
 
         return ok({
           header: 'Favorite Added',
-          message: 'Favorite road added successfully',
+          message: 'Favorite route added successfully',
           data: await tx.favoriteRoad.create({
             data: { userId, roadId: road.id },
           }),
@@ -118,7 +118,7 @@ export class FavoritesService {
       if (isDuplicate(error)) {
         return ok({
           header: 'Already Favorited',
-          message: 'This road is already in your favorites',
+          message: 'This route is already in your favorites',
         });
       }
 
@@ -154,14 +154,7 @@ export class FavoritesService {
                     id: true,
                     latitude: true,
                     longitude: true,
-                    address: {
-                      select: {
-                        country: true,
-                        province: true,
-                        district: true,
-                        address: true,
-                      },
-                    },
+                    address: true,
                   },
                   orderBy: { order: 'asc' },
                 },
@@ -184,14 +177,7 @@ export class FavoritesService {
                 latitude: true,
                 longitude: true,
                 road: { select: { userId: true } },
-                address: {
-                  select: {
-                    country: true,
-                    province: true,
-                    district: true,
-                    address: true,
-                  },
-                },
+                address: true,
               },
             },
           },
@@ -242,7 +228,7 @@ export class FavoritesService {
     });
 
     if (!favorite) {
-      throw new NotFoundException('Favorite road not found');
+      throw new NotFoundException('Favorite route not found');
     }
 
     const updated = await this.prisma.favoriteRoad.update({

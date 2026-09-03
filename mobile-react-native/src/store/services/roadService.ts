@@ -36,17 +36,12 @@ import {
   UpdateRoadByIdResponse,
   UpdateWaypointByWaypointIdArgs,
   UpdateWaypointByWaypointIdResponse,
-  WaypointAddressInput,
 } from 'types/store/services/roadService-type';
 
 const TEMP_WAYPOINT_ID = 'temp-waypoint-id';
 
-const PENDING_ADDRESS: WaypointAddressInput = {
-  address: 'Locating…',
-  country: '',
-  province: '',
-  district: '',
-};
+/** Shown on an optimistically added stop until the server names it. */
+const PENDING_ADDRESS = 'Locating…';
 
 const withSequentialOrder = (
   waypoints: WaypointWithAddress[],
@@ -251,7 +246,6 @@ export const roadService = createApi({
               draft.wayPoints.push({
                 id: TEMP_WAYPOINT_ID,
                 roadId,
-                addressInfoId: '',
                 latitude: waypoint.latitude,
                 longitude: waypoint.longitude,
                 order: draft.wayPoints.length + 1,
@@ -259,10 +253,7 @@ export const roadService = createApi({
                 favoriteWaypoints: [],
                 createdAt: now,
                 updatedAt: now,
-                address: {
-                  id: TEMP_WAYPOINT_ID,
-                  ...(waypoint.address ?? PENDING_ADDRESS),
-                },
+                address: waypoint.address ?? PENDING_ADDRESS,
               });
             },
           ),
@@ -348,10 +339,7 @@ export const roadService = createApi({
               if (!target) return;
               target.latitude = waypoint.latitude;
               target.longitude = waypoint.longitude;
-              target.address = {
-                ...target.address,
-                ...(waypoint.address ?? PENDING_ADDRESS),
-              };
+              target.address = waypoint.address ?? PENDING_ADDRESS;
             },
           ),
         );

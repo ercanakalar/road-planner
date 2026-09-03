@@ -29,12 +29,7 @@ const raw = {
         id: 'wp-7',
         latitude: 41.0082,
         longitude: 28.9784,
-        address: {
-          country: 'Türkiye',
-          province: 'İstanbul',
-          district: 'Fatih',
-          address: 'Sultanahmet Sq',
-        },
+        address: 'Sultanahmet Sq, Fatih, İstanbul, Türkiye',
       },
     },
   ],
@@ -90,7 +85,10 @@ describe('normalizeFavorites', () => {
       targetId: 'wp-7',
       kind: 'waypoint',
       title: 'Sultanahmet Sq',
+      // The country is the same for every stop on a domestic route, so the
+      // subtitle drops it — but `address`, which is what gets copied, keeps it.
       subtitle: 'Fatih, İstanbul',
+      address: 'Sultanahmet Sq, Fatih, İstanbul, Türkiye',
       annotationTitle: undefined,
       annotationDescription: undefined,
       defaultTitle: 'Sultanahmet Sq',
@@ -98,8 +96,31 @@ describe('normalizeFavorites', () => {
     });
   });
 
-  it('falls back to coordinates when the address join is missing', () => {
-    expect(normalizeFavorites(raw).othersWaypoints[0].subtitle).toBe(
+  it('falls back to coordinates when the stop has no address', () => {
+    const entry = normalizeFavorites(raw).othersWaypoints[0];
+
+    expect(entry.title).toBe('39.9334, 32.8597');
+    expect(entry.subtitle).toBe('39.9334, 32.8597');
+    expect(entry.address).toBeUndefined();
+  });
+
+  it('titles a stop by coordinates when its address is only noise', () => {
+    // Google answers a pin dropped off any road with a Plus Code, which says
+    // no more than the coordinates do and reads like a serial number.
+    const plusCode = {
+      ...raw,
+      othersWaypoints: [
+        {
+          ...raw.othersWaypoints[0],
+          waypoint: {
+            ...raw.othersWaypoints[0].waypoint,
+            address: '7GXR+8C',
+          },
+        },
+      ],
+    } satisfies RawFavorites;
+
+    expect(normalizeFavorites(plusCode).othersWaypoints[0].title).toBe(
       '39.9334, 32.8597',
     );
   });

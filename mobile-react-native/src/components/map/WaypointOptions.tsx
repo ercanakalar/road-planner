@@ -1,11 +1,14 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
+import ContextMenu from 'components/ui/ContextMenu';
 import { radius, spacing, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
+import { ContextMenuOption } from 'types/components/contextMenu';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { WaypointOption } from 'types/transport-type';
+import { addressName, fullAddress } from 'utils/address';
 
 interface Props {
   item: WaypointWithAddress;
@@ -20,62 +23,75 @@ const WaypointOptions = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const [isOpen, setIsOpen] = useState(false);
 
   const isFavorite = item.favoriteWaypoints.length > 0;
+  const hasAddress = fullAddress(item.address).length > 0;
 
-  const handleFavorite = useCallback(
-    () => onOptionSelect('favorite'),
-    [onOptionSelect],
-  );
-  const handleDelete = useCallback(
-    () => onOptionSelect('delete'),
-    [onOptionSelect],
-  );
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+
+  const options = useMemo(() => {
+    const rows: ContextMenuOption[] = [];
+
+    if (showFavoriteAction) {
+      rows.push({
+        label: isFavorite ? 'Remove from favourites' : 'Add to favourites',
+        icon: isFavorite ? 'star' : 'star-outline',
+        action: () => onOptionSelect('favorite'),
+      });
+    }
+
+    // A stop that was never named has nothing to put on the clipboard, so the
+    // row is left out rather than offered and then doing nothing.
+    if (hasAddress) {
+      rows.push({
+        label: 'Copy address',
+        icon: 'copy-outline',
+        action: () => onOptionSelect('copy'),
+      });
+    }
+
+    rows.push({
+      label: 'Delete stop',
+      icon: 'trash-outline',
+      tone: 'danger',
+      action: () => onOptionSelect('delete'),
+    });
+
+    return rows;
+  }, [hasAddress, isFavorite, onOptionSelect, showFavoriteAction]);
 
   return (
-    <View style={styles.row}>
-      {showFavoriteAction ? (
-        <Pressable
-          onPress={handleFavorite}
-          hitSlop={8}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          accessibilityRole='button'
-          accessibilityLabel={
-            isFavorite ? 'Remove from favourites' : 'Add to favourites'
-          }
-        >
-          <Ionicons
-            name={isFavorite ? 'star' : 'star-outline'}
-            size={20}
-            color={isFavorite ? colors.warning : colors.textSubtle}
-          />
-        </Pressable>
-      ) : null}
-
+    <View>
       <Pressable
-        onPress={handleDelete}
+        onPress={open}
         hitSlop={8}
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}
         accessibilityRole='button'
-        accessibilityLabel='Delete waypoint'
+        accessibilityLabel={`Options for ${
+          addressName(item.address) || `stop ${item.order}`
+        }`}
       >
-        <MaterialIcons
-          name='delete-outline'
+        <Ionicons
+          name='ellipsis-vertical'
           size={20}
-          color={colors.textSubtle}
+          color={isFavorite ? colors.warning : colors.textSubtle}
         />
       </Pressable>
+
+      <ContextMenu
+        visible={isOpen}
+        title={addressName(item.address) || 'Stop'}
+        options={options}
+        onClose={close}
+      />
     </View>
   );
 };
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
     button: {
       padding: spacing.sm,
       borderRadius: radius.sm,

@@ -2,8 +2,8 @@ import React from 'react';
 import { NavigationProp } from '@react-navigation/native';
 
 import { useAppSelector } from 'store/hook';
-import SignInScreen from './SignInScreen';
-import ProfileScreen from '../ProfileScreen';
+import SignInScreen from './auth/SignInScreen';
+import ProfileScreen from './ProfileScreen';
 import { RootStackParamList } from 'types/screens/screens';
 
 const AuthGate = ({
