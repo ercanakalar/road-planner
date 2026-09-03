@@ -20,12 +20,24 @@ const withEnv = (env: Record<string, string | undefined>, run: () => void) => {
 };
 
 describe('app.config.js', () => {
-  it('leaves the native map configuration to app.json', () => {
+  it('passes the maps key through to both native SDKs', () => {
+    // app.json cannot carry this: the key is a secret that arrives as an
+    // environment variable at build time. Stop injecting it here and the native
+    // map renders as an empty grey grid with no error worth the name.
     withEnv({ EXPO_PUBLIC_MAP_API_KEY: 'a-real-key' }, () => {
       const config = loadConfig();
 
-      expect(config.android.config).toBeUndefined();
-      expect(config.ios.config).toBeUndefined();
+      expect(config.android.config.googleMaps.apiKey).toBe('a-real-key');
+      expect(config.ios.config.googleMapsApiKey).toBe('a-real-key');
+    });
+  });
+
+  it('builds without a maps key rather than failing', () => {
+    withEnv({ EXPO_PUBLIC_MAP_API_KEY: undefined }, () => {
+      const config = loadConfig();
+
+      expect(config.android.config.googleMaps.apiKey).toBe('');
+      expect(config.ios.config.googleMapsApiKey).toBe('');
     });
   });
 

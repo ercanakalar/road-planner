@@ -1,4 +1,4 @@
-export interface FavoriteRoadTarget {
+interface FavoriteRoadTarget {
   id: string;
   userId?: string;
   title?: string | null;
@@ -7,7 +7,7 @@ export interface FavoriteRoadTarget {
   archivedAt?: string | null;
 }
 
-export interface FavoriteWaypointTarget {
+interface FavoriteWaypointTarget {
   id: string;
   latitude: number;
   longitude: number;
@@ -40,7 +40,7 @@ export interface RawFavorites {
   othersWaypoints: FavoriteWaypointRow[];
 }
 
-export type FavoriteKind = 'road' | 'waypoint';
+type FavoriteKind = 'road' | 'waypoint';
 
 export interface FavoriteEntry {
   favoriteId: string;

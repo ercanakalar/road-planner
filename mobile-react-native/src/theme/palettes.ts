@@ -28,6 +28,8 @@ export interface ThemeColors {
 
   overlay: string;
 
+  place: string;
+
   route: string;
   routeCasing: string;
   transitRoute: string;
@@ -36,80 +38,108 @@ export interface ThemeColors {
   walkingRouteCasing: string;
 }
 
+// Google Maps palette — Google Blue primary, red destination pins, Google's
+// grey neutrals. Values are Google's own Material/Maps steps, picked at the
+// step that clears the contrast each token needs rather than the brightest.
+//
+// Four constraints keep the app readable, so check them before editing:
+//   - Waypoint pins color by position (MapSection): start uses `success`,
+//     the destination uses `accent`, stops in between use `primary`, and a
+//     place found along the route uses `place`. All four are on screen at
+//     once, so they stay far apart in hue — green ~145°, red ~1°, blue
+//     ~215°, olive ~77°; the closest pair is 63°. `warning` is deliberately
+//     not among them: it sits 33° from `accent` and reads as a second
+//     destination pin.
+//   - The three route modes are drawn over the same map — driving ~215°,
+//     transit ~272°, walking ~145° — and each casing is a lighter halo of
+//     its own hue holding >= 3:1 against the line it outlines.
+//   - `primary` is used for small label text (links, secondary buttons), so
+//     it holds >= 4.5:1 against `surface`, `background`, `surfaceAlt` and
+//     `primarySoft`. This is why it is Blue 700 and not the Blue 600
+//     (#1A73E8) Google uses for buttons: 600 falls to 3.93:1 on
+//     `primarySoft`, which secondary buttons are filled with.
+//   - `text` and `textMuted` clear 4.5:1 on all three backgrounds. In dark
+//     that pushes `textMuted` a step lighter than Google's #9AA0A6, which
+//     reaches only 3.96:1 on `surfaceAlt`.
+
 export const lightColors: ThemeColors = {
-  primary: '#2563EB',
-  primaryDark: '#1D4ED8',
-  primarySoft: '#EFF6FF',
+  primary: '#1967D2',
+  primaryDark: '#174EA6',
+  primarySoft: '#E8F0FE',
 
-  accent: '#E11D48',
-  accentSoft: '#FFF1F2',
+  accent: '#D93025',
+  accentSoft: '#FCE8E6',
 
-  success: '#16A34A',
-  successSoft: '#F0FDF4',
+  success: '#137333',
+  successSoft: '#E6F4EA',
 
-  danger: '#DC2626',
-  dangerSoft: '#FEF2F2',
+  danger: '#C5221F',
+  dangerSoft: '#FCE8E6',
 
-  warning: '#D97706',
+  warning: '#B06000',
 
-  text: '#0F172A',
-  textMuted: '#64748B',
-  textSubtle: '#94A3B8',
+  text: '#202124',
+  textMuted: '#5F6368',
+  textSubtle: '#80868B',
   textInverse: '#FFFFFF',
 
   surface: '#FFFFFF',
-  surfaceAlt: '#F4F7FB',
-  background: '#F4F6FA',
+  surfaceAlt: '#F1F3F4',
+  background: '#F8F9FA',
 
-  border: '#E6EAF2',
-  borderStrong: '#CBD5E1',
+  border: '#DADCE0',
+  borderStrong: '#BDC1C6',
 
-  overlay: 'rgba(15, 23, 42, 0.45)',
+  overlay: 'rgba(32, 33, 36, 0.45)',
 
-  route: '#2563EB',
-  routeCasing: '#93C5FD',
-  transitRoute: '#7C3AED',
-  transitRouteCasing: '#C4B5FD',
-  walkingRoute: '#059669',
-  walkingRouteCasing: '#6EE7B7',
+  place: '#5B7F00',
+
+  route: '#1967D2',
+  routeCasing: '#AECBFA',
+  transitRoute: '#9334E6',
+  transitRouteCasing: '#E9D2FD',
+  walkingRoute: '#137333',
+  walkingRouteCasing: '#A8DAB5',
 };
 
 export const darkColors: ThemeColors = {
-  primary: '#60A5FA',
-  primaryDark: '#3B82F6',
-  primarySoft: '#18274A',
+  primary: '#8AB4F8',
+  primaryDark: '#669DF6',
+  primarySoft: '#1A3050',
 
-  accent: '#FB7185',
-  accentSoft: '#4C0519',
+  accent: '#F28B82',
+  accentSoft: '#3C1F1C',
 
-  success: '#4ADE80',
-  successSoft: '#052E16',
+  success: '#81C995',
+  successSoft: '#12301D',
 
-  danger: '#F87171',
-  dangerSoft: '#450A0A',
+  danger: '#F28B82',
+  dangerSoft: '#3C1F1C',
 
-  warning: '#FBBF24',
+  warning: '#FDD663',
 
-  text: '#F1F5F9',
-  textMuted: '#94A3B8',
-  textSubtle: '#64748B',
-  textInverse: '#0B1220',
+  text: '#E8EAED',
+  textMuted: '#ADB3B9',
+  textSubtle: '#80868B',
+  textInverse: '#202124',
 
-  surface: '#161F33',
-  surfaceAlt: '#1F2A40',
-  background: '#0B1120',
+  surface: '#303134',
+  surfaceAlt: '#3C4043',
+  background: '#202124',
 
-  border: '#2A3550',
-  borderStrong: '#3D4A69',
+  border: '#4A4D51',
+  borderStrong: '#5F6368',
 
-  overlay: 'rgba(2, 6, 23, 0.7)',
+  overlay: 'rgba(0, 0, 0, 0.7)',
 
-  route: '#60A5FA',
-  routeCasing: '#1E3A8A',
-  transitRoute: '#A78BFA',
-  transitRouteCasing: '#4C1D95',
-  walkingRoute: '#34D399',
-  walkingRouteCasing: '#065F46',
+  place: '#C5D96B',
+
+  route: '#8AB4F8',
+  routeCasing: '#1F3A63',
+  transitRoute: '#D7AEFB',
+  transitRouteCasing: '#4A2A6B',
+  walkingRoute: '#81C995',
+  walkingRouteCasing: '#17492C',
 };
 
 export const palettes = { light: lightColors, dark: darkColors };

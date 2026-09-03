@@ -10,7 +10,7 @@ import {
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
-export const TRANSPORT_MODES: TransportMode[] = [
+const TRANSPORT_MODES: TransportMode[] = [
   'driving',
   'walking',
   'transit',

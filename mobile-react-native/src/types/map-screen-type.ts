@@ -3,7 +3,7 @@ import { RouteProp } from '@react-navigation/native';
 
 import { RootStackParamList } from './screens/screens';
 
-export type MapScreenNavigationProp = NativeStackNavigationProp<
+type MapScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'MapScreen'
 >;
@@ -23,7 +23,7 @@ export type RouteCoordinate = {
   longitude: number;
 };
 
-export type WaypointAddress = {
+type WaypointAddress = {
   id: string;
   address: string;
   country: string;
@@ -31,7 +31,7 @@ export type WaypointAddress = {
   province: string;
 };
 
-export type FavoriteWaypoint = {
+type FavoriteWaypoint = {
   id: string;
   userId: string;
   wayPointsId: string;
@@ -39,7 +39,7 @@ export type FavoriteWaypoint = {
   updatedAt: string;
 };
 
-export type FavoriteRoad = {
+type FavoriteRoad = {
   id: string;
   userId: string;
   roadId: string;

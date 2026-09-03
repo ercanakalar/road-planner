@@ -38,8 +38,4 @@ export class RoadVisibility {
   ownedBy(userId: string): Prisma.RoadWhereInput {
     return { userId, ...this.live };
   }
-
-  published(): Prisma.RoadWhereInput {
-    return { isPublic: true, ...this.live };
-  }
 }

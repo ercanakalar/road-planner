@@ -52,7 +52,7 @@ const interpolate = (
     shortestLongitudeDelta(end.longitude - start.longitude) * fraction,
 });
 
-export interface RouteSplit {
+interface RouteSplit {
   travelled: RouteCoordinate[];
   remaining: RouteCoordinate[];
   distanceFromRouteMeters: number;

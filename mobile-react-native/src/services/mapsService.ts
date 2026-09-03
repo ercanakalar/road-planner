@@ -7,7 +7,7 @@ import { WaypointAddressInput } from 'types/store/services/roadService-type';
 
 const REQUEST_TIMEOUT_MS = 12000;
 
-export interface LatLng {
+interface LatLng {
   latitude: number;
   longitude: number;
 }
@@ -68,9 +68,9 @@ export interface RouteSearchResult {
   coversWholeRoute: boolean;
 }
 
-export type ModeDurations = Partial<Record<TransportMode, number>>;
+type ModeDurations = Partial<Record<TransportMode, number>>;
 
-export class MapsApiError extends Error {}
+class MapsApiError extends Error {}
 
 const isAbort = (error: unknown) =>
   (error as Error | undefined)?.name === 'AbortError';

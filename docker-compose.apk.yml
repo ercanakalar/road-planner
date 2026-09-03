@@ -7,7 +7,7 @@ services:
         environment:
             BUILD_TYPE: ${BUILD_TYPE:-release}
         env_file:
-            - ./mobile-react-native/.env
+            - ./mobile-react-native/.env.production
         volumes:
             - ./mobile-react-native:/app
             - apk-keystore:/keystore

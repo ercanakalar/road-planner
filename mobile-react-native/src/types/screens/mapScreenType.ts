@@ -59,7 +59,7 @@ export interface RoutesListProps {
   sharingRoadId?: string | null;
 }
 
-export interface RouteSummary {
+interface RouteSummary {
   duration: string;
   distance: string;
 }

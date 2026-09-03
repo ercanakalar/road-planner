@@ -13,7 +13,7 @@ export interface ValidateRefreshTokenArgs {
   refreshToken: string;
 }
 
-export interface SessionTokens {
+interface SessionTokens {
   userId: string | null;
   accessToken: string;
   refreshToken: string;
@@ -24,7 +24,7 @@ export type SignInArgsResponse = SessionTokens;
 export type ValidateRefreshTokenResponse = SessionTokens;
 
 /** What Google knew about the account, as the API stored it. */
-export interface GoogleUserProfile {
+interface GoogleUserProfile {
   id: string;
   email: string;
   firstName: string | null;

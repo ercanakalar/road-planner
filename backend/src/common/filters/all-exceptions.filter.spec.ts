@@ -9,7 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ArgumentsHost } from '@nestjs/common/interfaces';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/prisma/client';
 
 import { ToastType } from 'src/common/type/status.type';
 import { AllExceptionsFilter } from './all-exceptions.filter';

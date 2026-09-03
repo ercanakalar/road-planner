@@ -14,7 +14,7 @@ import type { ThemeColors } from 'theme';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode, WaypointOption } from 'types/transport-type';
 
-export interface WaypointListProps {
+interface WaypointListProps {
   waypoints: WaypointWithAddress[];
   selectedPair: string[];
   durations?: Partial<Record<TransportMode, number>>;

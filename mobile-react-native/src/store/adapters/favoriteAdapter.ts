@@ -7,7 +7,7 @@ import {
   RawFavorites,
 } from 'types/store/services/favoriteService-type';
 
-export const FAVORITE_SECTIONS: readonly FavoriteSectionKey[] = [
+const FAVORITE_SECTIONS: readonly FavoriteSectionKey[] = [
   'ownRoads',
   'ownWaypoints',
   'othersRoads',

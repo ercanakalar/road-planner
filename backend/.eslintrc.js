@@ -15,7 +15,14 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'jest.config.js', 'dist', 'coverage'],
+  ignorePatterns: [
+    '.eslintrc.js',
+    'jest.config.js',
+    'dist',
+    'coverage',
+    // Written by `prisma generate`; linting it only reports on Prisma's output.
+    'src/generated',
+  ],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',

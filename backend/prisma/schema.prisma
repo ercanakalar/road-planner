@@ -44,9 +44,7 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
   @@index([userId, revokedAt])
-  @@index([expiresAt])
 }
 
 model PasswordReset {
@@ -72,7 +70,6 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   @@index([userId])
-  @@index([expiresAt])
 }
 
 enum PasswordResetChannel {
@@ -124,9 +121,6 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([email])
-  @@index([nickName])
 }
 
 model Road {
@@ -148,8 +142,8 @@ model Road {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId, archivedAt])
-  @@index([isPublic, archivedAt, createdAt])
+  @@index([userId, createdAt, id])
+  @@index([isPublic, createdAt, id])
 }
 
 model WayPoint {
@@ -184,8 +178,6 @@ model AddressInfo {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([country, province, district])
 }
 
 model FavoriteRoad {
@@ -203,7 +195,7 @@ model FavoriteRoad {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, roadId])
-  @@index([userId])
+  @@index([userId, createdAt, id])
   @@index([roadId])
 }
 
@@ -222,6 +214,6 @@ model FavoriteWaypoint {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, waypointId])
-  @@index([userId])
+  @@index([userId, createdAt, id])
   @@index([waypointId])
 }

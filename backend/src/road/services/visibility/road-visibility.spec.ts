@@ -73,12 +73,5 @@ describe('RoadVisibility', () => {
         archivedAt: null,
       });
     });
-
-    it('hides archived roads from the discover feed', () => {
-      expect(visibility.published()).toEqual({
-        isPublic: true,
-        archivedAt: null,
-      });
-    });
   });
 });

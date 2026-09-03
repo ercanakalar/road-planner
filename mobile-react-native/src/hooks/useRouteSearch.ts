@@ -23,7 +23,7 @@ const toCoordinate = ({ latitude, longitude }: WaypointWithAddress) => ({
   longitude,
 });
 
-export interface RouteSearchInputs {
+interface RouteSearchInputs {
   query?: string;
   category?: string;
   radiusMeters: number;

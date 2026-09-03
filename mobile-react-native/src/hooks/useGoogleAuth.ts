@@ -41,11 +41,11 @@ export const selectGoogleClientId = (
   return ids.web ?? '';
 };
 
-export const googleClientId = selectGoogleClientId(
+const googleClientId = selectGoogleClientId(
   Platform.OS,
   GOOGLE_CLIENT_IDS,
 );
-export const isGoogleAuthConfigured = Boolean(googleClientId);
+const isGoogleAuthConfigured = Boolean(googleClientId);
 
 /** One value for both the authorization request and the code exchange: Google
  * rejects an exchange whose client id differs from the one the code was issued
@@ -59,7 +59,7 @@ const CLIENT_ID = googleClientId || UNCONFIGURED_CLIENT_ID;
  * alone the flow opens the account picker, returns to nothing, and reads as a
  * bug in this code rather than as the wrong kind of build.
  */
-export const isExpoGo =
+const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
@@ -91,7 +91,7 @@ export const nativeApplicationId = (
  * spelled out here because the app has to be able to name it: a redirect Google
  * does not recognise is otherwise a blank screen with nothing to go on.
  */
-export const googleRedirectUri = (): string => {
+const googleRedirectUri = (): string => {
   if (Platform.OS === 'web') return makeRedirectUri();
 
   const applicationId = nativeApplicationId();
@@ -217,7 +217,7 @@ const withTimeout = <T>(work: Promise<T>, message: string): Promise<T> =>
     work.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 
-export interface GoogleAuthState {
+interface GoogleAuthState {
   isAvailable: boolean;
   isBusy: boolean;
   error: Error | null;
