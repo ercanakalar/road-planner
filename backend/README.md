@@ -121,16 +121,26 @@ curl http://localhost:3000/api/health
 
 ```bash
 cp .env.production.example .env.production   # fill it in; it is git-ignored
-scripts/setup-cloudrun.sh                    # once per project
-scripts/deploy-cloudrun.sh                   # every deploy
+scripts/setup-project.sh                     # once per project
+scripts/deploy-manual.sh                     # every deploy
 ```
 
 [`docs/DEPLOY.md`](./docs/DEPLOY.md) is the long version: which accounts and
-keys these need first, what each part costs, and how to keep that near zero.
+keys it needs first, what each part costs, and how to keep that near zero.
 
-Both scripts read `.env.production`. Anything already exported wins over the
-file, so `MAX_INSTANCES=8 scripts/deploy-cloudrun.sh` is a one-off override
-rather than an edit to revert.
+`setup-project.sh` creates what the deploy assumes but does not make itself:
+the APIs, the Artifact Registry repository, the uploads bucket, the three
+generated token signing keys, and the IAM between them. It is idempotent, so
+a new project and a half-finished one are the same command.
+
+Both read `.env.production`. Anything already exported wins over the file, so
+`MAX_INSTANCES=8 scripts/deploy-manual.sh` is a one-off override rather than
+an edit to revert.
+
+It checks Secret Manager before it builds anything: every secret the service
+and the migration job reference has to exist, or `gcloud` rejects the whole
+revision. Any of them the env file has a value for is created on the spot;
+anything left, the script names, with the command to create it.
 
 Four things about this shape are deliberate.
 
