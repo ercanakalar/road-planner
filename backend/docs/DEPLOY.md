@@ -5,9 +5,9 @@ Every command is meant to be pasted as written once the placeholder values are
 filled in.
 
 The shape of it: **Cloud Run** runs the API, **Secret Manager** holds anything
-that must not leak, and the database lives wherever you choose in step 3. Two
-scripts in `backend/scripts/` do the work; most of this document is the
-accounts and keys they need first.
+that must not leak, and the database lives wherever you choose in step 3.
+`backend/scripts/deploy-manual.sh` does the work; most of this document is the
+accounts and keys it needs first.
 
 ---
 
@@ -22,7 +22,7 @@ several times over. The cost of this stack is not the compute.
 | Cloud Run (the API)               | Generous monthly request and CPU-second allowance; scales to zero | **£0** while small            |
 | Cloud Build (builds the image)    | Free build-minutes each day                                       | **£0**                        |
 | Artifact Registry (stores images) | 0.5 GB                                                            | Pennies, less with step 10    |
-| Cloud Storage (uploaded avatars)  | 5 GB in US regions                                                | Pennies                       |
+| Cloud Storage (uploaded avatars)  | 5 GB, but only in `us-west1`, `us-central1`, `us-east1`           | Pennies                       |
 | Secret Manager                    | A handful of secret versions                                      | ~£0.10 / month                |
 | **Postgres — see step 3**         | Depends entirely on the choice                                    | **£0 or ~£10 / month**        |
 | **Google Maps APIs**              | A monthly allowance per API                                       | **£0, or a lot — see step 5** |
@@ -53,8 +53,13 @@ calls. Step 5 caps that. Do not skip it.
 - The **gcloud** CLI: [install it](https://cloud.google.com/sdk/docs/install),
   then `gcloud --version` should answer.
 - This repository cloned, and a terminal open at its root.
-
-You do **not** need Docker locally. Cloud Build builds the image in the cloud.
+- **Docker**, running. `scripts/deploy-manual.sh` builds both images on your
+  machine and pushes them, so `docker ps` has to answer.
+  [`CLOUD_RUN_SOURCE_DEPLOY.md`](./CLOUD_RUN_SOURCE_DEPLOY.md) describes the
+  alternative that builds in the cloud instead, if you would rather not
+  install it.
+- **openssl**, for generating the token signing keys. It is already on macOS
+  and most Linux installs.
 
 ---
 
@@ -72,10 +77,19 @@ Then link a billing account, in the console:
 **Billing → Link a billing account**. Nothing below works without it — even
 free-tier usage requires an active billing account attached.
 
-**Pick a region and keep it.** Everything must agree on one.
-`europe-west1` (Belgium) or `europe-west3` (Frankfurt) are the closest to
-Turkey; `us-central1` is where the small always-free storage allowance lives.
-Latency matters more to your users than pennies of storage, so prefer Europe.
+**Pick a region and keep it.** Everything must agree on one — Cloud Run,
+Artifact Registry, the uploads bucket and the database.
+
+This guide uses **`us-east5` (Columbus, Ohio)** throughout. Note the naming:
+`us-east-2` / "US East (Ohio)" is AWS's name for Ohio. On Google Cloud the
+Ohio region is `us-east5`, and that is what every command below expects. Its
+neighbours, if you want to compare latency, are `us-east4` (Northern
+Virginia) and `us-east1` (South Carolina).
+
+If most of your users are in Turkey or Europe, `europe-west1` (Belgium) and
+`europe-west3` (Frankfurt) are far closer to them — Ohio adds roughly
+120-150 ms of round trip from Istanbul, on top of a cold start. Swap the
+region in every command below if you pick one of those.
 
 ---
 
@@ -107,7 +121,8 @@ nothing. [Supabase](https://supabase.com) is comparable, though its free
 projects pause after a stretch of inactivity and need waking by hand.
 
 1. Sign up and create a project. Choose the region nearest the Cloud Run
-   region you picked in step 1.
+   region you picked in step 1 — for `us-east5` that is Neon's
+   **AWS US East (Ohio) / `us-east-2`**, which sits in the same city.
 2. Copy the **pooled** connection string — the one with `-pooler` in the
    hostname. A service that scales to zero and back opens connections in
    bursts, which is what the pooler is for.
@@ -116,7 +131,7 @@ projects pause after a stretch of inactivity and need waking by hand.
 You should end up with something shaped like:
 
 ```
-postgresql://user:password@ep-xxx-pooler.eu-central-1.aws.neon.tech/roaddb?sslmode=require&connection_limit=3
+postgresql://user:password@ep-xxx-pooler.us-east-2.aws.neon.tech/roaddb?sslmode=require&connection_limit=3
 ```
 
 Keep `sslmode=require`. The connection crosses the public internet, unlike
@@ -135,14 +150,14 @@ outgrow the free tier.
 gcloud sql instances create travel-routes \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
-  --region=europe-west1
+  --region=us-east5
 
 gcloud sql databases create roaddb --instance=travel-routes
 gcloud sql users create roadplanner --instance=travel-routes --password='PICK-A-STRONG-ONE'
 ```
 
 The instance name for the next step is `PROJECT_ID:REGION:INSTANCE`, e.g.
-`travel-routes-prod-1234:europe-west1:travel-routes`.
+`travel-routes-prod-1234:us-east5:travel-routes`.
 
 Cloud Run mounts this as a Unix socket inside the container rather than
 connecting to an address, and the connection is authorised by the service
@@ -234,14 +249,14 @@ Open it and fill in:
 
 ```bash
 PROJECT_ID="travel-routes-prod-1234"
-REGION="europe-west1"
+REGION="us-east5"
 
 # Step 3, Option A — paste the pooled URL and leave CLOUD_SQL_INSTANCE empty
 DATABASE_URL="postgresql://...?sslmode=require&connection_limit=3"
 CLOUD_SQL_INSTANCE=""
 
 # ...or step 3, Option B — leave DATABASE_URL empty and fill these instead
-# CLOUD_SQL_INSTANCE="travel-routes-prod-1234:europe-west1:travel-routes"
+# CLOUD_SQL_INSTANCE="travel-routes-prod-1234:us-east5:travel-routes"
 # DB_PASSWORD="the password you set"
 
 # Step 4
@@ -272,20 +287,47 @@ token, and left alone so re-running does not sign every user out.
 ## Step 7 — Deploy
 
 ```bash
-# Once per project: APIs, registry, bucket, service account, secrets.
-scripts/setup-cloudrun.sh
+# Once per project: APIs, image registry, uploads bucket, signing keys, IAM.
+scripts/setup-project.sh
 
-# Every release: build, migrate, deploy — in that order.
-scripts/deploy-cloudrun.sh
+# Every release: check secrets, build, migrate, deploy — in that order.
+scripts/deploy-manual.sh
 ```
 
-`setup-cloudrun.sh` is safe to re-run; a half-finished attempt can be resumed
-rather than unpicked.
+Both are safe to re-run; a half-finished attempt is resumed by running it
+again rather than unpicked.
 
-`deploy-cloudrun.sh` builds two images, runs the database migrations as a job
-and **waits for them**, then deploys. The order matters: a revision that goes
-live before its migrations serves requests against a schema it does not
-expect, and the failure looks like unrelated 500s.
+`setup-project.sh` is the one-time half, and everything it does is something
+the deploy assumes rather than creates: the APIs a fresh project has switched
+off, the Artifact Registry repository the images are pushed to, the Cloud
+Storage bucket mounted at `/mnt/uploads` (plus the service account's access to
+it), and `ACCESS_KEY` / `REFRESH_KEY` / `ROAD_SHARE_KEY` — three different
+random values, generated here rather than configured, and left alone on later
+runs because regenerating one signs every user out. It also grants your own
+account permission to deploy a service that _runs as_ the runtime identity,
+which is the `iam.serviceaccounts.actAs` error further down.
+
+It does **not** create the Cloud Run service or job. The first deploy does
+that.
+
+Its first step is Secret Manager, before any image is built. Cloud Run
+resolves every `--set-secrets` name when a revision is created and rejects the
+revision outright if one is missing — so this checks them all up front,
+creates any that `.env.production` has a value for (granting the runtime
+service account read access at the same time), and names anything left over
+with the command that fixes it. That check costs a second; the same failure
+found later costs two image builds and pushes first.
+
+Then it builds two images, runs the database migrations as a job and **waits
+for them**, then deploys. The order matters: a revision that goes live before
+its migrations serves requests against a schema it does not expect, and the
+failure looks like unrelated 500s.
+
+The migration job runs against `DATABASE_URL_UNPOOLED` when that exists, and
+falls back to `DATABASE_URL` with a warning when it does not. That split is
+the point of the separate job: Prisma Migrate over a PgBouncer
+transaction-mode pooler such as Neon's is a documented failure mode, while the
+API itself wants the pooled endpoint.
 
 It ends by printing the service URL and calling its own health endpoint. Check
 it yourself too:
@@ -301,9 +343,9 @@ curl https://YOUR-SERVICE-URL/api/health
 The first deploy prints three lines. Paste them into `.env.production`:
 
 ```bash
-FRONTEND_URL="https://travel-routes-api-xxxx.europe-west1.run.app"
-SHARE_LINK_BASE_URL="https://travel-routes-api-xxxx.europe-west1.run.app"
-GOOGLE_REDIRECT_URL="https://travel-routes-api-xxxx.europe-west1.run.app/api/auth/google/callback"
+FRONTEND_URL="https://travel-routes-api-xxxx.us-east5.run.app"
+SHARE_LINK_BASE_URL="https://travel-routes-api-xxxx.us-east5.run.app"
+GOOGLE_REDIRECT_URL="https://travel-routes-api-xxxx.us-east5.run.app/api/auth/google/callback"
 ```
 
 The deploy sets these for you the first time, but writing them down means
@@ -323,7 +365,7 @@ cp src/constants/appConfig.example.ts src/constants/appConfig.ts
 In `.env`:
 
 ```bash
-EXPO_PUBLIC_BASE_URL="https://travel-routes-api-xxxx.europe-west1.run.app"
+EXPO_PUBLIC_BASE_URL="https://travel-routes-api-xxxx.us-east5.run.app"
 ```
 
 No `/api` on the end — the client adds that itself.
@@ -381,7 +423,7 @@ A short checklist, worth running through a week after release:
   POLICY
 
   gcloud artifacts repositories set-cleanup-policies travel-routes \
-    --location=europe-west1 --policy=/tmp/cleanup.json
+    --location=us-east5 --policy=/tmp/cleanup.json
   ```
 
 - **Check the bill once.** Console → **Billing → Reports**, a week in. It is
@@ -409,8 +451,32 @@ which is easier the first few times.
 
 **`Permission 'iam.serviceaccounts.actAs' denied`.**
 Deploying a service that _runs as_ another identity needs permission to act as
-it. `setup-cloudrun.sh` grants this to whoever is logged in when it runs — so
-re-run it as the account that is deploying.
+it. Grant it to the account that is deploying:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding SERVICE_ACCOUNT_EMAIL \
+  --member="user:you@example.com" --role=roles/iam.serviceAccountUser \
+  --project PROJECT_ID
+```
+
+**`Secret projects/N/secrets/NAME/versions/latest was not found`.**
+The deploy names a secret that does not exist in the project, and Cloud Run
+refuses the whole revision rather than starting a container that would be
+missing a value. `DATABASE_URL_UNPOOLED` is the usual one: the migration job
+asks for it by name, and nothing creates it unless `.env.production` carries a
+value for it. Fill that in and re-run — or create it by hand:
+
+```bash
+printf '%s' 'postgresql://...' \
+  | gcloud secrets create DATABASE_URL_UNPOOLED --data-file=- --project PROJECT_ID
+
+gcloud secrets add-iam-policy-binding DATABASE_URL_UNPOOLED \
+  --member=serviceAccount:SERVICE_ACCOUNT_EMAIL \
+  --role=roles/secretmanager.secretAccessor --project PROJECT_ID
+```
+
+The binding is not optional: a secret the service account cannot read fails
+the same way a missing one does, only later, when a container starts.
 
 **The migration job fails.**
 Almost always the database URL. For Neon, check that `sslmode=require` is
@@ -426,7 +492,14 @@ so changing one means building again.
 
 **`/api/maps/*` answers 503.**
 `MAP_API_KEY` is missing or was not stored. Everything else keeps working;
-this is deliberate. Re-run `scripts/setup-cloudrun.sh` with the key filled in.
+this is deliberate. Add the key to `.env.production` and re-run
+`scripts/deploy-manual.sh`, which stores it on the way past — or, if the
+secret already exists with the wrong value, replace it directly:
+
+```bash
+printf '%s' 'THE KEY' \
+  | gcloud secrets versions add MAP_API_KEY --data-file=- --project PROJECT_ID
+```
 
 **The deploy reports success but nothing actually changes.**
 Check whether traffic is pinned to a specific revision instead of tracking
