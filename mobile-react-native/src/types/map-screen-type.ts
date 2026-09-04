@@ -65,3 +65,20 @@ export type WaypointWithAddressAndId = {
   isFavorite: boolean;
   isPublic?: boolean;
 };
+
+/**
+ * One row of "My Routes". The list shows a name, a star and how many stops a
+ * route holds, so the stops themselves are never sent — only their count.
+ * Opening a route fetches it in full through `getRoadById`.
+ */
+export type OwnRoadSummary = {
+  id: string;
+  title: string;
+  description: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  stopCount: number;
+  isFavorite: boolean;
+  isPublic?: boolean;
+};

@@ -557,7 +557,8 @@ describe('RoadService', () => {
 
   describe('archived roads', () => {
     it('hides archived roads from the owner’s own list', async () => {
-      prisma.$transaction.mockResolvedValue([[], 0]);
+      prisma.road.findMany.mockResolvedValue([]);
+      prisma.road.count.mockResolvedValue(0);
 
       await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
 
@@ -566,6 +567,36 @@ describe('RoadService', () => {
           where: { userId: 'user-1', archivedAt: null },
         }),
       );
+    });
+
+    it('sends a stop count instead of the stops themselves', async () => {
+      prisma.road.findMany.mockResolvedValue([
+        {
+          id: ROAD_ID,
+          userId: 'user-1',
+          title: 'T',
+          description: 'D',
+          isPublic: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          _count: { wayPoints: 12 },
+          favoriteRoads: [{ id: 'fav-1' }],
+        },
+      ]);
+      prisma.road.count.mockResolvedValue(1);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 10,
+        offset: 0,
+      });
+
+      expect(result.data[0]).toMatchObject({
+        id: ROAD_ID,
+        stopCount: 12,
+        isFavorite: true,
+      });
+      expect(result.data[0]).not.toHaveProperty('wayPoints');
+      expect(prisma.road.findMany.mock.calls[0][0].select.wayPoints).toBeUndefined();
     });
 
     it('keeps archived roads out of the discover feed', async () => {

@@ -72,17 +72,6 @@ export const favoriteService = createApi({
               const target = draft.find((road) => road.id === roadId);
               if (!target) return;
               target.isFavorite = !target.isFavorite;
-              target.favoriteRoads = target.isFavorite
-                ? [
-                    {
-                      id: 'temp-favorite-id',
-                      userId: target.userId,
-                      roadId: target.id,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                    },
-                  ]
-                : [];
             },
           ),
         );

@@ -58,10 +58,7 @@ const HomeScreen = () => {
     const routes = roads ?? [];
     return {
       routes: routes.length,
-      stops: routes.reduce(
-        (total, road) => total + (road.wayPoints?.length ?? 0),
-        0,
-      ),
+      stops: routes.reduce((total, road) => total + (road.stopCount ?? 0), 0),
       favorites: routes.filter((road) => road.isFavorite).length,
     };
   }, [roads]);

@@ -133,58 +133,52 @@ export class FavoritesService {
       orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
     };
 
-    const [roads, roadTotal, waypoints, waypointTotal] =
-      await this.prisma.$transaction([
-        this.prisma.favoriteRoad.findMany({
-          where: { userId },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            road: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                userId: true,
-                isPublic: true,
-                archivedAt: true,
-                wayPoints: {
-                  select: {
-                    id: true,
-                    latitude: true,
-                    longitude: true,
-                    address: true,
-                  },
-                  orderBy: { order: 'asc' },
-                },
-              },
+    // A favourited route is drawn as one row: its name, its note and whether
+    // it has been withdrawn. Its stops were being loaded here and thrown away
+    // by the caller, so they are no longer asked for. The four reads do not
+    // depend on each other, so they go to the database together instead of
+    // one after another inside a transaction.
+    const [roads, roadTotal, waypoints, waypointTotal] = await Promise.all([
+      this.prisma.favoriteRoad.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          road: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              userId: true,
+              archivedAt: true,
             },
           },
-          ...page,
-        }),
-        this.prisma.favoriteRoad.count({ where: { userId } }),
+        },
+        ...page,
+      }),
+      this.prisma.favoriteRoad.count({ where: { userId } }),
 
-        this.prisma.favoriteWaypoint.findMany({
-          where: { userId },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            waypoint: {
-              select: {
-                id: true,
-                latitude: true,
-                longitude: true,
-                road: { select: { userId: true } },
-                address: true,
-              },
+      this.prisma.favoriteWaypoint.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          waypoint: {
+            select: {
+              id: true,
+              latitude: true,
+              longitude: true,
+              road: { select: { userId: true } },
+              address: true,
             },
           },
-          ...page,
-        }),
-        this.prisma.favoriteWaypoint.count({ where: { userId } }),
-      ]);
+        },
+        ...page,
+      }),
+      this.prisma.favoriteWaypoint.count({ where: { userId } }),
+    ]);
 
     const ownRoads = roads.filter((f) => f.road.userId === userId);
     const othersRoads = roads.filter((f) => f.road.userId !== userId);

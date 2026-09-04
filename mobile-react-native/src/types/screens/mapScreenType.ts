@@ -6,9 +6,9 @@ import MapView, {
 import type { MaterialIcons } from '@expo/vector-icons';
 
 import {
+  OwnRoadSummary,
   RouteCoordinate,
   WaypointWithAddress,
-  WaypointWithAddressAndId,
 } from 'types/map-screen-type';
 import { RoutePlace } from 'services/mapsService';
 import {
@@ -51,15 +51,15 @@ export interface FavoriteSectionHeaderProps {
 }
 
 export interface RoutesListProps {
-  data: WaypointWithAddressAndId[];
+  data: OwnRoadSummary[];
   isRefreshing: boolean;
   onRefresh: () => void;
-  onToggleFavorite: (road: WaypointWithAddressAndId) => void;
-  onDelete: (road: WaypointWithAddressAndId) => void;
-  onEdit: (road: WaypointWithAddressAndId) => void;
+  onToggleFavorite: (road: OwnRoadSummary) => void;
+  onDelete: (road: OwnRoadSummary) => void;
+  onEdit: (road: OwnRoadSummary) => void;
   onView: (roadId: string) => void;
-  onTogglePublic: (road: WaypointWithAddressAndId) => void;
-  onShare: (road: WaypointWithAddressAndId) => void;
+  onTogglePublic: (road: OwnRoadSummary) => void;
+  onShare: (road: OwnRoadSummary) => void;
   sharingRoadId?: string | null;
 }
 

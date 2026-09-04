@@ -20,12 +20,9 @@ import useShareRoad from 'hooks/useShareRoad';
 
 import { spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
-import {
-  MapScreenProps,
-  WaypointWithAddressAndId,
-} from 'types/map-screen-type';
+import { MapScreenProps, OwnRoadSummary } from 'types/map-screen-type';
 
-const EMPTY_ROADS: WaypointWithAddressAndId[] = [];
+const EMPTY_ROADS: OwnRoadSummary[] = [];
 
 const RoutesScreen = ({ navigation }: MapScreenProps) => {
   const styles = useThemedStyles(createStyles);
@@ -35,7 +32,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const { shareRoad, sharingRoadId } = useShareRoad();
-  const [editing, setEditing] = useState<WaypointWithAddressAndId | null>(null);
+  const [editing, setEditing] = useState<OwnRoadSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const {
@@ -51,12 +48,12 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
   const stopCount = useMemo(
     () =>
-      roads.reduce((total, road) => total + (road.wayPoints?.length ?? 0), 0),
+      roads.reduce((total, road) => total + (road.stopCount ?? 0), 0),
     [roads],
   );
 
   const handleDeleteRoad = useCallback(
-    async (road: WaypointWithAddressAndId) => {
+    async (road: OwnRoadSummary) => {
       const confirmed = await confirm({
         title: 'Remove route',
         message: `“${road.title}” leaves your list and stops being shared. Anyone who saved it keeps their copy.`,
@@ -70,7 +67,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
   );
 
   const handleTogglePublic = useCallback(
-    async (road: WaypointWithAddressAndId) => {
+    async (road: OwnRoadSummary) => {
       const next = !road.isPublic;
 
       if (next) {
@@ -96,7 +93,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
   );
 
   const handleToggleFavorite = useCallback(
-    (road: WaypointWithAddressAndId) => {
+    (road: OwnRoadSummary) => {
       toggleFavoriteRoad({ roadId: road.id });
     },
     [toggleFavoriteRoad],
@@ -112,7 +109,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
   );
 
   const handleEdit = useCallback(
-    (road: WaypointWithAddressAndId) => setEditing(road),
+    (road: OwnRoadSummary) => setEditing(road),
     [],
   );
 

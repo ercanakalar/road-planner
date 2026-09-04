@@ -1,4 +1,5 @@
 import {
+  OwnRoadSummary,
   WaypointWithAddress,
   WaypointWithAddressAndId,
 } from 'types/map-screen-type';
@@ -38,7 +39,7 @@ export interface WaypointInput {
 }
 
 export type GetOwnRoadsArgs = void;
-export type GetOwnRoadsResponse = WaypointWithAddressAndId[];
+export type GetOwnRoadsResponse = OwnRoadSummary[];
 
 export interface DiscoverRoad {
   id: string;

@@ -10,7 +10,7 @@ import RouteCard from './RouteCard';
 import ScreenState from 'components/ui/ScreenState';
 import useRefreshControlColors from 'hooks/useRefreshControlColors';
 import { spacing, useThemedStyles } from 'theme';
-import { WaypointWithAddressAndId } from 'types/map-screen-type';
+import { OwnRoadSummary } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 
 const RoutesList = ({
@@ -29,7 +29,7 @@ const RoutesList = ({
   const refreshColors = useRefreshControlColors();
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<WaypointWithAddressAndId>) => (
+    ({ item }: ListRenderItemInfo<OwnRoadSummary>) => (
       <RouteCard
         item={item}
         onToggleFavorite={onToggleFavorite}
@@ -53,7 +53,7 @@ const RoutesList = ({
   );
 
   const keyExtractor = useCallback(
-    (item: WaypointWithAddressAndId) => item.id,
+    (item: OwnRoadSummary) => item.id,
     [],
   );
 

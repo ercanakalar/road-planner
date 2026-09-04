@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import compression from 'compression';
 import helmet from 'helmet';
 
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
@@ -24,6 +25,10 @@ export function configureApp(
   config: AppConfiguration,
 ): INestApplication {
   app.use(helmet());
+
+  // List responses are JSON and compress to a fraction of their size. On a
+  // phone that is the difference between one round trip and several.
+  app.use(compression());
 
   app.enableCors({
     origin: parseCorsOrigins(config.corsOrigins),
