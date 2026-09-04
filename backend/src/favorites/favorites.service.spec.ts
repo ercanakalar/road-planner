@@ -190,8 +190,15 @@ describe('FavoritesService', () => {
   });
 
   describe('getAllFavorites', () => {
+    const emptyPage = () => {
+      prisma.favoriteRoad.findMany.mockResolvedValue([]);
+      prisma.favoriteRoad.count.mockResolvedValue(0);
+      prisma.favoriteWaypoint.findMany.mockResolvedValue([]);
+      prisma.favoriteWaypoint.count.mockResolvedValue(0);
+    };
+
     it('scopes every query to the caller', async () => {
-      prisma.$transaction.mockResolvedValue([[], [], [], []]);
+      emptyPage();
 
       await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
@@ -204,7 +211,7 @@ describe('FavoritesService', () => {
     });
 
     it('returns the four buckets the client expects', async () => {
-      prisma.$transaction.mockResolvedValue([[], [], [], []]);
+      emptyPage();
 
       const result = await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
@@ -214,6 +221,15 @@ describe('FavoritesService', () => {
         othersRoads: [],
         othersWaypoints: [],
       });
+    });
+
+    it('does not load the stops of a favourited route', async () => {
+      emptyPage();
+
+      await service.getAllFavorites(USER_ID, FIRST_PAGE);
+
+      const { select } = prisma.favoriteRoad.findMany.mock.calls[0][0];
+      expect(select.road.select.wayPoints).toBeUndefined();
     });
   });
 

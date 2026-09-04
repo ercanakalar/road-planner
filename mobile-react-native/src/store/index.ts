@@ -29,12 +29,26 @@ const rootReducer = combineReducers({
   [favoriteService.reducerPath]: favoriteService.reducer,
 });
 
+/**
+ * The cache slices hold every route and favourite the app has loaded, and in a
+ * development build both of these checks walk the whole tree on every single
+ * action. RTK Query already treats its own cache as immutable, so the checks
+ * are pointed at the hand-written slices, where an accidental mutation is a
+ * real risk. Both are off entirely in a release build.
+ */
+const API_REDUCER_PATHS = [
+  authenticationService.reducerPath,
+  profileService.reducerPath,
+  roadService.reducerPath,
+  favoriteService.reducerPath,
+];
+
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      immutableCheck: { warnAfter: 128 },
-      serializableCheck: { warnAfter: 128 },
+      immutableCheck: { warnAfter: 128, ignoredPaths: API_REDUCER_PATHS },
+      serializableCheck: { warnAfter: 128, ignoredPaths: API_REDUCER_PATHS },
     })
       .prepend(authMiddleware.middleware, persistenceMiddleware.middleware)
       .concat(

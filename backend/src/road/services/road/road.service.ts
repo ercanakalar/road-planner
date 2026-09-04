@@ -112,22 +112,27 @@ export class RoadService {
   async getOwnRoads(userId: string, pagination: PaginationQueryDto) {
     const where: Prisma.RoadWhereInput = this.visibility.ownedBy(userId);
 
-    const [roads, total] = await this.prisma.$transaction([
+    // The list draws a title, a star and a stop count — never the stops
+    // themselves. Selecting the waypoint rows here made the payload grow with
+    // every stop the user had ever saved, so the count is asked for instead.
+    // The two reads are independent, so they run side by side rather than
+    // queued behind one another inside a transaction.
+    const [roads, total] = await Promise.all([
       this.prisma.road.findMany({
         where,
-        include: {
-          wayPoints: {
-            include: {
-              favoriteWaypoints: {
-                where: { userId },
-                select: { id: true },
-              },
-            },
-            orderBy: { order: 'asc' },
-          },
+        select: {
+          id: true,
+          userId: true,
+          title: true,
+          description: true,
+          isPublic: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { wayPoints: true } },
           favoriteRoads: {
             where: { userId },
             select: { id: true },
+            take: 1,
           },
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -137,13 +142,10 @@ export class RoadService {
       this.prisma.road.count({ where }),
     ]);
 
-    const shaped = roads.map((road) => ({
+    const shaped = roads.map(({ _count, favoriteRoads, ...road }) => ({
       ...road,
-      isFavorite: !!road.favoriteRoads?.length,
-      wayPoints: road.wayPoints.map((wp) => ({
-        ...wp,
-        isFavorite: !!wp.favoriteWaypoints?.length,
-      })),
+      stopCount: _count.wayPoints,
+      isFavorite: favoriteRoads.length > 0,
     }));
 
     return ok({

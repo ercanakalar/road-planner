@@ -19,16 +19,16 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { ContextMenuOption } from 'types/components/contextMenu';
-import { WaypointWithAddressAndId } from 'types/map-screen-type';
+import { OwnRoadSummary } from 'types/map-screen-type';
 
 type Props = {
-  item: WaypointWithAddressAndId;
-  onToggleFavorite: (item: WaypointWithAddressAndId) => void;
-  onDelete: (item: WaypointWithAddressAndId) => void;
-  onEdit: (item: WaypointWithAddressAndId) => void;
+  item: OwnRoadSummary;
+  onToggleFavorite: (item: OwnRoadSummary) => void;
+  onDelete: (item: OwnRoadSummary) => void;
+  onEdit: (item: OwnRoadSummary) => void;
   onView: (roadId: string) => void;
-  onTogglePublic: (item: WaypointWithAddressAndId) => void;
-  onShare: (item: WaypointWithAddressAndId) => void;
+  onTogglePublic: (item: OwnRoadSummary) => void;
+  onShare: (item: OwnRoadSummary) => void;
   isSharing?: boolean;
 };
 
@@ -83,7 +83,7 @@ const RouteCard = ({
     [item, onDelete, onEdit, onShare],
   );
 
-  const stopCount = item.wayPoints?.length ?? 0;
+  const stopCount = item.stopCount ?? 0;
 
   return (
     <Pressable
