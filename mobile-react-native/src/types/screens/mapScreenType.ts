@@ -60,7 +60,10 @@ export interface RoutesListProps {
   onView: (roadId: string) => void;
   onTogglePublic: (road: OwnRoadSummary) => void;
   onShare: (road: OwnRoadSummary) => void;
+  onOpenInGoogleMaps: (road: OwnRoadSummary) => void;
   sharingRoadId?: string | null;
+  /** The route whose stops are being fetched for the handover to Google. */
+  openingInMapsRoadId?: string | null;
 }
 
 interface RouteSummary {

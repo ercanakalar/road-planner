@@ -6,6 +6,7 @@ import DraggableFlatList, {
   ScaleDecorator,
 } from 'react-native-draggable-flatlist';
 
+import OpenInGoogleMapsButton from 'components/map/OpenInGoogleMapsButton';
 import TransportSelector from 'components/map/TransportSelector';
 import WaypointCard from './WaypointCard';
 
@@ -95,6 +96,8 @@ const WaypointList = ({
           onChange={onTransportModeChange}
           durations={durations}
         />
+        {/* Planning happens here; the driving itself is handed to Google. */}
+        <OpenInGoogleMapsButton waypoints={waypoints} mode={transportMode} />
       </View>
     ),
     [
@@ -103,6 +106,7 @@ const WaypointList = ({
       selectedPair.length,
       styles,
       transportMode,
+      waypoints,
     ],
   );
 

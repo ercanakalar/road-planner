@@ -29,7 +29,9 @@ type Props = {
   onView: (roadId: string) => void;
   onTogglePublic: (item: OwnRoadSummary) => void;
   onShare: (item: OwnRoadSummary) => void;
+  onOpenInGoogleMaps: (item: OwnRoadSummary) => void;
   isSharing?: boolean;
+  isOpeningInMaps?: boolean;
 };
 
 const RouteCard = ({
@@ -40,7 +42,9 @@ const RouteCard = ({
   onView,
   onTogglePublic,
   onShare,
+  onOpenInGoogleMaps,
   isSharing,
+  isOpeningInMaps,
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -64,6 +68,11 @@ const RouteCard = ({
   const options = useMemo<ContextMenuOption[]>(
     () => [
       {
+        label: 'Continue in Google Maps',
+        icon: 'navigate-outline',
+        action: () => onOpenInGoogleMaps(item),
+      },
+      {
         label: 'Share a link',
         icon: 'share-social-outline',
         action: () => onShare(item),
@@ -80,10 +89,11 @@ const RouteCard = ({
         action: () => onDelete(item),
       },
     ],
-    [item, onDelete, onEdit, onShare],
+    [item, onDelete, onEdit, onOpenInGoogleMaps, onShare],
   );
 
   const stopCount = item.stopCount ?? 0;
+  const isBusy = !!isSharing || !!isOpeningInMaps;
 
   return (
     <Pressable
@@ -117,19 +127,20 @@ const RouteCard = ({
 
         <Pressable
           onPress={openMenu}
-          disabled={isSharing}
+          disabled={isBusy}
           hitSlop={10}
           style={({ pressed }) => [
             styles.iconButton,
             pressed && styles.pressed,
           ]}
           accessibilityRole='button'
-          accessibilityState={{ busy: !!isSharing }}
+          accessibilityState={{ busy: isBusy }}
           accessibilityLabel={`Options for route ${item.title}`}
         >
-          {/* The share sheet is opened from this menu, so its spinner belongs
-              on the button that opened it. */}
-          {isSharing ? (
+          {/* The share sheet and the handover to Google Maps are both started
+              from this menu, so their spinner belongs on the button that
+              opened it. */}
+          {isBusy ? (
             <ActivityIndicator size='small' color={colors.textSubtle} />
           ) : (
             <Ionicons
