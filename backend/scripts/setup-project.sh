@@ -21,6 +21,7 @@ set -a; source "${ENV_FILE}"; set +a
 
 : "${PROJECT_ID:?set PROJECT_ID in ${ENV_FILE}}"
 : "${REGION:?set REGION in ${ENV_FILE}}"
+: "${SERVICE_ACCOUNT:?set SERVICE_ACCOUNT in ${ENV_FILE}}"
 
 REPO="travel-routes"
 BUCKET="${PROJECT_ID}-travel-routes-uploads"
@@ -47,7 +48,6 @@ say "2/6 Working out which identity the service will run as"
 # file overrides it.
 if [ -z "${SERVICE_ACCOUNT:-}" ]; then
   PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
-  SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 fi
 SA_EMAIL="${SERVICE_ACCOUNT}"
 echo "  ${SA_EMAIL}"

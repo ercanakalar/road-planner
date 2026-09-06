@@ -26,6 +26,8 @@ set -a; source "${ENV_FILE}"; set +a
 : "${SERVICE:?set SERVICE in ${ENV_FILE} — the Cloud Run service name}"
 : "${JOB:?set JOB in ${ENV_FILE} — the Cloud Run migration job name}"
 : "${MAX_INSTANCES:?set MAX_INSTANCES in ${ENV_FILE}}"
+: "${SERVICE_ACCOUNT:?set SERVICE_ACCOUNT in ${ENV_FILE}}"
+: "${SA_EMAIL:?set SA_EMAIL in ${ENV_FILE}}"
 
 REPO="travel-routes"
 BUCKET="${PROJECT_ID}-travel-routes-uploads"
@@ -40,9 +42,7 @@ warn() { printf '\n!!! %s\n' "$1" >&2; }
 # SERVICE_ACCOUNT in the env file overrides it.
 if [ -z "${SERVICE_ACCOUNT:-}" ]; then
   PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
-  SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 fi
-SA_EMAIL="${SERVICE_ACCOUNT}"
 
 # Cloud Run can only pull images from a registry its service account has IAM
 # access to — that's Google Artifact Registry, not Docker Hub. This is that
@@ -78,6 +78,37 @@ create_secret_from_env() {
   echo "  created ${name}"
 }
 
+# Adds a new version when the env file and the stored secret disagree.
+#
+# Without this, editing a value in ${ENV_FILE} and re-running looks like it
+# worked — every step is green — while Cloud Run keeps resolving :latest to the
+# old version. That is how MAP_API_KEY ended up holding a key that had been
+# deleted from the project: rotating it in the env file changed nothing here.
+#
+# Secret Manager keeps the old version, so this is additive and reversible:
+#   gcloud secrets versions list NAME --project ${PROJECT_ID}
+update_secret_from_env() {
+  local name="$1"
+  local value="$2"
+  local current
+
+  # A read failure is not a mismatch — no access, or every version disabled.
+  # Saying so and moving on beats pushing a version to paper over it.
+  if ! current="$(gcloud secrets versions access latest \
+      --secret "${name}" --project "${PROJECT_ID}" 2>/dev/null)"; then
+    warn "Cannot read the current value of ${name}; leaving it alone."
+    return 0
+  fi
+
+  [ "${current}" = "${value}" ] && return 0
+
+  printf '%s' "${value}" \
+    | gcloud secrets versions add "${name}" \
+        --project "${PROJECT_ID}" \
+        --data-file=- >/dev/null
+  echo "  updated ${name} from ${ENV_FILE} (new version added)"
+}
+
 say "1/7 Checking the secrets this deploy references"
 # Both `gcloud run deploy` and `gcloud run jobs deploy` resolve every name in
 # --set-secrets against Secret Manager and reject the whole revision if one is
@@ -91,12 +122,19 @@ say "1/7 Checking the secrets this deploy references"
 missing=()
 for name in DATABASE_URL ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY \
             MAIL_PASSWORD GOOGLE_CLIENT_SECRET MAP_API_KEY; do
-  secret_exists "${name}" && continue
-
   # A value present in the env file is one this script can store itself. The
   # three signing keys are generated rather than configured, so they are never
   # in that file and a missing one has to be created deliberately below.
   eval "value=\${${name}:-}"
+
+  if secret_exists "${name}"; then
+    # The secret exists, but existing is not the same as current: an env file
+    # edited since the last deploy has to reach Secret Manager or it never
+    # reaches the running service.
+    [ -n "${value}" ] && update_secret_from_env "${name}" "${value}"
+    continue
+  fi
+
   if [ -n "${value}" ]; then
     create_secret_from_env "${name}" "${value}"
   else
