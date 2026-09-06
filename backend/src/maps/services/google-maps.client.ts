@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { EnvironmentVariables } from 'src/config/env.validation';
+import { EnvironmentVariables } from './../../../src/config/env.validation';
 
 const MAPS_ROOT = 'https://maps.googleapis.com/maps/api';
 
@@ -37,7 +37,7 @@ export class GoogleMapsClient {
   }
 
   private apiKey(): string {
-    return this.config.get('MAP_API_KEY', { infer: true }) ?? '';
+    return this.config.get('MAP_API_KEY') ?? '';
   }
 
   private assertConfigured(): void {
