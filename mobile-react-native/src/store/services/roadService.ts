@@ -394,6 +394,7 @@ export const {
   useLazyShareRoadQuery,
   useGetSharedRoadQuery,
   useGetRoadByIdQuery,
+  useLazyGetRoadByIdQuery,
   useGetWaypointByIdQuery,
   useAddWaypointMutation,
   useCreateRoadMutation,

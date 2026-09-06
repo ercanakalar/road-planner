@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenState from 'components/ui/ScreenState';
 import PrimaryButton from 'components/ui/PrimaryButton';
 import { MapSection } from 'components/map/MapSection';
+import OpenInGoogleMapsButton from 'components/map/OpenInGoogleMapsButton';
 import {
   useCloneRoadMutation,
   useGetSharedRoadQuery,
@@ -167,6 +168,8 @@ const SharedRouteScreen = () => {
             />
           </>
         )}
+
+        <OpenInGoogleMapsButton waypoints={waypoints} mode='driving' />
 
         <View style={styles.stops}>
           {waypoints.map((waypoint, index) => (

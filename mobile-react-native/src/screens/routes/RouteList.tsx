@@ -23,7 +23,9 @@ const RoutesList = ({
   onView,
   onTogglePublic,
   onShare,
+  onOpenInGoogleMaps,
   sharingRoadId,
+  openingInMapsRoadId,
 }: RoutesListProps) => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
@@ -38,16 +40,20 @@ const RoutesList = ({
         onView={onView}
         onTogglePublic={onTogglePublic}
         onShare={onShare}
+        onOpenInGoogleMaps={onOpenInGoogleMaps}
         isSharing={sharingRoadId === item.id}
+        isOpeningInMaps={openingInMapsRoadId === item.id}
       />
     ),
     [
       onDelete,
       onEdit,
+      onOpenInGoogleMaps,
       onShare,
       onToggleFavorite,
       onTogglePublic,
       onView,
+      openingInMapsRoadId,
       sharingRoadId,
     ],
   );

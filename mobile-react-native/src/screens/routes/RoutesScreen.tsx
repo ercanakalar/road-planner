@@ -17,6 +17,7 @@ import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
 import { updateRoadDetails } from 'store/actions/roadActions';
 import { showNotification } from 'services/notificationService';
 import useShareRoad from 'hooks/useShareRoad';
+import { useOpenRoadInGoogleMaps } from 'hooks/useOpenInGoogleMaps';
 
 import { spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -32,6 +33,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const { shareRoad, sharingRoadId } = useShareRoad();
+  const { openRoadInGoogleMaps, openingRoadId } = useOpenRoadInGoogleMaps();
   const [editing, setEditing] = useState<OwnRoadSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -113,6 +115,13 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
     [],
   );
 
+  const handleOpenInGoogleMaps = useCallback(
+    (road: OwnRoadSummary) => {
+      openRoadInGoogleMaps(road.id);
+    },
+    [openRoadInGoogleMaps],
+  );
+
   const closeEditor = useCallback(() => setEditing(null), []);
 
   const handleSaveDetails = useCallback(
@@ -191,7 +200,9 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
             onView={handleView}
             onTogglePublic={handleTogglePublic}
             onShare={shareRoad}
+            onOpenInGoogleMaps={handleOpenInGoogleMaps}
             sharingRoadId={sharingRoadId}
+            openingInMapsRoadId={openingRoadId}
           />
         )}
       </View>
