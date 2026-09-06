@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useRef } from 'react';
+import { memo, useCallback, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView from 'react-native-maps';
 import {

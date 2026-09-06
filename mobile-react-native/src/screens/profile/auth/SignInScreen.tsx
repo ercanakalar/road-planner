@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 

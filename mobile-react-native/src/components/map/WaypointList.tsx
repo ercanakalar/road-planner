@@ -1,4 +1,4 @@
-import React, { JSX, useCallback, useMemo } from 'react';
+import { JSX, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import DraggableFlatList, {
   DragEndParams,

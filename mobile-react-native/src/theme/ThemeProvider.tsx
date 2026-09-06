@@ -5,9 +5,11 @@ import { useAppSelector } from 'store/hook';
 import { ColorScheme, ThemeMode } from 'types/theme';
 import { darkColors, lightColors, ThemeColors } from './palettes';
 
+// React Native 0.86 reports "unspecified" where it used to report null, so the
+// system scheme is wider than our own two-value ColorScheme.
 export const resolveScheme = (
   mode: ThemeMode,
-  systemScheme: ColorScheme | null | undefined,
+  systemScheme: ColorScheme | 'unspecified' | null | undefined,
 ): ColorScheme => {
   if (mode === 'system') return systemScheme === 'dark' ? 'dark' : 'light';
   return mode;

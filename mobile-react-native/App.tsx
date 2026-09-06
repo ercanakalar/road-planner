@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 import { NavigationContainer } from '@react-navigation/native';

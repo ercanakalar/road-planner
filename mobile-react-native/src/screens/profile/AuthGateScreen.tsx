@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavigationProp } from '@react-navigation/native';
 
 import { useAppSelector } from 'store/hook';

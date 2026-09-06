@@ -1,4 +1,4 @@
-import React, { ReactNode, memo } from 'react';
+import { ReactNode, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

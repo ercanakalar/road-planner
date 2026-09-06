@@ -13,3 +13,7 @@ ios/
 *.apk
 
 .icon-build/
+
+.rootowned_android
+.rootowned_expo
+.rootowned_node_modules

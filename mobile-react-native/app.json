@@ -1,23 +1,12 @@
 {
   "expo": {
     "name": "Travel Routes",
-    "slug": "Travel Routes",
+    "slug": "travel-routes",
     "scheme": "net.travelroutes.travelroutes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F8F9FA",
-      "dark": {
-        "image": "./assets/splash-icon-dark.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#202124"
-      }
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "net.travelroutes.travelroutes",
@@ -33,7 +22,6 @@
         "monochromeImage": "./assets/monochrome-icon.png",
         "backgroundColor": "#1967D2"
       },
-      "edgeToEdgeEnabled": true,
       "package": "net.travelroutes.travelroutes",
       "permissions": [
         "ACCESS_FINE_LOCATION",
@@ -49,6 +37,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to use your photos so you can set a profile picture."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F8F9FA",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#202124"
+          }
         }
       ]
     ],

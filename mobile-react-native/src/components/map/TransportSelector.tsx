@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { StyleSheet, Text, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 

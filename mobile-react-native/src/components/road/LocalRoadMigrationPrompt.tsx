@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';

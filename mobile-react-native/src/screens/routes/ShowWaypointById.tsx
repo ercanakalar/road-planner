@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 

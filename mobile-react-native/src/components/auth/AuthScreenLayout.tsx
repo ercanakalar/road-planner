@@ -1,4 +1,4 @@
-import React, { ReactNode, memo } from 'react';
+import { ReactNode, memo } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
