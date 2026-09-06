@@ -7,6 +7,24 @@ import { darkColors, lightColors } from 'theme';
 const root = join(__dirname, '..', '..');
 const { expo } = appJson;
 
+// SDK 55 dropped the top-level `splash` key; the splash screen is configured
+// through the expo-splash-screen config plugin instead.
+type SplashConfig = {
+  image: string;
+  backgroundColor: string;
+  dark: { image: string; backgroundColor: string };
+};
+
+const splashPlugin = expo.plugins.find(
+  (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen',
+) as [string, SplashConfig] | undefined;
+
+if (!splashPlugin) {
+  throw new Error('app.json no longer configures the expo-splash-screen plugin');
+}
+
+const splash = splashPlugin[1];
+
 // The first 26 bytes of a PNG are the signature and the IHDR chunk, which is
 // all these checks need — no decoding, no image library.
 const header = (relativePath: string) => {
@@ -28,8 +46,8 @@ const header = (relativePath: string) => {
 describe('launcher and store images', () => {
   const declared: [string, string][] = [
     ['icon', expo.icon],
-    ['splash image', expo.splash.image],
-    ['dark splash image', expo.splash.dark.image],
+    ['splash image', splash.image],
+    ['dark splash image', splash.dark.image],
     ['adaptive foreground', expo.android.adaptiveIcon.foregroundImage],
     ['adaptive background', expo.android.adaptiveIcon.backgroundImage],
     ['adaptive monochrome', expo.android.adaptiveIcon.monochromeImage],
@@ -46,8 +64,8 @@ describe('launcher and store images', () => {
   it('ships the 1024x1024 sources Expo resizes from', () => {
     const square = [
       expo.icon,
-      expo.splash.image,
-      expo.splash.dark.image,
+      splash.image,
+      splash.dark.image,
       expo.android.adaptiveIcon.foregroundImage,
       expo.android.adaptiveIcon.backgroundImage,
       expo.android.adaptiveIcon.monochromeImage,
@@ -68,8 +86,8 @@ describe('launcher and store images', () => {
     [
       expo.android.adaptiveIcon.foregroundImage,
       expo.android.adaptiveIcon.monochromeImage,
-      expo.splash.image,
-      expo.splash.dark.image,
+      splash.image,
+      splash.dark.image,
     ].forEach((path) => {
       expect(header(path).hasAlpha).toBe(true);
     });
@@ -91,8 +109,8 @@ describe('launcher and store images', () => {
 describe('launch colours', () => {
   it('opens on the same background the app then draws', () => {
     // A splash in a different colour flashes as the first screen mounts.
-    expect(expo.splash.backgroundColor.toUpperCase()).toBe(lightColors.background);
-    expect(expo.splash.dark.backgroundColor.toUpperCase()).toBe(darkColors.background);
+    expect(splash.backgroundColor.toUpperCase()).toBe(lightColors.background);
+    expect(splash.dark.backgroundColor.toUpperCase()).toBe(darkColors.background);
   });
 
   it('falls back to the brand colour behind the adaptive icon', () => {

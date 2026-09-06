@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 
 import WaypointOptions from 'components/map/WaypointOptions';

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
 import AuthScreenLayout from 'components/auth/AuthScreenLayout';

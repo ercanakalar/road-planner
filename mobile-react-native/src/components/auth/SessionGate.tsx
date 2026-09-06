@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 import ScreenState from 'components/ui/ScreenState';
 import useSessionBootstrap from 'hooks/useSessionBootstrap';

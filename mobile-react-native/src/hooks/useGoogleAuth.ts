@@ -228,7 +228,8 @@ interface GoogleAuthState {
 
 export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
   const redirectUri = useMemo(googleRedirectUri, []);
-
+    console.log(redirectUri);
+    
   const [request, response, promptAsync] = Google.useAuthRequest({
     // The platform's id is picked here rather than by the provider, so a
     // platform with none configured hides the button instead of throwing
