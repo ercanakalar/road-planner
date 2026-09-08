@@ -21,7 +21,7 @@ export class RoadVisibility {
     return { id, ...this.roadWhere(userId) };
   }
 
-  waypoint(id: string, userId: string | null): Prisma.WayPointWhereInput {
+  stop(id: string, userId: string | null): Prisma.StopWhereInput {
     const road = this.roadWhere(userId);
     const viaRoad = road.OR
       ? road.OR.map((clause) => ({ road: clause }))
@@ -30,7 +30,7 @@ export class RoadVisibility {
     return {
       id,
       OR: userId
-        ? [...viaRoad, { favoriteWaypoints: { some: { userId } } }]
+        ? [...viaRoad, { favoriteStops: { some: { userId } } }]
         : viaRoad,
     };
   }

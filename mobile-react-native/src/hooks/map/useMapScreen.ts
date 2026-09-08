@@ -3,7 +3,7 @@ import { useWindowDimensions } from 'react-native';
 
 import useConfirm from 'hooks/feedback/useConfirm';
 import useLocalMapLogic from 'hooks/map/useLocalMapLogic';
-import useWaypointPair from 'hooks/map/useWaypointPair';
+import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
@@ -32,7 +32,7 @@ export function useMapScreen() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   const map = useLocalMapLogic();
-  const waypointPair = useWaypointPair();
+  const stopPair = useStopPair();
 
   const { activeRoad, roads, routeLine, focusOnPlace, handleAddPlaceAsStop } =
     map;
@@ -100,8 +100,8 @@ export function useMapScreen() {
     if (!activeRoad) return;
     const confirmed = await confirm({
       title: 'Delete route',
-      message: `“${activeRoad.title}” and its ${activeRoad.wayPoints.length} stop${
-        activeRoad.wayPoints.length === 1 ? '' : 's'
+      message: `“${activeRoad.title}” and its ${activeRoad.stops.length} stop${
+        activeRoad.stops.length === 1 ? '' : 's'
       } will be removed from this device.`,
       confirmLabel: 'Delete',
       icon: 'trash-outline',
@@ -124,12 +124,12 @@ export function useMapScreen() {
   return {
     ...map,
     isLoggedIn,
-    waypointPair,
+    stopPair,
     snapPoints,
     summary,
     // The sheet has to let go of the gestures while a row is being dragged,
     // otherwise the sheet moves instead of the row.
-    sheetGesturesEnabled: !map.draggingWaypointId && !isReordering,
+    sheetGesturesEnabled: !map.draggingStopId && !isReordering,
     setIsReordering,
     isEditingDetails,
     openDetailsEditor,

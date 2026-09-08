@@ -22,7 +22,7 @@ import { useAppSelector } from 'store/hook';
 import {
   useGetFavoritesQuery,
   useToggleFavoriteRoadMutation,
-  useToggleFavoriteWaypointMutation,
+  useToggleFavoriteStopMutation,
   useUpdateFavoriteAnnotationMutation,
 } from 'store/services/favoriteService';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
@@ -89,7 +89,7 @@ export function useFavoritesScreen() {
   } = useGetFavoritesQuery(undefined, { skip: !isLoggedIn });
 
   const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
-  const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
+  const [toggleFavoriteStop] = useToggleFavoriteStopMutation();
   const [updateAnnotation, { isLoading: isSavingAnnotation }] =
     useUpdateFavoriteAnnotationMutation();
 
@@ -173,8 +173,8 @@ export function useFavoritesScreen() {
         if (item.kind === 'road') {
           await toggleFavoriteRoad({ roadId: item.targetId }).unwrap();
         } else {
-          await toggleFavoriteWaypoint({
-            waypointId: item.targetId,
+          await toggleFavoriteStop({
+            stopId: item.targetId,
           }).unwrap();
         }
       } catch {
@@ -185,13 +185,13 @@ export function useFavoritesScreen() {
         });
       }
     },
-    [confirm, toggleFavoriteRoad, toggleFavoriteWaypoint],
+    [confirm, toggleFavoriteRoad, toggleFavoriteStop],
   );
 
   const handleItemPress = useCallback(
     (item: FavoriteEntry) => {
-      if (item.kind === 'waypoint') {
-        navigation.navigate('ShowWaypointById', { waypointId: item.targetId });
+      if (item.kind === 'stop') {
+        navigation.navigate('ShowStopById', { stopId: item.targetId });
         return;
       }
 

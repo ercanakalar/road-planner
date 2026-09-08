@@ -7,30 +7,30 @@ import {
 import { showNotification } from 'services/notificationService';
 import localRoadStorage from 'services/localRoadStorage';
 import { LocalRoad } from 'types/local-road';
-import { WaypointInput } from 'types/store/services/roadService-type';
+import { StopInput } from 'types/store/services/roadService-type';
 import type { AppDispatch, RootState } from 'store';
 
 const TITLE_MAX_LENGTH = 255;
-const WAYPOINTS_MAX = 500;
+const STOPS_MAX = 500;
 
 interface UploadResult {
   uploaded: number;
   failed: number;
 }
 
-const toWaypointInput = (road: LocalRoad): WaypointInput[] =>
-  road.wayPoints.slice(0, WAYPOINTS_MAX).map((waypoint, index) => ({
-    latitude: waypoint.latitude,
-    longitude: waypoint.longitude,
+const toStopInput = (road: LocalRoad): StopInput[] =>
+  road.stops.slice(0, STOPS_MAX).map((stop, index) => ({
+    latitude: stop.latitude,
+    longitude: stop.longitude,
     order: index + 1,
-    address: waypoint.address,
+    address: stop.address,
   }));
 
 export const uploadLocalRoads =
   () =>
   async (dispatch: AppDispatch, getState: () => RootState): Promise<UploadResult> => {
     const { localRoad, auth } = getState();
-    const roads = localRoad.roads.filter((road) => road.wayPoints.length > 0);
+    const roads = localRoad.roads.filter((road) => road.stops.length > 0);
 
     if (!auth.isLoggedIn || roads.length === 0) {
       return { uploaded: 0, failed: 0 };
@@ -47,7 +47,7 @@ export const uploadLocalRoads =
           roadService.endpoints.createRoad.initiate({
             title: road.title.slice(0, TITLE_MAX_LENGTH) || 'Untitled route',
             description: road.description,
-            waypoints: toWaypointInput(road),
+            stops: toStopInput(road),
           }),
         ).unwrap();
         uploadedIds.push(road.id);

@@ -25,8 +25,8 @@ describe('RoadRouteService', () => {
   let directions: { route: jest.Mock; durations: jest.Mock };
   let service: RoadRouteService;
 
-  const givenRoad = (wayPoints: { latitude: number; longitude: number }[]) =>
-    prisma.road.findFirst.mockResolvedValue({ wayPoints });
+  const givenRoad = (stops: { latitude: number; longitude: number }[]) =>
+    prisma.road.findFirst.mockResolvedValue({ stops });
 
   beforeEach(() => {
     prisma = createPrismaMock();
@@ -40,7 +40,7 @@ describe('RoadRouteService', () => {
   });
 
   describe('getRoute', () => {
-    it('routes from the first waypoint to the last, through the rest', async () => {
+    it('routes from the first stop to the last, through the rest', async () => {
       givenRoad([ISTANBUL, BOLU, ANKARA]);
       directions.route.mockResolvedValue(ROUTE);
 
@@ -64,7 +64,7 @@ describe('RoadRouteService', () => {
       );
     });
 
-    it('reads the waypoints in stored order', async () => {
+    it('reads the stops in stored order', async () => {
       givenRoad([ISTANBUL, ANKARA]);
       directions.route.mockResolvedValue(ROUTE);
 
@@ -73,7 +73,7 @@ describe('RoadRouteService', () => {
       expect(prisma.road.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           select: {
-            wayPoints: expect.objectContaining({ orderBy: { order: 'asc' } }),
+            stops: expect.objectContaining({ orderBy: { order: 'asc' } }),
           },
         }),
       );
@@ -100,12 +100,12 @@ describe('RoadRouteService', () => {
     });
 
     it.each([[[]], [[ISTANBUL]]])(
-      'spends nothing routing a road with %j for waypoints',
-      async (wayPoints) => {
-        givenRoad(wayPoints);
+      'spends nothing routing a road with %j for stops',
+      async (stops) => {
+        givenRoad(stops);
 
         await expect(service.getRoute(ROAD_ID, USER_ID)).resolves.toMatchObject(
-          { data: null, message: 'A route needs at least two waypoints' },
+          { data: null, message: 'A route needs at least two stops' },
         );
         expect(directions.route).not.toHaveBeenCalled();
       },
@@ -163,7 +163,7 @@ describe('RoadRouteService', () => {
         service.getDurations(ROAD_ID, USER_ID, ['driving']),
       ).resolves.toMatchObject({
         data: {},
-        message: 'A route needs at least two waypoints',
+        message: 'A route needs at least two stops',
       });
       expect(directions.durations).not.toHaveBeenCalled();
     });

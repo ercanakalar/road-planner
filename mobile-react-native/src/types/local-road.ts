@@ -1,4 +1,4 @@
-export interface LocalWaypoint {
+export interface LocalStop {
   id: string;
   latitude: number;
   longitude: number;
@@ -12,7 +12,7 @@ export interface LocalRoad {
   id: string;
   title: string;
   description: string;
-  wayPoints: LocalWaypoint[];
+  stops: LocalStop[];
   createdAt: string;
   updatedAt: string;
 }

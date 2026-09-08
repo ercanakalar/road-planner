@@ -4,33 +4,64 @@ import { randomUUID } from 'crypto';
 
 import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { ok } from 'src/common/http/api-response';
+import { ElevationService } from 'src/maps/services/elevation.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreateRoadDto,
   UpdateRoadDto,
-  WaypointInputDto,
+  StopInputDto,
 } from 'src/road/dto/road.dto';
 import {
-  applyWaypointValues,
+  applyStopValues,
   positionByRank,
-  WaypointValues,
-} from './waypoint-writes';
+  StopValues,
+} from './stop-writes';
+import { withStopMetrics } from '../stop/stop-metrics';
 import { RoadVisibility } from '../visibility/road-visibility';
 
-type PositionedWaypoint = WaypointInputDto & { order: number };
+type PositionedStop = StopInputDto & { order: number };
 
-function buildNewWaypointRows(
+type StopWithElevation = PositionedStop & { elevation: number | null };
+
+/**
+ * Two pins are the same place if they agree to six decimals — about 10cm, and
+ * the precision coordinates are stored and sent at. Anything finer is a float
+ * rounding difference rather than a stop that moved, and re-reading the ground
+ * height for it would spend an API call to learn what is already known.
+ */
+const samePlace = (
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): boolean =>
+  a.latitude.toFixed(6) === b.latitude.toFixed(6) &&
+  a.longitude.toFixed(6) === b.longitude.toFixed(6);
+
+function buildNewStopRows(
   roadId: string,
-  waypoints: readonly PositionedWaypoint[],
-): Prisma.WayPointCreateManyInput[] {
-  return waypoints.map((waypoint) => ({
+  stops: readonly StopWithElevation[],
+): Prisma.StopCreateManyInput[] {
+  return stops.map((stop) => ({
     id: randomUUID(),
-    latitude: waypoint.latitude,
-    longitude: waypoint.longitude,
-    order: waypoint.order,
+    latitude: stop.latitude,
+    longitude: stop.longitude,
+    order: stop.order,
     roadId,
-    address: waypoint.address ?? '',
+    address: stop.address ?? '',
+    elevation: stop.elevation,
   }));
+}
+
+/**
+ * A road on its way out, with slope and bend worked out for each of its stops.
+ * Tolerates the null Prisma hands back from a findUnique so the write paths can
+ * pipe their result straight through.
+ */
+function withRoadStopMetrics<
+  T extends { stops: { latitude: number; longitude: number; elevation: number | null }[] },
+>(road: T | null) {
+  if (!road) return road;
+
+  return { ...road, stops: withStopMetrics(road.stops) };
 }
 
 @Injectable()
@@ -38,11 +69,32 @@ export class RoadService {
   constructor(
     private prisma: PrismaService,
     private visibility: RoadVisibility,
+    private elevationService: ElevationService,
   ) {}
+
+  /**
+   * The stops with the ground height under each attached.
+   *
+   * Called before the transaction opens, never inside one: this reaches out to
+   * Google, and a database transaction held open across a network call is a
+   * lock held for as long as someone else's server takes to answer.
+   */
+  private async withElevations(
+    stops: readonly PositionedStop[],
+  ): Promise<StopWithElevation[]> {
+    const heights = await this.elevationService.elevations(stops);
+
+    return stops.map((stop, index) => ({
+      ...stop,
+      elevation: heights[index] ?? null,
+    }));
+  }
 
   async createRoad(data: CreateRoadDto, userId: string) {
     const { title, description } = data;
-    const waypoints = positionByRank(data.waypoints ?? []);
+    const stops = positionByRank(data.stops ?? []);
+
+    const positioned = await this.withElevations(stops);
 
     const road = await this.prisma.$transaction(async (tx) => {
       const created = await tx.road.create({
@@ -50,17 +102,17 @@ export class RoadService {
         select: { id: true },
       });
 
-      const rows = buildNewWaypointRows(created.id, waypoints);
+      const rows = buildNewStopRows(created.id, positioned);
 
       if (rows.length) {
-        await tx.wayPoint.createMany({ data: rows });
+        await tx.stop.createMany({ data: rows });
       }
 
       return tx.road.findUnique({
         where: { id: created.id },
         omit: { userId: true },
         include: {
-          wayPoints: { orderBy: { order: 'asc' } },
+          stops: { orderBy: { order: 'asc' } },
         },
       });
     });
@@ -68,7 +120,7 @@ export class RoadService {
     return ok({
       header: 'Route Created',
       message: 'Route created successfully',
-      data: road,
+      data: withRoadStopMetrics(road),
     });
   }
 
@@ -76,9 +128,9 @@ export class RoadService {
     const road = await this.prisma.road.findFirst({
       where: this.visibility.road(id, userId),
       include: {
-        wayPoints: {
+        stops: {
           include: {
-            favoriteWaypoints: userId
+            favoriteStops: userId
               ? { where: { userId }, select: { id: true } }
               : false,
           },
@@ -100,10 +152,12 @@ export class RoadService {
       data: {
         ...road,
         favoriteRoads: road.favoriteRoads ?? [],
-        wayPoints: (road.wayPoints ?? []).map((waypoint) => ({
-          ...waypoint,
-          favoriteWaypoints: waypoint.favoriteWaypoints ?? [],
-        })),
+        stops: withStopMetrics(
+          (road.stops ?? []).map((stop) => ({
+            ...stop,
+            favoriteStops: stop.favoriteStops ?? [],
+          })),
+        ),
         isFavorite: !!road.favoriteRoads?.length,
       },
     });
@@ -113,7 +167,7 @@ export class RoadService {
     const where: Prisma.RoadWhereInput = this.visibility.ownedBy(userId);
 
     // The list draws a title, a star and a stop count — never the stops
-    // themselves. Selecting the waypoint rows here made the payload grow with
+    // themselves. Selecting the stop rows here made the payload grow with
     // every stop the user had ever saved, so the count is asked for instead.
     // The two reads are independent, so they run side by side rather than
     // queued behind one another inside a transaction.
@@ -128,7 +182,7 @@ export class RoadService {
           isPublic: true,
           createdAt: true,
           updatedAt: true,
-          _count: { select: { wayPoints: true } },
+          _count: { select: { stops: true } },
           favoriteRoads: {
             where: { userId },
             select: { id: true },
@@ -144,7 +198,7 @@ export class RoadService {
 
     const shaped = roads.map(({ _count, favoriteRoads, ...road }) => ({
       ...road,
-      stopCount: _count.wayPoints,
+      stopCount: _count.stops,
       isFavorite: favoriteRoads.length > 0,
     }));
 
@@ -185,7 +239,7 @@ export class RoadService {
         favoriteRoads: userId
           ? { where: { userId }, select: { id: true } }
           : false,
-        wayPoints: {
+        stops: {
           select: {
             id: true,
             latitude: true,
@@ -201,12 +255,12 @@ export class RoadService {
     const order = new Map(rows.map((row, index) => [row.id, index]));
     const shaped = roads
       .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
-      .map(({ user, wayPoints, favoriteRoads, ...road }) => ({
+      .map(({ user, stops, favoriteRoads, ...road }) => ({
         ...road,
         author: user.nickName ?? user.firstName ?? 'A traveller',
-        stopCount: wayPoints.length,
+        stopCount: stops.length,
         isFavorite: !!favoriteRoads?.length,
-        wayPoints,
+        stops,
       }));
 
     return ok({
@@ -222,12 +276,13 @@ export class RoadService {
       select: {
         title: true,
         description: true,
-        wayPoints: {
+        stops: {
           select: {
             latitude: true,
             longitude: true,
             order: true,
             address: true,
+            elevation: true,
           },
           orderBy: { order: 'asc' },
         },
@@ -249,21 +304,24 @@ export class RoadService {
         select: { id: true },
       });
 
-      const waypoints = source.wayPoints.map((waypoint, index) => ({
+      // The copy stands on the same ground as the original, so its heights come
+      // across with it rather than being looked up again.
+      const stops = source.stops.map((stop, index) => ({
         id: randomUUID(),
-        latitude: waypoint.latitude,
-        longitude: waypoint.longitude,
+        latitude: stop.latitude,
+        longitude: stop.longitude,
         order: index + 1,
         roadId: created.id,
-        address: waypoint.address,
+        address: stop.address,
+        elevation: stop.elevation,
       }));
 
-      if (waypoints.length) await tx.wayPoint.createMany({ data: waypoints });
+      if (stops.length) await tx.stop.createMany({ data: stops });
 
       return tx.road.findUnique({
         where: { id: created.id },
         include: {
-          wayPoints: { orderBy: { order: 'asc' } },
+          stops: { orderBy: { order: 'asc' } },
         },
       });
     });
@@ -271,13 +329,42 @@ export class RoadService {
     return ok({
       header: 'Route Copied',
       message: 'The route is now yours to edit',
-      data: clone,
+      data: withRoadStopMetrics(clone),
     });
   }
 
   async updateRoadById(id: string, data: UpdateRoadDto) {
     const { title, description, isPublic } = data;
-    const waypoints = positionByRank(data.waypoints ?? []);
+    const stops = positionByRank(data.stops ?? []);
+
+    // Read what is stored before the transaction opens, so the Elevation
+    // lookups below can be narrowed to the stops that actually moved. The
+    // transaction re-reads the ids it needs; this copy is only used to decide
+    // which heights are still good.
+    const stored = await this.prisma.stop.findMany({
+      where: { roadId: id },
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        elevation: true,
+      },
+    });
+
+    const storedById = new Map(stored.map((stop) => [stop.id, stop]));
+
+    // A stop keeps its height unless it was dragged somewhere else, or never
+    // had one — a route with forty stops that had one renamed should not cost
+    // forty Elevation lookups.
+    const needsElevation = stops.filter((stop) => {
+      const before = stop.id ? storedById.get(stop.id) : undefined;
+      return !before || before.elevation === null || !samePlace(before, stop);
+    });
+
+    const heights = await this.elevationService.elevations(needsElevation);
+    const resolved = new Map(
+      needsElevation.map((stop, index) => [stop, heights[index] ?? null]),
+    );
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.road.update({
@@ -289,46 +376,51 @@ export class RoadService {
         },
       });
 
-      const existing = await tx.wayPoint.findMany({
+      const existing = await tx.stop.findMany({
         where: { roadId: id },
         select: { id: true },
       });
       const existingIds = new Set(existing.map((w) => w.id));
 
-      const kept = waypoints.filter((w) => w.id && existingIds.has(w.id));
-      const added = waypoints.filter((w) => !w.id || !existingIds.has(w.id));
+      const kept = stops.filter((w) => w.id && existingIds.has(w.id));
+      const added = stops.filter((w) => !w.id || !existingIds.has(w.id));
       const keptIds = new Set(kept.map((w) => w.id as string));
 
       const removed = existing.filter((w) => !keptIds.has(w.id));
 
       if (removed.length) {
-        await tx.wayPoint.deleteMany({
+        await tx.stop.deleteMany({
           where: { id: { in: removed.map((w) => w.id) } },
         });
       }
 
-      await applyWaypointValues(
+      await applyStopValues(
         tx,
         id,
-        kept.map((w): WaypointValues => ({
+        kept.map((w): StopValues => ({
           id: w.id as string,
           latitude: w.latitude,
           longitude: w.longitude,
           order: w.order,
           address: w.address ?? null,
+          refreshElevation: resolved.has(w),
+          elevation: resolved.get(w) ?? null,
         })),
       );
 
-      const rows = buildNewWaypointRows(id, added);
+      const rows = buildNewStopRows(
+        id,
+        added.map((stop) => ({ ...stop, elevation: resolved.get(stop) ?? null })),
+      );
 
       if (rows.length) {
-        await tx.wayPoint.createMany({ data: rows });
+        await tx.stop.createMany({ data: rows });
       }
 
       return tx.road.findUnique({
         where: { id },
         include: {
-          wayPoints: { orderBy: { order: 'asc' } },
+          stops: { orderBy: { order: 'asc' } },
         },
       });
     });
@@ -336,7 +428,7 @@ export class RoadService {
     return ok({
       header: 'Route Updated',
       message: 'Route updated successfully',
-      data: updated,
+      data: withRoadStopMetrics(updated),
     });
   }
 

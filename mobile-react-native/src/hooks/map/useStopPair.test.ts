@@ -1,4 +1,4 @@
-import { nextPair } from './useWaypointPair';
+import { nextPair } from './useStopPair';
 
 describe('nextPair', () => {
   it('picks the first stop as A', () => {

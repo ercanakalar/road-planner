@@ -44,14 +44,14 @@ export interface ThemeColors {
 // step that clears the contrast each token needs rather than the brightest.
 //
 // Four constraints keep the app readable, so check them before editing:
-//   - Waypoint pins color by position (MapSection): start uses `success`,
+//   - Stop pins color by position (MapSection): start uses `success`,
 //     the destination uses `accent`, stops in between use `primary`, and a
 //     place found along the route uses `place`. All four are on screen at
 //     once, so they stay far apart in hue — green ~145°, red ~1°, blue
 //     ~215°, olive ~77°; the closest pair is 63°. `warning` is deliberately
 //     not among them: it sits 33° from `accent` and reads as a second
 //     destination pin.
-//   - `selection` marks the two waypoints being compared, on the map and in
+//   - `selection` marks the two stops being compared, on the map and in
 //     the list alike. It temporarily replaces whichever of the four a pin
 //     would otherwise use, so it is a fifth hue kept clear of them all —
 //     violet ~282°, 67° from its nearest neighbour.

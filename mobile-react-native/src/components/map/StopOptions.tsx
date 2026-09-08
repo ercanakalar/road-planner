@@ -6,17 +6,17 @@ import ContextMenu from 'components/ui/ContextMenu';
 import { radius, spacing, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { ContextMenuOption } from 'types/components/contextMenu';
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { WaypointOption } from 'types/transport-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { StopOption } from 'types/transport-type';
 import { addressName, fullAddress } from 'utils/address';
 
 interface Props {
-  item: WaypointWithAddress;
+  item: StopWithAddress;
   showFavoriteAction?: boolean;
-  onOptionSelect: (option: WaypointOption) => void;
+  onOptionSelect: (option: StopOption) => void;
 }
 
-const WaypointOptions = ({
+const StopOptions = ({
   item,
   showFavoriteAction = true,
   onOptionSelect,
@@ -25,7 +25,7 @@ const WaypointOptions = ({
   const styles = useThemedStyles(createStyles);
   const [isOpen, setIsOpen] = useState(false);
 
-  const isFavorite = item.favoriteWaypoints.length > 0;
+  const isFavorite = item.favoriteStops.length > 0;
   const hasAddress = fullAddress(item.address).length > 0;
 
   const open = useCallback(() => setIsOpen(true), []);
@@ -101,4 +101,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default memo(WaypointOptions);
+export default memo(StopOptions);

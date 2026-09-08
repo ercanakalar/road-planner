@@ -115,9 +115,9 @@ model User {
   permitId String?
   permit   Permit? @relation("UserPermit", fields: [permitId], references: [id], onDelete: SetNull)
 
-  roads             Road[]
-  favoriteRoads     FavoriteRoad[]
-  favoriteWaypoints FavoriteWaypoint[]
+  roads         Road[]
+  favoriteRoads FavoriteRoad[]
+  favoriteStops FavoriteStop[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,7 +136,7 @@ model Road {
 
   archivedAt DateTime?
 
-  wayPoints     WayPoint[]
+  stops         Stop[]
   favoriteRoads FavoriteRoad[]
 
   createdAt DateTime @default(now())
@@ -146,7 +146,7 @@ model Road {
   @@index([isPublic, createdAt, id])
 }
 
-model WayPoint {
+model Stop {
   id        String @id @default(uuid())
   latitude  Float
   longitude Float
@@ -161,7 +161,14 @@ model WayPoint {
   /// nothing queries it, and it is refreshed only when the stop is moved.
   address String @default("")
 
-  favoriteWaypoints FavoriteWaypoint[]
+  /// Ground height in metres above sea level, from the Elevation API, resolved
+  /// once when the coordinates are set and again when they move. The slope
+  /// between consecutive stops is derived from it on read rather than stored: a
+  /// stored slope would be wrong the moment a neighbour is added or reordered.
+  /// Null means the lookup has not run yet or could not answer.
+  elevation Float?
+
+  favoriteStops FavoriteStop[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -188,7 +195,7 @@ model FavoriteRoad {
   @@index([roadId])
 }
 
-model FavoriteWaypoint {
+model FavoriteStop {
   id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -196,13 +203,13 @@ model FavoriteWaypoint {
   title       String?
   description String?
 
-  waypointId String
-  waypoint   WayPoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+  stopId String
+  stop   Stop   @relation(fields: [stopId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, waypointId])
+  @@unique([userId, stopId])
   @@index([userId, createdAt, id])
-  @@index([waypointId])
+  @@index([stopId])
 }

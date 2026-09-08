@@ -4,10 +4,10 @@ import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 
 import {
-  useAddWaypointMutation,
-  useDeleteWaypointByIdMutation,
+  useAddStopMutation,
+  useDeleteStopByIdMutation,
   useGetRoadByIdQuery,
-  useUpdateWaypointByIdMutation,
+  useUpdateStopByIdMutation,
 } from 'store/services/roadService';
 import { ShowRouteByIdRouteProp } from 'types/map-screen-type';
 import { addressName } from 'utils/address';
@@ -22,9 +22,9 @@ import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
   closeContextMenu,
   openContextMenuForLocation,
-  openContextMenuForWaypoint,
-  startDraggingWaypoint,
-  stopDraggingWaypoint,
+  openContextMenuForStop,
+  startDraggingStop,
+  stopDraggingStop,
 } from 'store/slices/mapSlice';
 import { useRouteLine } from 'hooks/map/useRouteDirections';
 import useRouteSearch from 'hooks/map/useRouteSearch';
@@ -33,7 +33,7 @@ import { ContextMenuOption } from 'types/components/contextMenu';
 
 const COORD_THRESHOLD = 0.0001;
 
-const EMPTY_WAYPOINTS: never[] = [];
+const EMPTY_STOPS: never[] = [];
 
 const useMapLogic = () => {
   const { params } = useRoute<ShowRouteByIdRouteProp>();
@@ -47,137 +47,137 @@ const useMapLogic = () => {
 
   const {
     clickedLocation,
-    contextMenuWaypointId,
+    contextMenuStopId,
     isContextMenuVisible,
-    draggingWaypointId,
+    draggingStopId,
   } = useAppSelector((state) => state.map);
 
-  const { waypoints, road, isLoading } = useGetRoadByIdQuery(
+  const { stops, road, isLoading } = useGetRoadByIdQuery(
     { roadId },
     {
       skip: !roadId,
       selectFromResult: ({ data, isLoading: loading }) => ({
         road: data,
-        waypoints: data?.wayPoints ?? EMPTY_WAYPOINTS,
+        stops: data?.stops ?? EMPTY_STOPS,
         isLoading: loading,
       }),
     },
   );
 
-  const [addWaypoint] = useAddWaypointMutation();
-  const [deleteWaypoint] = useDeleteWaypointByIdMutation();
-  const [updateWaypoint] = useUpdateWaypointByIdMutation();
+  const [addStop] = useAddStopMutation();
+  const [deleteStop] = useDeleteStopByIdMutation();
+  const [updateStop] = useUpdateStopByIdMutation();
 
-  const routeLine = useRouteLine(waypoints, transportMode);
-  const routeSearch = useRouteSearch(waypoints, transportMode);
+  const routeLine = useRouteLine(stops, transportMode);
+  const routeSearch = useRouteSearch(stops, transportMode);
 
-  const contextMenuWaypoint = useMemo(
+  const contextMenuStop = useMemo(
     () =>
-      contextMenuWaypointId
-        ? waypoints.find((waypoint) => waypoint.id === contextMenuWaypointId)
+      contextMenuStopId
+        ? stops.find((stop) => stop.id === contextMenuStopId)
         : undefined,
-    [waypoints, contextMenuWaypointId],
+    [stops, contextMenuStopId],
   );
 
-  const waypointsRef = useRef(waypoints);
-  waypointsRef.current = waypoints;
+  const stopsRef = useRef(stops);
+  stopsRef.current = stops;
 
   const handleMapLongPress = useCallback(
     (event: MapLongPressEvent) => {
-      if (draggingWaypointId) return;
+      if (draggingStopId) return;
       bottomSheetRef.current?.collapse();
 
       const { coordinate } = event.nativeEvent;
-      const pressed = waypointsRef.current.find(
-        (waypoint) =>
-          Math.abs(waypoint.latitude - coordinate.latitude) <
+      const pressed = stopsRef.current.find(
+        (stop) =>
+          Math.abs(stop.latitude - coordinate.latitude) <
             COORD_THRESHOLD &&
-          Math.abs(waypoint.longitude - coordinate.longitude) <
+          Math.abs(stop.longitude - coordinate.longitude) <
             COORD_THRESHOLD,
       );
 
       dispatch(
         pressed
-          ? openContextMenuForWaypoint(pressed.id)
+          ? openContextMenuForStop(pressed.id)
           : openContextMenuForLocation(coordinate),
       );
     },
-    [dispatch, draggingWaypointId],
+    [dispatch, draggingStopId],
   );
 
-  const handleAddWaypoint = useCallback(async () => {
+  const handleAddStop = useCallback(async () => {
     if (!clickedLocation) return;
     dispatch(closeContextMenu());
 
     try {
-      await addWaypoint({
+      await addStop({
         roadId,
-        waypoint: {
+        stop: {
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
-          order: waypointsRef.current.length + 1,
+          order: stopsRef.current.length + 1,
         },
       }).unwrap();
     } catch {
       showNotification({
         type: 'error',
         header: 'Error',
-        message: 'Failed to add waypoint.',
+        message: 'Failed to add stop.',
       });
     }
-  }, [addWaypoint, clickedLocation, dispatch, roadId]);
+  }, [addStop, clickedLocation, dispatch, roadId]);
 
-  const handleDeleteWaypoint = useCallback(async () => {
-    if (!contextMenuWaypointId) return;
+  const handleDeleteStop = useCallback(async () => {
+    if (!contextMenuStopId) return;
     dispatch(closeContextMenu());
 
     try {
-      await deleteWaypoint({
+      await deleteStop({
         roadId,
-        waypointId: contextMenuWaypointId,
+        stopId: contextMenuStopId,
       }).unwrap();
     } catch {
       showNotification({
         type: 'error',
         header: 'Error',
-        message: 'Failed to delete waypoint.',
+        message: 'Failed to delete stop.',
       });
     }
-  }, [contextMenuWaypointId, deleteWaypoint, dispatch, roadId]);
+  }, [contextMenuStopId, deleteStop, dispatch, roadId]);
 
   const handleMarkerDragEnd = useCallback(
-    async (event: MarkerDragEndEvent, waypointId: string): Promise<void> => {
-      if (draggingWaypointId !== waypointId) return;
+    async (event: MarkerDragEndEvent, stopId: string): Promise<void> => {
+      if (draggingStopId !== stopId) return;
 
       const { latitude, longitude } = event.nativeEvent.coordinate;
-      dispatch(stopDraggingWaypoint());
+      dispatch(stopDraggingStop());
 
       try {
-        await updateWaypoint({
+        await updateStop({
           roadId,
-          waypointId,
-          waypoint: { latitude, longitude },
+          stopId,
+          stop: { latitude, longitude },
         }).unwrap();
       } catch {
         showNotification({
           type: 'error',
           header: 'Error',
-          message: 'Failed to update waypoint location.',
+          message: 'Failed to update stop location.',
         });
       }
     },
-    [dispatch, draggingWaypointId, roadId, updateWaypoint],
+    [dispatch, draggingStopId, roadId, updateStop],
   );
 
-  const handleNavigateToWaypoint = useCallback(() => {
-    if (!contextMenuWaypointId) return;
-    dispatch(startDraggingWaypoint(contextMenuWaypointId));
+  const handleNavigateToStop = useCallback(() => {
+    if (!contextMenuStopId) return;
+    dispatch(startDraggingStop(contextMenuStopId));
     showNotification({
       type: 'info',
       header: 'Drag to move',
       message: 'Drag the highlighted pin to its new position.',
     });
-  }, [contextMenuWaypointId, dispatch]);
+  }, [contextMenuStopId, dispatch]);
 
   const handleCloseContextMenu = useCallback(
     () => dispatch(closeContextMenu()),
@@ -185,8 +185,8 @@ const useMapLogic = () => {
   );
 
   const handleMapPress = useCallback(() => {
-    if (draggingWaypointId) dispatch(stopDraggingWaypoint());
-  }, [dispatch, draggingWaypointId]);
+    if (draggingStopId) dispatch(stopDraggingStop());
+  }, [dispatch, draggingStopId]);
 
   const onPlaceSelected = useCallback<OnPlaceSelected>(
     (location) => {
@@ -224,9 +224,9 @@ const useMapLogic = () => {
   const handleAddPlaceAsStop = useCallback(
     async (place: RoutePlace) => {
       try {
-        await addWaypoint({
+        await addStop({
           roadId,
-          waypoint: {
+          stop: {
             latitude: place.latitude,
             longitude: place.longitude,
             order: place.insertAfterIndex + 2,
@@ -242,56 +242,56 @@ const useMapLogic = () => {
         showNotification({
           type: 'error',
           header: 'Error',
-          message: 'Failed to add waypoint.',
+          message: 'Failed to add stop.',
         });
       }
     },
-    [addWaypoint, roadId],
+    [addStop, roadId],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
     () =>
-      contextMenuWaypoint
+      contextMenuStop
         ? [
             {
-              label: 'Move waypoint',
+              label: 'Move stop',
               icon: 'navigate-outline',
-              action: handleNavigateToWaypoint,
+              action: handleNavigateToStop,
             },
             {
-              label: 'Delete waypoint',
+              label: 'Delete stop',
               icon: 'trash-outline',
               tone: 'danger',
-              action: handleDeleteWaypoint,
+              action: handleDeleteStop,
             },
           ]
         : [
             {
-              label: 'Add waypoint here',
+              label: 'Add stop here',
               icon: 'add-circle-outline',
-              action: handleAddWaypoint,
+              action: handleAddStop,
             },
           ],
     [
-      contextMenuWaypoint,
-      handleAddWaypoint,
-      handleDeleteWaypoint,
-      handleNavigateToWaypoint,
+      contextMenuStop,
+      handleAddStop,
+      handleDeleteStop,
+      handleNavigateToStop,
     ],
   );
 
   const contextMenuProps = useMemo(
     () => ({
       visible: isContextMenuVisible,
-      title: contextMenuWaypoint
-        ? addressName(contextMenuWaypoint.address) || 'Dropped pin'
+      title: contextMenuStop
+        ? addressName(contextMenuStop.address) || 'Dropped pin'
         : 'Dropped pin',
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,
     }),
     [
       contextMenuOptions,
-      contextMenuWaypoint,
+      contextMenuStop,
       handleCloseContextMenu,
       isContextMenuVisible,
     ],
@@ -303,12 +303,12 @@ const useMapLogic = () => {
     mapRef,
     bottomSheetRef,
     isLoading,
-    waypoints,
+    stops,
     routeLine,
     routeSearch,
     transportMode,
     setTransportMode,
-    draggingWaypointId,
+    draggingStopId,
     contextMenuProps,
     onPlaceSelected,
     focusOnPlace,

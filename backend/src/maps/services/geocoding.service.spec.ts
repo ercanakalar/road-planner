@@ -42,7 +42,7 @@ describe('GeocodingService', () => {
       });
     });
 
-    it('splits the result into the columns a waypoint is stored in', async () => {
+    it('splits the result into the columns a stop is stored in', async () => {
       client.get.mockResolvedValue(FULL_ADDRESS);
 
       await expect(service.reverseGeocode(KADIKOY)).resolves.toEqual({

@@ -9,11 +9,11 @@ import RouteSearchSheet from 'components/map/RouteSearchSheet';
 import ContextMenu from 'components/ui/ContextMenu';
 import ScreenState from 'components/ui/ScreenState';
 import BottomSheetHandle from 'components/ui/BottomSheetHandle';
-import EnhancedWaypointList from './EnhancedWaypointList';
+import EnhancedStopList from './EnhancedStopList';
 import { MapSection } from 'components/map/MapSection';
 
 import useMapLogic from 'hooks/map/useMapLogic';
-import useWaypointPair from 'hooks/map/useWaypointPair';
+import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
 import { radius, shadows, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -29,12 +29,12 @@ const ShowRouteByIdScreen = () => {
     mapRef,
     bottomSheetRef,
     isLoading,
-    waypoints,
+    stops,
     routeLine,
     routeSearch,
     transportMode,
     setTransportMode,
-    draggingWaypointId,
+    draggingStopId,
     contextMenuProps,
     onPlaceSelected,
     focusOnPlace,
@@ -44,7 +44,7 @@ const ShowRouteByIdScreen = () => {
     handleMapPress,
   } = useMapLogic();
 
-  const waypointPair = useWaypointPair();
+  const stopPair = useStopPair();
 
   const { height: windowHeight } = useWindowDimensions();
   const [isReordering, setIsReordering] = useState(false);
@@ -89,19 +89,19 @@ const ShowRouteByIdScreen = () => {
     [],
   );
 
-  if (isLoading && waypoints.length === 0) {
+  if (isLoading && stops.length === 0) {
     return <ScreenState variant='loading' title='Loading route…' />;
   }
 
-  const sheetGesturesEnabled = !draggingWaypointId && !isReordering;
+  const sheetGesturesEnabled = !draggingStopId && !isReordering;
 
   return (
     <>
       <View style={styles.container}>
         <MapSection
           mapRef={mapRef}
-          waypoints={waypoints}
-          draggingWaypointId={draggingWaypointId}
+          stops={stops}
+          draggingStopId={draggingStopId}
           routeCoordinates={routeLine.coordinates}
           summary={summary}
           transportMode={transportMode}
@@ -110,7 +110,7 @@ const ShowRouteByIdScreen = () => {
           onMapPress={handleMapPress}
           foundPlaces={routeSearch.places}
           onFoundPlacePress={focusOnPlace}
-          selectedWaypointIds={waypointPair.selected}
+          selectedStopIds={stopPair.selected}
         />
 
         <PlacesSearchBar onPlaceSelected={onPlaceSelected} />
@@ -149,12 +149,12 @@ const ShowRouteByIdScreen = () => {
         handleComponent={BottomSheetHandle}
         backgroundStyle={styles.sheetBackground}
       >
-        <EnhancedWaypointList
+        <EnhancedStopList
           roadId={roadId}
           transportMode={transportMode}
-          selectedPair={waypointPair.selected}
-          onToggleSelection={waypointPair.toggle}
-          onForgetSelection={waypointPair.forget}
+          selectedPair={stopPair.selected}
+          onToggleSelection={stopPair.toggle}
+          onForgetSelection={stopPair.forget}
           onTransportModeChange={setTransportMode}
           onReorderingChange={handleReorderingChange}
         />

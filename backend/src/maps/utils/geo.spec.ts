@@ -1,8 +1,10 @@
 import {
+  bearingDegrees,
   haversineMeters,
   pathLengthMeters,
   projectOntoPath,
   samplePath,
+  turnDegrees,
 } from './geo';
 
 const ISTANBUL = { latitude: 41.0082, longitude: 28.9784 };
@@ -163,5 +165,57 @@ describe('samplePath', () => {
 
   it('has nothing to sample on an empty path', () => {
     expect(samplePath([], 1000)).toEqual([]);
+  });
+});
+
+describe('bearingDegrees', () => {
+  const ORIGIN = { latitude: 0, longitude: 0 };
+
+  it.each([
+    ['north', { latitude: 1, longitude: 0 }, 0],
+    ['east', { latitude: 0, longitude: 1 }, 90],
+    ['south', { latitude: -1, longitude: 0 }, 180],
+    ['west', { latitude: 0, longitude: -1 }, 270],
+  ])('points %s', (_name, to, expected) => {
+    expect(bearingDegrees(ORIGIN, to)).toBeCloseTo(expected, 5);
+  });
+
+  it('answers between 0 and 360 rather than either side of zero', () => {
+    expect(bearingDegrees(ORIGIN, { latitude: 1, longitude: -0.001 })).toBeGreaterThan(
+      350,
+    );
+  });
+
+  it('has no direction to give between a point and itself', () => {
+    expect(bearingDegrees(ISTANBUL, { ...ISTANBUL })).toBe(0);
+  });
+
+  it('reads the shorter way round the date line', () => {
+    const west = { latitude: 0, longitude: 179.9 };
+    const east = { latitude: 0, longitude: -179.9 };
+
+    expect(bearingDegrees(west, east)).toBeCloseTo(90, 3);
+  });
+});
+
+describe('turnDegrees', () => {
+  it('is nothing when the heading does not change', () => {
+    expect(turnDegrees(90, 90)).toBe(0);
+  });
+
+  it('signs a turn to the right positive and to the left negative', () => {
+    expect(turnDegrees(0, 90)).toBe(90);
+    expect(turnDegrees(90, 0)).toBe(-90);
+  });
+
+  it('takes the shorter way round rather than the long one', () => {
+    // 350 to 10 is 20 degrees to the right, not 340 to the left.
+    expect(turnDegrees(350, 10)).toBe(20);
+    expect(turnDegrees(10, 350)).toBe(-20);
+  });
+
+  it('answers 180 for doubling back, whichever way it is written', () => {
+    expect(Math.abs(turnDegrees(0, 180))).toBe(180);
+    expect(Math.abs(turnDegrees(180, 0))).toBe(180);
   });
 });

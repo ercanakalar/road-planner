@@ -12,9 +12,9 @@ const PRISMA_MODELS = [
   'permit',
   'permission',
   'road',
-  'wayPoint',
+  'stop',
   'favoriteRoad',
-  'favoriteWaypoint',
+  'favoriteStop',
 ] as const;
 
 const PRISMA_METHODS = [
@@ -71,6 +71,24 @@ export function createGeocodingMock(fallback: AddressResult = UNNAMED_PLACE): {
     reverseGeocode: jest.fn().mockResolvedValue(fallback),
     resolveAddress: jest.fn((_coordinate: unknown, supplied?: string) =>
       Promise.resolve(supplied || fallback.address),
+    ),
+  };
+}
+
+/**
+ * An Elevation API that answers nothing, which is what an unconfigured server
+ * does too. Tests that care about heights hand their own numbers back.
+ */
+export function createElevationMock(heights: (number | null)[] = []): {
+  elevation: jest.Mock;
+  elevations: jest.Mock;
+} {
+  let served = 0;
+
+  return {
+    elevation: jest.fn(() => Promise.resolve(heights[served++] ?? null)),
+    elevations: jest.fn((points: readonly unknown[]) =>
+      Promise.resolve(points.map((_, index) => heights[index] ?? null)),
     ),
   };
 }

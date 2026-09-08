@@ -7,7 +7,7 @@ import {
   FavoriteEntry,
   FavoriteRoadRow,
   FavoriteSectionKey,
-  FavoriteWaypointRow,
+  FavoriteStopRow,
   NormalizedFavorites,
   RawFavorites,
 } from 'types/store/services/favoriteService-type';
@@ -15,16 +15,16 @@ import {
 /** The four buckets the API splits favourites into, in the order they show. */
 export const FAVORITE_SECTION_KEYS: readonly FavoriteSectionKey[] = [
   'ownRoads',
-  'ownWaypoints',
+  'ownStops',
   'othersRoads',
-  'othersWaypoints',
+  'othersStops',
 ] as const;
 
 export const EMPTY_FAVORITES: NormalizedFavorites = {
   ownRoads: [],
-  ownWaypoints: [],
+  ownStops: [],
   othersRoads: [],
-  othersWaypoints: [],
+  othersStops: [],
 };
 
 const toRoadEntry =
@@ -45,12 +45,12 @@ const toRoadEntry =
     };
   };
 
-const toWaypointEntry =
+const toStopEntry =
   (isOwn: boolean) =>
-  (row: FavoriteWaypointRow): FavoriteEntry => {
-    const address = row.waypoint?.address;
-    const coordinates = row.waypoint
-      ? `${row.waypoint.latitude.toFixed(4)}, ${row.waypoint.longitude.toFixed(4)}`
+  (row: FavoriteStopRow): FavoriteEntry => {
+    const address = row.stop?.address;
+    const coordinates = row.stop
+      ? `${row.stop.latitude.toFixed(4)}, ${row.stop.longitude.toFixed(4)}`
       : undefined;
 
     // A pin dropped away from any address arrives with nothing usable — a Plus
@@ -59,8 +59,8 @@ const toWaypointEntry =
 
     return {
       favoriteId: row.id,
-      targetId: row.waypoint?.id ?? row.id,
-      kind: 'waypoint',
+      targetId: row.stop?.id ?? row.id,
+      kind: 'stop',
       title: row.title || defaultTitle,
       subtitle: row.description || addressLocality(address) || coordinates,
       annotationTitle: row.title ?? undefined,
@@ -75,9 +75,9 @@ export const normalizeFavorites = (raw?: RawFavorites): NormalizedFavorites => {
   if (!raw) return EMPTY_FAVORITES;
   return {
     ownRoads: (raw.ownRoads ?? []).map(toRoadEntry(true)),
-    ownWaypoints: (raw.ownWaypoints ?? []).map(toWaypointEntry(true)),
+    ownStops: (raw.ownStops ?? []).map(toStopEntry(true)),
     othersRoads: (raw.othersRoads ?? []).map(toRoadEntry(false)),
-    othersWaypoints: (raw.othersWaypoints ?? []).map(toWaypointEntry(false)),
+    othersStops: (raw.othersStops ?? []).map(toStopEntry(false)),
   };
 };
 

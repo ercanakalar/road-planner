@@ -71,7 +71,7 @@ export const FavoriteItem = memo(
           accessibilityRole='button'
           accessibilityLabel={`Open ${item.title}`}
         >
-          <View style={[styles.iconContainer, !isRoad && styles.iconWaypoint]}>
+          <View style={[styles.iconContainer, !isRoad && styles.iconStop]}>
             <Ionicons
               name={isRoad ? 'git-branch-outline' : 'location-outline'}
               size={18}
@@ -164,7 +164,7 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       alignItems: 'center',
     },
-    iconWaypoint: {
+    iconStop: {
       backgroundColor: colors.accentSoft,
     },
     itemText: { flex: 1 },

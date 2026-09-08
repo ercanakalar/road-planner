@@ -3,8 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 import LocateButton from 'components/map/LocateButton';
+import StopShapeRow from 'components/map/StopShapeRow';
 import ScreenState from 'components/ui/ScreenState';
-import useWaypointLogic from 'hooks/map/useWaypointLogic';
+import useStopLogic from 'hooks/map/useStopLogic';
 import {
   radius,
   shadows,
@@ -17,23 +18,23 @@ import type { ThemeColors } from 'theme';
 import { addressLocality, addressName } from 'utils/address';
 import useMapStyle from 'hooks/map/useMapStyle';
 
-const ShowWaypointByIdScreen = () => {
+const ShowStopByIdScreen = () => {
   const { colors } = useTheme();
   const { mapStyle, isDark } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
   const { mapRef, data, isLoading, isError, initialRegion } =
-    useWaypointLogic();
+    useStopLogic();
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading waypoint…' />;
+    return <ScreenState variant='loading' title='Loading stop…' />;
   }
 
   if (isError || !data) {
     return (
       <ScreenState
         variant='error'
-        title='Waypoint not found'
+        title='Stop not found'
         message='It may have been removed from the route.'
       />
     );
@@ -69,6 +70,14 @@ const ShowWaypointByIdScreen = () => {
           {locality ||
             `${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`}
         </Text>
+
+        <StopShapeRow shape={data} />
+
+        {data.elevation === null ? null : (
+          <Text style={styles.subtitle}>
+            {Math.round(data.elevation)} m above sea level
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -103,4 +112,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default memo(ShowWaypointByIdScreen);
+export default memo(ShowStopByIdScreen);

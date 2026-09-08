@@ -58,7 +58,7 @@ const Row = memo(
             {road.title}
           </Text>
           <Text style={styles.rowMeta}>
-            {road.wayPoints.length} stop{road.wayPoints.length === 1 ? '' : 's'}
+            {road.stops.length} stop{road.stops.length === 1 ? '' : 's'}
           </Text>
         </View>
 

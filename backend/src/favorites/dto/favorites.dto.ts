@@ -7,9 +7,9 @@ import {
 } from 'src/common/dto/constants';
 import { trim } from 'src/common/dto/transforms';
 
-export class ToggleFavoriteWaypointDto {
-  @IsUUID('4', { message: 'waypointId must be a UUID' })
-  waypointId!: string;
+export class ToggleFavoriteStopDto {
+  @IsUUID('4', { message: 'stopId must be a UUID' })
+  stopId!: string;
 }
 
 export class ToggleFavoriteRoadDto {

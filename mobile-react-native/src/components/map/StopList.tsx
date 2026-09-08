@@ -8,28 +8,28 @@ import DraggableFlatList, {
 
 import OpenInGoogleMapsButton from 'components/map/OpenInGoogleMapsButton';
 import TransportSelector from 'components/map/TransportSelector';
-import WaypointCard from './WaypointCard';
+import StopCard from './StopCard';
 
 import { spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { TransportMode, WaypointOption } from 'types/transport-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { TransportMode, StopOption } from 'types/transport-type';
 
-interface WaypointListProps {
-  waypoints: WaypointWithAddress[];
+interface StopListProps {
+  stops: StopWithAddress[];
   selectedPair: string[];
   durations?: Partial<Record<TransportMode, number>>;
   transportMode: TransportMode;
   showFavoriteAction?: boolean;
   onTransportModeChange: (mode: TransportMode) => void;
   onToggleSelection: (id: string) => void;
-  onOptionSelect: (option: WaypointOption, item: WaypointWithAddress) => void;
+  onOptionSelect: (option: StopOption, item: StopWithAddress) => void;
   onReorder: (params: { from: number; to: number }) => void;
   onReorderingChange?: (isReordering: boolean) => void;
 }
 
-const WaypointList = ({
-  waypoints,
+const StopList = ({
+  stops,
   selectedPair,
   durations,
   transportMode,
@@ -39,7 +39,7 @@ const WaypointList = ({
   onOptionSelect,
   onReorder,
   onReorderingChange,
-}: WaypointListProps) => {
+}: StopListProps) => {
   const styles = useThemedStyles(createStyles);
 
   const handleDragBegin = useCallback(
@@ -48,7 +48,7 @@ const WaypointList = ({
   );
 
   const handleDragEnd = useCallback(
-    ({ from, to }: DragEndParams<WaypointWithAddress>) => {
+    ({ from, to }: DragEndParams<StopWithAddress>) => {
       onReorderingChange?.(false);
       if (from === to) return;
       onReorder({ from, to });
@@ -61,9 +61,9 @@ const WaypointList = ({
       item,
       drag,
       isActive,
-    }: RenderItemParams<WaypointWithAddress>): JSX.Element => (
+    }: RenderItemParams<StopWithAddress>): JSX.Element => (
       <ScaleDecorator activeScale={1.02}>
-        <WaypointCard
+        <StopCard
           item={item}
           drag={drag}
           isActive={isActive}
@@ -78,7 +78,7 @@ const WaypointList = ({
     [onOptionSelect, onToggleSelection, selectedPair, showFavoriteAction],
   );
 
-  const keyExtractor = useCallback((item: WaypointWithAddress) => item.id, []);
+  const keyExtractor = useCallback((item: StopWithAddress) => item.id, []);
 
   const header = useMemo(
     () => (
@@ -97,7 +97,7 @@ const WaypointList = ({
           durations={durations}
         />
         {/* Planning happens here; the driving itself is handed to Google. */}
-        <OpenInGoogleMapsButton waypoints={waypoints} mode={transportMode} />
+        <OpenInGoogleMapsButton stops={stops} mode={transportMode} />
       </View>
     ),
     [
@@ -106,7 +106,7 @@ const WaypointList = ({
       selectedPair.length,
       styles,
       transportMode,
-      waypoints,
+      stops,
     ],
   );
 
@@ -124,7 +124,7 @@ const WaypointList = ({
 
   return (
     <DraggableFlatList
-      data={waypoints}
+      data={stops}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       onDragBegin={handleDragBegin}
@@ -177,4 +177,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default WaypointList;
+export default StopList;

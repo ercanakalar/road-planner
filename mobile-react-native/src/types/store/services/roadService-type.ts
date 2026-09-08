@@ -1,7 +1,7 @@
 import {
   OwnRoadSummary,
-  WaypointWithAddress,
-  WaypointWithAddressAndId,
+  StopWithAddress,
+  StopWithAddressAndId,
 } from 'types/map-screen-type';
 
 export interface Road {
@@ -16,7 +16,7 @@ export interface Road {
 }
 
 
-export interface Waypoint {
+export interface Stop {
   id: string;
   latitude: number;
   longitude: number;
@@ -29,7 +29,7 @@ export interface Waypoint {
 }
 
 
-export interface WaypointInput {
+export interface StopInput {
   id?: string;
   latitude: number;
   longitude: number;
@@ -49,7 +49,7 @@ export interface DiscoverRoad {
   author: string;
   stopCount: number;
   isFavorite: boolean;
-  wayPoints: WaypointWithAddress[];
+  stops: StopWithAddress[];
 }
 
 export interface ShareRoadArgs {
@@ -65,7 +65,7 @@ export interface GetSharedRoadArgs {
   token: string;
 }
 
-export type GetSharedRoadResponse = WaypointWithAddressAndId & {
+export type GetSharedRoadResponse = StopWithAddressAndId & {
   author: string;
   isFavorite: boolean;
 };
@@ -85,12 +85,12 @@ export type GetDiscoverRoadsResponse = DiscoverRoad[];
 export interface GetRoadByIdArgs {
   roadId: string;
 }
-export type GetRoadByIdResponse = WaypointWithAddressAndId;
+export type GetRoadByIdResponse = StopWithAddressAndId;
 
-export interface GetWaypointByIdArgs {
-  waypointId: string;
+export interface GetStopByIdArgs {
+  stopId: string;
 }
-export type GetWaypointByIdResponse = WaypointWithAddress;
+export type GetStopByIdResponse = StopWithAddress;
 
 export interface DeleteRoadByIdArgs {
   roadId: string;
@@ -100,41 +100,41 @@ export type DeleteRoadByIdResponse = null;
 export interface CreateRoadArgs {
   title: string;
   description?: string;
-  waypoints?: WaypointInput[];
+  stops?: StopInput[];
 }
-export type CreateRoadResponse = WaypointWithAddressAndId;
+export type CreateRoadResponse = StopWithAddressAndId;
 
 export interface UpdateRoadByIdArgs {
   roadId: string;
   title: string;
   description?: string;
   isPublic?: boolean;
-  waypoints?: WaypointInput[];
+  stops?: StopInput[];
 }
-export type UpdateRoadByIdResponse = WaypointWithAddressAndId;
+export type UpdateRoadByIdResponse = StopWithAddressAndId;
 
-export interface AddWaypointArgs {
+export interface AddStopArgs {
   roadId: string;
-  waypoint: WaypointInput;
+  stop: StopInput;
 }
-export type AddWaypointResponse = Waypoint;
+export type AddStopResponse = Stop;
 
-export interface DeleteWaypointByRoadIdArgs {
+export interface DeleteStopByRoadIdArgs {
   roadId: string;
-  waypointId: string;
+  stopId: string;
 }
-export type DeleteWaypointByRoadIdResponse = null;
+export type DeleteStopByRoadIdResponse = null;
 
-export interface UpdateWaypointByWaypointIdArgs {
+export interface UpdateStopByStopIdArgs {
   roadId: string;
-  waypointId: string;
-  waypoint: WaypointInput;
+  stopId: string;
+  stop: StopInput;
 }
-export type UpdateWaypointByWaypointIdResponse = Waypoint;
+export type UpdateStopByStopIdResponse = Stop;
 
-export interface ReorderWaypointsArgs {
+export interface ReorderStopsArgs {
   roadId: string;
   from: number;
   to: number;
 }
-export type ReorderWaypointsResponse = Waypoint[];
+export type ReorderStopsResponse = Stop[];

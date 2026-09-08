@@ -1,25 +1,26 @@
 import { memo, useCallback } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 
-import WaypointOptions from 'components/map/WaypointOptions';
+import StopOptions from 'components/map/StopOptions';
+import StopShapeRow from 'components/map/StopShapeRow';
 import { radius, shadows, spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { WaypointOption } from 'types/transport-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { StopOption } from 'types/transport-type';
 import { addressLocality, addressName } from 'utils/address';
 
-type WaypointCardProps = {
-  item: WaypointWithAddress;
+type StopCardProps = {
+  item: StopWithAddress;
   isActive: boolean;
   isSelected: boolean;
   selectionIndex: number;
   showFavoriteAction?: boolean;
   drag: () => void;
   onToggleSelection: (id: string) => void;
-  onOptionSelect: (option: WaypointOption, item: WaypointWithAddress) => void;
+  onOptionSelect: (option: StopOption, item: StopWithAddress) => void;
 };
 
-const WaypointCard = ({
+const StopCard = ({
   item,
   isActive,
   isSelected,
@@ -28,7 +29,7 @@ const WaypointCard = ({
   drag,
   onToggleSelection,
   onOptionSelect,
-}: WaypointCardProps) => {
+}: StopCardProps) => {
   const styles = useThemedStyles(createStyles);
 
   const handlePress = useCallback(
@@ -37,7 +38,7 @@ const WaypointCard = ({
   );
 
   const handleOptionSelect = useCallback(
-    (option: WaypointOption) => onOptionSelect(option, item),
+    (option: StopOption) => onOptionSelect(option, item),
     [item, onOptionSelect],
   );
 
@@ -80,9 +81,11 @@ const WaypointCard = ({
               {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
             </Text>
           )}
+
+          <StopShapeRow shape={item} />
         </View>
 
-        <WaypointOptions
+        <StopOptions
           item={item}
           showFavoriteAction={showFavoriteAction}
           onOptionSelect={handleOptionSelect}
@@ -147,4 +150,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default memo(WaypointCard);
+export default memo(StopCard);

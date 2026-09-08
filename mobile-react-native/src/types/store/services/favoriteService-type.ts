@@ -7,7 +7,7 @@ interface FavoriteRoadTarget {
   archivedAt?: string | null;
 }
 
-interface FavoriteWaypointTarget {
+interface FavoriteStopTarget {
   id: string;
   latitude: number;
   longitude: number;
@@ -22,21 +22,21 @@ export interface FavoriteRoadRow {
   road?: FavoriteRoadTarget | null;
 }
 
-export interface FavoriteWaypointRow {
+export interface FavoriteStopRow {
   id: string;
   title?: string | null;
   description?: string | null;
-  waypoint?: FavoriteWaypointTarget | null;
+  stop?: FavoriteStopTarget | null;
 }
 
 export interface RawFavorites {
   ownRoads: FavoriteRoadRow[];
-  ownWaypoints: FavoriteWaypointRow[];
+  ownStops: FavoriteStopRow[];
   othersRoads: FavoriteRoadRow[];
-  othersWaypoints: FavoriteWaypointRow[];
+  othersStops: FavoriteStopRow[];
 }
 
-type FavoriteKind = 'road' | 'waypoint';
+type FavoriteKind = 'road' | 'stop';
 
 export interface FavoriteEntry {
   favoriteId: string;
@@ -55,9 +55,9 @@ export interface FavoriteEntry {
 
 export type FavoriteSectionKey =
   | 'ownRoads'
-  | 'ownWaypoints'
+  | 'ownStops'
   | 'othersRoads'
-  | 'othersWaypoints';
+  | 'othersStops';
 
 export type NormalizedFavorites = Record<FavoriteSectionKey, FavoriteEntry[]>;
 
@@ -68,8 +68,8 @@ export interface ToggleFavoriteRoadArgs {
   roadId: string;
 }
 
-export interface ToggleFavoriteWaypointArgs {
-  waypointId: string;
+export interface ToggleFavoriteStopArgs {
+  stopId: string;
   roadId?: string;
 }
 

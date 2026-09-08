@@ -6,7 +6,7 @@ type RootStackParamList = {
   ShowRouteByIdScreen: { roadId: string };
   CommunityRouteScreen: { roadId: string; title?: string };
   SharedRouteScreen: { token: string };
-  ShowWaypointById: { waypointId: string };
+  ShowStopById: { stopId: string };
   ProfileDetailScreen: { userId: string };
   ProfileScreen: { userId: string } | undefined;
   SettingsScreen: undefined;

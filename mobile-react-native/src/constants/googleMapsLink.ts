@@ -11,7 +11,7 @@ interface LatLng {
  * so longer routes are thinned here instead and the caller is told how many
  * stops were left behind.
  */
-export const GOOGLE_MAPS_WAYPOINT_LIMIT = 9;
+export const GOOGLE_MAPS_STOP_LIMIT = 9;
 
 /**
  * The Maps URLs scheme. It needs no key and costs nothing — handing the route
@@ -33,12 +33,12 @@ const coordinate = ({ latitude, longitude }: LatLng): string =>
 
 /** Keeps both ends and spreads the rest evenly, so the shape survives. */
 const thinToLimit = (stops: readonly LatLng[]): LatLng[] => {
-  if (stops.length <= GOOGLE_MAPS_WAYPOINT_LIMIT) return [...stops];
+  if (stops.length <= GOOGLE_MAPS_STOP_LIMIT) return [...stops];
 
-  const step = (stops.length - 1) / (GOOGLE_MAPS_WAYPOINT_LIMIT - 1);
+  const step = (stops.length - 1) / (GOOGLE_MAPS_STOP_LIMIT - 1);
 
   return Array.from(
-    { length: GOOGLE_MAPS_WAYPOINT_LIMIT },
+    { length: GOOGLE_MAPS_STOP_LIMIT },
     (_, index) => stops[Math.round(index * step)],
   );
 };

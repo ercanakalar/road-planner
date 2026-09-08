@@ -10,7 +10,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { StopWithAddress } from 'types/map-screen-type';
 import { addressLocality, addressName } from 'utils/address';
 
 /**
@@ -25,7 +25,7 @@ export interface RouteSummary {
   authorId?: string;
   stopCount: number;
   isFavorite: boolean;
-  wayPoints: WaypointWithAddress[];
+  stops: StopWithAddress[];
 }
 
 interface Props {
@@ -38,10 +38,10 @@ interface Props {
   onOpenAuthor?: (route: RouteSummary) => void;
 }
 
-const placeOf = (waypoints: WaypointWithAddress[], index: number) => {
-  const waypoint = waypoints[index];
+const placeOf = (stops: StopWithAddress[], index: number) => {
+  const stop = stops[index];
   return (
-    addressLocality(waypoint?.address) || addressName(waypoint?.address) || null
+    addressLocality(stop?.address) || addressName(stop?.address) || null
   );
 };
 
@@ -76,11 +76,11 @@ const RouteSummaryRow = ({
   );
 
   const leg = useMemo(() => {
-    const from = placeOf(route.wayPoints, 0);
-    const to = placeOf(route.wayPoints, route.wayPoints.length - 1);
-    if (!from || !to || route.wayPoints.length < 2) return null;
+    const from = placeOf(route.stops, 0);
+    const to = placeOf(route.stops, route.stops.length - 1);
+    if (!from || !to || route.stops.length < 2) return null;
     return `${from} → ${to}`;
-  }, [route.wayPoints]);
+  }, [route.stops]);
 
   return (
     <Pressable

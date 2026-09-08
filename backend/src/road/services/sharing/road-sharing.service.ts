@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
+import { withStopMetrics } from '../stop/stop-metrics';
 
 @Injectable()
 export class RoadSharingService {
@@ -44,7 +45,7 @@ export class RoadSharingService {
         favoriteRoads: userId
           ? { where: { userId }, select: { id: true } }
           : false,
-        wayPoints: {
+        stops: {
           orderBy: { order: 'asc' },
         },
       },
@@ -59,6 +60,7 @@ export class RoadSharingService {
     return ok({
       data: {
         ...rest,
+        stops: withStopMetrics(rest.stops),
         author: user?.nickName ?? user?.firstName ?? 'A traveller',
         isFavorite: !!favoriteRoads?.length,
       },

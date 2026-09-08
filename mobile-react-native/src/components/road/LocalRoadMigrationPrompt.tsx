@@ -26,7 +26,7 @@ const LocalRoadMigrationPrompt = () => {
   const isHydrated = useAppSelector((state) => state.localRoad.isHydrated);
   const transferableCount = useAppSelector(
     (state) =>
-      state.localRoad.roads.filter((road) => road.wayPoints.length > 0).length,
+      state.localRoad.roads.filter((road) => road.stops.length > 0).length,
   );
 
   const [isVisible, setIsVisible] = useState(false);

@@ -14,9 +14,9 @@ const LABELS: Record<
   { title: string; icon: MaterialIconName }
 > = {
   ownRoads: { title: 'My routes', icon: 'directions-car' },
-  ownWaypoints: { title: 'My places', icon: 'location-on' },
+  ownStops: { title: 'My places', icon: 'location-on' },
   othersRoads: { title: "Others' routes", icon: 'public' },
-  othersWaypoints: { title: "Others' places", icon: 'place' },
+  othersStops: { title: "Others' places", icon: 'place' },
 };
 
 /**

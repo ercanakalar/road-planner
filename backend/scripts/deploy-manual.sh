@@ -223,6 +223,14 @@ gcloud run jobs execute "${JOB}" \
   --project "${PROJECT_ID}" \
   --wait
 
+# RUN_MIGRATIONS=false below is load-bearing, not tidiness. Step 6 already ran
+# the migrations as their own job; without this the entrypoint runs
+# `prisma migrate deploy` again on every container start, which on a
+# scale-to-zero service means every cold start pays for the Prisma CLI booting
+# and connecting before the API listens — and a migration history that will not
+# apply stops the container from starting at all, turning a deploy problem into
+# an outage. --cpu-boost buys the remaining Nest/Prisma startup extra CPU for
+# the same reason: the first request after idle is the one users feel.
 say "7/7 Deploying the API service"
 gcloud run deploy "${SERVICE}" \
   --image="${API_IMAGE}" \
@@ -231,7 +239,7 @@ gcloud run deploy "${SERVICE}" \
   --service-account="${SA_EMAIL}" \
   --allow-unauthenticated \
   --execution-environment=gen2 \
-  --set-env-vars="NODE_ENV=production,UPLOAD_DIR=/mnt/uploads,CORS_ORIGINS=${CORS_ORIGINS},FRONTEND_URL=${FRONTEND_URL},SHARE_LINK_BASE_URL=${SHARE_LINK_BASE_URL},GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_NATIVE_CLIENT_IDS=${GOOGLE_NATIVE_CLIENT_IDS},MAIL_HOST=${MAIL_HOST},MAIL_PORT=${MAIL_PORT},MAIL_USERNAME=${MAIL_USERNAME},MAIL_FROM=${MAIL_FROM}" \
+  --set-env-vars="NODE_ENV=production,RUN_MIGRATIONS=false,UPLOAD_DIR=/mnt/uploads,CORS_ORIGINS=${CORS_ORIGINS},FRONTEND_URL=${FRONTEND_URL},SHARE_LINK_BASE_URL=${SHARE_LINK_BASE_URL},GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_NATIVE_CLIENT_IDS=${GOOGLE_NATIVE_CLIENT_IDS},MAIL_HOST=${MAIL_HOST},MAIL_PORT=${MAIL_PORT},MAIL_USERNAME=${MAIL_USERNAME},MAIL_FROM=${MAIL_FROM}" \
   --set-secrets="DATABASE_URL=DATABASE_URL:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,MAP_API_KEY=MAP_API_KEY:latest" \
   --add-volume=name=uploads,type=cloud-storage,bucket="${BUCKET}" \
   --add-volume-mount=volume=uploads,mount-path=/mnt/uploads \
@@ -239,6 +247,7 @@ gcloud run deploy "${SERVICE}" \
   --max-instances="${MAX_INSTANCES}" \
   --memory=512Mi \
   --cpu=1 \
+  --cpu-boost \
   --timeout=60s
 
 # A deploy can succeed and change nothing: if traffic is pinned to a named

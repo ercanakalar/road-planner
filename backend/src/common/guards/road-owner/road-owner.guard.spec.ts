@@ -11,7 +11,7 @@ const OWNER = 'user-1';
 const ATTACKER = 'user-2';
 const ROAD_ID = 'road-1';
 const ATTACKER_ROAD_ID = 'road-2';
-const WAYPOINT_ID = 'wp-1';
+const STOP_ID = 'wp-1';
 
 describe('RoadOwnerGuard', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
@@ -28,8 +28,8 @@ describe('RoadOwnerGuard', () => {
     );
   };
 
-  const givenWaypoint = (id: string, roadId: string | null) => {
-    prisma.wayPoint.findUnique.mockImplementation(({ where }: any) =>
+  const givenStop = (id: string, roadId: string | null) => {
+    prisma.stop.findUnique.mockImplementation(({ where }: any) =>
       Promise.resolve(where.id === id ? { roadId } : null),
     );
   };
@@ -110,30 +110,30 @@ describe('RoadOwnerGuard', () => {
     });
   });
 
-  describe('waypoint routes (:waypointId)', () => {
-    it('allows the owner of the waypoint’s road', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+  describe('stop routes (:stopId)', () => {
+    it('allows the owner of the stop’s road', async () => {
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER });
       const { context } = createExecutionContext({
         user: { userId: OWNER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
       });
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('resolves the road through the waypoint', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+    it('resolves the road through the stop', async () => {
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER });
       const { context } = createExecutionContext({
         user: { userId: OWNER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
       });
 
       await guard.canActivate(context);
 
-      expect(prisma.wayPoint.findUnique).toHaveBeenCalledWith({
-        where: { id: WAYPOINT_ID },
+      expect(prisma.stop.findUnique).toHaveBeenCalledWith({
+        where: { id: STOP_ID },
         select: { roadId: true },
       });
       expect(prisma.road.findUnique).toHaveBeenCalledWith({
@@ -143,11 +143,11 @@ describe('RoadOwnerGuard', () => {
     });
 
     it('denies the owner of a different road', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER, [ATTACKER_ROAD_ID]: ATTACKER });
       const { context } = createExecutionContext({
         user: { userId: ATTACKER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
       });
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -155,11 +155,11 @@ describe('RoadOwnerGuard', () => {
       );
     });
 
-    it('reports a missing waypoint as not found', async () => {
-      givenWaypoint('other', ROAD_ID);
+    it('reports a missing stop as not found', async () => {
+      givenStop('other', ROAD_ID);
       const { context } = createExecutionContext({
         user: { userId: OWNER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
       });
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -167,11 +167,11 @@ describe('RoadOwnerGuard', () => {
       );
     });
 
-    it('denies a waypoint attached to no road', async () => {
-      givenWaypoint(WAYPOINT_ID, null);
+    it('denies a stop attached to no road', async () => {
+      givenStop(STOP_ID, null);
       const { context } = createExecutionContext({
         user: { userId: OWNER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
       });
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -181,12 +181,12 @@ describe('RoadOwnerGuard', () => {
   });
 
   describe('IDOR via the query string (C3)', () => {
-    it('ignores ?id= on a waypoint route and authorizes the waypoint’s own road', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+    it('ignores ?id= on a stop route and authorizes the stop’s own road', async () => {
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER, [ATTACKER_ROAD_ID]: ATTACKER });
       const { context } = createExecutionContext({
         user: { userId: ATTACKER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
         query: { id: ATTACKER_ROAD_ID },
       });
 
@@ -196,11 +196,11 @@ describe('RoadOwnerGuard', () => {
     });
 
     it('never reads the road named in the query string', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER, [ATTACKER_ROAD_ID]: ATTACKER });
       const { context } = createExecutionContext({
         user: { userId: ATTACKER },
-        params: { waypointId: WAYPOINT_ID },
+        params: { stopId: STOP_ID },
         query: { id: ATTACKER_ROAD_ID },
       });
 
@@ -266,12 +266,12 @@ describe('RoadOwnerGuard', () => {
       );
     });
 
-    it('prefers waypointId when both parameters are present', async () => {
-      givenWaypoint(WAYPOINT_ID, ROAD_ID);
+    it('prefers stopId when both parameters are present', async () => {
+      givenStop(STOP_ID, ROAD_ID);
       givenRoads({ [ROAD_ID]: OWNER, [ATTACKER_ROAD_ID]: ATTACKER });
       const { context } = createExecutionContext({
         user: { userId: ATTACKER },
-        params: { waypointId: WAYPOINT_ID, id: ATTACKER_ROAD_ID },
+        params: { stopId: STOP_ID, id: ATTACKER_ROAD_ID },
       });
 
       await expect(guard.canActivate(context)).rejects.toThrow(

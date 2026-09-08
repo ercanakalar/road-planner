@@ -3,7 +3,7 @@ import { Linking } from 'react-native';
 
 import {
   buildGoogleMapsRouteUrl,
-  GOOGLE_MAPS_WAYPOINT_LIMIT,
+  GOOGLE_MAPS_STOP_LIMIT,
 } from 'constants/googleMapsLink';
 import { showNotification } from 'services/notificationService';
 import { useLazyGetRoadByIdQuery } from 'store/services/roadService';
@@ -12,7 +12,7 @@ import { RouteCoordinate } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
 export type OpenInGoogleMaps = (
-  waypoints: readonly RouteCoordinate[],
+  stops: readonly RouteCoordinate[],
   mode?: TransportMode,
 ) => Promise<void>;
 
@@ -22,8 +22,8 @@ export type OpenInGoogleMaps = (
  * of what planning it already did.
  */
 export function useOpenInGoogleMaps(): OpenInGoogleMaps {
-  return useCallback(async (waypoints, mode) => {
-    const link = buildGoogleMapsRouteUrl(waypoints, mode);
+  return useCallback(async (stops, mode) => {
+    const link = buildGoogleMapsRouteUrl(stops, mode);
 
     if (!link) {
       showNotification({
@@ -40,7 +40,7 @@ export function useOpenInGoogleMaps(): OpenInGoogleMaps {
       showNotification({
         type: 'info',
         header: 'Route shortened',
-        message: `Google Maps takes ${GOOGLE_MAPS_WAYPOINT_LIMIT} stops between the ends, so ${link.omittedCount} of yours were left out.`,
+        message: `Google Maps takes ${GOOGLE_MAPS_STOP_LIMIT} stops between the ends, so ${link.omittedCount} of yours were left out.`,
         visibilityTime: 2500,
       });
     }
@@ -78,7 +78,7 @@ export function useOpenRoadInGoogleMaps(): OpenRoadInGoogleMaps {
 
       try {
         const road = await fetchRoad({ roadId }).unwrap();
-        await openInGoogleMaps(road.wayPoints);
+        await openInGoogleMaps(road.stops);
       } catch {
         showNotification({
           type: 'error',

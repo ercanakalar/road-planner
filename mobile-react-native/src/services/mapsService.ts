@@ -188,7 +188,7 @@ export async function fetchModeDurations(
 }
 
 /**
- * What `/maps/geocode/reverse` answers. The waypoint itself stores only the
+ * What `/maps/geocode/reverse` answers. The stop itself stores only the
  * formatted `address`; the components are still returned for callers that want
  * to name a place before one is saved.
  */

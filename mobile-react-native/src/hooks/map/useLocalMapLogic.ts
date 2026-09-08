@@ -9,16 +9,16 @@ import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
   closeContextMenu,
   openContextMenuForLocation,
-  openContextMenuForWaypoint,
-  startDraggingWaypoint,
-  stopDraggingWaypoint,
+  openContextMenuForStop,
+  startDraggingStop,
+  stopDraggingStop,
 } from 'store/slices/mapSlice';
 import {
-  localWaypointAdded,
-  localWaypointDeleted,
-  localWaypointFavoriteToggled,
-  localWaypointMoved,
-  localWaypointsReordered,
+  localStopAdded,
+  localStopDeleted,
+  localStopFavoriteToggled,
+  localStopMoved,
+  localStopsReordered,
 } from 'store/slices/localRoadSlice';
 import { useRouteLine } from 'hooks/map/useRouteDirections';
 import useRouteSearch from 'hooks/map/useRouteSearch';
@@ -27,32 +27,37 @@ import {
   MarkerDragEndEvent,
   OnPlaceSelected,
 } from 'types/hooks/map/useMapLogic-type';
-import { LocalRoad, LocalWaypoint } from 'types/local-road';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { LocalRoad, LocalStop } from 'types/local-road';
+import { UNSHAPED_STOP } from 'utils/stopShape';
+import { StopWithAddress } from 'types/map-screen-type';
 import { ContextMenuOption } from 'types/components/contextMenu';
 import { TransportMode } from 'types/transport-type';
 
 const COORD_THRESHOLD = 0.0001;
-const EMPTY_WAYPOINTS: WaypointWithAddress[] = [];
+const EMPTY_STOPS: StopWithAddress[] = [];
 
-const toSharedWaypoint = (
-  waypoint: LocalWaypoint,
+const toSharedStop = (
+  stop: LocalStop,
   roadId: string,
-): WaypointWithAddress => ({
-  id: waypoint.id,
-  latitude: waypoint.latitude,
-  longitude: waypoint.longitude,
-  order: waypoint.order,
+): StopWithAddress => ({
+  // A route kept on this device has never been through the server, so nothing
+  // has measured the ground under it or the angle it turns through.
+  ...UNSHAPED_STOP,
+  elevation: null,
+  id: stop.id,
+  latitude: stop.latitude,
+  longitude: stop.longitude,
+  order: stop.order,
   roadId,
-  address: waypoint.address,
+  address: stop.address,
   createdAt: '',
   updatedAt: '',
-  favoriteWaypoints: waypoint.isFavorite
+  favoriteStops: stop.isFavorite
     ? [
         {
-          id: waypoint.id,
+          id: stop.id,
           userId: '',
-          wayPointsId: waypoint.id,
+          stopsId: stop.id,
           createdAt: '',
           updatedAt: '',
         },
@@ -77,9 +82,9 @@ const useLocalMapLogic = () => {
 
   const {
     clickedLocation,
-    contextMenuWaypointId,
+    contextMenuStopId,
     isContextMenuVisible,
-    draggingWaypointId,
+    draggingStopId,
   } = useAppSelector((state) => state.map);
 
   const roads = useAppSelector((state) => state.localRoad.roads);
@@ -91,52 +96,52 @@ const useLocalMapLogic = () => {
     [roads, activeRoadId],
   );
 
-  const waypoints = useMemo(
+  const stops = useMemo(
     () =>
       activeRoad
-        ? activeRoad.wayPoints.map((waypoint) =>
-            toSharedWaypoint(waypoint, activeRoad.id),
+        ? activeRoad.stops.map((stop) =>
+            toSharedStop(stop, activeRoad.id),
           )
-        : EMPTY_WAYPOINTS,
+        : EMPTY_STOPS,
     [activeRoad],
   );
 
-  const routeLine = useRouteLine(waypoints, transportMode);
-  const routeSearch = useRouteSearch(waypoints, transportMode);
+  const routeLine = useRouteLine(stops, transportMode);
+  const routeSearch = useRouteSearch(stops, transportMode);
 
-  const waypointsRef = useRef(waypoints);
-  waypointsRef.current = waypoints;
+  const stopsRef = useRef(stops);
+  stopsRef.current = stops;
 
-  const contextMenuWaypoint = useMemo(
+  const contextMenuStop = useMemo(
     () =>
-      contextMenuWaypointId
-        ? waypoints.find((waypoint) => waypoint.id === contextMenuWaypointId)
+      contextMenuStopId
+        ? stops.find((stop) => stop.id === contextMenuStopId)
         : undefined,
-    [waypoints, contextMenuWaypointId],
+    [stops, contextMenuStopId],
   );
 
   const handleMapLongPress = useCallback(
     (event: MapLongPressEvent) => {
-      if (draggingWaypointId) return;
+      if (draggingStopId) return;
       bottomSheetRef.current?.collapse();
 
       const { coordinate } = event.nativeEvent;
-      const pressed = waypointsRef.current.find(
-        (waypoint) =>
-          Math.abs(waypoint.latitude - coordinate.latitude) < COORD_THRESHOLD &&
-          Math.abs(waypoint.longitude - coordinate.longitude) < COORD_THRESHOLD,
+      const pressed = stopsRef.current.find(
+        (stop) =>
+          Math.abs(stop.latitude - coordinate.latitude) < COORD_THRESHOLD &&
+          Math.abs(stop.longitude - coordinate.longitude) < COORD_THRESHOLD,
       );
 
       dispatch(
         pressed
-          ? openContextMenuForWaypoint(pressed.id)
+          ? openContextMenuForStop(pressed.id)
           : openContextMenuForLocation(coordinate),
       );
     },
-    [dispatch, draggingWaypointId],
+    [dispatch, draggingStopId],
   );
 
-  const handleAddWaypoint = useCallback(async () => {
+  const handleAddStop = useCallback(async () => {
     if (!clickedLocation) return;
     dispatch(closeContextMenu());
     setIsSavingPin(true);
@@ -144,7 +149,7 @@ const useLocalMapLogic = () => {
     try {
       const { address } = await reverseGeocode(clickedLocation);
       dispatch(
-        localWaypointAdded({
+        localStopAdded({
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
           address,
@@ -161,23 +166,23 @@ const useLocalMapLogic = () => {
     }
   }, [clickedLocation, dispatch]);
 
-  const handleDeleteWaypoint = useCallback(() => {
-    if (!contextMenuWaypointId) return;
+  const handleDeleteStop = useCallback(() => {
+    if (!contextMenuStopId) return;
     dispatch(closeContextMenu());
-    dispatch(localWaypointDeleted(contextMenuWaypointId));
-  }, [contextMenuWaypointId, dispatch]);
+    dispatch(localStopDeleted(contextMenuStopId));
+  }, [contextMenuStopId, dispatch]);
 
   const handleMarkerDragEnd = useCallback(
-    async (event: MarkerDragEndEvent, waypointId: string): Promise<void> => {
-      if (draggingWaypointId !== waypointId) return;
+    async (event: MarkerDragEndEvent, stopId: string): Promise<void> => {
+      if (draggingStopId !== stopId) return;
 
       const { latitude, longitude } = event.nativeEvent.coordinate;
-      dispatch(stopDraggingWaypoint());
+      dispatch(stopDraggingStop());
 
       try {
         const { address } = await reverseGeocode({ latitude, longitude });
         dispatch(
-          localWaypointMoved({ waypointId, latitude, longitude, address }),
+          localStopMoved({ stopId, latitude, longitude, address }),
         );
       } catch {
         showNotification({
@@ -187,18 +192,18 @@ const useLocalMapLogic = () => {
         });
       }
     },
-    [dispatch, draggingWaypointId],
+    [dispatch, draggingStopId],
   );
 
-  const handleNavigateToWaypoint = useCallback(() => {
-    if (!contextMenuWaypointId) return;
-    dispatch(startDraggingWaypoint(contextMenuWaypointId));
+  const handleNavigateToStop = useCallback(() => {
+    if (!contextMenuStopId) return;
+    dispatch(startDraggingStop(contextMenuStopId));
     showNotification({
       type: 'info',
       header: 'Drag to move',
       message: 'Drag the highlighted pin to its new position.',
     });
-  }, [contextMenuWaypointId, dispatch]);
+  }, [contextMenuStopId, dispatch]);
 
   const handleCloseContextMenu = useCallback(
     () => dispatch(closeContextMenu()),
@@ -206,22 +211,22 @@ const useLocalMapLogic = () => {
   );
 
   const handleMapPress = useCallback(() => {
-    if (draggingWaypointId) dispatch(stopDraggingWaypoint());
-  }, [dispatch, draggingWaypointId]);
+    if (draggingStopId) dispatch(stopDraggingStop());
+  }, [dispatch, draggingStopId]);
 
   const handleReorder = useCallback(
     ({ from, to }: { from: number; to: number }) =>
-      dispatch(localWaypointsReordered({ from, to })),
+      dispatch(localStopsReordered({ from, to })),
     [dispatch],
   );
 
-  const handleDeleteWaypointById = useCallback(
-    (waypointId: string) => dispatch(localWaypointDeleted(waypointId)),
+  const handleDeleteStopById = useCallback(
+    (stopId: string) => dispatch(localStopDeleted(stopId)),
     [dispatch],
   );
 
-  const handleToggleFavoriteWaypoint = useCallback(
-    (waypointId: string) => dispatch(localWaypointFavoriteToggled(waypointId)),
+  const handleToggleFavoriteStop = useCallback(
+    (stopId: string) => dispatch(localStopFavoriteToggled(stopId)),
     [dispatch],
   );
 
@@ -268,7 +273,7 @@ const useLocalMapLogic = () => {
         }));
 
         dispatch(
-          localWaypointAdded({
+          localStopAdded({
             latitude: place.latitude,
             longitude: place.longitude,
             address: place.name || address,
@@ -290,47 +295,47 @@ const useLocalMapLogic = () => {
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
     () =>
-      contextMenuWaypoint
+      contextMenuStop
         ? [
             {
-              label: 'Move waypoint',
+              label: 'Move stop',
               icon: 'navigate-outline',
-              action: handleNavigateToWaypoint,
+              action: handleNavigateToStop,
             },
             {
-              label: 'Delete waypoint',
+              label: 'Delete stop',
               icon: 'trash-outline',
               tone: 'danger',
-              action: handleDeleteWaypoint,
+              action: handleDeleteStop,
             },
           ]
         : [
             {
-              label: 'Add waypoint here',
+              label: 'Add stop here',
               icon: 'add-circle-outline',
-              action: handleAddWaypoint,
+              action: handleAddStop,
             },
           ],
     [
-      contextMenuWaypoint,
-      handleAddWaypoint,
-      handleDeleteWaypoint,
-      handleNavigateToWaypoint,
+      contextMenuStop,
+      handleAddStop,
+      handleDeleteStop,
+      handleNavigateToStop,
     ],
   );
 
   const contextMenuProps = useMemo(
     () => ({
       visible: isContextMenuVisible,
-      title: contextMenuWaypoint
-        ? addressName(contextMenuWaypoint.address) || 'Dropped pin'
+      title: contextMenuStop
+        ? addressName(contextMenuStop.address) || 'Dropped pin'
         : 'Dropped pin',
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,
     }),
     [
       contextMenuOptions,
-      contextMenuWaypoint,
+      contextMenuStop,
       handleCloseContextMenu,
       isContextMenuVisible,
     ],
@@ -343,12 +348,12 @@ const useLocalMapLogic = () => {
     isSavingPin,
     activeRoad,
     roads,
-    waypoints,
+    stops,
     routeLine,
     routeSearch,
     transportMode,
     setTransportMode,
-    draggingWaypointId,
+    draggingStopId,
     contextMenuProps,
     onPlaceSelected,
     focusOnPlace,
@@ -357,8 +362,8 @@ const useLocalMapLogic = () => {
     handleMapLongPress,
     handleMapPress,
     handleReorder,
-    handleDeleteWaypointById,
-    handleToggleFavoriteWaypoint,
+    handleDeleteStopById,
+    handleToggleFavoriteStop,
   };
 };
 

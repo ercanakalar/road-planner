@@ -2,48 +2,48 @@ import { useCallback } from 'react';
 
 import { useAppSelector } from 'store/hook';
 
-import WaypointList from 'components/map/WaypointList';
+import StopList from 'components/map/StopList';
 import useCopyAddress from 'hooks/common/useCopyAddress';
 import { useModeDurations } from 'hooks/map/useRouteDirections';
 
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { TransportMode, WaypointOption } from 'types/transport-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { TransportMode, StopOption } from 'types/transport-type';
 
 interface Props {
-  waypoints: WaypointWithAddress[];
+  stops: StopWithAddress[];
   transportMode: TransportMode;
   /** Owned by the screen, because the map has to badge the same two stops. */
   selectedPair: string[];
-  onToggleSelection: (waypointId: string) => void;
-  onForgetSelection: (waypointId: string) => void;
+  onToggleSelection: (stopId: string) => void;
+  onForgetSelection: (stopId: string) => void;
   onTransportModeChange: (mode: TransportMode) => void;
-  onDeleteWaypoint: (waypointId: string) => void;
-  onToggleFavoriteWaypoint: (waypointId: string) => void;
+  onDeleteStop: (stopId: string) => void;
+  onToggleFavoriteStop: (stopId: string) => void;
   onReorder: (params: { from: number; to: number }) => void;
   onReorderingChange?: (isReordering: boolean) => void;
 }
 
-const LocalWaypointList = ({
-  waypoints,
+const LocalStopList = ({
+  stops,
   transportMode,
   selectedPair,
   onToggleSelection,
   onForgetSelection,
   onTransportModeChange,
-  onDeleteWaypoint,
-  onToggleFavoriteWaypoint,
+  onDeleteStop,
+  onToggleFavoriteStop,
   onReorder,
   onReorderingChange,
 }: Props) => {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  const durations = useModeDurations(waypoints, selectedPair);
+  const durations = useModeDurations(stops, selectedPair);
   const copyAddress = useCopyAddress();
 
   const handleOptionSelect = useCallback(
-    (option: WaypointOption, item: WaypointWithAddress) => {
+    (option: StopOption, item: StopWithAddress) => {
       if (option === 'favorite') {
-        onToggleFavoriteWaypoint(item.id);
+        onToggleFavoriteStop(item.id);
         return;
       }
 
@@ -52,20 +52,20 @@ const LocalWaypointList = ({
         return;
       }
 
-      onDeleteWaypoint(item.id);
+      onDeleteStop(item.id);
       onForgetSelection(item.id);
     },
     [
       copyAddress,
-      onDeleteWaypoint,
+      onDeleteStop,
       onForgetSelection,
-      onToggleFavoriteWaypoint,
+      onToggleFavoriteStop,
     ],
   );
 
   return (
-    <WaypointList
-      waypoints={waypoints}
+    <StopList
+      stops={stops}
       selectedPair={selectedPair}
       durations={durations}
       transportMode={transportMode}
@@ -79,4 +79,4 @@ const LocalWaypointList = ({
   );
 };
 
-export default LocalWaypointList;
+export default LocalStopList;

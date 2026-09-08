@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { createLocalId } from 'services/localRoadStorage';
-import { LocalRoad, LocalRoadState, LocalWaypoint } from 'types/local-road';
+import { LocalRoad, LocalRoadState, LocalStop } from 'types/local-road';
 
 const initialState: LocalRoadState = {
   roads: [],
@@ -10,9 +10,9 @@ const initialState: LocalRoadState = {
   isUploading: false,
 };
 
-const resequence = (waypoints: LocalWaypoint[]): LocalWaypoint[] =>
-  waypoints.map((waypoint, index) =>
-    waypoint.order === index + 1 ? waypoint : { ...waypoint, order: index + 1 },
+const resequence = (stops: LocalStop[]): LocalStop[] =>
+  stops.map((stop, index) =>
+    stop.order === index + 1 ? stop : { ...stop, order: index + 1 },
   );
 
 const findActive = (state: LocalRoadState): LocalRoad | undefined =>
@@ -28,7 +28,7 @@ export const makeLocalRoad = (title: string): LocalRoad => {
     id: createLocalId('road'),
     title,
     description: '',
-    wayPoints: [],
+    stops: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -82,7 +82,7 @@ export const localRoadSlice = createSlice({
       }
     },
 
-    localWaypointAdded(
+    localStopAdded(
       state,
       action: PayloadAction<{
         latitude: number;
@@ -100,68 +100,68 @@ export const localRoadSlice = createSlice({
 
       const { insertAtIndex, ...values } = action.payload;
 
-      const waypoint = {
+      const stop = {
         id: createLocalId('wp'),
         latitude: values.latitude,
         longitude: values.longitude,
-        order: road.wayPoints.length + 1,
+        order: road.stops.length + 1,
         address: values.address,
       };
 
       if (insertAtIndex === undefined) {
-        road.wayPoints.push(waypoint);
+        road.stops.push(stop);
       } else {
-        const at = Math.min(Math.max(insertAtIndex, 0), road.wayPoints.length);
-        road.wayPoints.splice(at, 0, waypoint);
-        road.wayPoints = resequence(road.wayPoints);
+        const at = Math.min(Math.max(insertAtIndex, 0), road.stops.length);
+        road.stops.splice(at, 0, stop);
+        road.stops = resequence(road.stops);
       }
 
       touch(road);
     },
 
-    localWaypointMoved(
+    localStopMoved(
       state,
       action: PayloadAction<{
-        waypointId: string;
+        stopId: string;
         latitude: number;
         longitude: number;
         address: string;
       }>,
     ) {
       const road = findActive(state);
-      const waypoint = road?.wayPoints.find(
-        (item) => item.id === action.payload.waypointId,
+      const stop = road?.stops.find(
+        (item) => item.id === action.payload.stopId,
       );
-      if (!road || !waypoint) return;
+      if (!road || !stop) return;
 
-      waypoint.latitude = action.payload.latitude;
-      waypoint.longitude = action.payload.longitude;
-      waypoint.address = action.payload.address;
+      stop.latitude = action.payload.latitude;
+      stop.longitude = action.payload.longitude;
+      stop.address = action.payload.address;
       touch(road);
     },
 
-    localWaypointFavoriteToggled(state, action: PayloadAction<string>) {
+    localStopFavoriteToggled(state, action: PayloadAction<string>) {
       const road = findActive(state);
-      const waypoint = road?.wayPoints.find(
+      const stop = road?.stops.find(
         (item) => item.id === action.payload,
       );
-      if (!road || !waypoint) return;
+      if (!road || !stop) return;
 
-      waypoint.isFavorite = !waypoint.isFavorite;
+      stop.isFavorite = !stop.isFavorite;
       touch(road);
     },
 
-    localWaypointDeleted(state, action: PayloadAction<string>) {
+    localStopDeleted(state, action: PayloadAction<string>) {
       const road = findActive(state);
       if (!road) return;
 
-      road.wayPoints = resequence(
-        road.wayPoints.filter((waypoint) => waypoint.id !== action.payload),
+      road.stops = resequence(
+        road.stops.filter((stop) => stop.id !== action.payload),
       );
       touch(road);
     },
 
-    localWaypointsReordered(
+    localStopsReordered(
       state,
       action: PayloadAction<{ from: number; to: number }>,
     ) {
@@ -171,10 +171,10 @@ export const localRoadSlice = createSlice({
       const { from, to } = action.payload;
       if (from === to) return;
 
-      const next = road.wayPoints.slice();
+      const next = road.stops.slice();
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
-      road.wayPoints = resequence(next);
+      road.stops = resequence(next);
       touch(road);
     },
 
@@ -196,7 +196,7 @@ export const localRoadSlice = createSlice({
     /**
      * Lands a whole route at once, which is what an import is: the stops are
      * already in order and already have their addresses, so they arrive as one
-     * road rather than as a run of `localWaypointAdded` calls that would each
+     * road rather than as a run of `localStopAdded` calls that would each
      * re-rank the list and each mark the road as touched.
      *
      * The new road becomes the active one, because the point of importing is to
@@ -209,11 +209,11 @@ export const localRoadSlice = createSlice({
       },
       prepare(input: {
         title: string;
-        stops: Omit<LocalWaypoint, 'id' | 'order'>[];
+        stops: Omit<LocalStop, 'id' | 'order'>[];
       }) {
         const road = makeLocalRoad(input.title);
 
-        road.wayPoints = input.stops.map((stop, index) => ({
+        road.stops = input.stops.map((stop, index) => ({
           ...stop,
           id: createLocalId('wp'),
           order: index + 1,
@@ -237,11 +237,11 @@ export const {
   localRoadDetailsChanged,
   localRoadDeleted,
   localRoadImported,
-  localWaypointAdded,
-  localWaypointMoved,
-  localWaypointDeleted,
-  localWaypointFavoriteToggled,
-  localWaypointsReordered,
+  localStopAdded,
+  localStopMoved,
+  localStopDeleted,
+  localStopFavoriteToggled,
+  localStopsReordered,
   localRoadUploadStarted,
   localRoadUploadFinished,
   localRoadsCleared,

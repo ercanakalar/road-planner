@@ -50,6 +50,12 @@ case "${DATABASE_URL}" in
     ;;
 esac
 
+# Migrating here is a convenience for `docker run` and compose, where there is
+# nowhere else to put the step. A deploy that migrates as its own step should
+# set RUN_MIGRATIONS=false: this runs on the serving path, so on a scale-to-zero
+# platform every cold start waits for the Prisma CLI to boot and connect before
+# the API listens, and a history that will not apply stops the container
+# starting at all rather than just failing the deploy.
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   echo "Applying migrations..."
 
@@ -77,6 +83,13 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
         echo "  a managed database      : the host your provider gave you" >&2
         ;;
     esac
+    echo >&2
+    echo "If the error above is P3009 or P3018, one migration is recorded as" >&2
+    echo "failed and no later one can apply until that record is cleared." >&2
+    echo "If DATABASE_URL points at a pooled endpoint (Neon's -pooler host)," >&2
+    echo "migrations cannot run over it at all — set DATABASE_URL_UNPOOLED." >&2
+    echo "Either way see docs/MIGRATION_DRIFT.md, and set RUN_MIGRATIONS=false" >&2
+    echo "so a migration problem stops the deploy rather than the API." >&2
     exit 1
   fi
 

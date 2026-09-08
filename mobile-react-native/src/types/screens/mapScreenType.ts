@@ -8,7 +8,7 @@ import type { MaterialIcons } from '@expo/vector-icons';
 import {
   OwnRoadSummary,
   RouteCoordinate,
-  WaypointWithAddress,
+  StopWithAddress,
 } from 'types/map-screen-type';
 import { RoutePlace } from 'services/mapsService';
 import {
@@ -18,9 +18,9 @@ import {
 import { TransportMode } from 'types/transport-type';
 import { RootStackParamList } from './screens';
 
-export type WaypointRoute = NativeStackScreenProps<
+export type StopRoute = NativeStackScreenProps<
   RootStackParamList,
-  'ShowWaypointById'
+  'ShowStopById'
 >['route'];
 
 export type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
@@ -72,14 +72,14 @@ interface RouteSummary {
 }
 
 export interface MapSectionProps {
-  waypoints: WaypointWithAddress[];
+  stops: StopWithAddress[];
   routeCoordinates: RouteCoordinate[];
-  draggingWaypointId?: string;
+  draggingStopId?: string;
   summary?: RouteSummary;
   transportMode: TransportMode;
   handleMarkerDragEnd: (
     event: MarkerDragStartEndEvent,
-    waypointId: string,
+    stopId: string,
   ) => void;
   onMapLongPress: (event: LongPressEvent) => void;
   onMapPress: () => void;
@@ -90,5 +90,5 @@ export interface MapSectionProps {
    * The stops being compared, in the order they were picked, so the map can
    * label them A and B to match the list.
    */
-  selectedWaypointIds?: readonly string[];
+  selectedStopIds?: readonly string[];
 }

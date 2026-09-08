@@ -17,21 +17,21 @@ import { TransportMode } from 'types/transport-type';
 
 interface Props {
   /** The stops in travelling order, exactly as the list shows them. */
-  waypoints: readonly RouteCoordinate[];
+  stops: readonly RouteCoordinate[];
   mode: TransportMode;
 }
 
-const OpenInGoogleMapsButton = ({ waypoints, mode }: Props) => {
+const OpenInGoogleMapsButton = ({ stops, mode }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const openInGoogleMaps = useOpenInGoogleMaps();
 
   const handlePress = useCallback(
-    () => openInGoogleMaps(waypoints, mode),
-    [mode, openInGoogleMaps, waypoints],
+    () => openInGoogleMaps(stops, mode),
+    [mode, openInGoogleMaps, stops],
   );
 
-  if (waypoints.length === 0) return null;
+  if (stops.length === 0) return null;
 
   return (
     <Pressable
@@ -47,9 +47,9 @@ const OpenInGoogleMapsButton = ({ waypoints, mode }: Props) => {
       <View style={styles.copy}>
         <Text style={styles.label}>Continue in Google Maps</Text>
         <Text style={styles.hint}>
-          {waypoints.length === 1
+          {stops.length === 1
             ? 'Navigate to this stop'
-            : `Navigate all ${waypoints.length} stops`}
+            : `Navigate all ${stops.length} stops`}
         </Text>
       </View>
 

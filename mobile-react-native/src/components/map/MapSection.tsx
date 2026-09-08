@@ -28,7 +28,7 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { MapSectionProps } from 'types/screens/mapScreenType';
-import { RouteCoordinate, WaypointWithAddress } from 'types/map-screen-type';
+import { RouteCoordinate, StopWithAddress } from 'types/map-screen-type';
 import { addressLocality, addressName } from 'utils/address';
 import { withAlpha } from 'utils/color';
 import { splitRouteAtLocation } from 'utils/geo';
@@ -50,7 +50,7 @@ const FOLLOW_DELTA = 0.01;
 const FOLLOW_ANIMATION_MS = 500;
 
 type MarkerProps = {
-  waypoint: WaypointWithAddress;
+  stop: StopWithAddress;
   index: number;
   total: number;
   isDraggable: boolean;
@@ -67,9 +67,9 @@ const pinColor = (colors: ThemeColors, index: number, total: number) => {
   return colors.primary;
 };
 
-const WaypointMarker = memo(
+const StopMarker = memo(
   ({
-    waypoint,
+    stop,
     index,
     total,
     isDraggable,
@@ -92,13 +92,13 @@ const WaypointMarker = memo(
 
     const handleDragEnd = useCallback(
       (event: Parameters<MapSectionProps['handleMarkerDragEnd']>[0]) =>
-        onDragEnd(event, waypoint.id),
-      [onDragEnd, waypoint.id],
+        onDragEnd(event, stop.id),
+      [onDragEnd, stop.id],
     );
 
     const coordinate = useMemo(
-      () => ({ latitude: waypoint.latitude, longitude: waypoint.longitude }),
-      [waypoint.latitude, waypoint.longitude],
+      () => ({ latitude: stop.latitude, longitude: stop.longitude }),
+      [stop.latitude, stop.longitude],
     );
 
     const label = isSelected
@@ -112,9 +112,9 @@ const WaypointMarker = memo(
         onDragEnd={handleDragEnd}
         tracksViewChanges={isSelected && !isBadgePainted}
         pinColor={isSelected ? colors.selection : pinColor(colors, index, total)}
-        title={`${label}${addressName(waypoint.address) || 'Waypoint'}`}
+        title={`${label}${addressName(stop.address) || 'Stop'}`}
         description={
-          isDraggable ? 'Drag to reposition' : addressLocality(waypoint.address)
+          isDraggable ? 'Drag to reposition' : addressLocality(stop.address)
         }
         opacity={isDraggable ? 0.85 : 1}
         anchor={isSelected ? { x: 0.5, y: 0.5 } : undefined}
@@ -134,7 +134,7 @@ const WaypointMarker = memo(
   },
 );
 
-WaypointMarker.displayName = 'WaypointMarker';
+StopMarker.displayName = 'StopMarker';
 
 const FoundPlaceMarker = memo(
   ({
@@ -219,9 +219,9 @@ const FOLLOW_UNAVAILABLE_NOTICE = {
 };
 
 const MapSectionComponent = ({
-  waypoints,
+  stops,
   routeCoordinates,
-  draggingWaypointId,
+  draggingStopId,
   summary,
   transportMode,
   handleMarkerDragEnd,
@@ -230,7 +230,7 @@ const MapSectionComponent = ({
   mapRef,
   foundPlaces,
   onFoundPlacePress,
-  selectedWaypointIds = EMPTY_SELECTION,
+  selectedStopIds = EMPTY_SELECTION,
 }: MapSectionProps) => {
   const { colors } = useTheme();
   const { mapStyle, isDark } = useMapStyle();
@@ -312,7 +312,7 @@ const MapSectionComponent = ({
   }, [hasRoute]);
 
   const initialRegion = useMemo<Region>(() => {
-    const first = waypoints[0];
+    const first = stops[0];
     if (!first) return userRegion;
     return {
       latitude: first.latitude,
@@ -320,13 +320,13 @@ const MapSectionComponent = ({
       latitudeDelta: DEFAULT_DELTA,
       longitudeDelta: DEFAULT_DELTA,
     };
-  }, [userRegion, waypoints]);
+  }, [userRegion, stops]);
 
   useEffect(() => {
-    if (!autoFitRoute || hasFittedRef.current || waypoints.length < 2) return;
+    if (!autoFitRoute || hasFittedRef.current || stops.length < 2) return;
     hasFittedRef.current = true;
 
-    const coordinates = waypoints.map(({ latitude, longitude }) => ({
+    const coordinates = stops.map(({ latitude, longitude }) => ({
       latitude,
       longitude,
     }));
@@ -339,15 +339,15 @@ const MapSectionComponent = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [autoFitRoute, mapRef, waypoints]);
+  }, [autoFitRoute, mapRef, stops]);
 
   useEffect(() => {
     if (isResolving || hasCentredOnUserRef.current) return;
-    if (waypoints.length > 0) return;
+    if (stops.length > 0) return;
 
     hasCentredOnUserRef.current = true;
     mapRef.current?.animateToRegion(userRegion, 500);
-  }, [isResolving, mapRef, userRegion, waypoints.length]);
+  }, [isResolving, mapRef, userRegion, stops.length]);
 
   return (
     <View style={styles.container} pointerEvents='box-none'>
@@ -390,14 +390,14 @@ const MapSectionComponent = ({
           />
         ))}
 
-        {waypoints.map((waypoint, index) => (
-          <WaypointMarker
-            key={waypoint.id}
-            waypoint={waypoint}
+        {stops.map((stop, index) => (
+          <StopMarker
+            key={stop.id}
+            stop={stop}
             index={index}
-            total={waypoints.length}
-            isDraggable={draggingWaypointId === waypoint.id}
-            selectionIndex={selectedWaypointIds.indexOf(waypoint.id)}
+            total={stops.length}
+            isDraggable={draggingStopId === stop.id}
+            selectionIndex={selectedStopIds.indexOf(stop.id)}
             onDragEnd={handleMarkerDragEnd}
           />
         ))}
@@ -445,7 +445,7 @@ const MapSectionComponent = ({
           <Text style={styles.summaryLabel}>{summary.distance}</Text>
           <View style={styles.summaryDivider} />
           <Text style={styles.summaryLabel}>
-            {waypoints.length} stop{waypoints.length === 1 ? '' : 's'}
+            {stops.length} stop{stops.length === 1 ? '' : 's'}
           </Text>
         </View>
       ) : null}

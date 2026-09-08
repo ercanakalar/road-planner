@@ -10,7 +10,7 @@ import { Request } from 'express';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 
-const WAYPOINT_PARAM = 'waypointId';
+const STOP_PARAM = 'stopId';
 
 const ROAD_PARAMS = ['roadId', 'id'] as const;
 
@@ -48,19 +48,19 @@ export class RoadOwnerGuard implements CanActivate {
   private async resolveRoadId(
     params: Record<string, string | undefined>,
   ): Promise<string> {
-    const waypointId = params[WAYPOINT_PARAM];
+    const stopId = params[STOP_PARAM];
 
-    if (waypointId) {
-      const waypoint = await this.prisma.wayPoint.findUnique({
-        where: { id: waypointId },
+    if (stopId) {
+      const stop = await this.prisma.stop.findUnique({
+        where: { id: stopId },
         select: { roadId: true },
       });
 
-      if (!waypoint?.roadId) {
-        throw new NotFoundException('Waypoint not found');
+      if (!stop?.roadId) {
+        throw new NotFoundException('Stop not found');
       }
 
-      return waypoint.roadId;
+      return stop.roadId;
     }
 
     for (const param of ROAD_PARAMS) {
@@ -69,7 +69,7 @@ export class RoadOwnerGuard implements CanActivate {
     }
 
     throw new ForbiddenException(
-      'Request is missing a route or waypoint identifier',
+      'Request is missing a route or stop identifier',
     );
   }
 }

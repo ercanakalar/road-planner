@@ -14,7 +14,7 @@ const isLocalRoad = (value: unknown): value is LocalRoad => {
     !!road &&
     typeof road.id === 'string' &&
     typeof road.title === 'string' &&
-    Array.isArray(road.wayPoints)
+    Array.isArray(road.stops)
   );
 };
 
@@ -25,14 +25,14 @@ const isLocalRoad = (value: unknown): value is LocalRoad => {
  */
 const withFlatAddresses = (road: LocalRoad): LocalRoad => ({
   ...road,
-  wayPoints: road.wayPoints.map((waypoint) => {
-    const address: unknown = waypoint.address;
+  stops: road.stops.map((stop) => {
+    const address: unknown = stop.address;
 
-    if (typeof address === 'string') return waypoint;
+    if (typeof address === 'string') return stop;
 
     const legacy = (address as { address?: unknown } | null)?.address;
 
-    return { ...waypoint, address: typeof legacy === 'string' ? legacy : '' };
+    return { ...stop, address: typeof legacy === 'string' ? legacy : '' };
   }),
 });
 

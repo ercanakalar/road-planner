@@ -1,25 +1,33 @@
 import { Prisma } from '../../../generated/prisma/client';
 
-export interface WaypointPosition {
+export interface StopPosition {
   id: string;
   order: number;
 }
 
-export interface WaypointValues extends WaypointPosition {
+export interface StopValues extends StopPosition {
   latitude: number;
   longitude: number;
   /** null leaves the stored address alone; a string replaces it. */
   address: string | null;
+  /**
+   * Whether the stored elevation is being replaced by `elevation`. False leaves
+   * it as it is. The two are separate because null is a real answer here — a
+   * stop that moved somewhere the Elevation API could not read has no height,
+   * and keeping the old one would put a slope on the map that nothing measured.
+   */
+  refreshElevation: boolean;
+  elevation: number | null;
 }
 
 export type RawExecutor = {
   $executeRaw(query: Prisma.Sql): Promise<number>;
 };
 
-export function applyWaypointOrder(
+export function applyStopOrder(
   tx: RawExecutor,
   roadId: string,
-  positions: readonly WaypointPosition[],
+  positions: readonly StopPosition[],
 ): Promise<number> {
   if (positions.length === 0) return Promise.resolve(0);
 
@@ -28,7 +36,7 @@ export function applyWaypointOrder(
   );
 
   return tx.$executeRaw(Prisma.sql`
-    UPDATE "WayPoint" AS wp
+    UPDATE "Stop" AS wp
        SET "order" = v.ord,
            "updatedAt" = NOW()
       FROM (VALUES ${values}) AS v(id, ord)
@@ -38,36 +46,39 @@ export function applyWaypointOrder(
   `);
 }
 
-export function applyWaypointValues(
+export function applyStopValues(
   tx: RawExecutor,
   roadId: string,
-  waypoints: readonly WaypointValues[],
+  stops: readonly StopValues[],
 ): Promise<number> {
-  if (waypoints.length === 0) return Promise.resolve(0);
+  if (stops.length === 0) return Promise.resolve(0);
 
   const values = Prisma.join(
-    waypoints.map(
+    stops.map(
       (w) =>
-        Prisma.sql`(${w.id}::text, ${w.latitude}::double precision, ${w.longitude}::double precision, ${w.order}::int, ${w.address}::text)`,
+        Prisma.sql`(${w.id}::text, ${w.latitude}::double precision, ${w.longitude}::double precision, ${w.order}::int, ${w.address}::text, ${w.refreshElevation}::boolean, ${w.elevation}::double precision)`,
     ),
   );
 
   // COALESCE is what lets a caller reorder or nudge a stop without having to
   // resend its address: a null in that column means "leave what is there".
+  // Elevation cannot say the same thing that way, because null is one of its
+  // answers, so it carries its own flag.
   return tx.$executeRaw(Prisma.sql`
-    UPDATE "WayPoint" AS wp
+    UPDATE "Stop" AS wp
        SET latitude = v.lat,
            longitude = v.lng,
            "order" = v.ord,
            address = COALESCE(v.address, wp.address),
+           elevation = CASE WHEN v.refresh THEN v.elevation ELSE wp.elevation END,
            "updatedAt" = NOW()
-      FROM (VALUES ${values}) AS v(id, lat, lng, ord, address)
+      FROM (VALUES ${values}) AS v(id, lat, lng, ord, address, refresh, elevation)
      WHERE wp.id = v.id
        AND wp."roadId" = ${roadId}
   `);
 }
 
-export function compactWaypointOrder(
+export function compactStopOrder(
   tx: RawExecutor,
   roadId: string,
 ): Promise<number> {
@@ -75,10 +86,10 @@ export function compactWaypointOrder(
     WITH renumbered AS (
       SELECT id,
              ROW_NUMBER() OVER (ORDER BY "order" ASC, "createdAt" ASC, id ASC) AS new_order
-        FROM "WayPoint"
+        FROM "Stop"
        WHERE "roadId" = ${roadId}
     )
-    UPDATE "WayPoint" AS wp
+    UPDATE "Stop" AS wp
        SET "order" = renumbered.new_order,
            "updatedAt" = NOW()
       FROM renumbered
@@ -88,14 +99,14 @@ export function compactWaypointOrder(
 }
 
 export function positionByRank<T extends { order?: number }>(
-  waypoints: readonly T[],
+  stops: readonly T[],
 ): (T & { order: number })[] {
-  return waypoints
-    .map((waypoint, index) => ({ waypoint, index }))
+  return stops
+    .map((stop, index) => ({ stop, index }))
     .sort(
       (a, b) =>
-        (a.waypoint.order ?? a.index) - (b.waypoint.order ?? b.index) ||
+        (a.stop.order ?? a.index) - (b.stop.order ?? b.index) ||
         a.index - b.index,
     )
-    .map(({ waypoint }, position) => ({ ...waypoint, order: position + 1 }));
+    .map(({ stop }, position) => ({ ...stop, order: position + 1 }));
 }

@@ -10,7 +10,7 @@ import ResetPasswordScreen from 'screens/profile/auth/ResetPasswordScreen';
 import ShowRouteByIdScreen from 'screens/routes/ShowRouteByIdScreen';
 import CommunityRouteScreen from 'screens/routes/CommunityRouteScreen';
 import SharedRouteScreen from 'screens/routes/SharedRouteScreen';
-import ShowWaypointById from 'screens/routes/ShowWaypointById';
+import ShowStopById from 'screens/routes/ShowStopById';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
 import KvkkScreen from 'screens/profile/legal/KvkkScreen';
@@ -70,9 +70,9 @@ const RootNavigator = () => {
         options={{ title: 'Shared route' }}
       />
       <Stack.Screen
-        name='ShowWaypointById'
-        component={ShowWaypointById}
-        options={{ title: 'Waypoint' }}
+        name='ShowStopById'
+        component={ShowStopById}
+        options={{ title: 'Stop' }}
       />
       <Stack.Screen
         name='ProfileDetailScreen'

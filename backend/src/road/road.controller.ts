@@ -24,24 +24,24 @@ import { MAPS_THROTTLE } from 'src/config/throttle';
 import { DurationsQueryDto, RouteQueryDto } from 'src/maps/dto/maps.dto';
 import { TRANSPORT_MODES } from 'src/maps/types/maps.types';
 import {
-  AddWaypointDto,
+  AddStopDto,
   CreateRoadDto,
-  ReorderWaypointsDto,
+  ReorderStopsDto,
   UpdateRoadDto,
-  UpdateWaypointDto,
+  UpdateStopDto,
 } from './dto/road.dto';
 import { RoadSearchQueryDto } from './dto/road-search.dto';
 import { RoadService } from './services/road/road.service';
 import { RoadSearchService } from './services/search/road-search.service';
 import { RoadRouteService } from './services/route/road-route.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
-import { WaypointService } from './services/waypoint/waypoint.service';
+import { StopService } from './services/stop/stop.service';
 
 @Controller('road')
 export class RoadController {
   constructor(
     private roadService: RoadService,
-    private waypointService: WaypointService,
+    private stopService: StopService,
     private sharingService: RoadSharingService,
     private routeService: RoadRouteService,
     private searchService: RoadSearchService,
@@ -92,13 +92,13 @@ export class RoadController {
     return this.roadService.getRoadById(id, user?.userId ?? null);
   }
 
-  @Get('/waypoint/:id')
+  @Get('/stop/:id')
   @HttpCode(HttpStatus.OK)
-  async getWaypointById(
+  async getStopById(
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('userId') userId: string,
   ) {
-    return this.waypointService.getWaypointById(id, userId);
+    return this.stopService.getStopById(id, userId);
   }
 
   @Public()
@@ -188,41 +188,41 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Post('/add-waypoint/:id')
+  @Post('/add-stop/:id')
   @HttpCode(HttpStatus.OK)
-  async addWaypointToRoad(
-    @Body() body: AddWaypointDto,
+  async addStopToRoad(
+    @Body() body: AddStopDto,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.waypointService.addWaypointToRoad(body, id);
+    return this.stopService.addStopToRoad(body, id);
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Delete('/delete-waypoint/:waypointId')
+  @Delete('/delete-stop/:stopId')
   @HttpCode(HttpStatus.OK)
-  async deleteWaypointWithRoadId(
-    @Param('waypointId', ParseUUIDPipe) waypointId: string,
+  async deleteStopWithRoadId(
+    @Param('stopId', ParseUUIDPipe) stopId: string,
   ) {
-    return this.waypointService.deleteWaypointById(waypointId);
+    return this.stopService.deleteStopById(stopId);
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Put('/update-waypoint/:waypointId')
+  @Put('/update-stop/:stopId')
   @HttpCode(HttpStatus.OK)
-  async updateWaypointWithRoadId(
-    @Body() body: UpdateWaypointDto,
-    @Param('waypointId', ParseUUIDPipe) waypointId: string,
+  async updateStopWithRoadId(
+    @Body() body: UpdateStopDto,
+    @Param('stopId', ParseUUIDPipe) stopId: string,
   ) {
-    return this.waypointService.updateWaypointWithRoadId(body, waypointId);
+    return this.stopService.updateStopWithRoadId(body, stopId);
   }
 
   @UseGuards(RoadOwnerGuard)
-  @Put('/reorder-waypoint/:roadId')
+  @Put('/reorder-stop/:roadId')
   @HttpCode(HttpStatus.OK)
-  async reOrderWaypoints(
-    @Body() body: ReorderWaypointsDto,
+  async reOrderStops(
+    @Body() body: ReorderStopsDto,
     @Param('roadId', ParseUUIDPipe) roadId: string,
   ) {
-    return this.waypointService.reorderWaypoints(roadId, body);
+    return this.stopService.reorderStops(roadId, body);
   }
 }

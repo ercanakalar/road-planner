@@ -1,40 +1,40 @@
 import { collectDtoErrors, validateDto } from 'src/testing/validate-dto';
 import {
   ToggleFavoriteRoadDto,
-  ToggleFavoriteWaypointDto,
+  ToggleFavoriteStopDto,
 } from './favorites.dto';
 
 const UUID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 
-describe('ToggleFavoriteWaypointDto', () => {
+describe('ToggleFavoriteStopDto', () => {
   it('accepts a UUID', async () => {
     await expect(
-      collectDtoErrors(ToggleFavoriteWaypointDto, { waypointId: UUID }),
+      collectDtoErrors(ToggleFavoriteStopDto, { stopId: UUID }),
     ).resolves.toEqual([]);
   });
 
   it.each(['not-a-uuid', '', '123', 12345, null])(
     'rejects %p',
-    async (waypointId) => {
+    async (stopId) => {
       await expect(
-        collectDtoErrors(ToggleFavoriteWaypointDto, { waypointId }),
+        collectDtoErrors(ToggleFavoriteStopDto, { stopId }),
       ).resolves.not.toEqual([]);
     },
   );
 
   it('requires the field', async () => {
     await expect(
-      collectDtoErrors(ToggleFavoriteWaypointDto, {}),
+      collectDtoErrors(ToggleFavoriteStopDto, {}),
     ).resolves.not.toEqual([]);
   });
 
   it('strips undeclared properties', async () => {
-    const result = await validateDto(ToggleFavoriteWaypointDto, {
-      waypointId: UUID,
+    const result = await validateDto(ToggleFavoriteStopDto, {
+      stopId: UUID,
       userId: 'someone-else',
     });
 
-    expect(result).toEqual({ waypointId: UUID });
+    expect(result).toEqual({ stopId: UUID });
   });
 });
 
