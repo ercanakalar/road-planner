@@ -1,4 +1,4 @@
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { StopWithAddress } from 'types/map-screen-type';
 
 /** How a page of route results is ordered. Mirrors the API's own list. */
 export type RouteSearchOrder =
@@ -39,7 +39,7 @@ export interface RouteSearchHit {
   stopCount: number;
   favoriteCount: number;
   isFavorite: boolean;
-  wayPoints: WaypointWithAddress[];
+  stops: StopWithAddress[];
 }
 
 export type SearchRoutesResponse = RouteSearchHit[];

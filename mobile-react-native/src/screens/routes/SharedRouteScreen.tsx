@@ -48,8 +48,8 @@ const SharedRouteScreen = () => {
     useToggleFavoriteRoadMutation();
   const [cloneRoad, { isLoading: isCloning }] = useCloneRoadMutation();
 
-  const waypoints = useMemo(() => road?.wayPoints ?? [], [road?.wayPoints]);
-  const routeLine = useRouteLine(waypoints, 'driving');
+  const stops = useMemo(() => road?.stops ?? [], [road?.stops]);
+  const routeLine = useRouteLine(stops, 'driving');
 
   const summary = useMemo(() => {
     if (routeLine.durationSeconds === undefined) return undefined;
@@ -109,7 +109,7 @@ const SharedRouteScreen = () => {
       <View style={styles.map}>
         <MapSection
           mapRef={mapRef}
-          waypoints={waypoints}
+          stops={stops}
           routeCoordinates={routeLine.coordinates}
           summary={summary}
           transportMode='driving'
@@ -133,7 +133,7 @@ const SharedRouteScreen = () => {
         <View style={styles.metaRow}>
           <Ionicons name='location-outline' size={14} color={colors.primary} />
           <Text style={styles.meta}>
-            {waypoints.length} stop{waypoints.length === 1 ? '' : 's'}
+            {stops.length} stop{stops.length === 1 ? '' : 's'}
           </Text>
           <Text style={styles.readOnly}>Read only</Text>
         </View>
@@ -169,17 +169,17 @@ const SharedRouteScreen = () => {
           </>
         )}
 
-        <OpenInGoogleMapsButton waypoints={waypoints} mode='driving' />
+        <OpenInGoogleMapsButton stops={stops} mode='driving' />
 
         <View style={styles.stops}>
-          {waypoints.map((waypoint, index) => (
-            <View key={waypoint.id} style={styles.stop}>
+          {stops.map((stop, index) => (
+            <View key={stop.id} style={styles.stop}>
               <View style={styles.stopIndex}>
                 <Text style={styles.stopIndexText}>{index + 1}</Text>
               </View>
               <Text style={styles.stopText} numberOfLines={2}>
-                {addressName(waypoint.address) ||
-                  `${waypoint.latitude.toFixed(4)}, ${waypoint.longitude.toFixed(4)}`}
+                {addressName(stop.address) ||
+                  `${stop.latitude.toFixed(4)}, ${stop.longitude.toFixed(4)}`}
               </Text>
             </View>
           ))}

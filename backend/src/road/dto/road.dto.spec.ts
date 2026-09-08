@@ -1,18 +1,18 @@
 import { collectDtoErrors, validateDto } from 'src/testing/validate-dto';
 import {
-  AddWaypointDto,
+  AddStopDto,
   CreateRoadDto,
-  ReorderWaypointsDto,
+  ReorderStopsDto,
   UpdateRoadDto,
-  UpdateWaypointDto,
-  WaypointInputDto,
+  UpdateStopDto,
+  StopInputDto,
 } from './road.dto';
 
 const UUID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 
 const address = () => 'Bağdat Cd. 1, Kadıköy/İstanbul, Türkiye';
 
-const waypoint = (
+const stop = (
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
   latitude: 40.99,
@@ -22,10 +22,10 @@ const waypoint = (
   ...overrides,
 });
 
-describe('WaypointInputDto', () => {
-  it('accepts a valid waypoint', async () => {
+describe('StopInputDto', () => {
+  it('accepts a valid stop', async () => {
     await expect(
-      collectDtoErrors(WaypointInputDto, waypoint()),
+      collectDtoErrors(StopInputDto, stop()),
     ).resolves.toEqual([]);
   });
 
@@ -37,7 +37,7 @@ describe('WaypointInputDto', () => {
       ['longitude', -181],
     ])('rejects %s of %p', async (field, value) => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ [field]: value })),
+        collectDtoErrors(StopInputDto, stop({ [field]: value })),
       ).resolves.not.toEqual([]);
     });
 
@@ -49,7 +49,7 @@ describe('WaypointInputDto', () => {
       ['latitude', 0],
     ])('accepts %s of %p', async (field, value) => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ [field]: value })),
+        collectDtoErrors(StopInputDto, stop({ [field]: value })),
       ).resolves.toEqual([]);
     });
 
@@ -57,7 +57,7 @@ describe('WaypointInputDto', () => {
       'rejects a latitude of %p',
       async (latitude) => {
         await expect(
-          collectDtoErrors(WaypointInputDto, waypoint({ latitude })),
+          collectDtoErrors(StopInputDto, stop({ latitude })),
         ).resolves.not.toEqual([]);
       },
     );
@@ -66,48 +66,48 @@ describe('WaypointInputDto', () => {
   describe('order', () => {
     it('rejects a negative order', async () => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ order: -1 })),
+        collectDtoErrors(StopInputDto, stop({ order: -1 })),
       ).resolves.not.toEqual([]);
     });
 
     it('rejects a fractional order', async () => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ order: 1.5 })),
+        collectDtoErrors(StopInputDto, stop({ order: 1.5 })),
       ).resolves.not.toEqual([]);
     });
   });
 
   describe('type', () => {
-    it('accepts a waypoint with no type', async () => {
-      const { type: _type, ...withoutType } = waypoint({ type: 'start' });
+    it('accepts a stop with no type', async () => {
+      const { type: _type, ...withoutType } = stop({ type: 'start' });
 
       await expect(
-        collectDtoErrors(WaypointInputDto, withoutType),
+        collectDtoErrors(StopInputDto, withoutType),
       ).resolves.toEqual([]);
     });
 
-    it.each(['start', 'end', 'waypoint'])('accepts type %p', async (type) => {
+    it.each(['start', 'end', 'stop'])('accepts type %p', async (type) => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ type })),
+        collectDtoErrors(StopInputDto, stop({ type })),
       ).resolves.toEqual([]);
     });
 
     it('rejects an unknown type', async () => {
       await expect(
-        collectDtoErrors(WaypointInputDto, waypoint({ type: 'midpoint' })),
+        collectDtoErrors(StopInputDto, stop({ type: 'midpoint' })),
       ).resolves.not.toEqual([]);
     });
   });
 
   it('rejects a non-UUID id', async () => {
     await expect(
-      collectDtoErrors(WaypointInputDto, waypoint({ id: 'not-a-uuid' })),
+      collectDtoErrors(StopInputDto, stop({ id: 'not-a-uuid' })),
     ).resolves.not.toEqual([]);
   });
 
   it('rejects an address that is not text', async () => {
     await expect(
-      collectDtoErrors(WaypointInputDto, waypoint({ address: 12345 })),
+      collectDtoErrors(StopInputDto, stop({ address: 12345 })),
     ).resolves.not.toEqual([]);
   });
 
@@ -116,16 +116,16 @@ describe('WaypointInputDto', () => {
     // shape should be told, not silently stored as "[object Object]".
     await expect(
       collectDtoErrors(
-        WaypointInputDto,
-        waypoint({ address: { address: 'Bağdat Cd. 1' } }),
+        StopInputDto,
+        stop({ address: { address: 'Bağdat Cd. 1' } }),
       ),
     ).resolves.not.toEqual([]);
   });
 
   it('trims the address', async () => {
     const result = await validateDto(
-      WaypointInputDto,
-      waypoint({ address: '  Bağdat Cd. 1  ' }),
+      StopInputDto,
+      stop({ address: '  Bağdat Cd. 1  ' }),
     );
 
     expect(result.address).toBe('Bağdat Cd. 1');
@@ -136,14 +136,14 @@ describe('CreateRoadDto', () => {
   const valid = () => ({
     title: 'Morning commute',
     description: 'Home to office',
-    waypoints: [waypoint({ order: 1 }), waypoint({ order: 2 })],
+    stops: [stop({ order: 1 }), stop({ order: 2 })],
   });
 
   it('accepts a valid road', async () => {
     await expect(collectDtoErrors(CreateRoadDto, valid())).resolves.toEqual([]);
   });
 
-  it('accepts a road with no waypoints', async () => {
+  it('accepts a road with no stops', async () => {
     await expect(
       collectDtoErrors(CreateRoadDto, {
         title: 'Empty',
@@ -170,27 +170,27 @@ describe('CreateRoadDto', () => {
     ).resolves.not.toEqual([]);
   });
 
-  it('rejects more than 500 waypoints', async () => {
-    const waypoints = Array.from({ length: 501 }, (_, i) =>
-      waypoint({ order: i }),
+  it('rejects more than 500 stops', async () => {
+    const stops = Array.from({ length: 501 }, (_, i) =>
+      stop({ order: i }),
     );
 
     await expect(
-      collectDtoErrors(CreateRoadDto, { ...valid(), waypoints }),
+      collectDtoErrors(CreateRoadDto, { ...valid(), stops }),
     ).resolves.not.toEqual([]);
   });
 
-  it('validates each waypoint in the array', async () => {
-    const waypoints = [waypoint(), waypoint({ latitude: 200 })];
+  it('validates each stop in the array', async () => {
+    const stops = [stop(), stop({ latitude: 200 })];
 
     await expect(
-      collectDtoErrors(CreateRoadDto, { ...valid(), waypoints }),
+      collectDtoErrors(CreateRoadDto, { ...valid(), stops }),
     ).resolves.not.toEqual([]);
   });
 
-  it('rejects a non-array waypoints value', async () => {
+  it('rejects a non-array stops value', async () => {
     await expect(
-      collectDtoErrors(CreateRoadDto, { ...valid(), waypoints: 'nope' }),
+      collectDtoErrors(CreateRoadDto, { ...valid(), stops: 'nope' }),
     ).resolves.not.toEqual([]);
   });
 
@@ -199,35 +199,35 @@ describe('CreateRoadDto', () => {
       title: 'T',
       description: 'D',
       userId: 'attacker-id',
-      waypoints: [
+      stops: [
         {
-          ...waypoint(),
+          ...stop(),
           id: UUID,
           roadId: UUID,
           addressInfoId: UUID,
           createdAt: '2026-01-01T00:00:00Z',
           updatedAt: '2026-01-01T00:00:00Z',
           deletedAt: null,
-          favoriteWaypoints: [],
+          favoriteStops: [],
           isFavorite: true,
         },
       ],
     });
 
     expect(result).not.toHaveProperty('userId');
-    expect(result.waypoints?.[0]).not.toHaveProperty('roadId');
-    expect(result.waypoints?.[0]).not.toHaveProperty('createdAt');
-    expect(result.waypoints?.[0]).not.toHaveProperty('favoriteWaypoints');
-    expect(result.waypoints?.[0].id).toBe(UUID);
+    expect(result.stops?.[0]).not.toHaveProperty('roadId');
+    expect(result.stops?.[0]).not.toHaveProperty('createdAt');
+    expect(result.stops?.[0]).not.toHaveProperty('favoriteStops');
+    expect(result.stops?.[0].id).toBe(UUID);
   });
 
   it('accepts the client payload that would otherwise 400', async () => {
     const result = await validateDto(UpdateRoadDto, {
       title: 'T',
       description: 'D',
-      waypoints: [
+      stops: [
         {
-          ...waypoint(),
+          ...stop(),
           id: UUID,
           roadId: UUID,
           createdAt: '2026-01-01T00:00:00Z',
@@ -236,11 +236,11 @@ describe('CreateRoadDto', () => {
       ],
     });
 
-    expect(result.waypoints).toHaveLength(1);
+    expect(result.stops).toHaveLength(1);
   });
 });
 
-describe('AddWaypointDto', () => {
+describe('AddStopDto', () => {
   const valid = () => ({
     latitude: 40.99,
     longitude: 29.03,
@@ -249,7 +249,7 @@ describe('AddWaypointDto', () => {
   });
 
   it('accepts the payload the shipped client sends', async () => {
-    await expect(collectDtoErrors(AddWaypointDto, valid())).resolves.toEqual(
+    await expect(collectDtoErrors(AddStopDto, valid())).resolves.toEqual(
       [],
     );
   });
@@ -258,24 +258,24 @@ describe('AddWaypointDto', () => {
     const { address: _address, ...withoutAddress } = valid();
 
     await expect(
-      collectDtoErrors(AddWaypointDto, withoutAddress),
+      collectDtoErrors(AddStopDto, withoutAddress),
     ).resolves.toEqual([]);
   });
 
   it('rejects an address that is not text', async () => {
     await expect(
-      collectDtoErrors(AddWaypointDto, { ...valid(), address: 12345 }),
+      collectDtoErrors(AddStopDto, { ...valid(), address: 12345 }),
     ).resolves.not.toEqual([]);
   });
 
   it('rejects out-of-range coordinates', async () => {
     await expect(
-      collectDtoErrors(AddWaypointDto, { ...valid(), latitude: 999 }),
+      collectDtoErrors(AddStopDto, { ...valid(), latitude: 999 }),
     ).resolves.not.toEqual([]);
   });
 });
 
-describe('UpdateWaypointDto', () => {
+describe('UpdateStopDto', () => {
   const clientPayload = () => ({
     latitude: 40.99,
     longitude: 29.03,
@@ -284,13 +284,13 @@ describe('UpdateWaypointDto', () => {
 
   it('accepts the payload the shipped client sends', async () => {
     await expect(
-      collectDtoErrors(UpdateWaypointDto, clientPayload()),
+      collectDtoErrors(UpdateStopDto, clientPayload()),
     ).resolves.toEqual([]);
   });
 
   it('accepts an explicit order', async () => {
     await expect(
-      collectDtoErrors(UpdateWaypointDto, { ...clientPayload(), order: 3 }),
+      collectDtoErrors(UpdateStopDto, { ...clientPayload(), order: 3 }),
     ).resolves.toEqual([]);
   });
 
@@ -298,51 +298,51 @@ describe('UpdateWaypointDto', () => {
     const { address: _address, ...withoutAddress } = clientPayload();
 
     await expect(
-      collectDtoErrors(UpdateWaypointDto, withoutAddress),
+      collectDtoErrors(UpdateStopDto, withoutAddress),
     ).resolves.toEqual([]);
   });
 
   it('requires coordinates', async () => {
     await expect(
-      collectDtoErrors(UpdateWaypointDto, { address: address() }),
+      collectDtoErrors(UpdateStopDto, { address: address() }),
     ).resolves.not.toEqual([]);
   });
 });
 
-describe('ReorderWaypointsDto', () => {
+describe('ReorderStopsDto', () => {
   it('accepts the payload the shipped client sends', async () => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, { roadId: UUID, from: 0, to: 2 }),
+      collectDtoErrors(ReorderStopsDto, { roadId: UUID, from: 0, to: 2 }),
     ).resolves.toEqual([]);
   });
 
   it('accepts a payload with no roadId, since the path supplies it', async () => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, { from: 0, to: 2 }),
+      collectDtoErrors(ReorderStopsDto, { from: 0, to: 2 }),
     ).resolves.toEqual([]);
   });
 
   it.each([-1, 1.5, 'first', null])('rejects a from of %p', async (from) => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, { from, to: 1 }),
+      collectDtoErrors(ReorderStopsDto, { from, to: 1 }),
     ).resolves.not.toEqual([]);
   });
 
   it.each([-1, 2.5, 'last', null])('rejects a to of %p', async (to) => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, { from: 0, to }),
+      collectDtoErrors(ReorderStopsDto, { from: 0, to }),
     ).resolves.not.toEqual([]);
   });
 
   it('requires both indices', async () => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, { from: 0 }),
+      collectDtoErrors(ReorderStopsDto, { from: 0 }),
     ).resolves.not.toEqual([]);
   });
 
   it('rejects a non-UUID roadId', async () => {
     await expect(
-      collectDtoErrors(ReorderWaypointsDto, {
+      collectDtoErrors(ReorderStopsDto, {
         roadId: 'nope',
         from: 0,
         to: 1,

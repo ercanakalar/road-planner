@@ -23,7 +23,7 @@ export const nextPair = (previous: string[], id: string): string[] => {
  * pair: the list badges them A and B, and the map colours those two pins to
  * match.
  */
-export function useWaypointPair() {
+export function useStopPair() {
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = useCallback((id: string) => {
@@ -31,9 +31,9 @@ export function useWaypointPair() {
   }, []);
 
   /**
-   * Drops a stop that no longer exists, so a deleted waypoint cannot stay
+   * Drops a stop that no longer exists, so a deleted stop cannot stay
    * selected. Returns the same array when there is nothing to drop, so removing
-   * an unselected waypoint does not re-render the map.
+   * an unselected stop does not re-render the map.
    */
   const forget = useCallback((id: string) => {
     setSelected((previous) =>
@@ -44,4 +44,4 @@ export function useWaypointPair() {
   return { selected, toggle, forget };
 }
 
-export default useWaypointPair;
+export default useStopPair;

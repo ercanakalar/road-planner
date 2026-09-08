@@ -23,10 +23,10 @@ export type RouteCoordinate = {
   longitude: number;
 };
 
-type FavoriteWaypoint = {
+type FavoriteStop = {
   id: string;
   userId: string;
-  wayPointsId: string;
+  stopsId: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -39,7 +39,38 @@ type FavoriteRoad = {
   updatedAt: string;
 };
 
-export type WaypointWithAddress = {
+export type SlopeGrade = 'flat' | 'gentle' | 'moderate' | 'steep';
+
+export type BendShape =
+  | 'straight'
+  | 'slight'
+  | 'moderate'
+  | 'sharp'
+  | 'hairpin';
+
+export type BendDirection = 'left' | 'right';
+
+/**
+ * How the road runs at one stop, worked out by the server from the stops on
+ * either side of it. Every field is null where there is nothing to measure: the
+ * first stop has no climb behind it, the last has no turn ahead of it, and a
+ * stop whose ground height was never resolved has no slope at all.
+ */
+export type StopShape = {
+  /** Straight-line distance from the previous stop, in metres. */
+  distanceFromPreviousMeters: number | null;
+  /** Height gained since the previous stop; negative going downhill. */
+  climbMeters: number | null;
+  /** That climb as a percentage of the ground covered. */
+  slopePercent: number | null;
+  slopeGrade: SlopeGrade | null;
+  /** How sharply the route turns here: 0 straight on, 180 doubling back. */
+  bendDegrees: number | null;
+  bendDirection: BendDirection | null;
+  bendShape: BendShape | null;
+};
+
+export type StopWithAddress = StopShape & {
   id: string;
   latitude: number;
   longitude: number;
@@ -47,14 +78,16 @@ export type WaypointWithAddress = {
   roadId: string;
   /** Google's formatted address for the stop, or '' for a bare dropped pin. */
   address: string;
+  /** Ground height in metres above sea level, or null if never resolved. */
+  elevation: number | null;
   description?: string;
   createdAt: string;
   updatedAt: string;
-  favoriteWaypoints: FavoriteWaypoint[];
+  favoriteStops: FavoriteStop[];
 };
 
-export type WaypointWithAddressAndId = {
-  wayPoints: WaypointWithAddress[];
+export type StopWithAddressAndId = {
+  stops: StopWithAddress[];
   id: string;
   title: string;
   description: string;

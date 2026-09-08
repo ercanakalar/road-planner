@@ -6,7 +6,7 @@ import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   ToggleFavoriteRoadDto,
-  ToggleFavoriteWaypointDto,
+  ToggleFavoriteStopDto,
   UpdateFavoriteAnnotationDto,
 } from './dto/favorites.dto';
 
@@ -21,29 +21,29 @@ function isDuplicate(error: unknown): boolean {
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
-  async toggleFavoriteWaypoint(
-    body: ToggleFavoriteWaypointDto,
+  async toggleFavoriteStop(
+    body: ToggleFavoriteStopDto,
     userId: string,
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.favoriteWaypoint.findUnique({
-          where: { userId_waypointId: { userId, waypointId: body.waypointId } },
+        const existing = await tx.favoriteStop.findUnique({
+          where: { userId_stopId: { userId, stopId: body.stopId } },
           select: { id: true },
         });
 
         if (existing) {
-          await tx.favoriteWaypoint.delete({ where: { id: existing.id } });
+          await tx.favoriteStop.delete({ where: { id: existing.id } });
 
           return ok({
             header: 'Removed Favorite',
-            message: 'Favorite waypoint removed successfully',
+            message: 'Favorite stop removed successfully',
           });
         }
 
-        const waypoint = await tx.wayPoint.findFirst({
+        const stop = await tx.stop.findFirst({
           where: {
-            id: body.waypointId,
+            id: body.stopId,
             road: {
               archivedAt: null,
               OR: [{ userId }, { isPublic: true }],
@@ -52,15 +52,15 @@ export class FavoritesService {
           select: { id: true },
         });
 
-        if (!waypoint) {
-          throw new NotFoundException('Waypoint not found');
+        if (!stop) {
+          throw new NotFoundException('Stop not found');
         }
 
         return ok({
           header: 'Favorite Added',
-          message: 'Favorite waypoint added successfully',
-          data: await tx.favoriteWaypoint.create({
-            data: { userId, waypointId: waypoint.id },
+          message: 'Favorite stop added successfully',
+          data: await tx.favoriteStop.create({
+            data: { userId, stopId: stop.id },
           }),
         });
       });
@@ -68,7 +68,7 @@ export class FavoritesService {
       if (isDuplicate(error)) {
         return ok({
           header: 'Already Favorited',
-          message: 'This waypoint is already in your favorites',
+          message: 'This stop is already in your favorites',
         });
       }
 
@@ -138,7 +138,7 @@ export class FavoritesService {
     // by the caller, so they are no longer asked for. The four reads do not
     // depend on each other, so they go to the database together instead of
     // one after another inside a transaction.
-    const [roads, roadTotal, waypoints, waypointTotal] = await Promise.all([
+    const [roads, roadTotal, stops, stopTotal] = await Promise.all([
       this.prisma.favoriteRoad.findMany({
         where: { userId },
         select: {
@@ -159,13 +159,13 @@ export class FavoritesService {
       }),
       this.prisma.favoriteRoad.count({ where: { userId } }),
 
-      this.prisma.favoriteWaypoint.findMany({
+      this.prisma.favoriteStop.findMany({
         where: { userId },
         select: {
           id: true,
           title: true,
           description: true,
-          waypoint: {
+          stop: {
             select: {
               id: true,
               latitude: true,
@@ -177,36 +177,36 @@ export class FavoritesService {
         },
         ...page,
       }),
-      this.prisma.favoriteWaypoint.count({ where: { userId } }),
+      this.prisma.favoriteStop.count({ where: { userId } }),
     ]);
 
     const ownRoads = roads.filter((f) => f.road.userId === userId);
     const othersRoads = roads.filter((f) => f.road.userId !== userId);
 
-    const stripRoad = (favorite: (typeof waypoints)[number]) => ({
+    const stripRoad = (favorite: (typeof stops)[number]) => ({
       ...favorite,
-      waypoint: {
-        id: favorite.waypoint.id,
-        latitude: favorite.waypoint.latitude,
-        longitude: favorite.waypoint.longitude,
-        address: favorite.waypoint.address,
+      stop: {
+        id: favorite.stop.id,
+        latitude: favorite.stop.latitude,
+        longitude: favorite.stop.longitude,
+        address: favorite.stop.address,
       },
     });
 
-    const ownWaypoints = waypoints
-      .filter((f) => f.waypoint.road.userId === userId)
+    const ownStops = stops
+      .filter((f) => f.stop.road.userId === userId)
       .map(stripRoad);
-    const othersWaypoints = waypoints
-      .filter((f) => f.waypoint.road.userId !== userId)
+    const othersStops = stops
+      .filter((f) => f.stop.road.userId !== userId)
       .map(stripRoad);
 
     return ok({
       header: 'All Favorites',
       message: 'Favorites retrieved successfully',
-      data: { ownRoads, ownWaypoints, othersRoads, othersWaypoints },
+      data: { ownRoads, ownStops, othersRoads, othersStops },
       meta: {
         roads: pageMeta(roadTotal, pagination),
-        waypoints: pageMeta(waypointTotal, pagination),
+        stops: pageMeta(stopTotal, pagination),
       },
     });
   }
@@ -238,21 +238,21 @@ export class FavoritesService {
     });
   }
 
-  async updateFavoriteWaypointAnnotation(
+  async updateFavoriteStopAnnotation(
     favoriteId: string,
     userId: string,
     body: UpdateFavoriteAnnotationDto,
   ) {
-    const favorite = await this.prisma.favoriteWaypoint.findFirst({
+    const favorite = await this.prisma.favoriteStop.findFirst({
       where: { id: favoriteId, userId },
       select: { id: true },
     });
 
     if (!favorite) {
-      throw new NotFoundException('Favorite waypoint not found');
+      throw new NotFoundException('Favorite stop not found');
     }
 
-    const updated = await this.prisma.favoriteWaypoint.update({
+    const updated = await this.prisma.favoriteStop.update({
       where: { id: favorite.id },
       data: pickAnnotation(body),
       select: { id: true, title: true, description: true },

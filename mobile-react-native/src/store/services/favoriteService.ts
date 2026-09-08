@@ -18,7 +18,7 @@ import {
   RawFavorites,
   ToggleFavoriteResponse,
   ToggleFavoriteRoadArgs,
-  ToggleFavoriteWaypointArgs,
+  ToggleFavoriteStopArgs,
   UpdateFavoriteAnnotationArgs,
   UpdateFavoriteAnnotationResponse,
 } from 'types/store/services/favoriteService-type';
@@ -88,27 +88,27 @@ export const favoriteService = createApi({
       },
     }),
 
-    toggleFavoriteWaypoint: builder.mutation<
+    toggleFavoriteStop: builder.mutation<
       ToggleFavoriteResponse,
-      ToggleFavoriteWaypointArgs
+      ToggleFavoriteStopArgs
     >({
-      query: ({ waypointId }) => ({
-        url: '/favorites/toggle-waypoint',
+      query: ({ stopId }) => ({
+        url: '/favorites/toggle-stop',
         method: 'POST',
-        body: { waypointId },
+        body: { stopId },
       }),
       transformResponse: (res: ApiResponse<ToggleFavoriteResponse>) =>
         transformApiResponseWithToast(res),
       invalidatesTags: [{ type: 'Favorite', id: 'LIST' }],
       async onQueryStarted(
-        { waypointId, roadId },
+        { stopId, roadId },
         { dispatch, queryFulfilled },
       ) {
         const favoritesPatch = dispatch(
           favoriteService.util.updateQueryData(
             'getFavorites',
             undefined,
-            (draft) => removeFromFavorites(draft, waypointId),
+            (draft) => removeFromFavorites(draft, stopId),
           ),
         );
 
@@ -118,17 +118,17 @@ export const favoriteService = createApi({
                 'getRoadById',
                 { roadId },
                 (draft) => {
-                  const target = draft.wayPoints.find(
-                    (waypoint) => waypoint.id === waypointId,
+                  const target = draft.stops.find(
+                    (stop) => stop.id === stopId,
                   );
                   if (!target) return;
-                  target.favoriteWaypoints = target.favoriteWaypoints.length
+                  target.favoriteStops = target.favoriteStops.length
                     ? []
                     : [
                         {
                           id: 'temp-favorite-id',
                           userId: '',
-                          wayPointsId: waypointId,
+                          stopsId: stopId,
                           createdAt: new Date().toISOString(),
                           updatedAt: new Date().toISOString(),
                         },
@@ -190,6 +190,6 @@ export const favoriteService = createApi({
 export const {
   useGetFavoritesQuery,
   useUpdateFavoriteAnnotationMutation,
-  useToggleFavoriteWaypointMutation,
+  useToggleFavoriteStopMutation,
   useToggleFavoriteRoadMutation,
 } = favoriteService;

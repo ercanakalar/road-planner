@@ -20,12 +20,12 @@ const raw = {
       },
     },
   ],
-  ownWaypoints: [
+  ownStops: [
     {
       id: 'fav-wp-1',
       title: null,
       description: null,
-      waypoint: {
+      stop: {
         id: 'wp-7',
         latitude: 41.0082,
         longitude: 28.9784,
@@ -34,12 +34,12 @@ const raw = {
     },
   ],
   othersRoads: [],
-  othersWaypoints: [
+  othersStops: [
     {
       id: 'fav-wp-2',
       title: null,
       description: null,
-      waypoint: {
+      stop: {
         id: 'wp-9',
         latitude: 39.9334,
         longitude: 32.8597,
@@ -79,11 +79,11 @@ describe('normalizeFavorites', () => {
     expect(normalizeFavorites(withdrawn).ownRoads[0].isWithdrawn).toBe(true);
   });
 
-  it('points targetId at the waypoint and titles it from the address', () => {
-    expect(normalizeFavorites(raw).ownWaypoints[0]).toEqual({
+  it('points targetId at the stop and titles it from the address', () => {
+    expect(normalizeFavorites(raw).ownStops[0]).toEqual({
       favoriteId: 'fav-wp-1',
       targetId: 'wp-7',
-      kind: 'waypoint',
+      kind: 'stop',
       title: 'Sultanahmet Sq',
       // The country is the same for every stop on a domestic route, so the
       // subtitle drops it — but `address`, which is what gets copied, keeps it.
@@ -97,7 +97,7 @@ describe('normalizeFavorites', () => {
   });
 
   it('falls back to coordinates when the stop has no address', () => {
-    const entry = normalizeFavorites(raw).othersWaypoints[0];
+    const entry = normalizeFavorites(raw).othersStops[0];
 
     expect(entry.title).toBe('39.9334, 32.8597');
     expect(entry.subtitle).toBe('39.9334, 32.8597');
@@ -109,18 +109,18 @@ describe('normalizeFavorites', () => {
     // no more than the coordinates do and reads like a serial number.
     const plusCode = {
       ...raw,
-      othersWaypoints: [
+      othersStops: [
         {
-          ...raw.othersWaypoints[0],
-          waypoint: {
-            ...raw.othersWaypoints[0].waypoint,
+          ...raw.othersStops[0],
+          stop: {
+            ...raw.othersStops[0].stop,
             address: '7GXR+8C',
           },
         },
       ],
     } satisfies RawFavorites;
 
-    expect(normalizeFavorites(plusCode).othersWaypoints[0].title).toBe(
+    expect(normalizeFavorites(plusCode).othersStops[0].title).toBe(
       '39.9334, 32.8597',
     );
   });
@@ -183,9 +183,9 @@ describe('removeFromFavorites', () => {
     const draft = normalizeFavorites(raw);
     removeFromFavorites(draft, 'wp-7');
 
-    expect(draft.ownWaypoints).toHaveLength(0);
+    expect(draft.ownStops).toHaveLength(0);
     expect(draft.ownRoads).toHaveLength(1);
-    expect(draft.othersWaypoints).toHaveLength(1);
+    expect(draft.othersStops).toHaveLength(1);
   });
 
   it('matches on targetId, not favoriteId', () => {

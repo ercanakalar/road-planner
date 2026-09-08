@@ -73,7 +73,7 @@ describe('RoadSharingService', () => {
       title: 'Coast run',
       archivedAt: null,
       user: { nickName: 'ada', firstName: 'Ada' },
-      wayPoints: [],
+      stops: [],
     };
 
     it('resolves the road the token names', async () => {

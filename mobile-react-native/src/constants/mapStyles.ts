@@ -6,7 +6,7 @@ import type { ThemeColors } from 'theme/palettes';
  * Builds the Google Maps style out of the app's own palette.
  *
  * The map is a backdrop, not a subject: everything that matters on it — the
- * route line, the four waypoint pins, the places found along the way — is drawn
+ * route line, the four stop pins, the places found along the way — is drawn
  * on top in saturated palette colours, and the map has to stay out of their way
  * in both themes. So the basemap is built only from the neutrals (`background`,
  * `surface`, `surfaceAlt`, `border`, the three text tones), with exactly two

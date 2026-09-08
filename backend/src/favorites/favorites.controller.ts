@@ -16,7 +16,7 @@ import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { FavoritesService } from './favorites.service';
 import {
   ToggleFavoriteRoadDto,
-  ToggleFavoriteWaypointDto,
+  ToggleFavoriteStopDto,
   UpdateFavoriteAnnotationDto,
 } from './dto/favorites.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
@@ -25,13 +25,13 @@ import { GetUser } from 'src/common/decorators/get-user.decorator';
 export class FavoritesController {
   constructor(private favoritesService: FavoritesService) {}
 
-  @Post('toggle-waypoint')
+  @Post('toggle-stop')
   @HttpCode(HttpStatus.OK)
-  async addFavoriteWaypoint(
-    @Body() body: ToggleFavoriteWaypointDto,
+  async addFavoriteStop(
+    @Body() body: ToggleFavoriteStopDto,
     @GetUser('userId') userId: string,
   ) {
-    return this.favoritesService.toggleFavoriteWaypoint(body, userId);
+    return this.favoritesService.toggleFavoriteStop(body, userId);
   }
 
   @Post('toggle-road')
@@ -66,14 +66,14 @@ export class FavoritesController {
     );
   }
 
-  @Patch('waypoint/:favoriteId')
+  @Patch('stop/:favoriteId')
   @HttpCode(HttpStatus.OK)
-  async updateFavoriteWaypoint(
+  async updateFavoriteStop(
     @Param('favoriteId', ParseUUIDPipe) favoriteId: string,
     @Body() body: UpdateFavoriteAnnotationDto,
     @GetUser('userId') userId: string,
   ) {
-    return this.favoritesService.updateFavoriteWaypointAnnotation(
+    return this.favoritesService.updateFavoriteStopAnnotation(
       favoriteId,
       userId,
       body,

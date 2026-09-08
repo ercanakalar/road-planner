@@ -9,7 +9,7 @@ import { LatLng, TransportMode } from 'src/maps/types/maps.types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RoadVisibility } from '../visibility/road-visibility';
 
-const TOO_SHORT = 'A route needs at least two waypoints';
+const TOO_SHORT = 'A route needs at least two stops';
 
 @Injectable()
 export class RoadRouteService {
@@ -21,7 +21,7 @@ export class RoadRouteService {
 
   async getRoute(roadId: string, userId: string | null, mode?: TransportMode) {
     const request = toRouteRequest(
-      await this.waypointsOf(roadId, userId),
+      await this.stopsOf(roadId, userId),
       mode,
     );
 
@@ -43,7 +43,7 @@ export class RoadRouteService {
     userId: string | null,
     modes: readonly TransportMode[],
   ) {
-    const request = toRouteRequest(await this.waypointsOf(roadId, userId));
+    const request = toRouteRequest(await this.stopsOf(roadId, userId));
 
     if (!request) {
       return ok({ header: 'Durations', message: TOO_SHORT, data: {} });
@@ -56,14 +56,14 @@ export class RoadRouteService {
     });
   }
 
-  private async waypointsOf(
+  private async stopsOf(
     roadId: string,
     userId: string | null,
   ): Promise<LatLng[]> {
     const road = await this.prisma.road.findFirst({
       where: this.visibility.road(roadId, userId),
       select: {
-        wayPoints: {
+        stops: {
           select: { latitude: true, longitude: true },
           orderBy: { order: 'asc' },
         },
@@ -74,6 +74,6 @@ export class RoadRouteService {
       throw new NotFoundException('Route not found');
     }
 
-    return road.wayPoints;
+    return road.stops;
   }
 }

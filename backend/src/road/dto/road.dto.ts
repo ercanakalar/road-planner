@@ -22,11 +22,11 @@ import {
   LONGITUDE_MIN,
   LONG_TEXT_MAX_LENGTH,
   SHORT_TEXT_MAX_LENGTH,
-  WAYPOINTS_MAX,
+  STOPS_MAX,
 } from 'src/common/dto/constants';
 import { trim } from 'src/common/dto/transforms';
 
-export class WaypointInputDto {
+export class StopInputDto {
   @IsOptional()
   @IsUUID()
   id?: string;
@@ -46,8 +46,8 @@ export class WaypointInputDto {
   order!: number;
 
   @IsOptional()
-  @IsIn(['start', 'end', 'waypoint'])
-  type?: 'start' | 'end' | 'waypoint';
+  @IsIn(['start', 'end', 'stop'])
+  type?: 'start' | 'end' | 'stop';
 
   @IsOptional()
   @Transform(trim)
@@ -69,10 +69,10 @@ export class CreateRoadDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(WAYPOINTS_MAX)
+  @ArrayMaxSize(STOPS_MAX)
   @ValidateNested({ each: true })
-  @Type(() => WaypointInputDto)
-  waypoints?: WaypointInputDto[];
+  @Type(() => StopInputDto)
+  stops?: StopInputDto[];
 }
 
 export class UpdateRoadDto extends CreateRoadDto {
@@ -81,7 +81,7 @@ export class UpdateRoadDto extends CreateRoadDto {
   isPublic?: boolean;
 }
 
-export class AddWaypointDto {
+export class AddStopDto {
   @IsNumber()
   @Min(LATITUDE_MIN)
   @Max(LATITUDE_MAX)
@@ -103,7 +103,7 @@ export class AddWaypointDto {
   address?: string;
 }
 
-export class UpdateWaypointDto {
+export class UpdateStopDto {
   @IsNumber()
   @Min(LATITUDE_MIN)
   @Max(LATITUDE_MAX)
@@ -126,7 +126,7 @@ export class UpdateWaypointDto {
   address?: string;
 }
 
-export class ReorderWaypointsDto {
+export class ReorderStopsDto {
   @IsOptional()
   @IsUUID()
   roadId?: string;

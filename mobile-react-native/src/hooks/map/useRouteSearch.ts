@@ -9,7 +9,7 @@ import {
 } from 'services/mapsService';
 import useDebouncedValue from 'hooks/common/useDebouncedValue';
 import { DEFAULT_SEARCH_RADIUS_METERS } from 'constants/placeCategories';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { StopWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
 const DEBOUNCE_MS = 600;
@@ -18,7 +18,7 @@ const MIN_QUERY_LENGTH = 2;
 
 const EMPTY_PLACES: RoutePlace[] = [];
 
-const toCoordinate = ({ latitude, longitude }: WaypointWithAddress) => ({
+const toCoordinate = ({ latitude, longitude }: StopWithAddress) => ({
   latitude,
   longitude,
 });
@@ -33,18 +33,18 @@ interface RouteSearchInputs {
 }
 
 export function toRouteSearchRequest(
-  waypoints: WaypointWithAddress[],
+  stops: StopWithAddress[],
   { query, category, radiusMeters, sortBy, openNow, mode }: RouteSearchInputs,
 ): RouteSearchRequest | null {
   const term = query?.trim();
   const keyword = term && term.length >= MIN_QUERY_LENGTH ? term : undefined;
 
-  if (waypoints.length < 2 || (!keyword && !category)) return null;
+  if (stops.length < 2 || (!keyword && !category)) return null;
 
   return {
-    origin: toCoordinate(waypoints[0]),
-    destination: toCoordinate(waypoints[waypoints.length - 1]),
-    waypoints: waypoints.slice(1, -1).map(toCoordinate),
+    origin: toCoordinate(stops[0]),
+    destination: toCoordinate(stops[stops.length - 1]),
+    waypoints: stops.slice(1, -1).map(toCoordinate),
     mode,
     radiusMeters,
     sortBy,
@@ -75,7 +75,7 @@ export interface RouteSearchState {
 }
 
 export function useRouteSearch(
-  waypoints: WaypointWithAddress[],
+  stops: StopWithAddress[],
   mode: TransportMode,
 ): RouteSearchState {
   const [query, setQuery] = useState('');
@@ -91,23 +91,23 @@ export function useRouteSearch(
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  const isRoutable = waypoints.length >= 2;
+  const isRoutable = stops.length >= 2;
 
   const debouncedQuery = useDebouncedValue(query.trim(), DEBOUNCE_MS);
 
   const signature = useMemo(
     () =>
-      waypoints
+      stops
         .map(
           (point) =>
             `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`,
         )
         .join('|'),
-    [waypoints],
+    [stops],
   );
 
-  const waypointsRef = useRef(waypoints);
-  waypointsRef.current = waypoints;
+  const stopsRef = useRef(stops);
+  stopsRef.current = stops;
 
   const toggleCategory = useCallback((next: string) => {
     setCategory((current) => (current === next ? undefined : next));
@@ -125,7 +125,7 @@ export function useRouteSearch(
   }, []);
 
   useEffect(() => {
-    const request = toRouteSearchRequest(waypointsRef.current, {
+    const request = toRouteSearchRequest(stopsRef.current, {
       query: debouncedQuery,
       category,
       radiusMeters,

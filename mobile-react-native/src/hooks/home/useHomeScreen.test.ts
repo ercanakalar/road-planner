@@ -9,7 +9,7 @@ const road = (id: string, isFavorite: boolean): DiscoverRoad => ({
   author: 'someone',
   stopCount: 2,
   isFavorite,
-  wayPoints: [],
+  stops: [],
 });
 
 describe('withFavoriteToggled', () => {

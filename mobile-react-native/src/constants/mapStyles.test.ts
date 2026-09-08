@@ -60,7 +60,7 @@ describe.each([
   });
 
   it('leaves the basemap clear of the colours the app draws pins in', () => {
-    // Waypoint pins, found places and the compared pair are all drawn over
+    // Stop pins, found places and the compared pair are all drawn over
     // this; a basemap that used one of their colours would camouflage it.
     const pinColors = [
       colors.success,

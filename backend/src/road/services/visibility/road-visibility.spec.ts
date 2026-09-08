@@ -18,8 +18,8 @@ describe('RoadVisibility', () => {
       expect(serialised).not.toContain('userId');
     });
 
-    it('offers a waypoint only through its published road', () => {
-      expect(visibility.waypoint('wp-1', null)).toEqual({
+    it('offers a stop only through its published road', () => {
+      expect(visibility.stop('wp-1', null)).toEqual({
         id: 'wp-1',
         OR: [{ road: { isPublic: true, archivedAt: null } }],
       });
@@ -38,14 +38,14 @@ describe('RoadVisibility', () => {
       });
     });
 
-    it('reaches a waypoint through its road, or by having saved the stop', () => {
-      expect(visibility.waypoint('wp-1', 'user-1')).toEqual({
+    it('reaches a stop through its road, or by having saved the stop', () => {
+      expect(visibility.stop('wp-1', 'user-1')).toEqual({
         id: 'wp-1',
         OR: [
           { road: { userId: 'user-1', archivedAt: null } },
           { road: { isPublic: true, archivedAt: null } },
           { road: { favoriteRoads: { some: { userId: 'user-1' } } } },
-          { favoriteWaypoints: { some: { userId: 'user-1' } } },
+          { favoriteStops: { some: { userId: 'user-1' } } },
         ],
       });
     });

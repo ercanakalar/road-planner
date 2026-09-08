@@ -4,16 +4,16 @@ import { RouteCoordinate } from 'types/map-screen-type';
 
 interface MapState {
   clickedLocation?: RouteCoordinate;
-  contextMenuWaypointId?: string;
+  contextMenuStopId?: string;
   isContextMenuVisible: boolean;
-  draggingWaypointId?: string;
+  draggingStopId?: string;
 }
 
 const initialState: MapState = {
   clickedLocation: undefined,
-  contextMenuWaypointId: undefined,
+  contextMenuStopId: undefined,
   isContextMenuVisible: false,
-  draggingWaypointId: undefined,
+  draggingStopId: undefined,
 };
 
 const mapSlice = createSlice({
@@ -25,24 +25,24 @@ const mapSlice = createSlice({
       action: PayloadAction<RouteCoordinate>,
     ) {
       state.clickedLocation = action.payload;
-      state.contextMenuWaypointId = undefined;
+      state.contextMenuStopId = undefined;
       state.isContextMenuVisible = true;
     },
-    openContextMenuForWaypoint(state, action: PayloadAction<string>) {
+    openContextMenuForStop(state, action: PayloadAction<string>) {
       state.clickedLocation = undefined;
-      state.contextMenuWaypointId = action.payload;
+      state.contextMenuStopId = action.payload;
       state.isContextMenuVisible = true;
     },
     closeContextMenu(state) {
       state.isContextMenuVisible = false;
     },
-    startDraggingWaypoint(state, action: PayloadAction<string>) {
-      state.draggingWaypointId = action.payload;
+    startDraggingStop(state, action: PayloadAction<string>) {
+      state.draggingStopId = action.payload;
       state.isContextMenuVisible = false;
     },
-    stopDraggingWaypoint(state) {
-      state.draggingWaypointId = undefined;
-      state.contextMenuWaypointId = undefined;
+    stopDraggingStop(state) {
+      state.draggingStopId = undefined;
+      state.contextMenuStopId = undefined;
     },
     resetMapState() {
       return initialState;
@@ -52,10 +52,10 @@ const mapSlice = createSlice({
 
 export const {
   openContextMenuForLocation,
-  openContextMenuForWaypoint,
+  openContextMenuForStop,
   closeContextMenu,
-  startDraggingWaypoint,
-  stopDraggingWaypoint,
+  startDraggingStop,
+  stopDraggingStop,
   resetMapState,
 } = mapSlice.actions;
 

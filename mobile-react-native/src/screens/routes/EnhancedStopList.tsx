@@ -1,34 +1,34 @@
 import { useCallback } from 'react';
 
 import {
-  useDeleteWaypointByIdMutation,
+  useDeleteStopByIdMutation,
   useGetRoadByIdQuery,
-  useReOrderWaypointsMutation,
+  useReOrderStopsMutation,
 } from 'store/services/roadService';
-import { useToggleFavoriteWaypointMutation } from 'store/services/favoriteService';
+import { useToggleFavoriteStopMutation } from 'store/services/favoriteService';
 
-import WaypointList from 'components/map/WaypointList';
+import StopList from 'components/map/StopList';
 import useCopyAddress from 'hooks/common/useCopyAddress';
 import { useModeDurations } from 'hooks/map/useRouteDirections';
 import { showNotification } from 'services/notificationService';
 
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { TransportMode, WaypointOption } from 'types/transport-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { TransportMode, StopOption } from 'types/transport-type';
 
-const EMPTY_WAYPOINTS: never[] = [];
+const EMPTY_STOPS: never[] = [];
 
 interface Props {
   roadId: string;
   transportMode: TransportMode;
   /** Owned by the screen, because the map has to badge the same two stops. */
   selectedPair: string[];
-  onToggleSelection: (waypointId: string) => void;
-  onForgetSelection: (waypointId: string) => void;
+  onToggleSelection: (stopId: string) => void;
+  onForgetSelection: (stopId: string) => void;
   onTransportModeChange: (mode: TransportMode) => void;
   onReorderingChange?: (isReordering: boolean) => void;
 }
 
-const EnhancedWaypointList = ({
+const EnhancedStopList = ({
   roadId,
   transportMode,
   selectedPair,
@@ -37,44 +37,44 @@ const EnhancedWaypointList = ({
   onTransportModeChange,
   onReorderingChange,
 }: Props) => {
-  const { waypoints } = useGetRoadByIdQuery(
+  const { stops } = useGetRoadByIdQuery(
     { roadId },
     {
       skip: !roadId,
       selectFromResult: ({ data }) => ({
-        waypoints: data?.wayPoints ?? EMPTY_WAYPOINTS,
+        stops: data?.stops ?? EMPTY_STOPS,
       }),
     },
   );
 
-  const [deleteWaypointById] = useDeleteWaypointByIdMutation();
-  const [reOrderWaypoints] = useReOrderWaypointsMutation();
-  const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
+  const [deleteStopById] = useDeleteStopByIdMutation();
+  const [reOrderStops] = useReOrderStopsMutation();
+  const [toggleFavoriteStop] = useToggleFavoriteStopMutation();
 
-  const durations = useModeDurations(waypoints, selectedPair);
+  const durations = useModeDurations(stops, selectedPair);
   const copyAddress = useCopyAddress();
 
   const handleDelete = useCallback(
-    async (waypointId: string) => {
+    async (stopId: string) => {
       try {
-        await deleteWaypointById({ roadId, waypointId }).unwrap();
-        onForgetSelection(waypointId);
+        await deleteStopById({ roadId, stopId }).unwrap();
+        onForgetSelection(stopId);
       } catch {
         showNotification({
           type: 'error',
           header: 'Error',
-          message: 'Could not delete that waypoint.',
+          message: 'Could not delete that stop.',
         });
       }
     },
-    [deleteWaypointById, onForgetSelection, roadId],
+    [deleteStopById, onForgetSelection, roadId],
   );
 
   const toggleFavorite = useCallback(
-    async (waypoint: WaypointWithAddress) => {
+    async (stop: StopWithAddress) => {
       try {
-        await toggleFavoriteWaypoint({
-          waypointId: waypoint.id,
+        await toggleFavoriteStop({
+          stopId: stop.id,
           roadId,
         }).unwrap();
       } catch {
@@ -85,11 +85,11 @@ const EnhancedWaypointList = ({
         });
       }
     },
-    [roadId, toggleFavoriteWaypoint],
+    [roadId, toggleFavoriteStop],
   );
 
   const handleOptionSelect = useCallback(
-    (option: WaypointOption, item: WaypointWithAddress) => {
+    (option: StopOption, item: StopWithAddress) => {
       if (option === 'delete') return handleDelete(item.id);
       if (option === 'copy') return copyAddress(item.address);
       if (option === 'favorite') return toggleFavorite(item);
@@ -99,14 +99,14 @@ const EnhancedWaypointList = ({
 
   const handleReorder = useCallback(
     ({ from, to }: { from: number; to: number }) => {
-      reOrderWaypoints({ roadId, from, to });
+      reOrderStops({ roadId, from, to });
     },
-    [reOrderWaypoints, roadId],
+    [reOrderStops, roadId],
   );
 
   return (
-    <WaypointList
-      waypoints={waypoints}
+    <StopList
+      stops={stops}
       selectedPair={selectedPair}
       durations={durations}
       transportMode={transportMode}
@@ -119,4 +119,4 @@ const EnhancedWaypointList = ({
   );
 };
 
-export default EnhancedWaypointList;
+export default EnhancedStopList;

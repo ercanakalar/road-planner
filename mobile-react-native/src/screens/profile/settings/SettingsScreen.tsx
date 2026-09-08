@@ -49,13 +49,13 @@ const SettingsScreen = () => {
   const isUploading = useAppSelector((state) => state.localRoad.isUploading);
 
   const transferable = useMemo(
-    () => localRoads.filter((road) => road.wayPoints.length > 0),
+    () => localRoads.filter((road) => road.stops.length > 0),
     [localRoads],
   );
 
   const stopCount = useMemo(
     () =>
-      transferable.reduce((total, road) => total + road.wayPoints.length, 0),
+      transferable.reduce((total, road) => total + road.stops.length, 0),
     [transferable],
   );
 

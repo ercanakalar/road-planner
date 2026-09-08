@@ -23,10 +23,10 @@ const favorites: NormalizedFavorites = {
       defaultTitle: 'Airport run',
     }),
   ],
-  ownWaypoints: [
+  ownStops: [
     entry({
       favoriteId: 'w1',
-      kind: 'waypoint',
+      kind: 'stop',
       title: 'Sultanahmet Sq',
       subtitle: 'Fatih, İstanbul',
       defaultTitle: 'Sultanahmet Sq',
@@ -34,7 +34,7 @@ const favorites: NormalizedFavorites = {
     }),
   ],
   othersRoads: [],
-  othersWaypoints: [entry({ favoriteId: 'w2', kind: 'waypoint', title: 'Kadıköy' })],
+  othersStops: [entry({ favoriteId: 'w2', kind: 'stop', title: 'Kadıköy' })],
 };
 
 describe('searchFavorites', () => {
@@ -55,7 +55,7 @@ describe('searchFavorites', () => {
   });
 
   it('matches on where a place is', () => {
-    expect(searchFavorites(favorites, 'fatih').ownWaypoints).toHaveLength(1);
+    expect(searchFavorites(favorites, 'fatih').ownStops).toHaveLength(1);
   });
 
   it('needs every word, in any order', () => {
@@ -65,15 +65,15 @@ describe('searchFavorites', () => {
 
   it('finds a Turkish name typed on an English keyboard', () => {
     // An English keyboard types neither the dotless ı nor the ö.
-    expect(searchFavorites(favorites, 'kadikoy').othersWaypoints).toHaveLength(1);
-    expect(searchFavorites(favorites, 'İSTANBUL').ownWaypoints).toHaveLength(1);
+    expect(searchFavorites(favorites, 'kadikoy').othersStops).toHaveLength(1);
+    expect(searchFavorites(favorites, 'İSTANBUL').ownStops).toHaveLength(1);
   });
 
   it('searches every section, not just the first', () => {
     const found = searchFavorites(favorites, 'sq');
 
     expect(countFavorites(found)).toBe(1);
-    expect(found.ownWaypoints[0].favoriteId).toBe('w1');
+    expect(found.ownStops[0].favoriteId).toBe('w1');
   });
 
   it('gives back empty sections when nothing matches', () => {

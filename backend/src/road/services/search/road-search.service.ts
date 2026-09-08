@@ -15,7 +15,7 @@ const SORTS: Record<RoadSearchSort, Prisma.RoadOrderByWithRelationInput[]> = {
   recent: [{ createdAt: 'desc' }, { id: 'desc' }],
   oldest: [{ createdAt: 'asc' }, { id: 'asc' }],
   popular: [{ favoriteRoads: { _count: 'desc' } }, { createdAt: 'desc' }],
-  stops: [{ wayPoints: { _count: 'desc' } }, { createdAt: 'desc' }],
+  stops: [{ stops: { _count: 'desc' } }, { createdAt: 'desc' }],
   title: [{ title: 'asc' }, { id: 'asc' }],
 };
 
@@ -66,15 +66,15 @@ export class RoadSearchService {
     //
     // This leans on `order` being a dense 1-based rank per road, which is what
     // every writer produces — `positionByRank` on create, `index + 1` on
-    // reorder, and `compactWaypointOrder` after a delete — and what the
+    // reorder, and `compactStopOrder` after a delete — and what the
     // `@@unique([roadId, order])` constraint keeps unique. A road therefore has
     // at least N stops exactly when one of them is ranked N or higher.
     if (query.minStops !== undefined && query.minStops > 0) {
-      filters.push({ wayPoints: { some: { order: { gte: query.minStops } } } });
+      filters.push({ stops: { some: { order: { gte: query.minStops } } } });
     }
 
     if (query.maxStops !== undefined) {
-      filters.push({ wayPoints: { none: { order: { gt: query.maxStops } } } });
+      filters.push({ stops: { none: { order: { gt: query.maxStops } } } });
     }
 
     return { AND: filters };
@@ -101,8 +101,8 @@ export class RoadSearchService {
           favoriteRoads: userId
             ? { where: { userId }, select: { id: true } }
             : false,
-          _count: { select: { wayPoints: true, favoriteRoads: true } },
-          wayPoints: {
+          _count: { select: { stops: true, favoriteRoads: true } },
+          stops: {
             select: {
               id: true,
               latitude: true,
@@ -122,7 +122,7 @@ export class RoadSearchService {
         authorId,
         author: user.nickName ?? user.firstName ?? 'A traveller',
         authorPhoto: user.photo,
-        stopCount: _count.wayPoints,
+        stopCount: _count.stops,
         favoriteCount: _count.favoriteRoads,
         isFavorite: !!favoriteRoads?.length,
       }),

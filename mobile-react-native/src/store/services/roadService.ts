@@ -5,17 +5,18 @@ import {
   transformApiResponse,
   transformApiResponseWithToast,
 } from 'store/bases/transformApiResponse';
+import { UNSHAPED_STOP } from 'utils/stopShape';
 import { ApiResponse } from 'types/store/bases';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { StopWithAddress } from 'types/map-screen-type';
 import {
-  AddWaypointArgs,
-  AddWaypointResponse,
+  AddStopArgs,
+  AddStopResponse,
   CreateRoadArgs,
   CreateRoadResponse,
   DeleteRoadByIdArgs,
   DeleteRoadByIdResponse,
-  DeleteWaypointByRoadIdArgs,
-  DeleteWaypointByRoadIdResponse,
+  DeleteStopByRoadIdArgs,
+  DeleteStopByRoadIdResponse,
   CloneRoadArgs,
   CloneRoadResponse,
   GetDiscoverRoadsArgs,
@@ -28,26 +29,26 @@ import {
   GetSharedRoadResponse,
   ShareRoadArgs,
   ShareRoadResponse,
-  GetWaypointByIdArgs,
-  GetWaypointByIdResponse,
-  ReorderWaypointsArgs,
-  ReorderWaypointsResponse,
+  GetStopByIdArgs,
+  GetStopByIdResponse,
+  ReorderStopsArgs,
+  ReorderStopsResponse,
   UpdateRoadByIdArgs,
   UpdateRoadByIdResponse,
-  UpdateWaypointByWaypointIdArgs,
-  UpdateWaypointByWaypointIdResponse,
+  UpdateStopByStopIdArgs,
+  UpdateStopByStopIdResponse,
 } from 'types/store/services/roadService-type';
 
-const TEMP_WAYPOINT_ID = 'temp-waypoint-id';
+const TEMP_STOP_ID = 'temp-stop-id';
 
 /** Shown on an optimistically added stop until the server names it. */
 const PENDING_ADDRESS = 'Locating…';
 
 const withSequentialOrder = (
-  waypoints: WaypointWithAddress[],
-): WaypointWithAddress[] =>
-  waypoints.map((waypoint, index) =>
-    waypoint.order === index + 1 ? waypoint : { ...waypoint, order: index + 1 },
+  stops: StopWithAddress[],
+): StopWithAddress[] =>
+  stops.map((stop, index) =>
+    stop.order === index + 1 ? stop : { ...stop, order: index + 1 },
   );
 
 const moveItem = <T>(items: T[], from: number, to: number): T[] => {
@@ -61,7 +62,7 @@ const moveItem = <T>(items: T[], from: number, to: number): T[] => {
 export const roadService = createApi({
   reducerPath: 'roadService',
   baseQuery: baseQuery(),
-  tagTypes: ['Road', 'Waypoint'],
+  tagTypes: ['Road', 'Stop'],
   keepUnusedDataFor: 300,
   refetchOnFocus: true,
   refetchOnReconnect: true,
@@ -141,18 +142,18 @@ export const roadService = createApi({
       ],
     }),
 
-    getWaypointById: builder.query<
-      GetWaypointByIdResponse,
-      GetWaypointByIdArgs
+    getStopById: builder.query<
+      GetStopByIdResponse,
+      GetStopByIdArgs
     >({
-      query: ({ waypointId }) => ({
-        url: `/road/waypoint/${waypointId}`,
+      query: ({ stopId }) => ({
+        url: `/road/stop/${stopId}`,
         method: 'GET',
       }),
-      transformResponse: (res: ApiResponse<GetWaypointByIdResponse>) =>
+      transformResponse: (res: ApiResponse<GetStopByIdResponse>) =>
         transformApiResponse(res),
-      providesTags: (_result, _error, { waypointId }) => [
-        { type: 'Waypoint', id: waypointId },
+      providesTags: (_result, _error, { stopId }) => [
+        { type: 'Stop', id: stopId },
       ],
     }),
 
@@ -187,10 +188,10 @@ export const roadService = createApi({
     }),
 
     createRoad: builder.mutation<CreateRoadResponse, CreateRoadArgs>({
-      query: ({ title, description, waypoints }) => ({
+      query: ({ title, description, stops }) => ({
         url: '/road/create',
         method: 'POST',
-        body: { title, description: description ?? '', waypoints },
+        body: { title, description: description ?? '', stops },
       }),
       transformResponse: (res: ApiResponse<CreateRoadResponse>) =>
         transformApiResponse(res),
@@ -201,13 +202,13 @@ export const roadService = createApi({
       UpdateRoadByIdResponse,
       UpdateRoadByIdArgs
     >({
-      query: ({ roadId, title, description, isPublic, waypoints }) => ({
+      query: ({ roadId, title, description, isPublic, stops }) => ({
         url: `/road/update/${roadId}`,
         method: 'PUT',
         body: {
           title,
           description,
-          waypoints,
+          stops,
           ...(isPublic === undefined ? {} : { isPublic }),
         },
       }),
@@ -219,41 +220,46 @@ export const roadService = createApi({
       ],
     }),
 
-    addWaypoint: builder.mutation<AddWaypointResponse, AddWaypointArgs>({
-      query: ({ roadId, waypoint }) => ({
-        url: `/road/add-waypoint/${roadId}`,
+    addStop: builder.mutation<AddStopResponse, AddStopArgs>({
+      query: ({ roadId, stop }) => ({
+        url: `/road/add-stop/${roadId}`,
         method: 'POST',
         body: {
-          latitude: waypoint.latitude,
-          longitude: waypoint.longitude,
-          order: waypoint.order,
-          ...(waypoint.address ? { address: waypoint.address } : {}),
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+          order: stop.order,
+          ...(stop.address ? { address: stop.address } : {}),
         },
       }),
-      transformResponse: (res: ApiResponse<AddWaypointResponse>) =>
+      transformResponse: (res: ApiResponse<AddStopResponse>) =>
         transformApiResponse(res),
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
         { type: 'Road', id: 'LIST' },
       ],
-      async onQueryStarted({ roadId, waypoint }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ roadId, stop }, { dispatch, queryFulfilled }) {
         const now = new Date().toISOString();
         const patch = dispatch(
           roadService.util.updateQueryData(
             'getRoadById',
             { roadId },
             (draft) => {
-              draft.wayPoints.push({
-                id: TEMP_WAYPOINT_ID,
+              draft.stops.push({
+                // The server works slope and bend out from a stop's
+                // neighbours, so the optimistic row shows neither until it
+                // answers rather than guessing at both.
+                ...UNSHAPED_STOP,
+                elevation: null,
+                id: TEMP_STOP_ID,
                 roadId,
-                latitude: waypoint.latitude,
-                longitude: waypoint.longitude,
-                order: draft.wayPoints.length + 1,
-                description: waypoint.description,
-                favoriteWaypoints: [],
+                latitude: stop.latitude,
+                longitude: stop.longitude,
+                order: draft.stops.length + 1,
+                description: stop.description,
+                favoriteStops: [],
                 createdAt: now,
                 updatedAt: now,
-                address: waypoint.address ?? PENDING_ADDRESS,
+                address: stop.address ?? PENDING_ADDRESS,
               });
             },
           ),
@@ -266,22 +272,22 @@ export const roadService = createApi({
       },
     }),
 
-    deleteWaypointById: builder.mutation<
-      DeleteWaypointByRoadIdResponse,
-      DeleteWaypointByRoadIdArgs
+    deleteStopById: builder.mutation<
+      DeleteStopByRoadIdResponse,
+      DeleteStopByRoadIdArgs
     >({
-      query: ({ waypointId }) => ({
-        url: `/road/delete-waypoint/${waypointId}`,
+      query: ({ stopId }) => ({
+        url: `/road/delete-stop/${stopId}`,
         method: 'DELETE',
         body: {},
       }),
-      transformResponse: (res: ApiResponse<DeleteWaypointByRoadIdResponse>) =>
+      transformResponse: (res: ApiResponse<DeleteStopByRoadIdResponse>) =>
         transformApiResponse(res),
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
       ],
       async onQueryStarted(
-        { roadId, waypointId },
+        { roadId, stopId },
         { dispatch, queryFulfilled },
       ) {
         const patch = dispatch(
@@ -289,9 +295,9 @@ export const roadService = createApi({
             'getRoadById',
             { roadId },
             (draft) => {
-              draft.wayPoints = withSequentialOrder(
-                draft.wayPoints.filter(
-                  (waypoint) => waypoint.id !== waypointId,
+              draft.stops = withSequentialOrder(
+                draft.stops.filter(
+                  (stop) => stop.id !== stopId,
                 ),
               );
             },
@@ -305,27 +311,27 @@ export const roadService = createApi({
       },
     }),
 
-    updateWaypointById: builder.mutation<
-      UpdateWaypointByWaypointIdResponse,
-      UpdateWaypointByWaypointIdArgs
+    updateStopById: builder.mutation<
+      UpdateStopByStopIdResponse,
+      UpdateStopByStopIdArgs
     >({
-      query: ({ waypointId, waypoint }) => ({
-        url: `/road/update-waypoint/${waypointId}`,
+      query: ({ stopId, stop }) => ({
+        url: `/road/update-stop/${stopId}`,
         method: 'PUT',
         body: {
-          latitude: waypoint.latitude,
-          longitude: waypoint.longitude,
-          ...(waypoint.address ? { address: waypoint.address } : {}),
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+          ...(stop.address ? { address: stop.address } : {}),
         },
       }),
       transformResponse: (
-        res: ApiResponse<UpdateWaypointByWaypointIdResponse>,
+        res: ApiResponse<UpdateStopByStopIdResponse>,
       ) => transformApiResponse(res),
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
       ],
       async onQueryStarted(
-        { roadId, waypointId, waypoint },
+        { roadId, stopId, stop },
         { dispatch, queryFulfilled },
       ) {
         const patch = dispatch(
@@ -333,13 +339,13 @@ export const roadService = createApi({
             'getRoadById',
             { roadId },
             (draft) => {
-              const target = draft.wayPoints.find(
-                (candidate) => candidate.id === waypointId,
+              const target = draft.stops.find(
+                (candidate) => candidate.id === stopId,
               );
               if (!target) return;
-              target.latitude = waypoint.latitude;
-              target.longitude = waypoint.longitude;
-              target.address = waypoint.address ?? PENDING_ADDRESS;
+              target.latitude = stop.latitude;
+              target.longitude = stop.longitude;
+              target.address = stop.address ?? PENDING_ADDRESS;
             },
           ),
         );
@@ -351,16 +357,16 @@ export const roadService = createApi({
       },
     }),
 
-    reOrderWaypoints: builder.mutation<
-      ReorderWaypointsResponse,
-      ReorderWaypointsArgs
+    reOrderStops: builder.mutation<
+      ReorderStopsResponse,
+      ReorderStopsArgs
     >({
       query: ({ roadId, from, to }) => ({
-        url: `/road/reorder-waypoint/${roadId}`,
+        url: `/road/reorder-stop/${roadId}`,
         method: 'PUT',
         body: { roadId, from, to },
       }),
-      transformResponse: (res: ApiResponse<ReorderWaypointsResponse>) =>
+      transformResponse: (res: ApiResponse<ReorderStopsResponse>) =>
         transformApiResponse(res),
       invalidatesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
@@ -371,8 +377,8 @@ export const roadService = createApi({
             'getRoadById',
             { roadId },
             (draft) => {
-              draft.wayPoints = withSequentialOrder(
-                moveItem(draft.wayPoints, from, to),
+              draft.stops = withSequentialOrder(
+                moveItem(draft.stops, from, to),
               );
             },
           ),
@@ -395,12 +401,12 @@ export const {
   useGetSharedRoadQuery,
   useGetRoadByIdQuery,
   useLazyGetRoadByIdQuery,
-  useGetWaypointByIdQuery,
-  useAddWaypointMutation,
+  useGetStopByIdQuery,
+  useAddStopMutation,
   useCreateRoadMutation,
   useDeleteRoadByIdMutation,
   useUpdateRoadByIdMutation,
-  useUpdateWaypointByIdMutation,
-  useDeleteWaypointByIdMutation,
-  useReOrderWaypointsMutation,
+  useUpdateStopByIdMutation,
+  useDeleteStopByIdMutation,
+  useReOrderStopsMutation,
 } = roadService;

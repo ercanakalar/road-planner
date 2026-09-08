@@ -5,11 +5,11 @@ import { LocalRoad } from 'types/local-road';
 
 const STORAGE_KEY = 'local_roads_v1';
 
-const road = (wayPoints: unknown[]) => ({
+const road = (stops: unknown[]) => ({
   id: 'local-road-1',
   title: 'Trip',
   description: '',
-  wayPoints,
+  stops,
   createdAt: '',
   updatedAt: '',
 });
@@ -56,7 +56,7 @@ describe('localRoadStorage', () => {
       const [loaded] = await localRoadStorage.load();
 
       // Left alone this renders as "[object Object]" on the card.
-      expect(loaded.wayPoints[0].address).toBe('Konak, İzmir');
+      expect(loaded.stops[0].address).toBe('Konak, İzmir');
     });
 
     it('treats an old pin with no address line as unnamed', async () => {
@@ -66,17 +66,17 @@ describe('localRoadStorage', () => {
 
       const [loaded] = await localRoadStorage.load();
 
-      expect(loaded.wayPoints[0].address).toBe('');
+      expect(loaded.stops[0].address).toBe('');
     });
 
-    it('survives a waypoint with no address at all', async () => {
+    it('survives a stop with no address at all', async () => {
       await write([
         road([{ id: 'wp-1', latitude: 1, longitude: 2, order: 1 }]),
       ]);
 
       const [loaded] = await localRoadStorage.load();
 
-      expect(loaded.wayPoints[0].address).toBe('');
+      expect(loaded.stops[0].address).toBe('');
     });
 
     it('leaves an already-flat address untouched', async () => {
@@ -88,7 +88,7 @@ describe('localRoadStorage', () => {
 
       const [loaded] = await localRoadStorage.load();
 
-      expect(loaded.wayPoints[0].address).toBe('Konak');
+      expect(loaded.stops[0].address).toBe('Konak');
     });
   });
 

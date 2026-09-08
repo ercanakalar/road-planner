@@ -13,7 +13,7 @@ import { MapSection } from 'components/map/MapSection';
 import ImportFromGoogleMapsModal from 'components/map/ImportFromGoogleMapsModal';
 import MapStatusPill from 'components/map/MapStatusPill';
 import MapToolbar from 'components/map/MapToolbar';
-import LocalWaypointList from './LocalWaypointList';
+import LocalStopList from './LocalStopList';
 import LocalRoadPicker from './LocalRoadPicker';
 
 import useMapScreen from 'hooks/map/useMapScreen';
@@ -41,12 +41,12 @@ const MapScreen = () => {
     isLoggedIn,
     activeRoad,
     roads,
-    waypoints,
+    stops,
     routeLine,
     routeSearch,
     transportMode,
     setTransportMode,
-    draggingWaypointId,
+    draggingStopId,
     contextMenuProps,
     onPlaceSelected,
     focusOnPlace,
@@ -54,9 +54,9 @@ const MapScreen = () => {
     handleMapLongPress,
     handleMapPress,
     handleReorder,
-    handleDeleteWaypointById,
-    handleToggleFavoriteWaypoint,
-    waypointPair,
+    handleDeleteStopById,
+    handleToggleFavoriteStop,
+    stopPair,
     snapPoints,
     summary,
     sheetGesturesEnabled,
@@ -90,8 +90,8 @@ const MapScreen = () => {
       <View style={styles.container}>
         <MapSection
           mapRef={mapRef}
-          waypoints={waypoints}
-          draggingWaypointId={draggingWaypointId}
+          stops={stops}
+          draggingStopId={draggingStopId}
           routeCoordinates={routeLine.coordinates}
           summary={summary}
           transportMode={transportMode}
@@ -100,7 +100,7 @@ const MapScreen = () => {
           onMapPress={handleMapPress}
           foundPlaces={routeSearch.places}
           onFoundPlacePress={focusOnPlace}
-          selectedWaypointIds={waypointPair.selected}
+          selectedStopIds={stopPair.selected}
         />
 
         <View style={[styles.searchSlot, { top: insets.top }]}>
@@ -143,7 +143,7 @@ const MapScreen = () => {
           <MapStatusPill top={insets.top + 158} label='Looking up that place…' />
         ) : null}
 
-        {!isLoggedIn && waypoints.length > 0 ? (
+        {!isLoggedIn && stops.length > 0 ? (
           <MapStatusPill
             top={insets.top + 158}
             icon='phone-portrait-outline'
@@ -165,15 +165,15 @@ const MapScreen = () => {
         handleComponent={BottomSheetHandle}
         backgroundStyle={styles.sheetBackground}
       >
-        <LocalWaypointList
-          waypoints={waypoints}
+        <LocalStopList
+          stops={stops}
           transportMode={transportMode}
-          selectedPair={waypointPair.selected}
-          onToggleSelection={waypointPair.toggle}
-          onForgetSelection={waypointPair.forget}
+          selectedPair={stopPair.selected}
+          onToggleSelection={stopPair.toggle}
+          onForgetSelection={stopPair.forget}
           onTransportModeChange={setTransportMode}
-          onDeleteWaypoint={handleDeleteWaypointById}
-          onToggleFavoriteWaypoint={handleToggleFavoriteWaypoint}
+          onDeleteStop={handleDeleteStopById}
+          onToggleFavoriteStop={handleToggleFavoriteStop}
           onReorder={handleReorder}
           onReorderingChange={setIsReordering}
         />

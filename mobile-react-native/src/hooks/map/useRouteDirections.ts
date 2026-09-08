@@ -7,7 +7,7 @@ import {
   fetchModeDurations,
   peekDirections,
 } from 'services/mapsService';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { StopWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
 const TRANSPORT_MODES: TransportMode[] = [
@@ -21,42 +21,44 @@ const DEBOUNCE_MS = 350;
 const EMPTY_COORDINATES: DirectionsResult['coordinates'] = [];
 const EMPTY_DURATIONS: Partial<Record<TransportMode, number>> = {};
 
-const toCoordinate = ({ latitude, longitude }: WaypointWithAddress) => ({
+const toCoordinate = ({ latitude, longitude }: StopWithAddress) => ({
   latitude,
   longitude,
 });
 
 const toRequest = (
-  waypoints: WaypointWithAddress[],
+  stops: StopWithAddress[],
   mode: TransportMode,
 ): Omit<DirectionsRequest, 'mode'> & { mode: TransportMode } => ({
-  origin: toCoordinate(waypoints[0]),
-  destination: toCoordinate(waypoints[waypoints.length - 1]),
-  waypoints: waypoints.slice(1, -1).map(toCoordinate),
+  origin: toCoordinate(stops[0]),
+  destination: toCoordinate(stops[stops.length - 1]),
+  // Google's own vocabulary: everything between the two ends is a
+  // "waypoint" to the Directions API, whatever this app calls it.
+  waypoints: stops.slice(1, -1).map(toCoordinate),
   mode,
 });
 
 export function useRouteLine(
-  waypoints: WaypointWithAddress[],
+  stops: StopWithAddress[],
   mode: TransportMode,
 ) {
-  const routable = waypoints.length >= 2;
+  const routable = stops.length >= 2;
 
   const [result, setResult] = useState<DirectionsResult | null>(() =>
-    routable ? peekDirections(toRequest(waypoints, mode)) ?? null : null,
+    routable ? peekDirections(toRequest(stops, mode)) ?? null : null,
   );
   const [isLoading, setIsLoading] = useState(false);
 
   const signature = useMemo(
     () =>
-      waypoints
+      stops
         .map((point) => `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`)
         .join('|'),
-    [waypoints],
+    [stops],
   );
 
-  const waypointsRef = useRef(waypoints);
-  waypointsRef.current = waypoints;
+  const stopsRef = useRef(stops);
+  stopsRef.current = stops;
 
   useEffect(() => {
     if (!routable) {
@@ -64,7 +66,7 @@ export function useRouteLine(
       return;
     }
 
-    const request = toRequest(waypointsRef.current, mode);
+    const request = toRequest(stopsRef.current, mode);
     const cached = peekDirections(request);
     if (cached !== undefined) {
       setResult(cached);
@@ -102,7 +104,7 @@ export function useRouteLine(
 }
 
 export function useModeDurations(
-  waypoints: WaypointWithAddress[],
+  stops: StopWithAddress[],
   selectedPair: string[],
 ) {
   const [durations, setDurations] =
@@ -110,14 +112,14 @@ export function useModeDurations(
 
   const target = useMemo(() => {
     if (selectedPair.length === 2) {
-      const origin = waypoints.find((point) => point.id === selectedPair[0]);
-      const destination = waypoints.find(
+      const origin = stops.find((point) => point.id === selectedPair[0]);
+      const destination = stops.find(
         (point) => point.id === selectedPair[1],
       );
       return origin && destination ? [origin, destination] : null;
     }
-    return waypoints.length >= 2 ? waypoints : null;
-  }, [waypoints, selectedPair]);
+    return stops.length >= 2 ? stops : null;
+  }, [stops, selectedPair]);
 
   const signature = useMemo(
     () =>

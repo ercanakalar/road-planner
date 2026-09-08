@@ -1,12 +1,12 @@
 import { Prisma } from '../../../generated/prisma/client';
 
 import {
-  applyWaypointOrder,
-  applyWaypointValues,
-  compactWaypointOrder,
+  applyStopOrder,
+  applyStopValues,
+  compactStopOrder,
   positionByRank,
   RawExecutor,
-} from './waypoint-writes';
+} from './stop-writes';
 
 const ROAD_ID = 'road-1';
 
@@ -25,11 +25,11 @@ const createExecutor = () => {
 
 const textOf = (sql: Prisma.Sql) => sql.strings.join('?');
 
-describe('applyWaypointOrder', () => {
-  it('issues one statement for any number of waypoints', async () => {
+describe('applyStopOrder', () => {
+  it('issues one statement for any number of stops', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointOrder(tx, ROAD_ID, [
+    await applyStopOrder(tx, ROAD_ID, [
       { id: 'wp-1', order: 3 },
       { id: 'wp-2', order: 1 },
       { id: 'wp-3', order: 2 },
@@ -41,7 +41,7 @@ describe('applyWaypointOrder', () => {
   it('parameterises every id and position', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointOrder(tx, ROAD_ID, [
+    await applyStopOrder(tx, ROAD_ID, [
       { id: 'wp-1', order: 3 },
       { id: 'wp-2', order: 1 },
     ]);
@@ -52,18 +52,18 @@ describe('applyWaypointOrder', () => {
   it('does not splice values into the statement text', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointOrder(tx, ROAD_ID, [
-      { id: '\'; DROP TABLE "WayPoint"; --', order: 1 },
+    await applyStopOrder(tx, ROAD_ID, [
+      { id: '\'; DROP TABLE "Stop"; --', order: 1 },
     ]);
 
     expect(textOf(statements[0])).not.toMatch(/DROP TABLE/);
-    expect(statements[0].values).toContain('\'; DROP TABLE "WayPoint"; --');
+    expect(statements[0].values).toContain('\'; DROP TABLE "Stop"; --');
   });
 
   it('scopes the update to the road as well as the ids', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointOrder(tx, ROAD_ID, [{ id: 'wp-1', order: 1 }]);
+    await applyStopOrder(tx, ROAD_ID, [{ id: 'wp-1', order: 1 }]);
 
     expect(textOf(statements[0])).toMatch(/wp\."roadId" = \?/);
   });
@@ -71,7 +71,7 @@ describe('applyWaypointOrder', () => {
   it('skips positions that are already correct', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointOrder(tx, ROAD_ID, [{ id: 'wp-1', order: 1 }]);
+    await applyStopOrder(tx, ROAD_ID, [{ id: 'wp-1', order: 1 }]);
 
     expect(textOf(statements[0])).toMatch(/"order" <> v\.ord/);
   });
@@ -79,18 +79,34 @@ describe('applyWaypointOrder', () => {
   it('issues nothing for an empty list', async () => {
     const { tx, statements } = createExecutor();
 
-    await expect(applyWaypointOrder(tx, ROAD_ID, [])).resolves.toBe(0);
+    await expect(applyStopOrder(tx, ROAD_ID, [])).resolves.toBe(0);
     expect(statements).toHaveLength(0);
   });
 });
 
-describe('applyWaypointValues', () => {
-  it('carries coordinates and position for each waypoint', async () => {
+describe('applyStopValues', () => {
+  it('carries coordinates and position for each stop', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointValues(tx, ROAD_ID, [
-      { id: 'wp-1', latitude: 1.5, longitude: 2.5, order: 1, address: 'A St' },
-      { id: 'wp-2', latitude: 3.5, longitude: 4.5, order: 2, address: 'B St' },
+    await applyStopValues(tx, ROAD_ID, [
+      {
+        id: 'wp-1',
+        latitude: 1.5,
+        longitude: 2.5,
+        order: 1,
+        address: 'A St',
+        refreshElevation: true,
+        elevation: 120.5,
+      },
+      {
+        id: 'wp-2',
+        latitude: 3.5,
+        longitude: 4.5,
+        order: 2,
+        address: 'B St',
+        refreshElevation: false,
+        elevation: null,
+      },
     ]);
 
     expect(statements).toHaveLength(1);
@@ -100,11 +116,15 @@ describe('applyWaypointValues', () => {
       2.5,
       1,
       'A St',
+      true,
+      120.5,
       'wp-2',
       3.5,
       4.5,
       2,
       'B St',
+      false,
+      null,
       ROAD_ID,
     ]);
   });
@@ -112,28 +132,96 @@ describe('applyWaypointValues', () => {
   it('passes a null address through, for COALESCE to leave alone', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointValues(tx, ROAD_ID, [
-      { id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: null },
+    await applyStopValues(tx, ROAD_ID, [
+      {
+        id: 'wp-1',
+        latitude: 1,
+        longitude: 2,
+        order: 1,
+        address: null,
+        refreshElevation: false,
+        elevation: null,
+      },
     ]);
 
     // Coercing this to '' would blank the stop's name on every reorder.
-    expect(statements[0].values).toEqual(['wp-1', 1, 2, 1, null, ROAD_ID]);
+    expect(statements[0].values).toEqual([
+      'wp-1',
+      1,
+      2,
+      1,
+      null,
+      false,
+      null,
+      ROAD_ID,
+    ]);
+  });
+
+  it('leaves a stored elevation alone unless the row asks for it', async () => {
+    const { tx, statements } = createExecutor();
+
+    await applyStopValues(tx, ROAD_ID, [
+      {
+        id: 'wp-1',
+        latitude: 1,
+        longitude: 2,
+        order: 1,
+        address: null,
+        refreshElevation: false,
+        elevation: null,
+      },
+    ]);
+
+    // A stop that did not move keeps the height it already had, rather than
+    // losing it to a lookup that was never made.
+    expect(textOf(statements[0])).toMatch(
+      /elevation = CASE WHEN v\.refresh THEN v\.elevation ELSE wp\.elevation END/,
+    );
+  });
+
+  it('clears the elevation of a stop that moved somewhere unreadable', async () => {
+    const { tx, statements } = createExecutor();
+
+    await applyStopValues(tx, ROAD_ID, [
+      {
+        id: 'wp-1',
+        latitude: 1,
+        longitude: 2,
+        order: 1,
+        address: null,
+        refreshElevation: true,
+        elevation: null,
+      },
+    ]);
+
+    // refreshElevation says the lookup ran; null says it came back empty. The
+    // pin is somewhere new, so the old height is not an answer for it.
+    expect(statements[0].values).toEqual([
+      'wp-1',
+      1,
+      2,
+      1,
+      null,
+      true,
+      null,
+      ROAD_ID,
+    ]);
   });
 
   it('issues nothing for an empty list', async () => {
     const { tx, statements } = createExecutor();
 
-    await applyWaypointValues(tx, ROAD_ID, []);
+    await applyStopValues(tx, ROAD_ID, []);
 
     expect(statements).toHaveLength(0);
   });
 });
 
-describe('compactWaypointOrder', () => {
+describe('compactStopOrder', () => {
   it('renumbers without reading the ids back first', async () => {
     const { tx, statements } = createExecutor();
 
-    await compactWaypointOrder(tx, ROAD_ID);
+    await compactStopOrder(tx, ROAD_ID);
 
     expect(statements).toHaveLength(1);
     expect(statements[0].values).toEqual([ROAD_ID]);
@@ -143,7 +231,7 @@ describe('compactWaypointOrder', () => {
   it('breaks ties deterministically', async () => {
     const { tx, statements } = createExecutor();
 
-    await compactWaypointOrder(tx, ROAD_ID);
+    await compactStopOrder(tx, ROAD_ID);
 
     expect(textOf(statements[0])).toMatch(
       /ORDER BY "order" ASC, "createdAt" ASC, id ASC/,

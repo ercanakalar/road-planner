@@ -14,7 +14,7 @@ export const LONG_TEXT_MAX_LENGTH = 2000;
 
 export const URL_MAX_LENGTH = 2048;
 
-export const WAYPOINTS_MAX = 500;
+export const STOPS_MAX = 500;
 
 export const LATITUDE_MIN = -90;
 export const LATITUDE_MAX = 90;

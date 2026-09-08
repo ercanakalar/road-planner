@@ -16,9 +16,9 @@ const entry = (id: string): FavoriteEntry => ({
 
 const favorites: NormalizedFavorites = {
   ownRoads: [entry('r1'), entry('r2')],
-  ownWaypoints: [entry('w1')],
+  ownStops: [entry('w1')],
   othersRoads: [],
-  othersWaypoints: [],
+  othersStops: [],
 };
 
 const allExpanded = () => true;
@@ -29,23 +29,23 @@ describe('buildSections', () => {
     // Four headers, two of them reading "0", is chrome standing in for content.
     expect(buildSections(favorites, allExpanded).map((s) => s.key)).toEqual([
       'ownRoads',
-      'ownWaypoints',
+      'ownStops',
     ]);
   });
 
   it('keeps the order the buckets are meant to read in', () => {
     const mine: NormalizedFavorites = {
       ownRoads: [entry('r1')],
-      ownWaypoints: [entry('w1')],
+      ownStops: [entry('w1')],
       othersRoads: [entry('r2')],
-      othersWaypoints: [entry('w2')],
+      othersStops: [entry('w2')],
     };
 
     expect(buildSections(mine, allExpanded).map((s) => s.key)).toEqual([
       'ownRoads',
-      'ownWaypoints',
+      'ownStops',
       'othersRoads',
-      'othersWaypoints',
+      'othersStops',
     ]);
   });
 
@@ -80,7 +80,7 @@ describe('buildSections', () => {
   it('returns nothing at all when no favourites are saved', () => {
     expect(
       buildSections(
-        { ownRoads: [], ownWaypoints: [], othersRoads: [], othersWaypoints: [] },
+        { ownRoads: [], ownStops: [], othersRoads: [], othersStops: [] },
         allExpanded,
       ),
     ).toEqual([]);

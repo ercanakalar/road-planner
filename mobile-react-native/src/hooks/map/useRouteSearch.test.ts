@@ -1,7 +1,10 @@
 import { toRouteSearchRequest } from './useRouteSearch';
-import { WaypointWithAddress } from 'types/map-screen-type';
+import { UNSHAPED_STOP } from 'utils/stopShape';
+import { StopWithAddress } from 'types/map-screen-type';
 
-const stop = (latitude: number, longitude: number): WaypointWithAddress => ({
+const stop = (latitude: number, longitude: number): StopWithAddress => ({
+  ...UNSHAPED_STOP,
+  elevation: null,
   id: `${latitude}`,
   latitude,
   longitude,
@@ -10,7 +13,7 @@ const stop = (latitude: number, longitude: number): WaypointWithAddress => ({
   address: 'Somewhere, Fatih, İstanbul, TR',
   createdAt: '',
   updatedAt: '',
-  favoriteWaypoints: [],
+  favoriteStops: [],
 });
 
 const ISTANBUL = stop(41.0082, 28.9784);
@@ -36,7 +39,7 @@ describe('toRouteSearchRequest', () => {
     });
   });
 
-  it('sends coordinates only, not whole waypoints', () => {
+  it('sends coordinates only, not whole stops', () => {
     const request = toRouteSearchRequest([ISTANBUL, ANKARA], inputs);
 
     expect(Object.keys(request!.origin)).toEqual(['latitude', 'longitude']);

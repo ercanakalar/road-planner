@@ -18,8 +18,8 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   userId: AUTHOR_ID,
   user: { nickName: 'ercan', firstName: 'Ercan', photo: null },
   favoriteRoads: [],
-  _count: { wayPoints: 4, favoriteRoads: 2 },
-  wayPoints: [],
+  _count: { stops: 4, favoriteRoads: 2 },
+  stops: [],
   ...overrides,
 });
 
@@ -129,7 +129,7 @@ describe('RoadSearchService', () => {
       await service.searchRoads(query({ minStops: 5 }), null);
 
       expect(whereOf(prisma).AND).toContainEqual({
-        wayPoints: { some: { order: { gte: 5 } } },
+        stops: { some: { order: { gte: 5 } } },
       });
     });
 
@@ -137,7 +137,7 @@ describe('RoadSearchService', () => {
       await service.searchRoads(query({ maxStops: 3 }), null);
 
       expect(whereOf(prisma).AND).toContainEqual({
-        wayPoints: { none: { order: { gt: 3 } } },
+        stops: { none: { order: { gt: 3 } } },
       });
     });
 
@@ -170,7 +170,7 @@ describe('RoadSearchService', () => {
         'popular',
         [{ favoriteRoads: { _count: 'desc' } }, { createdAt: 'desc' }],
       ],
-      ['stops', [{ wayPoints: { _count: 'desc' } }, { createdAt: 'desc' }]],
+      ['stops', [{ stops: { _count: 'desc' } }, { createdAt: 'desc' }]],
     ])('orders by %s', async (sort, expected) => {
       await service.searchRoads(query({ sort: sort as 'recent' }), null);
 

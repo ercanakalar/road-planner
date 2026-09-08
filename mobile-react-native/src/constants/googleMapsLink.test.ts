@@ -1,6 +1,6 @@
 import {
   buildGoogleMapsRouteUrl,
-  GOOGLE_MAPS_WAYPOINT_LIMIT,
+  GOOGLE_MAPS_STOP_LIMIT,
 } from './googleMapsLink';
 
 const stop = (latitude: number, longitude = 29) => ({ latitude, longitude });
@@ -63,7 +63,7 @@ describe('buildGoogleMapsRouteUrl', () => {
     const waypoints = paramsOf(link.url).get('waypoints')!.split('|');
 
     it('thins the middle down to what Google accepts', () => {
-      expect(waypoints).toHaveLength(GOOGLE_MAPS_WAYPOINT_LIMIT);
+      expect(waypoints).toHaveLength(GOOGLE_MAPS_STOP_LIMIT);
     });
 
     it('keeps the ends the user chose', () => {
@@ -79,7 +79,7 @@ describe('buildGoogleMapsRouteUrl', () => {
     });
 
     it('says how many stops did not make it', () => {
-      expect(link.includedCount).toBe(GOOGLE_MAPS_WAYPOINT_LIMIT + 2);
+      expect(link.includedCount).toBe(GOOGLE_MAPS_STOP_LIMIT + 2);
       expect(link.omittedCount).toBe(2);
     });
   });

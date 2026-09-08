@@ -1,10 +1,10 @@
 import reducer, {
   closeContextMenu,
   openContextMenuForLocation,
-  openContextMenuForWaypoint,
+  openContextMenuForStop,
   resetMapState,
-  startDraggingWaypoint,
-  stopDraggingWaypoint,
+  startDraggingStop,
+  stopDraggingStop,
 } from './mapSlice';
 
 const coordinate = { latitude: 41.01, longitude: 28.98 };
@@ -15,24 +15,24 @@ describe('mapSlice', () => {
 
     expect(state).toMatchObject({
       clickedLocation: coordinate,
-      contextMenuWaypointId: undefined,
+      contextMenuStopId: undefined,
       isContextMenuVisible: true,
     });
   });
 
-  it('opens the menu for an existing waypoint', () => {
-    const state = reducer(undefined, openContextMenuForWaypoint('wp-1'));
+  it('opens the menu for an existing stop', () => {
+    const state = reducer(undefined, openContextMenuForStop('wp-1'));
 
     expect(state).toMatchObject({
-      contextMenuWaypointId: 'wp-1',
+      contextMenuStopId: 'wp-1',
       clickedLocation: undefined,
       isContextMenuVisible: true,
     });
   });
 
-  it('clears the dropped pin when the menu moves to a waypoint', () => {
+  it('clears the dropped pin when the menu moves to a stop', () => {
     const dropped = reducer(undefined, openContextMenuForLocation(coordinate));
-    const state = reducer(dropped, openContextMenuForWaypoint('wp-1'));
+    const state = reducer(dropped, openContextMenuForStop('wp-1'));
 
     expect(state.clickedLocation).toBeUndefined();
   });
@@ -45,32 +45,32 @@ describe('mapSlice', () => {
     expect(state.clickedLocation).toEqual(coordinate);
   });
 
-  it('arms a waypoint for dragging and dismisses the menu', () => {
-    const open = reducer(undefined, openContextMenuForWaypoint('wp-1'));
-    const state = reducer(open, startDraggingWaypoint('wp-1'));
+  it('arms a stop for dragging and dismisses the menu', () => {
+    const open = reducer(undefined, openContextMenuForStop('wp-1'));
+    const state = reducer(open, startDraggingStop('wp-1'));
 
-    expect(state.draggingWaypointId).toBe('wp-1');
+    expect(state.draggingStopId).toBe('wp-1');
     expect(state.isContextMenuVisible).toBe(false);
   });
 
   it('disarms after a drag finishes', () => {
     const dragging = reducer(
-      reducer(undefined, openContextMenuForWaypoint('wp-1')),
-      startDraggingWaypoint('wp-1'),
+      reducer(undefined, openContextMenuForStop('wp-1')),
+      startDraggingStop('wp-1'),
     );
-    const state = reducer(dragging, stopDraggingWaypoint());
+    const state = reducer(dragging, stopDraggingStop());
 
-    expect(state.draggingWaypointId).toBeUndefined();
-    expect(state.contextMenuWaypointId).toBeUndefined();
+    expect(state.draggingStopId).toBeUndefined();
+    expect(state.contextMenuStopId).toBeUndefined();
   });
 
   it('resets everything when the screen is left', () => {
     const dirty = reducer(undefined, openContextMenuForLocation(coordinate));
     expect(reducer(dirty, resetMapState())).toEqual({
       clickedLocation: undefined,
-      contextMenuWaypointId: undefined,
+      contextMenuStopId: undefined,
       isContextMenuVisible: false,
-      draggingWaypointId: undefined,
+      draggingStopId: undefined,
     });
   });
 });

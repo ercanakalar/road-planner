@@ -10,7 +10,7 @@ import { FavoritesService } from './favorites.service';
 const FIRST_PAGE = { limit: 50, offset: 0 };
 const USER_ID = 'user-1';
 const ROAD_ID = 'road-1';
-const WAYPOINT_ID = 'wp-1';
+const STOP_ID = 'wp-1';
 
 describe('FavoritesService', () => {
   let service: FavoritesService;
@@ -128,50 +128,50 @@ describe('FavoritesService', () => {
     });
   });
 
-  describe('toggleFavoriteWaypoint', () => {
-    it('creates a favourite for an existing waypoint', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue(null);
-      prisma.wayPoint.findFirst.mockResolvedValue({ id: WAYPOINT_ID });
-      prisma.favoriteWaypoint.create.mockResolvedValue({ id: 'fav-1' });
+  describe('toggleFavoriteStop', () => {
+    it('creates a favourite for an existing stop', async () => {
+      prisma.favoriteStop.findUnique.mockResolvedValue(null);
+      prisma.stop.findFirst.mockResolvedValue({ id: STOP_ID });
+      prisma.favoriteStop.create.mockResolvedValue({ id: 'fav-1' });
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).resolves.toMatchObject({ header: 'Favorite Added' });
     });
 
     it('removes an existing favourite', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue({ id: 'fav-1' });
+      prisma.favoriteStop.findUnique.mockResolvedValue({ id: 'fav-1' });
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).resolves.toMatchObject({ header: 'Removed Favorite' });
     });
 
-    it('still removes a favourite whose waypoint has since been deleted', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue({ id: 'fav-1' });
-      prisma.wayPoint.findFirst.mockResolvedValue(null);
+    it('still removes a favourite whose stop has since been deleted', async () => {
+      prisma.favoriteStop.findUnique.mockResolvedValue({ id: 'fav-1' });
+      prisma.stop.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).resolves.toMatchObject({ header: 'Removed Favorite' });
     });
 
-    it('propagates a missing waypoint as a 404 rather than a 200', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue(null);
-      prisma.wayPoint.findFirst.mockResolvedValue(null);
+    it('propagates a missing stop as a 404 rather than a 200', async () => {
+      prisma.favoriteStop.findUnique.mockResolvedValue(null);
+      prisma.stop.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('reports a concurrent duplicate as already favourited', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue(null);
-      prisma.wayPoint.findFirst.mockResolvedValue({ id: WAYPOINT_ID });
-      prisma.favoriteWaypoint.create.mockRejectedValue(duplicateError());
+      prisma.favoriteStop.findUnique.mockResolvedValue(null);
+      prisma.stop.findFirst.mockResolvedValue({ id: STOP_ID });
+      prisma.favoriteStop.create.mockRejectedValue(duplicateError());
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).resolves.toMatchObject({
         status: ToastType.Success,
         header: 'Already Favorited',
@@ -179,12 +179,12 @@ describe('FavoritesService', () => {
     });
 
     it('propagates an unrecognised database failure instead of answering 200', async () => {
-      prisma.favoriteWaypoint.findUnique.mockRejectedValue(
+      prisma.favoriteStop.findUnique.mockRejectedValue(
         new Error('connection terminated'),
       );
 
       await expect(
-        service.toggleFavoriteWaypoint({ waypointId: WAYPOINT_ID }, USER_ID),
+        service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).rejects.toThrow('connection terminated');
     });
   });
@@ -193,8 +193,8 @@ describe('FavoritesService', () => {
     const emptyPage = () => {
       prisma.favoriteRoad.findMany.mockResolvedValue([]);
       prisma.favoriteRoad.count.mockResolvedValue(0);
-      prisma.favoriteWaypoint.findMany.mockResolvedValue([]);
-      prisma.favoriteWaypoint.count.mockResolvedValue(0);
+      prisma.favoriteStop.findMany.mockResolvedValue([]);
+      prisma.favoriteStop.count.mockResolvedValue(0);
     };
 
     it('scopes every query to the caller', async () => {
@@ -204,7 +204,7 @@ describe('FavoritesService', () => {
 
       for (const call of [
         ...prisma.favoriteRoad.findMany.mock.calls,
-        ...prisma.favoriteWaypoint.findMany.mock.calls,
+        ...prisma.favoriteStop.findMany.mock.calls,
       ]) {
         expect(call[0].where).toMatchObject({ userId: USER_ID });
       }
@@ -217,9 +217,9 @@ describe('FavoritesService', () => {
 
       expect(result.data).toEqual({
         ownRoads: [],
-        ownWaypoints: [],
+        ownStops: [],
         othersRoads: [],
-        othersWaypoints: [],
+        othersStops: [],
       });
     });
 
@@ -229,7 +229,7 @@ describe('FavoritesService', () => {
       await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
       const { select } = prisma.favoriteRoad.findMany.mock.calls[0][0];
-      expect(select.road.select.wayPoints).toBeUndefined();
+      expect(select.road.select.stops).toBeUndefined();
     });
   });
 
@@ -261,19 +261,19 @@ describe('FavoritesService', () => {
       expect(prisma.favoriteRoad.create).not.toHaveBeenCalled();
     });
 
-    it('scopes a waypoint to a road the caller may already see', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue(null);
-      prisma.wayPoint.findFirst.mockResolvedValue({ id: WAYPOINT_ID });
-      prisma.favoriteWaypoint.create.mockResolvedValue({ id: 'fav-1' });
+    it('scopes a stop to a road the caller may already see', async () => {
+      prisma.favoriteStop.findUnique.mockResolvedValue(null);
+      prisma.stop.findFirst.mockResolvedValue({ id: STOP_ID });
+      prisma.favoriteStop.create.mockResolvedValue({ id: 'fav-1' });
 
-      await service.toggleFavoriteWaypoint(
-        { waypointId: WAYPOINT_ID },
+      await service.toggleFavoriteStop(
+        { stopId: STOP_ID },
         USER_ID,
       );
 
-      expect(prisma.wayPoint.findFirst).toHaveBeenCalledWith({
+      expect(prisma.stop.findFirst).toHaveBeenCalledWith({
         where: {
-          id: WAYPOINT_ID,
+          id: STOP_ID,
           road: {
             archivedAt: null,
             OR: [{ userId: USER_ID }, { isPublic: true }],

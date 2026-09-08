@@ -11,14 +11,14 @@ import { RoadRouteService } from './services/route/road-route.service';
 import { RoadSearchService } from './services/search/road-search.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { RoadVisibility } from './services/visibility/road-visibility';
-import { WaypointService } from './services/waypoint/waypoint.service';
+import { StopService } from './services/stop/stop.service';
 
 @Module({
   imports: [PrismaModule, MapsModule, JwtModule.register({})],
   controllers: [RoadController],
   providers: [
     RoadService,
-    WaypointService,
+    StopService,
     RoadSharingService,
     RoadRouteService,
     RoadSearchService,

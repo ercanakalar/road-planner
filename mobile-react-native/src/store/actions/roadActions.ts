@@ -1,16 +1,16 @@
 import { roadService } from 'store/services/roadService';
-import { WaypointWithAddress } from 'types/map-screen-type';
-import { WaypointInput } from 'types/store/services/roadService-type';
+import { StopWithAddress } from 'types/map-screen-type';
+import { StopInput } from 'types/store/services/roadService-type';
 import type { AppDispatch } from 'store';
 
 class RoadDetailsUpdateError extends Error {}
 
-const toWaypointInput = (waypoint: WaypointWithAddress): WaypointInput => ({
-  id: waypoint.id,
-  latitude: waypoint.latitude,
-  longitude: waypoint.longitude,
-  order: waypoint.order,
-  address: waypoint.address,
+const toStopInput = (stop: StopWithAddress): StopInput => ({
+  id: stop.id,
+  latitude: stop.latitude,
+  longitude: stop.longitude,
+  order: stop.order,
+  address: stop.address,
 });
 
 export const updateRoadDetails =
@@ -45,7 +45,7 @@ export const updateRoadDetails =
         title,
         description,
         ...(isPublic === undefined ? {} : { isPublic }),
-        waypoints: (road.wayPoints ?? []).map(toWaypointInput),
+        stops: (road.stops ?? []).map(toStopInput),
       }),
     ).unwrap();
   };
