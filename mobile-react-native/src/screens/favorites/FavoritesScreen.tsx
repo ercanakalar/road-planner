@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import {
   RefreshControl,
   SectionList,
@@ -7,208 +7,56 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {
-  NavigationProp,
-  RouteProp,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
 
 import Container from 'components/ui/Container';
 import ScreenHeader from 'components/ui/ScreenHeader';
 import ScreenState from 'components/ui/ScreenState';
-import EditDetailsModal, { DetailsDraft } from 'components/road/EditDetailsModal';
-import { useConfirm } from 'components/feedback/ConfirmProvider';
-import useCopyAddress from 'hooks/useCopyAddress';
-import useRefreshControlColors from 'hooks/useRefreshControlColors';
+import EditDetailsModal from 'components/road/EditDetailsModal';
+import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
+import useFavoritesScreen, {
+  SEARCHABLE_FROM,
+} from 'hooks/favorites/useFavoritesScreen';
 import { FavoriteSection } from './FavoriteSection';
 import { FavoriteItem } from './FavoriteItem';
 import FavoritesSearch from './FavoritesSearch';
-import { countFavorites, searchFavorites } from './searchFavorites';
-import { buildSections } from './sections';
-
-import {
-  useGetFavoritesQuery,
-  useToggleFavoriteRoadMutation,
-  useToggleFavoriteWaypointMutation,
-  useUpdateFavoriteAnnotationMutation,
-} from 'store/services/favoriteService';
-import { EMPTY_FAVORITES } from 'store/adapters/favoriteAdapter';
-import { useAppSelector } from 'store/hook';
-import { showNotification } from 'services/notificationService';
 
 import { radius, spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
-import {
-  FavoriteEntry,
-  FavoriteSectionKey,
-} from 'types/store/services/favoriteService-type';
+import { FavoriteEntry } from 'types/store/services/favoriteService-type';
 import { FavoriteSectionDescriptor } from 'types/screens/mapScreenType';
-import { HomeTabParamList, RootStackParamList } from 'types/screens/screens';
-
-const HIGHLIGHT_MS = 4000;
-
-/**
- * Below this, everything fits on a screen or two and a search field is one
- * more thing between you and it.
- */
-const SEARCHABLE_FROM = 8;
 
 const FavoritesScreen = () => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
 
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<HomeTabParamList, 'Favourites'>>();
-  const confirm = useConfirm();
-  const copyAddress = useCopyAddress();
-  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-
-  // Sections start open and are collapsed one at a time, so "My roads" and
-  // "My places" can be read together — the pairing most of this screen is for.
-  const [collapsed, setCollapsed] = useState<readonly FavoriteSectionKey[]>([]);
-  const [query, setQuery] = useState('');
-  const [editing, setEditing] = useState<FavoriteEntry | null>(null);
-
-  const highlightTargetId = route.params?.highlightTargetId;
-  const [highlighted, setHighlighted] = useState<string | undefined>(
-    highlightTargetId,
-  );
-
-  useEffect(() => {
-    if (!highlightTargetId) return;
-
-    setHighlighted(highlightTargetId);
-    const timer = setTimeout(() => setHighlighted(undefined), HIGHLIGHT_MS);
-    return () => clearTimeout(timer);
-  }, [highlightTargetId]);
-
   const {
-    data: favorites = EMPTY_FAVORITES,
+    isLoggedIn,
+    query,
+    setQuery,
+    searchTerm,
+    isSearching,
+    isFiltering,
+    clearSearch,
+    sections,
+    totalCount,
+    matchCount,
+    highlighted,
+    isExpanded,
+    toggleSection,
     isLoading,
     isFetching,
     isError,
     isUninitialized,
     refetch,
-  } = useGetFavoritesQuery(undefined, { skip: !isLoggedIn });
-
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
-  const [toggleFavoriteWaypoint] = useToggleFavoriteWaypointMutation();
-  const [updateAnnotation, { isLoading: isSavingAnnotation }] =
-    useUpdateFavoriteAnnotationMutation();
-
-  const isSearching = query.trim().length > 0;
-
-  const matches = useMemo(
-    () => searchFavorites(favorites, query),
-    [favorites, query],
-  );
-
-  const totalCount = useMemo(() => countFavorites(favorites), [favorites]);
-  const matchCount = useMemo(() => countFavorites(matches), [matches]);
-
-  const isExpanded = useCallback(
-    // A search that hid its own results would look broken, so searching opens
-    // everything it matched.
-    (key: FavoriteSectionKey) => isSearching || !collapsed.includes(key),
-    [collapsed, isSearching],
-  );
-
-  const toggleSection = useCallback((key: FavoriteSectionKey) => {
-    setCollapsed((previous) =>
-      previous.includes(key)
-        ? previous.filter((candidate) => candidate !== key)
-        : [...previous, key],
-    );
-  }, []);
-
-  const clearSearch = useCallback(() => setQuery(''), []);
-
-  const handleEdit = useCallback((item: FavoriteEntry) => setEditing(item), []);
-
-  const closeEditor = useCallback(() => setEditing(null), []);
-
-  const handleCopyAddress = useCallback(
-    (item: FavoriteEntry) => {
-      void copyAddress(item.address);
-    },
-    [copyAddress],
-  );
-
-  const handleSaveAnnotation = useCallback(
-    async ({ title, description }: DetailsDraft) => {
-      if (!editing) return;
-      try {
-        await updateAnnotation({
-          favoriteId: editing.favoriteId,
-          kind: editing.kind,
-          title,
-          description,
-        }).unwrap();
-        setEditing(null);
-      } catch {
-        showNotification({
-          type: 'error',
-          header: 'Could not save',
-          message: 'Your changes were not applied.',
-        });
-      }
-    },
-    [editing, updateAnnotation],
-  );
-
-  const handleRemove = useCallback(
-    async (item: FavoriteEntry) => {
-      const confirmed = await confirm({
-        title: 'Remove favourite',
-        message: `“${item.title}” will be removed from your favourites.`,
-        confirmLabel: 'Remove',
-        icon: 'star-outline',
-        tone: 'danger',
-      });
-      if (!confirmed) return;
-
-      try {
-        if (item.kind === 'road') {
-          await toggleFavoriteRoad({ roadId: item.targetId }).unwrap();
-        } else {
-          await toggleFavoriteWaypoint({
-            waypointId: item.targetId,
-          }).unwrap();
-        }
-      } catch {
-        showNotification({
-          type: 'error',
-          header: 'Error',
-          message: 'Could not remove that favourite.',
-        });
-      }
-    },
-    [confirm, toggleFavoriteRoad, toggleFavoriteWaypoint],
-  );
-
-  const handleItemPress = useCallback(
-    (item: FavoriteEntry) => {
-      if (item.kind === 'road') {
-        if (item.isOwn) {
-          navigation.navigate('ShowRouteByIdScreen', { roadId: item.targetId });
-        } else {
-          navigation.navigate('CommunityRouteScreen', {
-            roadId: item.targetId,
-            title: item.title,
-          });
-        }
-      } else {
-        navigation.navigate('ShowWaypointById', { waypointId: item.targetId });
-      }
-    },
-    [navigation],
-  );
-
-  const sections = useMemo(
-    () => buildSections(matches, isExpanded),
-    [isExpanded, matches],
-  );
+    editing,
+    isSavingAnnotation,
+    handleItemPress,
+    handleEdit,
+    closeEditor,
+    handleSaveAnnotation,
+    handleRemove,
+    handleCopyAddress,
+  } = useFavoritesScreen();
 
   const renderSectionHeader = useCallback(
     ({
@@ -289,7 +137,7 @@ const FavoritesScreen = () => {
         variant='empty'
         icon='search-outline'
         title='No matches'
-        message={`Nothing saved matches “${query.trim()}”.`}
+        message={`Nothing saved matches “${searchTerm}”.`}
         actionLabel='Clear search'
         onAction={clearSearch}
       />
@@ -301,6 +149,9 @@ const FavoritesScreen = () => {
         renderSectionHeader={renderSectionHeader}
         renderSectionFooter={renderSectionFooter}
         stickySectionHeadersEnabled={false}
+        // Dimmed while the list is still catching up with the search field, so
+        // results that are one keystroke behind read as pending, not as wrong.
+        style={isFiltering ? styles.stale : undefined}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps='handled'
         keyboardDismissMode='on-drag'
@@ -366,6 +217,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingTop: spacing.xs,
       paddingBottom: spacing.xxl,
     },
+    stale: { opacity: 0.6 },
     // Rounds off the last row, so a header and its rows read as one card, and
     // holds the gap before the next section.
     cardFoot: {

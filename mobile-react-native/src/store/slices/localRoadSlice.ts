@@ -193,6 +193,36 @@ export const localRoadSlice = createSlice({
       if (!findActive(state)) state.activeRoadId = state.roads[0]?.id;
     },
 
+    /**
+     * Lands a whole route at once, which is what an import is: the stops are
+     * already in order and already have their addresses, so they arrive as one
+     * road rather than as a run of `localWaypointAdded` calls that would each
+     * re-rank the list and each mark the road as touched.
+     *
+     * The new road becomes the active one, because the point of importing is to
+     * look at it.
+     */
+    localRoadImported: {
+      reducer(state, action: PayloadAction<LocalRoad>) {
+        state.roads.unshift(action.payload);
+        state.activeRoadId = action.payload.id;
+      },
+      prepare(input: {
+        title: string;
+        stops: Omit<LocalWaypoint, 'id' | 'order'>[];
+      }) {
+        const road = makeLocalRoad(input.title);
+
+        road.wayPoints = input.stops.map((stop, index) => ({
+          ...stop,
+          id: createLocalId('wp'),
+          order: index + 1,
+        }));
+
+        return { payload: road };
+      },
+    },
+
     localRoadsCleared(state) {
       state.roads = [];
       state.activeRoadId = undefined;
@@ -206,6 +236,7 @@ export const {
   localRoadSelected,
   localRoadDetailsChanged,
   localRoadDeleted,
+  localRoadImported,
   localWaypointAdded,
   localWaypointMoved,
   localWaypointDeleted,

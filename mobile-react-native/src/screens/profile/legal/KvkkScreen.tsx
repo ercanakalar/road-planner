@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import KvkkNotice from 'components/legal/KvkkNotice';
 import PrimaryButton from 'components/ui/PrimaryButton';
-import { useConfirm } from 'components/feedback/ConfirmProvider';
-import useKvkkLanguage from 'hooks/useKvkkLanguage';
+import useConfirm from 'hooks/feedback/useConfirm';
+import useKvkkLanguage from 'hooks/legal/useKvkkLanguage';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { useLogoutMutation } from 'store/services/authenticationService';
 import { logout } from 'store/slices/authSlice';

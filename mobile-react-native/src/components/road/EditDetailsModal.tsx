@@ -22,15 +22,10 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import type { DetailsDraft } from 'types/components/editDetailsModal';
 
 export const TITLE_MAX_LENGTH = 255;
 const DESCRIPTION_MAX_LENGTH = 2000;
-
-export interface DetailsDraft {
-  title: string;
-  description: string;
-  isPublic?: boolean;
-}
 
 interface Props {
   visible: boolean;

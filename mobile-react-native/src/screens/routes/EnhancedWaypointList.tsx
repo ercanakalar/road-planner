@@ -8,8 +8,8 @@ import {
 import { useToggleFavoriteWaypointMutation } from 'store/services/favoriteService';
 
 import WaypointList from 'components/map/WaypointList';
-import useCopyAddress from 'hooks/useCopyAddress';
-import { useModeDurations } from 'hooks/useRouteDirections';
+import useCopyAddress from 'hooks/common/useCopyAddress';
+import { useModeDurations } from 'hooks/map/useRouteDirections';
 import { showNotification } from 'services/notificationService';
 
 import { WaypointWithAddress } from 'types/map-screen-type';

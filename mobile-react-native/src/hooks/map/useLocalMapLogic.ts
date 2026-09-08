@@ -1,23 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
 import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 
-import {
-  useAddWaypointMutation,
-  useDeleteWaypointByIdMutation,
-  useGetRoadByIdQuery,
-  useUpdateWaypointByIdMutation,
-} from 'store/services/roadService';
-import { ShowRouteByIdRouteProp } from 'types/map-screen-type';
+import { RoutePlace, reverseGeocode } from 'services/mapsService';
 import { addressName } from 'utils/address';
-import { RoutePlace } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
-import {
-  MapLongPressEvent,
-  MarkerDragEndEvent,
-  OnPlaceSelected,
-} from 'types/hooks/useMapLogic-type';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
   closeContextMenu,
@@ -26,24 +13,67 @@ import {
   startDraggingWaypoint,
   stopDraggingWaypoint,
 } from 'store/slices/mapSlice';
-import { useRouteLine } from 'hooks/useRouteDirections';
-import useRouteSearch from 'hooks/useRouteSearch';
-import { TransportMode } from 'types/transport-type';
+import {
+  localWaypointAdded,
+  localWaypointDeleted,
+  localWaypointFavoriteToggled,
+  localWaypointMoved,
+  localWaypointsReordered,
+} from 'store/slices/localRoadSlice';
+import { useRouteLine } from 'hooks/map/useRouteDirections';
+import useRouteSearch from 'hooks/map/useRouteSearch';
+import {
+  MapLongPressEvent,
+  MarkerDragEndEvent,
+  OnPlaceSelected,
+} from 'types/hooks/map/useMapLogic-type';
+import { LocalRoad, LocalWaypoint } from 'types/local-road';
+import { WaypointWithAddress } from 'types/map-screen-type';
 import { ContextMenuOption } from 'types/components/contextMenu';
+import { TransportMode } from 'types/transport-type';
 
 const COORD_THRESHOLD = 0.0001;
+const EMPTY_WAYPOINTS: WaypointWithAddress[] = [];
 
-const EMPTY_WAYPOINTS: never[] = [];
+const toSharedWaypoint = (
+  waypoint: LocalWaypoint,
+  roadId: string,
+): WaypointWithAddress => ({
+  id: waypoint.id,
+  latitude: waypoint.latitude,
+  longitude: waypoint.longitude,
+  order: waypoint.order,
+  roadId,
+  address: waypoint.address,
+  createdAt: '',
+  updatedAt: '',
+  favoriteWaypoints: waypoint.isFavorite
+    ? [
+        {
+          id: waypoint.id,
+          userId: '',
+          wayPointsId: waypoint.id,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]
+    : [],
+});
 
-const useMapLogic = () => {
-  const { params } = useRoute<ShowRouteByIdRouteProp>();
-  const { roadId } = params;
+const selectActiveLocalRoad = (
+  roads: LocalRoad[],
+  activeRoadId?: string,
+): LocalRoad | undefined =>
+  roads.find((road) => road.id === activeRoadId) ?? roads[0];
+
+const useLocalMapLogic = () => {
   const dispatch = useAppDispatch();
 
   const mapRef = useRef<MapView>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const [transportMode, setTransportMode] = useState<TransportMode>('driving');
+  const [isSavingPin, setIsSavingPin] = useState(false);
 
   const {
     clickedLocation,
@@ -52,24 +82,30 @@ const useMapLogic = () => {
     draggingWaypointId,
   } = useAppSelector((state) => state.map);
 
-  const { waypoints, road, isLoading } = useGetRoadByIdQuery(
-    { roadId },
-    {
-      skip: !roadId,
-      selectFromResult: ({ data, isLoading: loading }) => ({
-        road: data,
-        waypoints: data?.wayPoints ?? EMPTY_WAYPOINTS,
-        isLoading: loading,
-      }),
-    },
+  const roads = useAppSelector((state) => state.localRoad.roads);
+  const activeRoadId = useAppSelector((state) => state.localRoad.activeRoadId);
+  const isHydrated = useAppSelector((state) => state.localRoad.isHydrated);
+
+  const activeRoad = useMemo(
+    () => selectActiveLocalRoad(roads, activeRoadId),
+    [roads, activeRoadId],
   );
 
-  const [addWaypoint] = useAddWaypointMutation();
-  const [deleteWaypoint] = useDeleteWaypointByIdMutation();
-  const [updateWaypoint] = useUpdateWaypointByIdMutation();
+  const waypoints = useMemo(
+    () =>
+      activeRoad
+        ? activeRoad.wayPoints.map((waypoint) =>
+            toSharedWaypoint(waypoint, activeRoad.id),
+          )
+        : EMPTY_WAYPOINTS,
+    [activeRoad],
+  );
 
   const routeLine = useRouteLine(waypoints, transportMode);
   const routeSearch = useRouteSearch(waypoints, transportMode);
+
+  const waypointsRef = useRef(waypoints);
+  waypointsRef.current = waypoints;
 
   const contextMenuWaypoint = useMemo(
     () =>
@@ -79,9 +115,6 @@ const useMapLogic = () => {
     [waypoints, contextMenuWaypointId],
   );
 
-  const waypointsRef = useRef(waypoints);
-  waypointsRef.current = waypoints;
-
   const handleMapLongPress = useCallback(
     (event: MapLongPressEvent) => {
       if (draggingWaypointId) return;
@@ -90,10 +123,8 @@ const useMapLogic = () => {
       const { coordinate } = event.nativeEvent;
       const pressed = waypointsRef.current.find(
         (waypoint) =>
-          Math.abs(waypoint.latitude - coordinate.latitude) <
-            COORD_THRESHOLD &&
-          Math.abs(waypoint.longitude - coordinate.longitude) <
-            COORD_THRESHOLD,
+          Math.abs(waypoint.latitude - coordinate.latitude) < COORD_THRESHOLD &&
+          Math.abs(waypoint.longitude - coordinate.longitude) < COORD_THRESHOLD,
       );
 
       dispatch(
@@ -108,42 +139,33 @@ const useMapLogic = () => {
   const handleAddWaypoint = useCallback(async () => {
     if (!clickedLocation) return;
     dispatch(closeContextMenu());
+    setIsSavingPin(true);
 
     try {
-      await addWaypoint({
-        roadId,
-        waypoint: {
+      const { address } = await reverseGeocode(clickedLocation);
+      dispatch(
+        localWaypointAdded({
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
-          order: waypointsRef.current.length + 1,
-        },
-      }).unwrap();
+          address,
+        }),
+      );
     } catch {
       showNotification({
         type: 'error',
         header: 'Error',
-        message: 'Failed to add waypoint.',
+        message: 'Could not look up that place.',
       });
+    } finally {
+      setIsSavingPin(false);
     }
-  }, [addWaypoint, clickedLocation, dispatch, roadId]);
+  }, [clickedLocation, dispatch]);
 
-  const handleDeleteWaypoint = useCallback(async () => {
+  const handleDeleteWaypoint = useCallback(() => {
     if (!contextMenuWaypointId) return;
     dispatch(closeContextMenu());
-
-    try {
-      await deleteWaypoint({
-        roadId,
-        waypointId: contextMenuWaypointId,
-      }).unwrap();
-    } catch {
-      showNotification({
-        type: 'error',
-        header: 'Error',
-        message: 'Failed to delete waypoint.',
-      });
-    }
-  }, [contextMenuWaypointId, deleteWaypoint, dispatch, roadId]);
+    dispatch(localWaypointDeleted(contextMenuWaypointId));
+  }, [contextMenuWaypointId, dispatch]);
 
   const handleMarkerDragEnd = useCallback(
     async (event: MarkerDragEndEvent, waypointId: string): Promise<void> => {
@@ -153,20 +175,19 @@ const useMapLogic = () => {
       dispatch(stopDraggingWaypoint());
 
       try {
-        await updateWaypoint({
-          roadId,
-          waypointId,
-          waypoint: { latitude, longitude },
-        }).unwrap();
+        const { address } = await reverseGeocode({ latitude, longitude });
+        dispatch(
+          localWaypointMoved({ waypointId, latitude, longitude, address }),
+        );
       } catch {
         showNotification({
           type: 'error',
           header: 'Error',
-          message: 'Failed to update waypoint location.',
+          message: 'Could not look up that place.',
         });
       }
     },
-    [dispatch, draggingWaypointId, roadId, updateWaypoint],
+    [dispatch, draggingWaypointId],
   );
 
   const handleNavigateToWaypoint = useCallback(() => {
@@ -187,6 +208,22 @@ const useMapLogic = () => {
   const handleMapPress = useCallback(() => {
     if (draggingWaypointId) dispatch(stopDraggingWaypoint());
   }, [dispatch, draggingWaypointId]);
+
+  const handleReorder = useCallback(
+    ({ from, to }: { from: number; to: number }) =>
+      dispatch(localWaypointsReordered({ from, to })),
+    [dispatch],
+  );
+
+  const handleDeleteWaypointById = useCallback(
+    (waypointId: string) => dispatch(localWaypointDeleted(waypointId)),
+    [dispatch],
+  );
+
+  const handleToggleFavoriteWaypoint = useCallback(
+    (waypointId: string) => dispatch(localWaypointFavoriteToggled(waypointId)),
+    [dispatch],
+  );
 
   const onPlaceSelected = useCallback<OnPlaceSelected>(
     (location) => {
@@ -223,30 +260,32 @@ const useMapLogic = () => {
 
   const handleAddPlaceAsStop = useCallback(
     async (place: RoutePlace) => {
+      setIsSavingPin(true);
+
       try {
-        await addWaypoint({
-          roadId,
-          waypoint: {
+        const { address } = await reverseGeocode(place).catch(() => ({
+          address: place.address,
+        }));
+
+        dispatch(
+          localWaypointAdded({
             latitude: place.latitude,
             longitude: place.longitude,
-            order: place.insertAfterIndex + 2,
-          },
-        }).unwrap();
+            address: place.name || address,
+            insertAtIndex: place.insertAfterIndex + 1,
+          }),
+        );
 
         showNotification({
           type: 'success',
           header: 'Added to your route',
           message: `${place.name} is now a stop on this route.`,
         });
-      } catch {
-        showNotification({
-          type: 'error',
-          header: 'Error',
-          message: 'Failed to add waypoint.',
-        });
+      } finally {
+        setIsSavingPin(false);
       }
     },
-    [addWaypoint, roadId],
+    [dispatch],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
@@ -298,11 +337,12 @@ const useMapLogic = () => {
   );
 
   return {
-    roadId,
-    road,
     mapRef,
     bottomSheetRef,
-    isLoading,
+    isHydrated,
+    isSavingPin,
+    activeRoad,
+    roads,
     waypoints,
     routeLine,
     routeSearch,
@@ -316,7 +356,10 @@ const useMapLogic = () => {
     handleMarkerDragEnd,
     handleMapLongPress,
     handleMapPress,
+    handleReorder,
+    handleDeleteWaypointById,
+    handleToggleFavoriteWaypoint,
   };
 };
 
-export default useMapLogic;
+export default useLocalMapLogic;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React from 'react';
 import {
   Image,
   Pressable,
@@ -11,12 +11,8 @@ import { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import ScreenState from 'components/ui/ScreenState';
-import { useConfirm } from 'components/feedback/ConfirmProvider';
-import { useAppDispatch, useAppSelector } from 'store/hook';
-import { useLogoutMutation } from 'store/services/authenticationService';
-import { useGetUserQuery } from 'store/services/profileService';
-import { logout } from 'store/slices/authSlice';
-import { updateUserProfile } from 'store/slices/userSlice';
+import SettingsRow from 'components/ui/SettingsRow';
+import useProfileScreen from 'hooks/profile/useProfileScreen';
 import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
 
 import {
@@ -38,81 +34,44 @@ const ProfileScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const dispatch = useAppDispatch();
-  const confirm = useConfirm();
-  const userId = useAppSelector((state) => state.auth.userId);
-
-  const [logoutTrigger, { isLoading: isLoggingOut }] = useLogoutMutation();
-
-  const { data, isLoading } = useGetUserQuery(
-    { userId: userId ?? '' },
-    { skip: !userId },
-  );
-
-  useEffect(() => {
-    if (!data) return;
-    dispatch(updateUserProfile(data));
-  }, [data, dispatch]);
-
-  const confirmLogout = useCallback(async () => {
-    try {
-      await logoutTrigger().unwrap();
-    } catch {
-    } finally {
-      dispatch(logout());
-      navigation.reset({ index: 0, routes: [{ name: 'HomeTabNavigator' }] });
-    }
-  }, [dispatch, logoutTrigger, navigation]);
-
-  const handleLogout = useCallback(async () => {
-    const confirmed = await confirm({
-      title: 'Sign out',
-      message: 'You will need to sign in again to continue.',
-      confirmLabel: 'Sign out',
-      icon: 'log-out-outline',
-      tone: 'danger',
-    });
-    if (confirmed) await confirmLogout();
-  }, [confirm, confirmLogout]);
-
-  const goToProfile = useCallback(() => {
-    if (userId) navigation.navigate('ProfileDetailScreen', { userId });
-  }, [navigation, userId]);
-
-  const goToSettings = useCallback(
-    () => navigation.navigate('SettingsScreen'),
-    [navigation],
-  );
-
-  const goToKvkk = useCallback(
-    () => navigation.navigate('KvkkScreen'),
-    [navigation],
-  );
+  const {
+    user,
+    displayName,
+    isLoading,
+    isLoggingOut,
+    handleLogout,
+    goToProfile,
+    goToSettings,
+    goToKvkk,
+  } = useProfileScreen(navigation);
 
   if (isLoading) {
     return <ScreenState variant='loading' title='Loading profile…' />;
   }
 
-  const displayName =
-    [data?.firstName, data?.lastName].filter(Boolean).join(' ') ||
-    data?.nickName ||
-    'Your profile';
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <Image
-          source={{ uri: resolvePhotoUrl(data?.photo) ?? FALLBACK_AVATAR }}
+          source={{ uri: resolvePhotoUrl(user?.photo) ?? FALLBACK_AVATAR }}
           style={styles.avatar}
         />
         <Text style={styles.name}>{displayName}</Text>
-        {data?.email ? <Text style={styles.email}>{data.email}</Text> : null}
+        {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
       </View>
 
       <View style={styles.group}>
-        <Row icon='person-outline' label='Edit profile' onPress={goToProfile} />
-        <Row icon='settings-outline' label='Settings' onPress={goToSettings} />
-        <Row
+        <SettingsRow
+          icon='person-outline'
+          label='Edit profile'
+          onPress={goToProfile}
+        />
+        <SettingsRow
+          icon='settings-outline'
+          label='Settings'
+          onPress={goToSettings}
+        />
+        <SettingsRow
           icon='shield-checkmark-outline'
           label='KVKK consent'
           onPress={goToKvkk}
@@ -135,31 +94,6 @@ const ProfileScreen = ({ navigation }: Props) => {
         </Text>
       </Pressable>
     </ScrollView>
-  );
-};
-
-const Row = ({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-}) => {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(createStyles);
-
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-      onPress={onPress}
-      accessibilityRole='button'
-    >
-      <Ionicons name={icon} size={20} color={colors.primary} />
-      <Text style={styles.rowText}>{label}</Text>
-      <Ionicons name='chevron-forward' size={18} color={colors.textSubtle} />
-    </Pressable>
   );
 };
 

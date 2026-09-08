@@ -91,6 +91,58 @@ an empty stretch of road.
 Both map screens use it — the signed-out device map and the account-backed route
 screen — through the same sheet; only where the new stop is written differs.
 
+### Searching what everyone has published
+
+The search button on Home opens one field over two lists: routes, and the
+people who published them. Order and filters sit directly under the field and
+belong to the route list, so they leave with it when the People tab is showing.
+
+Length is filtered in bands — 2-4, 5-9, 10+ — rather than as a number, because
+nobody wants "at least seven stops", they want a short route or a long one. The
+API turns a band into a clause on the stop `order` rather than counting rows:
+`order` is a dense 1-based rank per road, so "has a stop ranked 5 or higher" is
+the same question as "has at least five stops", and unlike a count it is one
+Postgres can answer inside the same query. That matters because filtering after
+the page came back would return short pages and a wrong total.
+
+The term reaches the network in two steps — deferred, so typing never waits on
+a re-render, then debounced, so it never waits on a request either. A
+one-character term is held back entirely: the API treats it as no term at all
+and would answer with the newest routes, which reads as search ignoring what
+was typed.
+
+**Search finds authors, not accounts.** `/user/search` only returns someone who
+has at least one live public route, matches only on the nickname and first name
+their routes are already published under, and returns neither an email nor a
+surname. Someone who has published nothing cannot be found through it at all,
+which is what makes it safe to leave open to signed-out callers. Matching is
+deliberately restricted to the two fields it will show back, so search cannot be
+turned into a probe for a field it hides.
+
+Tapping a person opens their shelf, which is the same `/road/search` endpoint
+narrowed with `authorId` — "their routes" is nothing but that filter, and a
+second endpoint would only be another way to ask the same question.
+
+### Importing a route from Google Maps
+
+The Map tab can go the other way as well as hand off: paste a Google Maps link
+and its stops become a route on this device.
+
+Links arrive in more shapes than one. `parseGoogleMapsRoute` reads the
+documented `?api=1&origin=…&waypoints=A|B` form, the `/maps/dir/A/B/C` path the
+website puts in the address bar, the older `?saddr=…&daddr=B to:C` form, and a
+single shared pin. Links shared from the phone app are shortened and carry
+nothing but an id, so those are followed to the real URL first.
+
+What a link gives for each stop is any of three things — a coordinate, a place
+id, or the words somebody typed — and only the first is already usable. The
+other two go back through Google to become one, which is why the import shows
+what it found and waits for confirmation before adding anything: a name can land
+somewhere other than where it was meant to. A stop nothing can place is listed
+by name rather than quietly dropped, and a coordinate whose address will not
+resolve is still kept, because the point is what makes the stop and the name is
+decoration.
+
 ### Sharing a route by link
 
 The share button on a route in **Routes** asks the backend for a link
@@ -157,6 +209,28 @@ Two constraints shape how:
 map opens on the device; denied or unavailable, it opens on the whole of
 Turkey. `initialRegion` is only read when the native view mounts, so a
 permission answered later animates the map instead of stranding it.
+
+### The map's own colours
+
+The basemap is built from the palette rather than picked from Google's presets:
+`buildMapStyle(colors)` in `constants/mapStyles.ts` returns the style, and
+`hooks/map/useMapStyle` hands the current one to every `MapView`. There are no
+literal colours in that file, so retheming the app rethemes the map — and a test
+asserts it, because a hex dropped in there is how the two drift apart.
+
+Light mode used to be an empty array, meaning Google's stock map under an app
+that looks nothing like it; dark mode was Google's night preset, whose greys are
+not the palette's greys. Both are now the same style with different tokens in
+it.
+
+The map is a backdrop, not a subject. Everything that matters is drawn on top of
+it — the route line, the four waypoint pins, places found along the way, the
+compared pair — so the basemap is built only from the neutrals, and two tests
+check that none of the pin or route colours appear anywhere in it. There are two
+deliberate exceptions where grey would read as wrong rather than as neutral:
+water takes `primarySoft` and parkland `successSoft`, both the palette's softest
+tints. Google's own POI, road and transit icons are switched off, because this
+app draws its own pins and the two compete for the same glance.
 
 ### Route line styling
 
@@ -272,9 +346,19 @@ src/
     feedback/   Errors, toasts and confirmation, app-wide
     auth/       Sign-in surface and session gating
     map/        The map, its controls and the waypoint list
-    road/       Road details and the local-road upload prompt
+    road/       Road details, the compact route row, the upload prompt
     profile/    Avatar and theme controls
-  hooks/        useMapLogic, useLocalMapLogic, useRouteDirections, bootstrap
+    search/     The search field, its filters, and a person's row
+  hooks/        All the logic, grouped the same way components/ is
+    common/     Reusable behaviour: form actions, debounce, clipboard
+    feedback/   useConfirm
+    auth/       Session bootstrap, Google sign-in, the auth forms
+    map/        useMapLogic, useLocalMapLogic, useRouteDirections, useMapScreen
+    routes/     Sharing, Google Maps hand-off, the Routes tab
+    favorites/  The Favourites tab
+    home/       The Discover feed
+    profile/    The Profile tab
+    search/     Search and one author's shelf
   navigators/   Root stack + bottom tabs
   screens/      One folder per bottom tab, plus what each tab pushes
     home/       Discover feed
@@ -282,18 +366,35 @@ src/
     routes/     The Routes tab and the route detail screens it opens
     favorites/  The Favourites tab
     profile/    The Profile tab: auth gate, settings, legal
+    search/     Search results, and one author's published routes
   services/     Platform + third-party access (Google Maps, storage)
   store/        RTK Query APIs, slices, middleware, adapters
   theme/        Design tokens — colours, spacing, radii, shadows, elevation
   types/        Shared types
 ```
 
-Two rules keep that arrangement honest. **`components/` never imports from
+Three rules keep that arrangement honest. **`components/` never imports from
 `screens/`** — a component that needs a screen's data takes it as a prop, which
 is what let `MapSection` and `WaypointList` be shared by the signed-out map and
 the account-backed one instead of one screen reaching into the other's folder.
-And **`ui/` never imports from a domain folder**, so a primitive stays a
-primitive.
+**`ui/` never imports from a domain folder**, so a primitive stays a primitive.
+And **`hooks/` imports neither `components/` nor `screens/`**: a hook is the
+layer underneath both, so it can be read, tested and reused without dragging a
+view in behind it. That rule is why `useConfirm` lives in `hooks/feedback/` with
+the context it reads while `ConfirmProvider` stays a component, and why the
+pure favourites helpers moved to `utils/favorites/`.
+
+A screen is what its hook returns, laid out. `MapScreen`, `FavoritesScreen`,
+`RoutesScreen`, `HomeScreen` and `ProfileScreen` each pair with one hook named
+after them — `hooks/map/useMapScreen`, `hooks/favorites/useFavoritesScreen`,
+and so on — which owns the queries, the mutations and the open/closed state of
+the overlays. What is left in the `.tsx` file is markup and its styles. Screens
+that are one form (`SignInScreen`, `SignUpScreen`, `ForgotPasswordScreen`) pair
+with a form hook over `hooks/common/useFormAction` instead.
+
+The remaining screens — the route detail screens, the reset-code flow,
+`SettingsScreen`, `ProfileDetailScreen` and `ChangePasswordSection` — still hold
+their own logic and have not been through this yet.
 
 Imports name the file rather than a folder barrel — `components/ui/PrimaryButton`,
 not `components/ui`. A barrel makes every screen that wants one control pull in
@@ -305,6 +406,46 @@ and so does `tsc`, so the `.tsx` twin is never loaded by anything. `useMapLogic`
 and `useWaypointLogic` each had a pair, and the `.tsx` half was dead: editing it
 changed nothing at runtime, and no tool said a word. If a change to a file seems
 to have no effect, check for a same-named sibling with the other extension.
+
+### Rendering and re-renders
+
+The React Compiler is on, through `experiments.reactCompiler` in `app.json`.
+It memoises components and hook results at build time, so a `useCallback` or a
+`memo()` is no longer the only thing standing between a list and a re-render of
+every row. The existing hand-written ones are left where they are — they are
+correct, and the compiler is happy to skip what is already memoised — but new
+code does not need to reach for them by reflex.
+
+The compiler is conservative: anything it cannot prove safe it simply leaves
+alone, per function, with no error and no bundle change. At the last check it
+compiled 95 functions and stepped over 14. Most of those are only unsupported
+syntax (`try`/`finally`, `try` with no `catch`). Three are worth knowing about,
+because they are real rules-of-React violations rather than gaps in the
+compiler: `useMapLogic`, `useRouteDirections` and `useRouteSearch` each write to
+a ref during render to keep a "latest value" around. They work, and they are
+skipped rather than miscompiled, but they will not be optimised until that write
+moves into an effect.
+
+Three React 19 features carry their weight in specific places:
+
+- **`useActionState`**, under `hooks/common/useFormAction`, is what the auth
+  forms submit through. It replaces a pair of `useState` calls — one for
+  pending, one for the error — that had to be kept in step by hand, and its
+  pending flag covers validation, the request *and* the navigation after it.
+  There is no `<form>` on this platform to hand the action to, so `handleSubmit`
+  opens the transition itself; without that `isPending` never flips.
+- **`useOptimistic`**, in `hooks/home/useHomeScreen`, lights the star on a
+  community route the moment it is tapped. Saving one round-trips to the server
+  and then refetches the whole Discover sample, which is far too long to leave a
+  tapped star dark. Failure needs no handling: ending the action drops the
+  optimistic flip back to whatever the server said. Note this is only needed for
+  Discover — the other favourite lists are patched by RTK Query's
+  `onQueryStarted` instead, which is the better tool when there is a cache entry
+  to patch.
+- **`useDeferredValue`**, in `hooks/favorites/useFavoritesScreen`, filters the
+  favourites list at a lower priority than the keystroke that changed it, so
+  typing stays at the keyboard's frame rate on a long list. The list dims while
+  it is a keystroke behind.
 
 ### Addresses
 

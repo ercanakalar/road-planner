@@ -19,7 +19,7 @@ import {
   searchRadiusOptions,
 } from 'constants/placeCategories';
 import { RoutePlace, RouteSearchSort } from 'services/mapsService';
-import { RouteSearchState } from 'hooks/useRouteSearch';
+import { RouteSearchState } from 'hooks/map/useRouteSearch';
 import {
   radius,
   shadows,

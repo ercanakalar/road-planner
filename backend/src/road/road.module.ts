@@ -8,6 +8,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { AccessStrategy } from 'src/auth/strategy/access.strategy';
 import { HelperService } from './services/helper/helper.service';
 import { RoadRouteService } from './services/route/road-route.service';
+import { RoadSearchService } from './services/search/road-search.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { RoadVisibility } from './services/visibility/road-visibility';
 import { WaypointService } from './services/waypoint/waypoint.service';
@@ -20,6 +21,7 @@ import { WaypointService } from './services/waypoint/waypoint.service';
     WaypointService,
     RoadSharingService,
     RoadRouteService,
+    RoadSearchService,
     RoadVisibility,
     AccessStrategy,
     HelperService,

@@ -5,6 +5,7 @@ import { authenticationService } from './services/authenticationService';
 import { profileService } from './services/profileService';
 import { roadService } from './services/roadService';
 import { favoriteService } from './services/favoriteService';
+import { searchService } from './services/searchService';
 
 import authMiddleware from './middlewares/auth-middleware';
 import persistenceMiddleware from './middlewares/persistence-middleware';
@@ -27,6 +28,7 @@ const rootReducer = combineReducers({
   [profileService.reducerPath]: profileService.reducer,
   [roadService.reducerPath]: roadService.reducer,
   [favoriteService.reducerPath]: favoriteService.reducer,
+  [searchService.reducerPath]: searchService.reducer,
 });
 
 /**
@@ -41,6 +43,7 @@ const API_REDUCER_PATHS = [
   profileService.reducerPath,
   roadService.reducerPath,
   favoriteService.reducerPath,
+  searchService.reducerPath,
 ];
 
 export const store = configureStore({
@@ -56,6 +59,7 @@ export const store = configureStore({
         profileService.middleware,
         roadService.middleware,
         favoriteService.middleware,
+        searchService.middleware,
       ),
 });
 

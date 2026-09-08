@@ -3,8 +3,8 @@ import { useCallback } from 'react';
 import { useAppSelector } from 'store/hook';
 
 import WaypointList from 'components/map/WaypointList';
-import useCopyAddress from 'hooks/useCopyAddress';
-import { useModeDurations } from 'hooks/useRouteDirections';
+import useCopyAddress from 'hooks/common/useCopyAddress';
+import { useModeDurations } from 'hooks/map/useRouteDirections';
 
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode, WaypointOption } from 'types/transport-type';

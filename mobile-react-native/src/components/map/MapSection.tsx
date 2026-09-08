@@ -15,10 +15,9 @@ import LocateButton from 'components/map/LocateButton';
 import { RoutePlace } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
 import { useAppSelector } from 'store/hook';
-import useInitialRegion from 'hooks/useInitialRegion';
-import useLiveLocation from 'hooks/useLiveLocation';
+import useInitialRegion from 'hooks/map/useInitialRegion';
+import useLiveLocation from 'hooks/map/useLiveLocation';
 import { createRouteLineStyles, RouteLineStyle } from 'constants/transportStyles';
-import { darkMapStyle, lightMapStyle } from 'constants/mapStyles';
 import {
   radius,
   shadows,
@@ -34,6 +33,7 @@ import { addressLocality, addressName } from 'utils/address';
 import { withAlpha } from 'utils/color';
 import { splitRouteAtLocation } from 'utils/geo';
 import { metersToDistance } from 'utils/secondsToHour';
+import useMapStyle from 'hooks/map/useMapStyle';
 
 const EMPTY_SELECTION: readonly string[] = [];
 
@@ -232,7 +232,8 @@ const MapSectionComponent = ({
   onFoundPlacePress,
   selectedWaypointIds = EMPTY_SELECTION,
 }: MapSectionProps) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const { mapStyle, isDark } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
   const hasFittedRef = useRef(false);
@@ -363,7 +364,7 @@ const MapSectionComponent = ({
         initialRegion={initialRegion}
         minZoomLevel={3}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
-        customMapStyle={isDark ? darkMapStyle : lightMapStyle}
+        customMapStyle={mapStyle}
       >
         {progress ? (
           <>

@@ -19,7 +19,7 @@ import {
 } from 'store/services/roadService';
 import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
 import { useAppSelector } from 'store/hook';
-import { useRouteLine } from 'hooks/useRouteDirections';
+import { useRouteLine } from 'hooks/map/useRouteDirections';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 import { addressName } from 'utils/address';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';

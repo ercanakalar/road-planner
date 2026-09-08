@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -169,6 +170,159 @@ describe('UserService', () => {
         service.getUserById('someone-elses-id', USER_ID),
       ).rejects.toThrow();
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+  });
+  describe('searchAuthors — what search may reveal', () => {
+    beforeEach(() => {
+      prisma.user.count.mockResolvedValue(1);
+      prisma.user.findMany.mockResolvedValue([
+        {
+          id: USER_ID,
+          nickName: 'ercan',
+          firstName: 'Ercan',
+          photo: 'a.jpg',
+          _count: { roads: 3 },
+        },
+      ]);
+    });
+
+    const searchQuery = (q?: string) => ({ q, limit: 20, offset: 0 });
+
+    const whereOf = () =>
+      prisma.user.findMany.mock.calls[0][0].where as Record<string, unknown>;
+
+    it('only finds people who have published something', async () => {
+      await service.searchAuthors(searchQuery());
+
+      // Someone who has published nothing is not discoverable at all, which is
+      // what makes this endpoint safe to leave open.
+      expect(whereOf()).toEqual({
+        roads: { some: { isPublic: true, archivedAt: null } },
+      });
+    });
+
+    it('keeps that restriction alongside the term', async () => {
+      await service.searchAuthors(searchQuery('erc'));
+
+      expect(whereOf().AND).toEqual([
+        { roads: { some: { isPublic: true, archivedAt: null } } },
+        {
+          OR: [
+            { nickName: { contains: 'erc', mode: 'insensitive' } },
+            { firstName: { contains: 'erc', mode: 'insensitive' } },
+          ],
+        },
+      ]);
+    });
+
+    it('matches only on names it is willing to show back', async () => {
+      await service.searchAuthors(searchQuery('erc'));
+
+      const clauses = JSON.stringify(whereOf());
+
+      // Matching a field that is never returned would turn search into a probe
+      // for it, so email and last name are not searchable.
+      expect(clauses).not.toContain('email');
+      expect(clauses).not.toContain('lastName');
+    });
+
+    it('never selects an email or a last name', async () => {
+      await service.searchAuthors(searchQuery('erc'));
+
+      const select = prisma.user.findMany.mock.calls[0][0].select as Record<
+        string,
+        unknown
+      >;
+
+      expect(select.email).toBeUndefined();
+      expect(select.lastName).toBeUndefined();
+      expect(Object.keys(select).sort()).toEqual([
+        '_count',
+        'firstName',
+        'id',
+        'nickName',
+        'photo',
+      ]);
+    });
+
+    it('returns a display name and a published count, nothing more', async () => {
+      const result = await service.searchAuthors(searchQuery('erc'));
+
+      expect(result.data).toEqual([
+        {
+          id: USER_ID,
+          photo: 'a.jpg',
+          displayName: 'ercan',
+          publicRouteCount: 3,
+        },
+      ]);
+    });
+
+    it('counts only public routes towards that total', async () => {
+      await service.searchAuthors(searchQuery());
+
+      expect(prisma.user.findMany.mock.calls[0][0].select._count).toEqual({
+        select: { roads: { where: { isPublic: true, archivedAt: null } } },
+      });
+    });
+
+    it('reports the unpaged total so the list can page', async () => {
+      prisma.user.count.mockResolvedValue(42);
+
+      const result = await service.searchAuthors({ limit: 20, offset: 0 });
+
+      expect(result.meta).toEqual({
+        total: 42,
+        limit: 20,
+        offset: 0,
+        hasMore: true,
+      });
+    });
+  });
+
+  describe('getAuthorById', () => {
+    it('refuses someone who has published nothing', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(service.getAuthorById(USER_ID)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('scopes the lookup to published authors', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        id: USER_ID,
+        nickName: null,
+        firstName: null,
+        photo: null,
+        _count: { roads: 1 },
+      });
+
+      await service.getAuthorById(USER_ID);
+
+      expect(prisma.user.findFirst.mock.calls[0][0].where).toEqual({
+        id: USER_ID,
+        roads: { some: { isPublic: true, archivedAt: null } },
+      });
+    });
+
+    it('falls back to a stand-in name when there is none to show', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        id: USER_ID,
+        nickName: null,
+        firstName: null,
+        photo: null,
+        _count: { roads: 1 },
+      });
+
+      const result = await service.getAuthorById(USER_ID);
+
+      expect(result.data).toEqual({
+        id: USER_ID,
+        photo: null,
+        displayName: 'A traveller',
+        publicRouteCount: 1,
+      });
     });
   });
 });

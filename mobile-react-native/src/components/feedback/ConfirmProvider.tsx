@@ -1,19 +1,13 @@
-import {
-  ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
-import ConfirmModal, { ConfirmOptions } from './ConfirmModal';
+import { ConfirmContext, ConfirmFn } from 'hooks/feedback/useConfirm';
+import ConfirmModal from './ConfirmModal';
+import type { ConfirmOptions } from 'types/components/confirmModal';
 
-type ConfirmFn = (options?: ConfirmOptions) => Promise<boolean>;
-
-const ConfirmContext = createContext<ConfirmFn | null>(null);
-
+/**
+ * Holds the one confirmation dialog the app shows, and hands every screen and
+ * hook below it a promise-shaped way to raise it.
+ */
 export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);
@@ -38,7 +32,7 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => confirm, [confirm]);
 
   return (
-    <ConfirmContext.Provider value={value}>
+    <ConfirmContext value={value}>
       {children}
       <ConfirmModal
         visible={options !== null}
@@ -46,16 +40,8 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
-    </ConfirmContext.Provider>
+    </ConfirmContext>
   );
-};
-
-export const useConfirm = (): ConfirmFn => {
-  const confirm = useContext(ConfirmContext);
-  if (!confirm) {
-    throw new Error('useConfirm must be used inside a ConfirmProvider');
-  }
-  return confirm;
 };
 
 export default ConfirmProvider;

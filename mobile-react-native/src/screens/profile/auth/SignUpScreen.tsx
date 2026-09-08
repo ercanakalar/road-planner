@@ -1,75 +1,18 @@
-import { useCallback, useMemo, useState } from 'react';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
-
 import AuthScreenLayout from 'components/auth/AuthScreenLayout';
 import FormField from 'components/ui/FormField';
 import PrimaryButton from 'components/ui/PrimaryButton';
-import { useSignUpMutation } from 'store/services/authenticationService';
-import { RootStackParamList } from 'types/screens/screens';
 import GoogleSignInButton from 'components/GoogleSignInButton';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 6;
-
-type SignUpRequest = {
-  email: string;
-  password: string;
-  confirmPassword: string;
-};
-
-const EMPTY_FORM: SignUpRequest = {
-  email: '',
-  password: '',
-  confirmPassword: '',
-};
+import useSignUpForm, { MIN_PASSWORD_LENGTH } from 'hooks/auth/useSignUpForm';
 
 export default function SignUpScreen() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [form, setForm] = useState<SignUpRequest>(EMPTY_FORM);
-  const [error, setError] = useState('');
-  const [signUp, { isLoading }] = useSignUpMutation();
-
-  const handleInputChange = useCallback(
-    (field: keyof SignUpRequest) => (value: string) => {
-      setForm((previous) => ({ ...previous, [field]: value }));
-      setError('');
-    },
-    [],
-  );
-
-  const validationError = useMemo(() => {
-    if (!form.email || !form.password || !form.confirmPassword) {
-      return 'All fields are required.';
-    }
-    if (!EMAIL_PATTERN.test(form.email)) return 'Enter a valid email address.';
-    if (form.password.length < MIN_PASSWORD_LENGTH) {
-      return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-    }
-    if (form.password !== form.confirmPassword) {
-      return 'Passwords do not match.';
-    }
-    return '';
-  }, [form]);
-
-  const handleSubmit = useCallback(async () => {
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    try {
-      await signUp(form).unwrap();
-      setError('');
-      navigation.navigate('HomeTabNavigator', { screen: 'Routes' });
-    } catch {
-      setError('Sign-up failed. Please try again.');
-    }
-  }, [form, navigation, signUp, validationError]);
-
-  const goToSignIn = useCallback(
-    () => navigation.navigate('SignInScreen'),
-    [navigation],
-  );
+  const {
+    values,
+    handleChange,
+    handleSubmit,
+    isPending,
+    error,
+    goToSignIn,
+  } = useSignUpForm();
 
   return (
     <AuthScreenLayout
@@ -83,8 +26,8 @@ export default function SignUpScreen() {
       <FormField
         label='Email'
         placeholder='you@example.com'
-        value={form.email}
-        onChangeText={handleInputChange('email')}
+        value={values.email}
+        onChangeText={handleChange('email')}
         autoCapitalize='none'
         autoComplete='email'
         keyboardType='email-address'
@@ -93,8 +36,8 @@ export default function SignUpScreen() {
       <FormField
         label='Password'
         placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
-        value={form.password}
-        onChangeText={handleInputChange('password')}
+        value={values.password}
+        onChangeText={handleChange('password')}
         autoComplete='new-password'
         isPassword
       />
@@ -102,8 +45,8 @@ export default function SignUpScreen() {
       <FormField
         label='Confirm password'
         placeholder='Repeat your password'
-        value={form.confirmPassword}
-        onChangeText={handleInputChange('confirmPassword')}
+        value={values.confirmPassword}
+        onChangeText={handleChange('confirmPassword')}
         autoComplete='new-password'
         isPassword
         error={error}
@@ -112,7 +55,7 @@ export default function SignUpScreen() {
       <PrimaryButton
         label='Create account'
         onPress={handleSubmit}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
 
       <GoogleSignInButton label='Sign up with Google' />
