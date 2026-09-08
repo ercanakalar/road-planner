@@ -4,8 +4,7 @@ import MapView, { Marker } from 'react-native-maps';
 
 import LocateButton from 'components/map/LocateButton';
 import ScreenState from 'components/ui/ScreenState';
-import useWaypointLogic from 'hooks/useWaypointLogic';
-import { darkMapStyle, lightMapStyle } from 'constants/mapStyles';
+import useWaypointLogic from 'hooks/map/useWaypointLogic';
 import {
   radius,
   shadows,
@@ -16,9 +15,11 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { addressLocality, addressName } from 'utils/address';
+import useMapStyle from 'hooks/map/useMapStyle';
 
 const ShowWaypointByIdScreen = () => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const { mapStyle, isDark } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
   const { mapRef, data, isLoading, isError, initialRegion } =
@@ -49,7 +50,7 @@ const ShowWaypointByIdScreen = () => {
         showsMyLocationButton={false}
         initialRegion={initialRegion}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
-        customMapStyle={isDark ? darkMapStyle : lightMapStyle}
+        customMapStyle={mapStyle}
       >
         <Marker
           coordinate={{ latitude: data.latitude, longitude: data.longitude }}

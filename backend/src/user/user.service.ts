@@ -3,16 +3,32 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 
 import { ConfigService } from '@nestjs/config';
 
+import { pageMeta } from 'src/common/dto/pagination.dto';
 import { ok } from 'src/common/http/api-response';
+import { searchTerm } from 'src/road/services/search/road-search.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserSearchQueryDto } from './dto/user-search.dto';
 import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
+
+/**
+ * What search may reveal about someone. Deliberately narrower than
+ * USER_PUBLIC_SELECT: no email, and no last name — only the name the Discover
+ * feed already puts under a route, plus the avatar next to it.
+ */
+const AUTHOR_SELECT = {
+  id: true,
+  nickName: true,
+  firstName: true,
+  photo: true,
+} as const;
 
 const USER_PUBLIC_SELECT = {
   id: true,
@@ -101,6 +117,98 @@ export class UserService {
       header: 'User Updated',
       message: 'User updated successfully',
       data: updated,
+    });
+  }
+
+  /**
+   * Finds people by the name their routes are published under.
+   *
+   * Search reaches authors, not accounts: only someone with at least one live
+   * public route can be found, and only by a name they have already attached to
+   * it. Someone who has published nothing cannot be discovered this way, which
+   * is why this is safe to leave open to signed-out callers.
+   */
+  async searchAuthors(query: UserSearchQueryDto) {
+    const term = searchTerm(query.q);
+
+    const published: Prisma.UserWhereInput = {
+      roads: { some: { isPublic: true, archivedAt: null } },
+    };
+
+    const where: Prisma.UserWhereInput = term
+      ? {
+          AND: [
+            published,
+            {
+              OR: [
+                { nickName: { contains: term, mode: 'insensitive' } },
+                { firstName: { contains: term, mode: 'insensitive' } },
+              ],
+            },
+          ],
+        }
+      : published;
+
+    const [total, users] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        orderBy: [
+          { roads: { _count: 'desc' } },
+          { nickName: 'asc' },
+          { id: 'asc' },
+        ],
+        skip: query.offset,
+        take: query.limit,
+        select: {
+          ...AUTHOR_SELECT,
+          _count: {
+            select: { roads: { where: { isPublic: true, archivedAt: null } } },
+          },
+        },
+      }),
+    ]);
+
+    const shaped = users.map(({ _count, nickName, firstName, ...user }) => ({
+      ...user,
+      displayName: nickName ?? firstName ?? 'A traveller',
+      publicRouteCount: _count.roads,
+    }));
+
+    return ok({
+      header: 'People',
+      message: shaped.length ? 'People found' : 'Nobody matches that search',
+      data: shaped,
+      meta: pageMeta(total, query),
+    });
+  }
+
+  /** The public face of one author: their name, and how much they have shared. */
+  async getAuthorById(id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id, roads: { some: { isPublic: true, archivedAt: null } } },
+      select: {
+        ...AUTHOR_SELECT,
+        _count: {
+          select: { roads: { where: { isPublic: true, archivedAt: null } } },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('That person has not published a route');
+    }
+
+    const { _count, nickName, firstName, ...rest } = user;
+
+    return ok({
+      header: 'Author',
+      message: 'Author fetched successfully',
+      data: {
+        ...rest,
+        displayName: nickName ?? firstName ?? 'A traveller',
+        publicRouteCount: _count.roads,
+      },
     });
   }
 

@@ -16,6 +16,8 @@ type RootStackParamList = {
   ForgotPasswordScreen: { email?: string } | undefined;
   VerifyResetCodeScreen: { email: string };
   ResetPasswordScreen: { token: string; email: string };
+  SearchScreen: { q?: string } | undefined;
+  AuthorScreen: { authorId: string; displayName?: string };
 };
 
 type HomeTabParamList = {

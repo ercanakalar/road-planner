@@ -14,6 +14,8 @@ import ShowWaypointById from 'screens/routes/ShowWaypointById';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
 import KvkkScreen from 'screens/profile/legal/KvkkScreen';
+import SearchScreen from 'screens/search/SearchScreen';
+import AuthorScreen from 'screens/search/AuthorScreen';
 
 import { useTheme } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
@@ -37,6 +39,18 @@ const RootNavigator = () => {
         name='HomeTabNavigator'
         component={HomeTabNavigator}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name='SearchScreen'
+        component={SearchScreen}
+        options={{ title: 'Search' }}
+      />
+      <Stack.Screen
+        name='AuthorScreen'
+        component={AuthorScreen}
+        options={({ route }) => ({
+          title: route.params?.displayName ?? 'Routes',
+        })}
       />
       <Stack.Screen
         name='ShowRouteByIdScreen'

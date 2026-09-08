@@ -596,7 +596,9 @@ describe('RoadService', () => {
         isFavorite: true,
       });
       expect(result.data[0]).not.toHaveProperty('wayPoints');
-      expect(prisma.road.findMany.mock.calls[0][0].select.wayPoints).toBeUndefined();
+      expect(
+        prisma.road.findMany.mock.calls[0][0].select.wayPoints,
+      ).toBeUndefined();
     });
 
     it('keeps archived roads out of the discover feed', async () => {

@@ -9,6 +9,7 @@ import { TRANSPORT_MODES } from 'src/maps/types/maps.types';
 import { RoadController } from './road.controller';
 import { RoadService } from './services/road/road.service';
 import { RoadRouteService } from './services/route/road-route.service';
+import { RoadSearchService } from './services/search/road-search.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { WaypointService } from './services/waypoint/waypoint.service';
 
@@ -23,6 +24,7 @@ describe('RoadController routing', () => {
   let roadService: { getRoadById: jest.Mock };
   let waypointService: { getWaypointById: jest.Mock };
   let routeService: { getRoute: jest.Mock; getDurations: jest.Mock };
+  let searchService: { searchRoads: jest.Mock };
 
   const get = (path: string) => request(app.getHttpServer()).get(path);
 
@@ -33,6 +35,7 @@ describe('RoadController routing', () => {
       getRoute: jest.fn().mockResolvedValue(ok()),
       getDurations: jest.fn().mockResolvedValue(ok()),
     };
+    searchService = { searchRoads: jest.fn().mockResolvedValue(ok()) };
 
     const module = await Test.createTestingModule({
       controllers: [RoadController],
@@ -41,6 +44,7 @@ describe('RoadController routing', () => {
         { provide: WaypointService, useValue: waypointService },
         { provide: RoadSharingService, useValue: {} },
         { provide: RoadRouteService, useValue: routeService },
+        { provide: RoadSearchService, useValue: searchService },
       ],
     })
       .overrideGuard(OptionalAccessGuard)
@@ -59,6 +63,19 @@ describe('RoadController routing', () => {
 
   afterEach(async () => {
     await app.close();
+  });
+
+  it('reaches search, not the road lookup, at /road/search', async () => {
+    // '/search' is a literal that '/:id' would happily swallow, and the UUID
+    // pipe on that route would turn the mistake into a 400 rather than
+    // anything that points at the cause.
+    await get('/road/search?q=coast').expect(200);
+
+    expect(roadService.getRoadById).not.toHaveBeenCalled();
+    expect(searchService.searchRoads).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'coast' }),
+      USER_ID,
+    );
   });
 
   it('reaches the road itself at /road/:id', async () => {

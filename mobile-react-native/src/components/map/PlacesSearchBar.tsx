@@ -17,7 +17,7 @@ import {
   fetchPlaceDetails,
   fetchPlacePredictions,
 } from 'services/mapsService';
-import useDebouncedValue from 'hooks/useDebouncedValue';
+import useDebouncedValue from 'hooks/common/useDebouncedValue';
 import {
   radius,
   shadows,

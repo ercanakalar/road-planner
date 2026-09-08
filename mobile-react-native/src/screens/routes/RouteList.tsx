@@ -8,7 +8,7 @@ import {
 
 import RouteCard from './RouteCard';
 import ScreenState from 'components/ui/ScreenState';
-import useRefreshControlColors from 'hooks/useRefreshControlColors';
+import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import { spacing, useThemedStyles } from 'theme';
 import { OwnRoadSummary } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';

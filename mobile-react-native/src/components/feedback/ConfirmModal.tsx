@@ -12,15 +12,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
-
-export interface ConfirmOptions {
-  title?: string;
-  message?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
-  tone?: 'default' | 'danger';
-}
+import type { ConfirmOptions } from 'types/components/confirmModal';
 
 interface Props extends ConfirmOptions {
   visible: boolean;

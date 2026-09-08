@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 
 import ScreenState from 'components/ui/ScreenState';
-import useSessionBootstrap from 'hooks/useSessionBootstrap';
+import useSessionBootstrap from 'hooks/auth/useSessionBootstrap';
 
 const SessionGate = ({ children }: { children: ReactNode }) => {
   const isReady = useSessionBootstrap();

@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -18,6 +19,7 @@ import type { Response } from 'express';
 import { Public } from 'src/common/decorators';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserSearchQueryDto } from './dto/user-search.dto';
 import { UserService } from './user.service';
 import { AVATAR_MAX_BYTES } from './avatar.storage';
 
@@ -63,6 +65,22 @@ export class UserController {
         res.status(HttpStatus.NOT_FOUND).json({ message: 'Photo not found' });
       }
     });
+  }
+
+  // Both of these are declared before '/:id', which would otherwise swallow
+  // '/search' and fail its UUID pipe.
+  @Public()
+  @Get('/search')
+  @HttpCode(HttpStatus.OK)
+  async searchAuthors(@Query() query: UserSearchQueryDto) {
+    return this.userService.searchAuthors(query);
+  }
+
+  @Public()
+  @Get('/author/:id')
+  @HttpCode(HttpStatus.OK)
+  async getAuthorById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.userService.getAuthorById(id);
   }
 
   @Get('/:id')

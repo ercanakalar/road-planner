@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, use, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { useAppSelector } from 'store/hook';
@@ -45,12 +45,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [mode, systemScheme]);
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext value={value}>{children}</ThemeContext>;
 };
 
-export const useTheme = (): ThemeContextValue => useContext(ThemeContext);
+export const useTheme = (): ThemeContextValue => use(ThemeContext);
 
 export function useThemedTextInputProps() {
   const { colors, isDark } = useTheme();

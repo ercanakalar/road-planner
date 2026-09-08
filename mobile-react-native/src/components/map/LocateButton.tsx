@@ -2,7 +2,7 @@ import { memo, useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { resolveRegion } from 'hooks/useInitialRegion';
+import { resolveRegion } from 'hooks/map/useInitialRegion';
 import { showNotification } from 'services/notificationService';
 import { radius, shadows, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';

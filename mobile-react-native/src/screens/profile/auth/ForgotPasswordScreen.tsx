@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,15 +11,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import FormField from 'components/ui/FormField';
 import PrimaryButton from 'components/ui/PrimaryButton';
-import { useRequestPasswordResetCodeMutation } from 'store/services/authenticationService';
-import passwordResetLockout from 'services/passwordResetLockout';
+import useForgotPasswordForm from 'hooks/auth/useForgotPasswordForm';
 import { formatWait } from 'utils/formatDuration';
 
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Props = {
   navigation: NavigationProp<RootStackParamList>;
@@ -31,51 +27,15 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const [email, setEmail] = useState(route.params?.email ?? '');
-  const [error, setError] = useState('');
-  const [lockoutMs, setLockoutMs] = useState(0);
-
-  const [requestCode, { isLoading }] = useRequestPasswordResetCodeMutation();
-
-  useEffect(() => {
-    let cancelled = false;
-    const trimmed = email.trim();
-    if (!EMAIL_PATTERN.test(trimmed)) {
-      setLockoutMs(0);
-      return;
-    }
-
-    passwordResetLockout.remainingMs(trimmed).then((remaining) => {
-      if (!cancelled) setLockoutMs(remaining);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [email]);
-
-  const handleChange = useCallback((value: string) => {
-    setEmail(value);
-    setError('');
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
-    const trimmed = email.trim();
-
-    if (!EMAIL_PATTERN.test(trimmed)) {
-      setError('Enter a valid email address.');
-      return;
-    }
-
-    try {
-      await requestCode({ email: trimmed }).unwrap();
-      navigation.navigate('VerifyResetCodeScreen', { email: trimmed });
-    } catch {
-      setError('Could not send the code. Please try again.');
-    }
-  }, [email, navigation, requestCode]);
-
-  const isLocked = lockoutMs > 0;
+  const {
+    values,
+    handleChange,
+    handleSubmit,
+    isPending,
+    error,
+    lockoutMs,
+    isLocked,
+  } = useForgotPasswordForm(navigation, route.params?.email ?? '');
 
   return (
     <KeyboardAvoidingView
@@ -112,8 +72,8 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
           <FormField
             label='Email'
             placeholder='you@example.com'
-            value={email}
-            onChangeText={handleChange}
+            value={values.email}
+            onChangeText={handleChange('email')}
             autoCapitalize='none'
             autoComplete='email'
             keyboardType='email-address'
@@ -123,7 +83,7 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
           <PrimaryButton
             label='Send code'
             onPress={handleSubmit}
-            isLoading={isLoading}
+            isLoading={isPending}
             disabled={isLocked}
           />
 

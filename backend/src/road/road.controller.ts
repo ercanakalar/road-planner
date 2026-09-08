@@ -30,7 +30,9 @@ import {
   UpdateRoadDto,
   UpdateWaypointDto,
 } from './dto/road.dto';
+import { RoadSearchQueryDto } from './dto/road-search.dto';
 import { RoadService } from './services/road/road.service';
+import { RoadSearchService } from './services/search/road-search.service';
 import { RoadRouteService } from './services/route/road-route.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { WaypointService } from './services/waypoint/waypoint.service';
@@ -42,6 +44,7 @@ export class RoadController {
     private waypointService: WaypointService,
     private sharingService: RoadSharingService,
     private routeService: RoadRouteService,
+    private searchService: RoadSearchService,
   ) {}
 
   @Post('/create')
@@ -51,6 +54,17 @@ export class RoadController {
     @GetUser('userId') userId: string,
   ) {
     return this.roadService.createRoad(body, userId);
+  }
+
+  @Public()
+  @UseGuards(OptionalAccessGuard)
+  @Get('/search')
+  @HttpCode(HttpStatus.OK)
+  async searchRoads(
+    @GetUser() user: { userId?: string } | undefined,
+    @Query() query: RoadSearchQueryDto,
+  ) {
+    return this.searchService.searchRoads(query, user?.userId ?? null);
   }
 
   @Public()

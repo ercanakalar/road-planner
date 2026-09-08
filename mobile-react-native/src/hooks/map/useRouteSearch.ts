@@ -7,7 +7,7 @@ import {
   RouteSearchSort,
   searchPlacesAlongRoute,
 } from 'services/mapsService';
-import useDebouncedValue from 'hooks/useDebouncedValue';
+import useDebouncedValue from 'hooks/common/useDebouncedValue';
 import { DEFAULT_SEARCH_RADIUS_METERS } from 'constants/placeCategories';
 import { WaypointWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';

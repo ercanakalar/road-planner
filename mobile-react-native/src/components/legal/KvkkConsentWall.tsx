@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import KvkkNotice from './KvkkNotice';
 import PrimaryButton from 'components/ui/PrimaryButton';
 import ScreenState from 'components/ui/ScreenState';
-import useKvkkLanguage from 'hooks/useKvkkLanguage';
+import useKvkkLanguage from 'hooks/legal/useKvkkLanguage';
 import { KVKK_CONSENT_VERSION } from 'constants/kvkk';
 import { useAppDispatch } from 'store/hook';
 import { kvkkAccepted } from 'store/slices/kvkkSlice';

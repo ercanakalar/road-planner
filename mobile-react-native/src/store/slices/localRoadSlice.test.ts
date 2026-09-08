@@ -1,5 +1,6 @@
 import reducer, {
   localRoadCreated,
+  localRoadImported,
   localRoadDeleted,
   localRoadUploadFinished,
   localRoadsHydrated,
@@ -186,5 +187,70 @@ describe('adding a place found along the route', () => {
     expect(state.roads[0].wayPoints.map((point) => point.latitude)).toEqual([
       1, 2, 99,
     ]);
+  });
+});
+
+describe('localRoadImported', () => {
+  const stops = [
+    { latitude: 41.0082, longitude: 28.9784, address: 'Kadıköy' },
+    { latitude: 41.0255, longitude: 29.0087, address: 'Üsküdar' },
+    { latitude: 41.0431, longitude: 29.0088, address: 'Beşiktaş' },
+  ];
+
+  const imported = (title = 'From Google Maps') =>
+    reducer(undefined, localRoadImported({ title, stops }));
+
+  it('lands the whole route in one road', () => {
+    const state = imported();
+
+    expect(state.roads).toHaveLength(1);
+    expect(state.roads[0].wayPoints).toHaveLength(3);
+  });
+
+  it('keeps the stops in the order they arrived', () => {
+    const state = imported();
+
+    expect(state.roads[0].wayPoints.map((point) => point.address)).toEqual([
+      'Kadıköy',
+      'Üsküdar',
+      'Beşiktaş',
+    ]);
+  });
+
+  it('ranks them densely from one, as every other writer does', () => {
+    expect(imported().roads[0].wayPoints.map((point) => point.order)).toEqual([
+      1, 2, 3,
+    ]);
+  });
+
+  it('gives every stop its own id', () => {
+    const ids = imported().roads[0].wayPoints.map((point) => point.id);
+
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('makes the imported route the active one, since that is the point', () => {
+    const state = imported();
+
+    expect(state.activeRoadId).toBe(state.roads[0].id);
+  });
+
+  it('puts it in front of what was already there, without disturbing it', () => {
+    const existing = reducer(undefined, localRoadCreated('Trip'));
+
+    const state = reducer(existing, localRoadImported({ title: 'X', stops }));
+
+    expect(state.roads).toHaveLength(2);
+    expect(state.roads[1].title).toBe('Trip');
+  });
+
+  it('takes the title it was given', () => {
+    expect(imported('Coastal ride').roads[0].title).toBe('Coastal ride');
+  });
+
+  it('accepts a route with no stops rather than throwing', () => {
+    const state = reducer(undefined, localRoadImported({ title: 'X', stops: [] }));
+
+    expect(state.roads[0].wayPoints).toEqual([]);
   });
 });

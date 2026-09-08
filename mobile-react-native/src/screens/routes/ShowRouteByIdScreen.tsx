@@ -12,8 +12,8 @@ import BottomSheetHandle from 'components/ui/BottomSheetHandle';
 import EnhancedWaypointList from './EnhancedWaypointList';
 import { MapSection } from 'components/map/MapSection';
 
-import useMapLogic from 'hooks/useMapLogic';
-import useWaypointPair from 'hooks/useWaypointPair';
+import useMapLogic from 'hooks/map/useMapLogic';
+import useWaypointPair from 'hooks/map/useWaypointPair';
 import { RoutePlace } from 'services/mapsService';
 import { radius, shadows, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';

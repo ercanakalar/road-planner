@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useGoogleAuth } from 'hooks/useGoogleAuth';
+import { useGoogleAuth } from 'hooks/auth/useGoogleAuth';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 
