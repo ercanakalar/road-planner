@@ -24,9 +24,7 @@ const stop = (
 
 describe('StopInputDto', () => {
   it('accepts a valid stop', async () => {
-    await expect(
-      collectDtoErrors(StopInputDto, stop()),
-    ).resolves.toEqual([]);
+    await expect(collectDtoErrors(StopInputDto, stop())).resolves.toEqual([]);
   });
 
   describe('coordinate bounds', () => {
@@ -171,9 +169,7 @@ describe('CreateRoadDto', () => {
   });
 
   it('rejects more than 500 stops', async () => {
-    const stops = Array.from({ length: 501 }, (_, i) =>
-      stop({ order: i }),
-    );
+    const stops = Array.from({ length: 501 }, (_, i) => stop({ order: i }));
 
     await expect(
       collectDtoErrors(CreateRoadDto, { ...valid(), stops }),
@@ -249,17 +245,15 @@ describe('AddStopDto', () => {
   });
 
   it('accepts the payload the shipped client sends', async () => {
-    await expect(collectDtoErrors(AddStopDto, valid())).resolves.toEqual(
-      [],
-    );
+    await expect(collectDtoErrors(AddStopDto, valid())).resolves.toEqual([]);
   });
 
   it('accepts coordinates alone, since the server geocodes them', async () => {
     const { address: _address, ...withoutAddress } = valid();
 
-    await expect(
-      collectDtoErrors(AddStopDto, withoutAddress),
-    ).resolves.toEqual([]);
+    await expect(collectDtoErrors(AddStopDto, withoutAddress)).resolves.toEqual(
+      [],
+    );
   });
 
   it('rejects an address that is not text', async () => {

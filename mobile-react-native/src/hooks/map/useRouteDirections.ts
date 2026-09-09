@@ -5,9 +5,11 @@ import {
   DirectionsResult,
   fetchDirections,
   fetchModeDurations,
+  fetchTerrain,
   peekDirections,
+  peekTerrain,
 } from 'services/mapsService';
-import { StopWithAddress } from 'types/map-screen-type';
+import { StopShape, StopWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
 const TRANSPORT_MODES: TransportMode[] = [
@@ -101,6 +103,86 @@ export function useRouteLine(
     distanceMeters: result?.distanceMeters,
     isLoading,
   };
+}
+
+/**
+ * The stops, carrying the road's shape at each of them.
+ *
+ * A saved route reads this from `/road/:id/terrain`; a route still being drawn
+ * on the map has no id, so its points are measured by `/road/terrain` instead.
+ * Either way the numbers come off the polyline Google routes along, not the
+ * straight lines between the pins.
+ *
+ * The stops are returned unchanged until the reading arrives, so a card shows
+ * the cheap shape it already had rather than flickering through an empty row.
+ */
+export function useRouteTerrain(
+  stops: StopWithAddress[],
+  mode: TransportMode,
+): StopWithAddress[] {
+  const routable = stops.length >= 2;
+
+  const coordinates = useMemo(() => stops.map(toCoordinate), [stops]);
+
+  const [shapes, setShapes] = useState<(StopShape | null)[] | null>(() =>
+    routable ? peekTerrain(coordinates, mode) ?? null : null,
+  );
+
+  const signature = useMemo(
+    () =>
+      coordinates
+        .map(({ latitude, longitude }) =>
+          `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
+        )
+        .join('|'),
+    [coordinates],
+  );
+
+  const coordinatesRef = useRef(coordinates);
+  coordinatesRef.current = coordinates;
+
+  useEffect(() => {
+    if (!routable) {
+      setShapes(null);
+      return;
+    }
+
+    const points = coordinatesRef.current;
+    const cached = peekTerrain(points, mode);
+    if (cached !== undefined) {
+      setShapes(cached);
+      return;
+    }
+
+    let cancelled = false;
+
+    // Dragged pins settle before anything is asked for: the same debounce the
+    // route line uses, and for the same reason — one directions call and one
+    // elevation call per resting position, not per frame.
+    const timer = setTimeout(() => {
+      fetchTerrain(points, mode)
+        .then((next) => {
+          if (!cancelled) setShapes(next);
+        })
+        .catch(() => {
+          if (!cancelled) setShapes(null);
+        });
+    }, DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [signature, mode, routable]);
+
+  return useMemo(() => {
+    if (!shapes?.length) return stops;
+
+    return stops.map((stop, index) => {
+      const shape = shapes[index];
+      return shape ? { ...stop, ...shape } : stop;
+    });
+  }, [shapes, stops]);
 }
 
 export function useModeDurations(

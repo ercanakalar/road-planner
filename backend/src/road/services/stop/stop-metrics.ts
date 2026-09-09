@@ -16,7 +16,8 @@ export interface StopGeometry {
 
 export type SlopeGrade = 'flat' | 'gentle' | 'moderate' | 'steep';
 
-export type BendShape = 'straight' | 'slight' | 'moderate' | 'sharp' | 'hairpin';
+export type BendShape =
+  'straight' | 'slight' | 'moderate' | 'sharp' | 'hairpin';
 
 export type BendDirection = 'left' | 'right';
 
@@ -86,12 +87,26 @@ const BEND_BANDS: readonly [number, BendShape][] = [
 const band = <T>(value: number, bands: readonly [number, T][], last: T): T =>
   bands.find(([ceiling]) => value < ceiling)?.[1] ?? last;
 
+/**
+ * The bands above, for a caller that measured slope and bend some other way.
+ * Exported so the road-sampled reading in `RoadTerrainService` lands in the
+ * same words as the straight-line one here — two sources for one label on the
+ * card, and a reader who cannot tell which produced it should not have to.
+ */
+export const slopeGradeFor = (percent: number): SlopeGrade =>
+  band(Math.abs(percent), SLOPE_BANDS, 'steep');
+
+export const bendShapeFor = (degrees: number): BendShape =>
+  band(Math.abs(degrees), BEND_BANDS, 'hairpin');
+
 const round = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 };
 
-const hasElevation = (stop: StopGeometry): stop is StopGeometry & {
+const hasElevation = (
+  stop: StopGeometry,
+): stop is StopGeometry & {
   elevation: number;
 } => typeof stop.elevation === 'number' && Number.isFinite(stop.elevation);
 
@@ -104,9 +119,7 @@ const hasElevation = (stop: StopGeometry): stop is StopGeometry & {
  * ones on either side of it, and stored copies would quietly disagree with the
  * map.
  */
-export function stopMetrics(
-  stops: readonly StopGeometry[],
-): StopMetrics[] {
+export function stopMetrics(stops: readonly StopGeometry[]): StopMetrics[] {
   return stops.map((stop, index) => {
     const previous = index > 0 ? stops[index - 1] : undefined;
     const next = index < stops.length - 1 ? stops[index + 1] : undefined;

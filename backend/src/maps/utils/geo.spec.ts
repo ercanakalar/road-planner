@@ -181,9 +181,9 @@ describe('bearingDegrees', () => {
   });
 
   it('answers between 0 and 360 rather than either side of zero', () => {
-    expect(bearingDegrees(ORIGIN, { latitude: 1, longitude: -0.001 })).toBeGreaterThan(
-      350,
-    );
+    expect(
+      bearingDegrees(ORIGIN, { latitude: 1, longitude: -0.001 }),
+    ).toBeGreaterThan(350);
   });
 
   it('has no direction to give between a point and itself', () => {

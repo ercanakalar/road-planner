@@ -1,7 +1,7 @@
 import { API_BASE_URL } from 'constants/apiUrl';
 import tokenStorage from 'services/tokenStorage';
 import { createAsyncCache } from 'utils/asyncCache';
-import { RouteCoordinate } from 'types/map-screen-type';
+import { RouteCoordinate, StopShape } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
 
 const REQUEST_TIMEOUT_MS = 12000;
@@ -165,6 +165,38 @@ export async function fetchDirections(
 
 export const peekDirections = (request_: DirectionsRequest) =>
     directionsCache.peek(directionsKey(request_));
+
+/**
+ * The road's shape at each of a route's stops, measured along the polyline
+ * Google routes rather than the straight lines between the pins.
+ *
+ * Saved routes read this from `/road/:id/terrain`; this is the same reading
+ * for a route still being drawn on the map, which has no id yet. Cached on the
+ * points themselves, since the answer only changes when one of them moves.
+ */
+const terrainCache = createAsyncCache<(StopShape | null)[]>(40);
+
+const terrainKey = (stops: LatLng[], mode: TransportMode) =>
+    `${mode}:${stops
+        .map(({ latitude, longitude }) =>
+            `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
+        )
+        .join('|')}`;
+
+export async function fetchTerrain(
+    stops: LatLng[],
+    mode: TransportMode,
+): Promise<(StopShape | null)[]> {
+    return terrainCache.resolve(terrainKey(stops, mode), async () =>
+        (await request<(StopShape | null)[]>('/road/terrain', {
+            method: 'POST',
+            body: { stops, mode },
+        })) ?? [],
+    );
+}
+
+export const peekTerrain = (stops: LatLng[], mode: TransportMode) =>
+    terrainCache.peek(terrainKey(stops, mode));
 
 const durationsCache = createAsyncCache<ModeDurations>(40);
 

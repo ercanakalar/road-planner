@@ -25,6 +25,8 @@ import {
   GetOwnRoadsResponse,
   GetRoadByIdArgs,
   GetRoadByIdResponse,
+  GetRoadTerrainArgs,
+  GetRoadTerrainResponse,
   GetSharedRoadArgs,
   GetSharedRoadResponse,
   ShareRoadArgs,
@@ -137,6 +139,19 @@ export const roadService = createApi({
       }),
       transformResponse: (res: ApiResponse<GetRoadByIdResponse>) =>
         transformApiResponse(res),
+      providesTags: (_result, _error, { roadId }) => [
+        { type: 'Road', id: roadId },
+      ],
+    }),
+
+    getRoadTerrain: builder.query<GetRoadTerrainResponse, GetRoadTerrainArgs>({
+      query: ({ roadId }) => ({
+        url: `/road/${roadId}/terrain`,
+        method: 'GET',
+      }),
+      transformResponse: (res: ApiResponse<GetRoadTerrainResponse>) =>
+        transformApiResponse(res) ?? [],
+      // Read off the stops' positions, so it is stale the moment one moves.
       providesTags: (_result, _error, { roadId }) => [
         { type: 'Road', id: roadId },
       ],
@@ -400,6 +415,7 @@ export const {
   useLazyShareRoadQuery,
   useGetSharedRoadQuery,
   useGetRoadByIdQuery,
+  useGetRoadTerrainQuery,
   useLazyGetRoadByIdQuery,
   useGetStopByIdQuery,
   useAddStopMutation,

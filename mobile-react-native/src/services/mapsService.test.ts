@@ -160,6 +160,55 @@ describe('mapsService', () => {
     });
   });
 
+  describe('fetchTerrain', () => {
+    const SHAPES = [null, { slopeGrade: 'gentle' }];
+
+    it('posts the stops in order, with the mode', async () => {
+      fetchMock.mockResolvedValue(envelope(SHAPES));
+
+      await loadService().fetchTerrain([ISTANBUL, ANKARA], 'driving');
+
+      expect(requestedUrl().pathname).toContain('/road/terrain');
+      expect(requestBody()).toEqual({
+        stops: [ISTANBUL, ANKARA],
+        mode: 'driving',
+      });
+    });
+
+    it('asks once for the same points', async () => {
+      fetchMock.mockResolvedValue(envelope(SHAPES));
+      const service = loadService();
+
+      await service.fetchTerrain([ISTANBUL, ANKARA], 'driving');
+      await service.fetchTerrain([ISTANBUL, ANKARA], 'driving');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks again once a stop has moved', async () => {
+      fetchMock.mockResolvedValue(envelope(SHAPES));
+      const service = loadService();
+
+      await service.fetchTerrain([ISTANBUL, ANKARA], 'driving');
+      await service.fetchTerrain(
+        [ISTANBUL, { ...ANKARA, latitude: ANKARA.latitude + 0.5 }],
+        'driving',
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('asks again for a different mode', async () => {
+      fetchMock.mockResolvedValue(envelope(SHAPES));
+      const service = loadService();
+
+      await service.fetchTerrain([ISTANBUL, ANKARA], 'driving');
+      await service.fetchTerrain([ISTANBUL, ANKARA], 'walking');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('fetchModeDurations', () => {
     it('asks for every mode in one request', async () => {
       fetchMock.mockResolvedValue(envelope({ driving: 1800, walking: 7200 }));

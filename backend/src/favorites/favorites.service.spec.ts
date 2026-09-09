@@ -266,10 +266,7 @@ describe('FavoritesService', () => {
       prisma.stop.findFirst.mockResolvedValue({ id: STOP_ID });
       prisma.favoriteStop.create.mockResolvedValue({ id: 'fav-1' });
 
-      await service.toggleFavoriteStop(
-        { stopId: STOP_ID },
-        USER_ID,
-      );
+      await service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID);
 
       expect(prisma.stop.findFirst).toHaveBeenCalledWith({
         where: {

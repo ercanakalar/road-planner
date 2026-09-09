@@ -419,10 +419,7 @@ describe('StopService', () => {
     });
 
     it('keeps an address the caller supplied', async () => {
-      await service.updateStopWithRoadId(
-        { ...moved, address: 'Home' },
-        'wp-1',
-      );
+      await service.updateStopWithRoadId({ ...moved, address: 'Home' }, 'wp-1');
 
       expect(prisma.stop.update.mock.calls[0][0].data).toMatchObject({
         address: 'Home',
@@ -443,9 +440,9 @@ describe('StopService', () => {
     it('does not geocode a stop that does not exist', async () => {
       prisma.stop.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.updateStopWithRoadId(moved, 'wp-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.updateStopWithRoadId(moved, 'wp-1')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(geocoding.resolveAddress).not.toHaveBeenCalled();
     });
   });

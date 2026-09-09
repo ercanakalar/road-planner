@@ -30,6 +30,8 @@ const PRISMA_METHODS = [
   'delete',
   'deleteMany',
   'count',
+  'groupBy',
+  'aggregate',
 ] as const;
 
 export type PrismaMock = Record<

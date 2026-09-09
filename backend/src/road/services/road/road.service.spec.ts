@@ -312,9 +312,9 @@ describe('RoadService', () => {
         'user-1',
       );
 
-      expect(prisma.stop.createMany.mock.calls[0][0].data[0]).toMatchObject(
-        { address: 'Main St' },
-      );
+      expect(prisma.stop.createMany.mock.calls[0][0].data[0]).toMatchObject({
+        address: 'Main St',
+      });
     });
 
     it('stores a stop with no address as an empty string, not null', async () => {
@@ -331,9 +331,9 @@ describe('RoadService', () => {
         'user-1',
       );
 
-      expect(prisma.stop.createMany.mock.calls[0][0].data[0]).toMatchObject(
-        { address: '' },
-      );
+      expect(prisma.stop.createMany.mock.calls[0][0].data[0]).toMatchObject({
+        address: '',
+      });
     });
 
     it('does not return the owner id', async () => {
@@ -613,11 +613,13 @@ describe('RoadService', () => {
           isPublic: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-          _count: { stops: 12 },
-          favoriteRoads: [{ id: 'fav-1' }],
         },
       ]);
       prisma.road.count.mockResolvedValue(1);
+      prisma.stop.groupBy.mockResolvedValue([
+        { roadId: ROAD_ID, _count: { _all: 12 } },
+      ]);
+      prisma.favoriteRoad.findMany.mockResolvedValue([{ roadId: ROAD_ID }]);
 
       const result = await service.getOwnRoads('user-1', {
         limit: 10,
@@ -633,6 +635,63 @@ describe('RoadService', () => {
       expect(
         prisma.road.findMany.mock.calls[0][0].select.stops,
       ).toBeUndefined();
+    });
+
+    // A relation `_count` is answered with a join onto an aggregate of the
+    // whole child table — every stop of every road in the database — so the
+    // list of one user's roads got slower as other people saved theirs.
+    it('counts only the stops of the page it is drawing', async () => {
+      prisma.road.findMany.mockResolvedValue([
+        { id: ROAD_ID, userId: 'user-1', title: 'T', description: 'D' },
+        { id: OTHER_ROAD_ID, userId: 'user-1', title: 'U', description: 'E' },
+      ]);
+      prisma.road.count.mockResolvedValue(2);
+      prisma.stop.groupBy.mockResolvedValue([]);
+      prisma.favoriteRoad.findMany.mockResolvedValue([]);
+
+      await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
+
+      expect(prisma.stop.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['roadId'],
+          where: { roadId: { in: [ROAD_ID, OTHER_ROAD_ID] } },
+        }),
+      );
+      expect(prisma.favoriteRoad.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1', roadId: { in: [ROAD_ID, OTHER_ROAD_ID] } },
+        }),
+      );
+    });
+
+    it('asks the database nothing more when the page is empty', async () => {
+      prisma.road.findMany.mockResolvedValue([]);
+      prisma.road.count.mockResolvedValue(0);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 10,
+        offset: 0,
+      });
+
+      expect(result.data).toEqual([]);
+      expect(prisma.stop.groupBy).not.toHaveBeenCalled();
+      expect(prisma.favoriteRoad.findMany).not.toHaveBeenCalled();
+    });
+
+    it('reports no stops for a road that has none', async () => {
+      prisma.road.findMany.mockResolvedValue([
+        { id: ROAD_ID, userId: 'user-1', title: 'T', description: 'D' },
+      ]);
+      prisma.road.count.mockResolvedValue(1);
+      prisma.stop.groupBy.mockResolvedValue([]);
+      prisma.favoriteRoad.findMany.mockResolvedValue([]);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 10,
+        offset: 0,
+      });
+
+      expect(result.data[0]).toMatchObject({ stopCount: 0, isFavorite: false });
     });
 
     it('keeps archived roads out of the discover feed', async () => {

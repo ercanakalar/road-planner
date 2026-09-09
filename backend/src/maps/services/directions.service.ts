@@ -99,6 +99,10 @@ export class DirectionsService {
         : [],
       durationSeconds: sumLegs(legs, 'duration'),
       distanceMeters: sumLegs(legs, 'distance'),
+      legs: legs.map((leg) => ({
+        durationSeconds: leg.duration?.value ?? 0,
+        distanceMeters: leg.distance?.value ?? 0,
+      })),
     };
   }
 

@@ -9,6 +9,7 @@ import { TRANSPORT_MODES } from 'src/maps/types/maps.types';
 import { RoadController } from './road.controller';
 import { RoadService } from './services/road/road.service';
 import { RoadRouteService } from './services/route/road-route.service';
+import { RoadTerrainService } from './services/route/road-terrain.service';
 import { RoadSearchService } from './services/search/road-search.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { StopService } from './services/stop/stop.service';
@@ -24,6 +25,7 @@ describe('RoadController routing', () => {
   let roadService: { getRoadById: jest.Mock };
   let stopService: { getStopById: jest.Mock };
   let routeService: { getRoute: jest.Mock; getDurations: jest.Mock };
+  let terrainService: { getTerrain: jest.Mock; measureStops: jest.Mock };
   let searchService: { searchRoads: jest.Mock };
 
   const get = (path: string) => request(app.getHttpServer()).get(path);
@@ -35,6 +37,10 @@ describe('RoadController routing', () => {
       getRoute: jest.fn().mockResolvedValue(ok()),
       getDurations: jest.fn().mockResolvedValue(ok()),
     };
+    terrainService = {
+      getTerrain: jest.fn().mockResolvedValue(ok()),
+      measureStops: jest.fn().mockResolvedValue(ok()),
+    };
     searchService = { searchRoads: jest.fn().mockResolvedValue(ok()) };
 
     const module = await Test.createTestingModule({
@@ -44,6 +50,7 @@ describe('RoadController routing', () => {
         { provide: StopService, useValue: stopService },
         { provide: RoadSharingService, useValue: {} },
         { provide: RoadRouteService, useValue: routeService },
+        { provide: RoadTerrainService, useValue: terrainService },
         { provide: RoadSearchService, useValue: searchService },
       ],
     })
@@ -120,6 +127,19 @@ describe('RoadController routing', () => {
       USER_ID,
       TRANSPORT_MODES,
     );
+  });
+
+  // `/road/terrain` has to win against nothing — no POST route here takes a
+  // bare `:id` — but the coordinate reading is the one an unsaved route uses,
+  // so a regression that shadowed it would be silent on the map.
+  it('reaches the coordinate reading at POST /road/terrain', async () => {
+    await request(app.getHttpServer())
+      .post('/road/terrain')
+      .send({ stops: [{ latitude: 41, longitude: 29 }] })
+      .expect(200);
+
+    expect(terrainService.measureStops).toHaveBeenCalled();
+    expect(roadService.getRoadById).not.toHaveBeenCalled();
   });
 
   it('rejects a road id that is not a uuid', async () => {

@@ -27,6 +27,7 @@ import {
   AddStopDto,
   CreateRoadDto,
   ReorderStopsDto,
+  TerrainStopsDto,
   UpdateRoadDto,
   UpdateStopDto,
 } from './dto/road.dto';
@@ -34,6 +35,7 @@ import { RoadSearchQueryDto } from './dto/road-search.dto';
 import { RoadService } from './services/road/road.service';
 import { RoadSearchService } from './services/search/road-search.service';
 import { RoadRouteService } from './services/route/road-route.service';
+import { RoadTerrainService } from './services/route/road-terrain.service';
 import { RoadSharingService } from './services/sharing/road-sharing.service';
 import { StopService } from './services/stop/stop.service';
 
@@ -44,6 +46,7 @@ export class RoadController {
     private stopService: StopService,
     private sharingService: RoadSharingService,
     private routeService: RoadRouteService,
+    private terrainService: RoadTerrainService,
     private searchService: RoadSearchService,
   ) {}
 
@@ -99,6 +102,35 @@ export class RoadController {
     @GetUser('userId') userId: string,
   ) {
     return this.stopService.getStopById(id, userId);
+  }
+
+  /**
+   * The same reading as `GET /:id/terrain`, for a route still being built.
+   *
+   * The map lets you drop stops before anything is saved, and that route has
+   * no id to look up — so the points come in the body. Public for the same
+   * reason the map is: a signed-out visitor can plan a route, and measuring
+   * one reveals nothing about anybody's saved roads.
+   */
+  @Public()
+  @Throttle(MAPS_THROTTLE.directions)
+  @Post('/terrain')
+  @HttpCode(HttpStatus.OK)
+  async getTerrainForStops(@Body() body: TerrainStopsDto) {
+    return this.terrainService.measureStops(body.stops, body.mode);
+  }
+
+  @Public()
+  @UseGuards(OptionalAccessGuard)
+  @Throttle(MAPS_THROTTLE.directions)
+  @Get('/:id/terrain')
+  @HttpCode(HttpStatus.OK)
+  async getRoadTerrain(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() user: { userId?: string } | undefined,
+    @Query() query: RouteQueryDto,
+  ) {
+    return this.terrainService.getTerrain(id, user?.userId ?? null, query.mode);
   }
 
   @Public()
@@ -200,9 +232,7 @@ export class RoadController {
   @UseGuards(RoadOwnerGuard)
   @Delete('/delete-stop/:stopId')
   @HttpCode(HttpStatus.OK)
-  async deleteStopWithRoadId(
-    @Param('stopId', ParseUUIDPipe) stopId: string,
-  ) {
+  async deleteStopWithRoadId(@Param('stopId', ParseUUIDPipe) stopId: string) {
     return this.stopService.deleteStopById(stopId);
   }
 

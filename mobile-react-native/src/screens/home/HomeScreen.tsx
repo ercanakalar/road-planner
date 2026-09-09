@@ -39,7 +39,6 @@ const HomeScreen = () => {
         isDiscovering,
         refetchDiscover,
         savingRoadId,
-        goToRoutes,
         goToSignIn,
         goToSearch,
         handleOpenCommunityRoad,

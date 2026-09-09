@@ -21,10 +21,7 @@ function isDuplicate(error: unknown): boolean {
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
-  async toggleFavoriteStop(
-    body: ToggleFavoriteStopDto,
-    userId: string,
-  ) {
+  async toggleFavoriteStop(body: ToggleFavoriteStopDto, userId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const existing = await tx.favoriteStop.findUnique({
