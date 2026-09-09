@@ -1,10 +1,10 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 
 import kvkkStorage from 'services/kvkkStorage';
-import localRoadStorage from 'services/localRoadStorage';
+import localRouteStorage from 'services/localRouteStorage';
 import preferencesStorage from 'services/preferencesStorage';
 import { setNotificationsEnabled } from 'services/notificationService';
-import { localRoadSlice } from 'store/slices/localRoadSlice';
+import { localRouteSlice } from 'store/slices/localRouteSlice';
 import { kvkkAccepted, kvkkWithdrawn } from 'store/slices/kvkkSlice';
 import {
   settingsRestored,
@@ -25,16 +25,16 @@ persistenceMiddleware.startListening({
   },
 });
 
-const localRoadActions = Object.values(localRoadSlice.actions).filter(
-  (action) => action.type !== localRoadSlice.actions.localRoadsHydrated.type,
+const localRouteActions = Object.values(localRouteSlice.actions).filter(
+  (action) => action.type !== localRouteSlice.actions.localRoutesHydrated.type,
 );
 
 persistenceMiddleware.startListening({
   predicate: (action) =>
-    localRoadActions.some((creator) => creator.type === action.type),
+    localRouteActions.some((creator) => creator.type === action.type),
   effect: async (_action, listenerApi) => {
-    const { localRoad } = listenerApi.getState() as RootState;
-    await localRoadStorage.save(localRoad.roads);
+    const { localRoute } = listenerApi.getState() as RootState;
+    await localRouteStorage.save(localRoute.routes);
   },
 });
 

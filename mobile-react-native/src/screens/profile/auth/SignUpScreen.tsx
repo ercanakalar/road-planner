@@ -16,7 +16,6 @@ export default function SignUpScreen() {
 
   return (
     <AuthScreenLayout
-      icon='person-add'
       title='Create your account'
       subtitle='Plan routes and save the places you care about.'
       footerText='Already have an account?'

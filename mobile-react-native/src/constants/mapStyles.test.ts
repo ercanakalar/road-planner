@@ -45,11 +45,13 @@ describe.each([
   });
 
   it('separates water from land, so the coast reads', () => {
-    expect(colorOf(style, 'water', 'geometry')).toBe(colors.primarySoft);
+    // Water has its own token rather than a brand tint: the app is green, and
+    // a green sea reads as land.
+    expect(colorOf(style, 'water', 'geometry')).toBe(colors.water);
     expect(colorOf(style, 'water', 'geometry')).not.toBe(colors.background);
   });
 
-  it('separates roads from land', () => {
+  it('separates routes from land', () => {
     expect(colorOf(style, 'road', 'geometry')).not.toBe(colors.background);
   });
 

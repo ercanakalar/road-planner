@@ -12,7 +12,7 @@ import linking from 'navigators/linking';
 import ErrorBoundary from 'components/feedback/ErrorBoundary';
 import SessionGate from 'components/auth/SessionGate';
 import ConfirmProvider from 'components/feedback/ConfirmProvider';
-import LocalRoadMigrationPrompt from 'components/road/LocalRoadMigrationPrompt';
+import LocalRouteMigrationPrompt from 'components/route/LocalRouteMigrationPrompt';
 import store from 'store';
 import { ThemeProvider, useTheme } from 'theme';
 
@@ -53,7 +53,7 @@ const ThemedApp = () => {
               <NavigationContainer theme={navigationTheme} linking={linking}>
                 <StatusBar style={isDark ? 'light' : 'dark'} />
                 <RootNavigator />
-                <LocalRoadMigrationPrompt />
+                <LocalRouteMigrationPrompt />
               </NavigationContainer>
             </ConfirmProvider>
           </SessionGate>

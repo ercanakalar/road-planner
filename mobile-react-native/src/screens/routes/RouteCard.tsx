@@ -19,17 +19,17 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { ContextMenuOption } from 'types/components/contextMenu';
-import { OwnRoadSummary } from 'types/map-screen-type';
+import { OwnRouteSummary } from 'types/map-screen-type';
 
 type Props = {
-  item: OwnRoadSummary;
-  onToggleFavorite: (item: OwnRoadSummary) => void;
-  onDelete: (item: OwnRoadSummary) => void;
-  onEdit: (item: OwnRoadSummary) => void;
-  onView: (roadId: string) => void;
-  onTogglePublic: (item: OwnRoadSummary) => void;
-  onShare: (item: OwnRoadSummary) => void;
-  onOpenInGoogleMaps: (item: OwnRoadSummary) => void;
+  item: OwnRouteSummary;
+  onToggleFavorite: (item: OwnRouteSummary) => void;
+  onDelete: (item: OwnRouteSummary) => void;
+  onEdit: (item: OwnRouteSummary) => void;
+  onView: (routeId: string) => void;
+  onTogglePublic: (item: OwnRouteSummary) => void;
+  onShare: (item: OwnRouteSummary) => void;
+  onOpenInGoogleMaps: (item: OwnRouteSummary) => void;
   isSharing?: boolean;
   isOpeningInMaps?: boolean;
 };
@@ -94,6 +94,7 @@ const RouteCard = ({
 
   const stopCount = item.stopCount ?? 0;
   const isBusy = !!isSharing || !!isOpeningInMaps;
+  const initial = item.title.trim().charAt(0).toUpperCase() || '?';
 
   return (
     <Pressable
@@ -103,6 +104,16 @@ const RouteCard = ({
       accessibilityLabel={`Open route ${item.title}`}
     >
       <View style={styles.headerRow}>
+        {/*
+          The design leads each card with a photograph. A route has none, so
+          it leads with its initial on the brand green instead — a card that
+          starts with text alone loses the row of thumbnails the list is read
+          by.
+        */}
+        <View style={styles.cover}>
+          <Text style={styles.coverInitial}>{initial}</Text>
+        </View>
+
         <Text style={styles.title} numberOfLines={1}>
           {item.title}
         </Text>
@@ -119,9 +130,9 @@ const RouteCard = ({
           }
         >
           <Ionicons
-            name={item.isFavorite ? 'star' : 'star-outline'}
+            name={item.isFavorite ? 'heart' : 'heart-outline'}
             size={22}
-            color={item.isFavorite ? colors.warning : colors.textSubtle}
+            color={item.isFavorite ? colors.primary : colors.textSubtle}
           />
         </Pressable>
 
@@ -232,6 +243,20 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: spacing.sm,
+    },
+    cover: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+    },
+    coverInitial: {
+      ...typography.title,
+      fontSize: 20,
+      lineHeight: 25,
+      color: colors.textInverse,
     },
     title: {
       ...typography.heading,

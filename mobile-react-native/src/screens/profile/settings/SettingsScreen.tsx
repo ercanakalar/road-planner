@@ -9,9 +9,9 @@ import useConfirm from 'hooks/feedback/useConfirm';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { SettingKey, settingToggled } from 'store/slices/settingsSlice';
 import {
-  discardLocalRoads,
-  uploadLocalRoads,
-} from 'store/actions/localRoadActions';
+  discardLocalRoutes,
+  uploadLocalRoutes,
+} from 'store/actions/localRouteActions';
 
 import {
   radius,
@@ -45,17 +45,17 @@ const SettingsScreen = () => {
 
   const settings = useAppSelector((state) => state.settings);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const localRoads = useAppSelector((state) => state.localRoad.roads);
-  const isUploading = useAppSelector((state) => state.localRoad.isUploading);
+  const localRoutes = useAppSelector((state) => state.localRoute.routes);
+  const isUploading = useAppSelector((state) => state.localRoute.isUploading);
 
   const transferable = useMemo(
-    () => localRoads.filter((road) => road.stops.length > 0),
-    [localRoads],
+    () => localRoutes.filter((route) => route.stops.length > 0),
+    [localRoutes],
   );
 
   const stopCount = useMemo(
     () =>
-      transferable.reduce((total, road) => total + road.stops.length, 0),
+      transferable.reduce((total, route) => total + route.stops.length, 0),
     [transferable],
   );
 
@@ -67,7 +67,7 @@ const SettingsScreen = () => {
   );
 
   const handleUpload = useCallback(() => {
-    dispatch(uploadLocalRoads());
+    dispatch(uploadLocalRoutes());
   }, [dispatch]);
 
   const handleDiscard = useCallback(async () => {
@@ -80,7 +80,7 @@ const SettingsScreen = () => {
       icon: 'trash-outline',
       tone: 'danger',
     });
-    if (confirmed) dispatch(discardLocalRoads());
+    if (confirmed) dispatch(discardLocalRoutes());
   }, [confirm, dispatch, transferable.length]);
 
   return (

@@ -18,32 +18,32 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
-import { LocalRoad } from 'types/local-road';
+import { LocalRoute } from 'types/local-route';
 
 interface Props {
   visible: boolean;
-  roads: LocalRoad[];
-  activeRoadId?: string;
-  onSelect: (roadId: string) => void;
+  routes: LocalRoute[];
+  activeRouteId?: string;
+  onSelect: (routeId: string) => void;
   onClose: () => void;
 }
 
 const Row = memo(
   ({
-    road,
+    route,
     isActive,
     onSelect,
   }: {
-    road: LocalRoad;
+    route: LocalRoute;
     isActive: boolean;
-    onSelect: (roadId: string) => void;
+    onSelect: (routeId: string) => void;
   }) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
 
     const handlePress = useCallback(
-      () => onSelect(road.id),
-      [onSelect, road.id],
+      () => onSelect(route.id),
+      [onSelect, route.id],
     );
 
     return (
@@ -55,10 +55,10 @@ const Row = memo(
       >
         <View style={styles.rowText}>
           <Text style={styles.rowTitle} numberOfLines={1}>
-            {road.title}
+            {route.title}
           </Text>
           <Text style={styles.rowMeta}>
-            {road.stops.length} stop{road.stops.length === 1 ? '' : 's'}
+            {route.stops.length} stop{route.stops.length === 1 ? '' : 's'}
           </Text>
         </View>
 
@@ -70,29 +70,29 @@ const Row = memo(
   },
 );
 
-Row.displayName = 'LocalRoadPickerRow';
+Row.displayName = 'LocalRoutePickerRow';
 
-const LocalRoadPicker = ({
+const LocalRoutePicker = ({
   visible,
-  roads,
-  activeRoadId,
+  routes,
+  activeRouteId,
   onSelect,
   onClose,
 }: Props) => {
   const styles = useThemedStyles(createStyles);
 
   const renderItem = useCallback(
-    ({ item }: { item: LocalRoad }) => (
+    ({ item }: { item: LocalRoute }) => (
       <Row
-        road={item}
-        isActive={item.id === activeRoadId}
+        route={item}
+        isActive={item.id === activeRouteId}
         onSelect={onSelect}
       />
     ),
-    [activeRoadId, onSelect],
+    [activeRouteId, onSelect],
   );
 
-  const keyExtractor = useCallback((item: LocalRoad) => item.id, []);
+  const keyExtractor = useCallback((item: LocalRoute) => item.id, []);
 
   return (
     <Modal
@@ -107,7 +107,7 @@ const LocalRoadPicker = ({
           <Text style={styles.heading}>Switch route</Text>
 
           <FlatList
-            data={roads}
+            data={routes}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             style={styles.list}
@@ -184,4 +184,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default memo(LocalRoadPicker);
+export default memo(LocalRoutePicker);

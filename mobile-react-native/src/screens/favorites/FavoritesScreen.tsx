@@ -11,7 +11,8 @@ import {
 import Container from 'components/ui/Container';
 import ScreenHeader from 'components/ui/ScreenHeader';
 import ScreenState from 'components/ui/ScreenState';
-import EditDetailsModal from 'components/road/EditDetailsModal';
+import SegmentedControl, { Segment } from 'components/ui/SegmentedControl';
+import EditDetailsModal from 'components/route/EditDetailsModal';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import useFavoritesScreen, {
   SEARCHABLE_FROM,
@@ -22,8 +23,19 @@ import FavoritesSearch from './FavoritesSearch';
 
 import { radius, spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
-import { FavoriteEntry } from 'types/store/services/favoriteService-type';
+import {
+  FavoriteEntry,
+  FavoriteKind,
+} from 'types/store/services/favoriteService-type';
 import { FavoriteSectionDescriptor } from 'types/screens/mapScreenType';
+
+// The design splits favourites in two before anything else: routes on one
+// side, the places on them on the other. Yours and other people's stay as
+// sections inside whichever is showing.
+const TABS: readonly Segment<FavoriteKind>[] = [
+  { value: 'route', label: 'Routes' },
+  { value: 'stop', label: 'Places' },
+] as const;
 
 const FavoritesScreen = () => {
   const styles = useThemedStyles(createStyles);
@@ -37,6 +49,9 @@ const FavoritesScreen = () => {
     isSearching,
     isFiltering,
     clearSearch,
+    tab,
+    setTab,
+    tabCounts,
     sections,
     totalCount,
     matchCount,
@@ -108,7 +123,7 @@ const FavoritesScreen = () => {
           variant='empty'
           icon='lock-closed-outline'
           title='Sign in to keep favourites'
-          message='Star a route or a stop and it will be waiting here on any device.'
+          message='Save a route or a stop and it will be waiting here on any device.'
         />
       </Container>
     );
@@ -128,18 +143,33 @@ const FavoritesScreen = () => {
     ) : totalCount === 0 ? (
       <ScreenState
         variant='empty'
-        icon='star-outline'
+        icon='heart-outline'
         title='Nothing saved yet'
-        message='Star a route or a stop and it will show up here.'
+        message='Save a route or a place and it will show up here.'
       />
-    ) : matchCount === 0 ? (
+    ) : isSearching && matchCount === 0 ? (
       <ScreenState
         variant='empty'
         icon='search-outline'
         title='No matches'
-        message={`Nothing saved matches “${searchTerm}”.`}
+        message={`Nothing under ${
+          tab === 'route' ? 'Routes' : 'Places'
+        } matches “${searchTerm}”.`}
         actionLabel='Clear search'
         onAction={clearSearch}
+      />
+    ) : matchCount === 0 ? (
+      <ScreenState
+        variant='empty'
+        icon={tab === 'route' ? 'map-outline' : 'location-outline'}
+        title={
+          tab === 'route' ? 'No saved routes yet' : 'No saved places yet'
+        }
+        message={
+          tab === 'route'
+            ? 'The heart on a route saves it here.'
+            : 'The heart on a stop saves the place here.'
+        }
       />
     ) : (
       <SectionList<FavoriteEntry, FavoriteSectionDescriptor>
@@ -177,12 +207,27 @@ const FavoritesScreen = () => {
           // says it better than a subtitle can.
           subtitle={
             isSearching
-              ? `${matchCount} of ${totalCount} shown`
+              ? `${matchCount} of ${tabCounts[tab]} shown`
               : totalCount === 0
                 ? undefined
-                : `${totalCount} saved item${totalCount === 1 ? '' : 's'}`
+                : `${tabCounts.route} route${
+                    tabCounts.route === 1 ? '' : 's'
+                  } · ${tabCounts.stop} place${
+                    tabCounts.stop === 1 ? '' : 's'
+                  }`
           }
         />
+
+        {totalCount > 0 ? (
+          <View style={styles.tabs}>
+            <SegmentedControl
+              segments={TABS}
+              value={tab}
+              onChange={setTab}
+              accessibilityLabel='Show'
+            />
+          </View>
+        ) : null}
 
         {totalCount >= SEARCHABLE_FROM ? (
           <FavoritesSearch value={query} onChange={setQuery} />
@@ -193,7 +238,7 @@ const FavoritesScreen = () => {
 
       <EditDetailsModal
         visible={editing !== null}
-        heading={editing?.kind === 'road' ? 'Rename route' : 'Rename place'}
+        heading={editing?.kind === 'route' ? 'Rename route' : 'Rename place'}
         hint={`Only you see this label. The original is “${
           editing?.defaultTitle ?? ''
         }”. Clear the field to go back to it.`}
@@ -212,6 +257,10 @@ const FavoritesScreen = () => {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
+    tabs: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+    },
     listContent: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.xs,

@@ -3,8 +3,8 @@ type RootStackParamList = {
     | { screen?: string; params?: { highlightTargetId?: string } }
     | undefined;
   MapScreen: undefined;
-  ShowRouteByIdScreen: { roadId: string };
-  CommunityRouteScreen: { roadId: string; title?: string };
+  ShowRouteByIdScreen: { routeId: string };
+  CommunityRouteScreen: { routeId: string; title?: string };
   SharedRouteScreen: { token: string };
   ShowStopById: { stopId: string };
   ProfileDetailScreen: { userId: string };

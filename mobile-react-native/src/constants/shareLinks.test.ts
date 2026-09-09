@@ -77,7 +77,7 @@ describe('shareTokenFromUrl', () => {
   it.each([
     'https://roads.example.com/',
     'https://roads.example.com/share/',
-    `${APP_SCHEME}://road/abc`,
+    `${APP_SCHEME}://route/abc`,
   ])('finds nothing in %p', (url) => {
     expect(shareTokenFromUrl(url)).toBeNull();
   });

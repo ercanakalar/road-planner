@@ -6,7 +6,7 @@ import {
   GOOGLE_MAPS_STOP_LIMIT,
 } from 'constants/googleMapsLink';
 import { showNotification } from 'services/notificationService';
-import { useLazyGetRoadByIdQuery } from 'store/services/roadService';
+import { useLazyGetRouteByIdQuery } from 'store/services/routeService';
 
 import { RouteCoordinate } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
@@ -57,28 +57,28 @@ export function useOpenInGoogleMaps(): OpenInGoogleMaps {
   }, []);
 }
 
-interface OpenRoadInGoogleMaps {
-  openRoadInGoogleMaps: (roadId: string) => Promise<void>;
+interface OpenRouteInGoogleMaps {
+  openRouteInGoogleMaps: (routeId: string) => Promise<void>;
   /** The route being fetched, so its row can show it is busy. */
-  openingRoadId: string | null;
+  openingRouteId: string | null;
 }
 
 /**
  * The same handover from a list, where only the route's id is at hand and its
  * stops still have to be fetched.
  */
-export function useOpenRoadInGoogleMaps(): OpenRoadInGoogleMaps {
-  const [fetchRoad] = useLazyGetRoadByIdQuery();
+export function useOpenRouteInGoogleMaps(): OpenRouteInGoogleMaps {
+  const [fetchRoute] = useLazyGetRouteByIdQuery();
   const openInGoogleMaps = useOpenInGoogleMaps();
-  const [openingRoadId, setOpeningRoadId] = useState<string | null>(null);
+  const [openingRouteId, setOpeningRouteId] = useState<string | null>(null);
 
-  const openRoadInGoogleMaps = useCallback(
-    async (roadId: string) => {
-      setOpeningRoadId(roadId);
+  const openRouteInGoogleMaps = useCallback(
+    async (routeId: string) => {
+      setOpeningRouteId(routeId);
 
       try {
-        const road = await fetchRoad({ roadId }).unwrap();
-        await openInGoogleMaps(road.stops);
+        const route = await fetchRoute({ routeId }).unwrap();
+        await openInGoogleMaps(route.stops);
       } catch {
         showNotification({
           type: 'error',
@@ -86,13 +86,13 @@ export function useOpenRoadInGoogleMaps(): OpenRoadInGoogleMaps {
           message: 'This route could not be loaded. Please try again.',
         });
       } finally {
-        setOpeningRoadId(null);
+        setOpeningRouteId(null);
       }
     },
-    [fetchRoad, openInGoogleMaps],
+    [fetchRoute, openInGoogleMaps],
   );
 
-  return { openRoadInGoogleMaps, openingRoadId };
+  return { openRouteInGoogleMaps, openingRouteId };
 }
 
 export default useOpenInGoogleMaps;

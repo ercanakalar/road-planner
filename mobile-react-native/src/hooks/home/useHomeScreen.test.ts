@@ -1,9 +1,9 @@
 import { withFavoriteToggled } from './useHomeScreen';
-import { DiscoverRoad } from 'types/store/services/roadService-type';
+import { DiscoverRoute } from 'types/store/services/routeService-type';
 
-const road = (id: string, isFavorite: boolean): DiscoverRoad => ({
+const route = (id: string, isFavorite: boolean): DiscoverRoute => ({
   id,
-  title: `Road ${id}`,
+  title: `Route ${id}`,
   description: '',
   createdAt: '',
   author: 'someone',
@@ -13,34 +13,34 @@ const road = (id: string, isFavorite: boolean): DiscoverRoad => ({
 });
 
 describe('withFavoriteToggled', () => {
-  it('flips only the road that was tapped', () => {
-    const roads = [road('a', false), road('b', true)];
+  it('flips only the route that was tapped', () => {
+    const routes = [route('a', false), route('b', true)];
 
-    const next = withFavoriteToggled(roads, 'a');
+    const next = withFavoriteToggled(routes, 'a');
 
     expect(next.map((item) => item.isFavorite)).toEqual([true, true]);
   });
 
-  it('unstars a road that was already saved', () => {
-    expect(withFavoriteToggled([road('a', true)], 'a')[0].isFavorite).toBe(
+  it('unstars a route that was already saved', () => {
+    expect(withFavoriteToggled([route('a', true)], 'a')[0].isFavorite).toBe(
       false,
     );
   });
 
-  it('leaves the cached roads untouched', () => {
+  it('leaves the cached routes untouched', () => {
     // The optimistic copy is handed straight to the list, so aliasing the
     // cached objects would edit RTK Query's cache from the screen.
-    const roads = [road('a', false)];
+    const routes = [route('a', false)];
 
-    const next = withFavoriteToggled(roads, 'a');
+    const next = withFavoriteToggled(routes, 'a');
 
-    expect(roads[0].isFavorite).toBe(false);
-    expect(next[0]).not.toBe(roads[0]);
+    expect(routes[0].isFavorite).toBe(false);
+    expect(next[0]).not.toBe(routes[0]);
   });
 
-  it('is a no-op for a road that is no longer in the sample', () => {
-    const roads = [road('a', false)];
+  it('is a no-op for a route that is no longer in the sample', () => {
+    const routes = [route('a', false)];
 
-    expect(withFavoriteToggled(roads, 'gone')).toEqual(roads);
+    expect(withFavoriteToggled(routes, 'gone')).toEqual(routes);
   });
 });

@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
+    "check:contrast": "node scripts/check-contrast.mjs",
     "eas-build-pre-install": "node -e \"const fs=require('fs');const t='src/constants/appConfig.ts';if(!fs.existsSync(t)){fs.copyFileSync('src/constants/appConfig.example.ts',t);console.log('appConfig.ts created from the example');}\""
   },
   "dependencies": {

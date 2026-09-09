@@ -7,7 +7,7 @@ import {
 } from 'services/googleMapsRouteImport';
 import { showNotification } from 'services/notificationService';
 import { useAppDispatch } from 'store/hook';
-import { localRoadImported } from 'store/slices/localRoadSlice';
+import { localRouteImported } from 'store/slices/localRouteSlice';
 
 const NOT_A_ROUTE =
   'That link has no route in it. Open a route in Google Maps, use Share, and paste the link it gives you.';
@@ -76,7 +76,7 @@ export function useGoogleMapsImport() {
       if (!preview || preview.resolved.length === 0) return false;
 
       dispatch(
-        localRoadImported({
+        localRouteImported({
           title: title.trim() || 'Imported route',
           stops: preview.resolved.map(({ latitude, longitude, address }) => ({
             latitude,

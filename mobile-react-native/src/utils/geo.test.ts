@@ -54,7 +54,7 @@ describe('splitRouteAtLocation', () => {
     expect(last(split!.travelled)).toEqual(split!.remaining[0]);
   });
 
-  it('keeps the road already driven behind the cut', () => {
+  it('keeps the route already driven behind the cut', () => {
     const split = splitRouteAtLocation(ROUTE, {
       latitude: 0.07,
       longitude: 0,
@@ -65,7 +65,7 @@ describe('splitRouteAtLocation', () => {
     expect(last(split!.travelled).latitude).toBeCloseTo(0.07, 5);
   });
 
-  it('keeps the road still ahead in front of it', () => {
+  it('keeps the route still ahead in front of it', () => {
     const split = splitRouteAtLocation(ROUTE, {
       latitude: 0.02,
       longitude: 0,

@@ -10,7 +10,7 @@ import RouteCard from './RouteCard';
 import ScreenState from 'components/ui/ScreenState';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import { spacing, useThemedStyles } from 'theme';
-import { OwnRoadSummary } from 'types/map-screen-type';
+import { OwnRouteSummary } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 
 const RoutesList = ({
@@ -24,14 +24,14 @@ const RoutesList = ({
   onTogglePublic,
   onShare,
   onOpenInGoogleMaps,
-  sharingRoadId,
-  openingInMapsRoadId,
+  sharingRouteId,
+  openingInMapsRouteId,
 }: RoutesListProps) => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<OwnRoadSummary>) => (
+    ({ item }: ListRenderItemInfo<OwnRouteSummary>) => (
       <RouteCard
         item={item}
         onToggleFavorite={onToggleFavorite}
@@ -41,8 +41,8 @@ const RoutesList = ({
         onTogglePublic={onTogglePublic}
         onShare={onShare}
         onOpenInGoogleMaps={onOpenInGoogleMaps}
-        isSharing={sharingRoadId === item.id}
-        isOpeningInMaps={openingInMapsRoadId === item.id}
+        isSharing={sharingRouteId === item.id}
+        isOpeningInMaps={openingInMapsRouteId === item.id}
       />
     ),
     [
@@ -53,13 +53,13 @@ const RoutesList = ({
       onToggleFavorite,
       onTogglePublic,
       onView,
-      openingInMapsRoadId,
-      sharingRoadId,
+      openingInMapsRouteId,
+      sharingRouteId,
     ],
   );
 
   const keyExtractor = useCallback(
-    (item: OwnRoadSummary) => item.id,
+    (item: OwnRouteSummary) => item.id,
     [],
   );
 

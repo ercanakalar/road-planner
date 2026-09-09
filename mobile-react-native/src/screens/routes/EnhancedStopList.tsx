@@ -2,10 +2,10 @@ import { useCallback, useMemo } from 'react';
 
 import {
   useDeleteStopByIdMutation,
-  useGetRoadByIdQuery,
-  useGetRoadTerrainQuery,
+  useGetRouteByIdQuery,
+  useGetRouteTerrainQuery,
   useReOrderStopsMutation,
-} from 'store/services/roadService';
+} from 'store/services/routeService';
 import { useToggleFavoriteStopMutation } from 'store/services/favoriteService';
 
 import StopList from 'components/map/StopList';
@@ -19,7 +19,7 @@ import { TransportMode, StopOption } from 'types/transport-type';
 const EMPTY_STOPS: never[] = [];
 
 interface Props {
-  roadId: string;
+  routeId: string;
   transportMode: TransportMode;
   /** Owned by the screen, because the map has to badge the same two stops. */
   selectedPair: string[];
@@ -30,7 +30,7 @@ interface Props {
 }
 
 const EnhancedStopList = ({
-  roadId,
+  routeId,
   transportMode,
   selectedPair,
   onToggleSelection,
@@ -38,10 +38,10 @@ const EnhancedStopList = ({
   onTransportModeChange,
   onReorderingChange,
 }: Props) => {
-  const { stops } = useGetRoadByIdQuery(
-    { roadId },
+  const { stops } = useGetRouteByIdQuery(
+    { routeId },
     {
-      skip: !roadId,
+      skip: !routeId,
       selectFromResult: ({ data }) => ({
         stops: data?.stops ?? EMPTY_STOPS,
       }),
@@ -49,15 +49,15 @@ const EnhancedStopList = ({
   );
 
   // The stops already carry a shape worked out from the straight lines between
-  // them. This asks for the same reading taken along the road Google actually
+  // them. This asks for the same reading taken along the route Google actually
   // routes, which is the one worth showing when it arrives: two stops either
   // side of a valley are not a climb, and the pins alone cannot tell.
   //
   // A leg needs two stops. Below that there is nothing to measure, so nothing
   // is asked for.
-  const { data: terrain } = useGetRoadTerrainQuery(
-    { roadId },
-    { skip: !roadId || stops.length < 2 },
+  const { data: terrain } = useGetRouteTerrainQuery(
+    { routeId },
+    { skip: !routeId || stops.length < 2 },
   );
 
   const measuredStops = useMemo(() => {
@@ -81,7 +81,7 @@ const EnhancedStopList = ({
   const handleDelete = useCallback(
     async (stopId: string) => {
       try {
-        await deleteStopById({ roadId, stopId }).unwrap();
+        await deleteStopById({ routeId, stopId }).unwrap();
         onForgetSelection(stopId);
       } catch {
         showNotification({
@@ -91,7 +91,7 @@ const EnhancedStopList = ({
         });
       }
     },
-    [deleteStopById, onForgetSelection, roadId],
+    [deleteStopById, onForgetSelection, routeId],
   );
 
   const toggleFavorite = useCallback(
@@ -99,7 +99,7 @@ const EnhancedStopList = ({
       try {
         await toggleFavoriteStop({
           stopId: stop.id,
-          roadId,
+          routeId,
         }).unwrap();
       } catch {
         showNotification({
@@ -109,7 +109,7 @@ const EnhancedStopList = ({
         });
       }
     },
-    [roadId, toggleFavoriteStop],
+    [routeId, toggleFavoriteStop],
   );
 
   const handleOptionSelect = useCallback(
@@ -123,9 +123,9 @@ const EnhancedStopList = ({
 
   const handleReorder = useCallback(
     ({ from, to }: { from: number; to: number }) => {
-      reOrderStops({ roadId, from, to });
+      reOrderStops({ routeId, from, to });
     },
-    [reOrderStops, roadId],
+    [reOrderStops, routeId],
   );
 
   return (

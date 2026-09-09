@@ -7,11 +7,11 @@ import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
-  localRoadCreated,
-  localRoadDeleted,
-  localRoadDetailsChanged,
-  localRoadSelected,
-} from 'store/slices/localRoadSlice';
+  localRouteCreated,
+  localRouteDeleted,
+  localRouteDetailsChanged,
+  localRouteSelected,
+} from 'store/slices/localRouteSlice';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 
@@ -34,20 +34,20 @@ export function useMapScreen() {
   const map = useLocalMapLogic();
   const stopPair = useStopPair();
 
-  const { activeRoad, roads, routeLine, focusOnPlace, handleAddPlaceAsStop } =
+  const { activeRoute, routes, routeLine, focusOnPlace, handleAddPlaceAsStop } =
     map;
 
   const [isReordering, setIsReordering] = useState(false);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isSearchingRoute, setIsSearchingRoute] = useState(false);
-  const [isPickingRoad, setIsPickingRoad] = useState(false);
+  const [isPickingRoute, setIsPickingRoute] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
   const openRouteSearch = useCallback(() => setIsSearchingRoute(true), []);
   const closeRouteSearch = useCallback(() => setIsSearchingRoute(false), []);
   const openDetailsEditor = useCallback(() => setIsEditingDetails(true), []);
   const closeDetailsEditor = useCallback(() => setIsEditingDetails(false), []);
-  const closePicker = useCallback(() => setIsPickingRoad(false), []);
+  const closePicker = useCallback(() => setIsPickingRoute(false), []);
   const openImport = useCallback(() => setIsImporting(true), []);
   const closeImport = useCallback(() => setIsImporting(false), []);
 
@@ -80,45 +80,45 @@ export function useMapScreen() {
     };
   }, [routeLine.distanceMeters, routeLine.durationSeconds]);
 
-  const handleNewRoad = useCallback(() => {
-    dispatch(localRoadCreated(`Route ${roads.length + 1}`));
-  }, [dispatch, roads.length]);
+  const handleNewRoute = useCallback(() => {
+    dispatch(localRouteCreated(`Route ${routes.length + 1}`));
+  }, [dispatch, routes.length]);
 
-  const handleSwitchRoad = useCallback(() => {
-    if (roads.length > 1) setIsPickingRoad(true);
-  }, [roads.length]);
+  const handleSwitchRoute = useCallback(() => {
+    if (routes.length > 1) setIsPickingRoute(true);
+  }, [routes.length]);
 
-  const handlePickRoad = useCallback(
-    (roadId: string) => {
-      dispatch(localRoadSelected(roadId));
-      setIsPickingRoad(false);
+  const handlePickRoute = useCallback(
+    (routeId: string) => {
+      dispatch(localRouteSelected(routeId));
+      setIsPickingRoute(false);
     },
     [dispatch],
   );
 
-  const handleDeleteRoad = useCallback(async () => {
-    if (!activeRoad) return;
+  const handleDeleteRoute = useCallback(async () => {
+    if (!activeRoute) return;
     const confirmed = await confirm({
       title: 'Delete route',
-      message: `“${activeRoad.title}” and its ${activeRoad.stops.length} stop${
-        activeRoad.stops.length === 1 ? '' : 's'
+      message: `“${activeRoute.title}” and its ${activeRoute.stops.length} stop${
+        activeRoute.stops.length === 1 ? '' : 's'
       } will be removed from this device.`,
       confirmLabel: 'Delete',
       icon: 'trash-outline',
       tone: 'danger',
     });
-    if (confirmed) dispatch(localRoadDeleted(activeRoad.id));
-  }, [activeRoad, confirm, dispatch]);
+    if (confirmed) dispatch(localRouteDeleted(activeRoute.id));
+  }, [activeRoute, confirm, dispatch]);
 
   const handleSaveDetails = useCallback(
     ({ title, description }: DetailsDraft) => {
-      if (!activeRoad) return;
+      if (!activeRoute) return;
       dispatch(
-        localRoadDetailsChanged({ roadId: activeRoad.id, title, description }),
+        localRouteDetailsChanged({ routeId: activeRoute.id, title, description }),
       );
       setIsEditingDetails(false);
     },
-    [activeRoad, dispatch],
+    [activeRoute, dispatch],
   );
 
   return {
@@ -143,12 +143,12 @@ export function useMapScreen() {
     isImporting,
     openImport,
     closeImport,
-    isPickingRoad,
-    handleSwitchRoad,
-    handlePickRoad,
+    isPickingRoute,
+    handleSwitchRoute,
+    handlePickRoute,
     closePicker,
-    handleNewRoad,
-    handleDeleteRoad,
+    handleNewRoute,
+    handleDeleteRoute,
   };
 }
 

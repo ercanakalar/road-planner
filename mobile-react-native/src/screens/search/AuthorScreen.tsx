@@ -12,7 +12,7 @@ import { RouteProp } from '@react-navigation/native';
 
 import Container from 'components/ui/Container';
 import ScreenState from 'components/ui/ScreenState';
-import RouteSummaryRow from 'components/road/RouteSummaryRow';
+import RouteSummaryRow from 'components/route/RouteSummaryRow';
 import SearchFilterBar from 'components/search/SearchFilterBar';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import useAuthorScreen from 'hooks/search/useAuthorScreen';

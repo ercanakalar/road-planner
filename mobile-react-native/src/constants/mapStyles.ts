@@ -11,8 +11,10 @@ import type { ThemeColors } from 'theme/palettes';
  * in both themes. So the basemap is built only from the neutrals (`background`,
  * `surface`, `surfaceAlt`, `border`, the three text tones), with exactly two
  * exceptions where a grey would read as wrong rather than as neutral: water
- * takes `primarySoft` and parkland takes `successSoft`. Both are the palette's
- * softest tints, so they still sit well below the pins drawn over them.
+ * takes `water` and parkland takes `successSoft`. Water has a palette token of
+ * its own precisely because it must not follow the brand — the app is green,
+ * and a green sea reads as land. Both tints still sit well below the pins
+ * drawn over them.
  *
  * Nothing here is a literal colour. Retheming the app retheme the map.
  */
@@ -26,7 +28,7 @@ export function buildMapStyle(colors: ThemeColors): MapStyleElement[] {
     },
     {
       // Haloing labels in the land colour is what keeps them legible over
-      // parks and roads without a second text colour.
+      // parks and routes without a second text colour.
       elementType: 'labels.text.stroke',
       stylers: [{ color: colors.background }],
     },
@@ -81,7 +83,7 @@ export function buildMapStyle(colors: ThemeColors): MapStyleElement[] {
       stylers: [{ color: colors.textSubtle }],
     },
 
-    // Roads, one step off the land so the network reads without drawing the
+    // Routes, one step off the land so the network reads without drawing the
     // eye. Motorways get the border colour to separate them from the rest.
     {
       featureType: 'road',
@@ -104,17 +106,17 @@ export function buildMapStyle(colors: ThemeColors): MapStyleElement[] {
       stylers: [{ visibility: 'off' }],
     },
     {
-      featureType: 'road.highway',
+      featureType: 'route.highway',
       elementType: 'geometry',
       stylers: [{ color: colors.surfaceAlt }],
     },
     {
-      featureType: 'road.highway',
+      featureType: 'route.highway',
       elementType: 'geometry.stroke',
       stylers: [{ color: colors.borderStrong }],
     },
     {
-      featureType: 'road.highway',
+      featureType: 'route.highway',
       elementType: 'labels.text.fill',
       stylers: [{ color: colors.textMuted }],
     },
@@ -142,7 +144,7 @@ export function buildMapStyle(colors: ThemeColors): MapStyleElement[] {
     {
       featureType: 'water',
       elementType: 'geometry',
-      stylers: [{ color: colors.primarySoft }],
+      stylers: [{ color: colors.water }],
     },
     {
       featureType: 'water',
@@ -152,7 +154,7 @@ export function buildMapStyle(colors: ThemeColors): MapStyleElement[] {
     {
       featureType: 'water',
       elementType: 'labels.text.stroke',
-      stylers: [{ color: colors.primarySoft }],
+      stylers: [{ color: colors.water }],
     },
   ];
 }

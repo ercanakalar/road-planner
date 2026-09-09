@@ -14,10 +14,10 @@ import PrimaryButton from 'components/ui/PrimaryButton';
 import { MapSection } from 'components/map/MapSection';
 import OpenInGoogleMapsButton from 'components/map/OpenInGoogleMapsButton';
 import {
-  useCloneRoadMutation,
-  useGetSharedRoadQuery,
-} from 'store/services/roadService';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+  useCloneRouteMutation,
+  useGetSharedRouteQuery,
+} from 'store/services/routeService';
+import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import { useAppSelector } from 'store/hook';
 import { useRouteLine } from 'hooks/map/useRouteDirections';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
@@ -39,16 +39,16 @@ const SharedRouteScreen = () => {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   const {
-    data: road,
+    data: route,
     isLoading,
     isError,
-  } = useGetSharedRoadQuery({ token: params.token });
+  } = useGetSharedRouteQuery({ token: params.token });
 
-  const [toggleFavoriteRoad, { isLoading: isSaving }] =
-    useToggleFavoriteRoadMutation();
-  const [cloneRoad, { isLoading: isCloning }] = useCloneRoadMutation();
+  const [toggleFavoriteRoute, { isLoading: isSaving }] =
+    useToggleFavoriteRouteMutation();
+  const [cloneRoute, { isLoading: isCloning }] = useCloneRouteMutation();
 
-  const stops = useMemo(() => road?.stops ?? [], [road?.stops]);
+  const stops = useMemo(() => route?.stops ?? [], [route?.stops]);
   const routeLine = useRouteLine(stops, 'driving');
 
   const summary = useMemo(() => {
@@ -60,30 +60,30 @@ const SharedRouteScreen = () => {
   }, [routeLine.distanceMeters, routeLine.durationSeconds]);
 
   const handleSave = useCallback(async () => {
-    if (!road) return;
+    if (!route) return;
 
     try {
-      await toggleFavoriteRoad({ roadId: road.id }).unwrap();
+      await toggleFavoriteRoute({ routeId: route.id }).unwrap();
     } catch {
       return;
     }
 
     navigation.navigate('HomeTabNavigator', {
       screen: 'Favourites',
-      params: { highlightTargetId: road.id },
+      params: { highlightTargetId: route.id },
     });
-  }, [navigation, road, toggleFavoriteRoad]);
+  }, [navigation, route, toggleFavoriteRoute]);
 
   const handleClone = useCallback(async () => {
-    if (!road) return;
+    if (!route) return;
 
     try {
-      const copy = await cloneRoad({ roadId: road.id }).unwrap();
-      navigation.navigate('ShowRouteByIdScreen', { roadId: copy.id });
+      const copy = await cloneRoute({ routeId: route.id }).unwrap();
+      navigation.navigate('ShowRouteByIdScreen', { routeId: copy.id });
     } catch {
       return;
     }
-  }, [cloneRoad, navigation, road]);
+  }, [cloneRoute, navigation, route]);
 
   const goToSignIn = useCallback(
     () => navigation.navigate('SignInScreen'),
@@ -94,7 +94,7 @@ const SharedRouteScreen = () => {
     return <ScreenState variant='loading' title='Opening shared route…' />;
   }
 
-  if (isError || !road) {
+  if (isError || !route) {
     return (
       <ScreenState
         variant='error'
@@ -124,10 +124,10 @@ const SharedRouteScreen = () => {
         contentContainerStyle={styles.sheetContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{road.title}</Text>
-        <Text style={styles.author}>Shared by {road.author}</Text>
-        {road.description ? (
-          <Text style={styles.description}>{road.description}</Text>
+        <Text style={styles.title}>{route.title}</Text>
+        <Text style={styles.author}>Shared by {route.author}</Text>
+        {route.description ? (
+          <Text style={styles.description}>{route.description}</Text>
         ) : null}
 
         <View style={styles.metaRow}>
@@ -140,7 +140,7 @@ const SharedRouteScreen = () => {
 
         {isLoggedIn ? (
           <>
-            {road.isFavorite ? null : (
+            {route.isFavorite ? null : (
               <PrimaryButton
                 label='Save to my favourites'
                 onPress={handleSave}

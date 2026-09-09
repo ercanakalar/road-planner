@@ -10,7 +10,7 @@ import {
 
 import Container from 'components/ui/Container';
 import ScreenState from 'components/ui/ScreenState';
-import RouteSummaryRow from 'components/road/RouteSummaryRow';
+import RouteSummaryRow from 'components/route/RouteSummaryRow';
 import AuthorRow from 'components/search/AuthorRow';
 import SearchField from 'components/search/SearchField';
 import SearchFilterBar from 'components/search/SearchFilterBar';

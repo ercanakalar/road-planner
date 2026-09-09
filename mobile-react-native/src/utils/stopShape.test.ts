@@ -99,7 +99,7 @@ describe('icons', () => {
     expect(slopeIcon(UNSHAPED_STOP)).toBe('remove-outline');
   });
 
-  it('turns the arrow the way the road turns', () => {
+  it('turns the arrow the way the route turns', () => {
     expect(bendIcon(shape({ bendDirection: 'left' }))).toBe(
       'arrow-undo-outline',
     );

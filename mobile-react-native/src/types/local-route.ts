@@ -8,7 +8,7 @@ export interface LocalStop {
   isFavorite?: boolean;
 }
 
-export interface LocalRoad {
+export interface LocalRoute {
   id: string;
   title: string;
   description: string;
@@ -17,9 +17,9 @@ export interface LocalRoad {
   updatedAt: string;
 }
 
-export interface LocalRoadState {
-  roads: LocalRoad[];
-  activeRoadId?: string;
+export interface LocalRouteState {
+  routes: LocalRoute[];
+  activeRouteId?: string;
   isHydrated: boolean;
   isUploading: boolean;
 }

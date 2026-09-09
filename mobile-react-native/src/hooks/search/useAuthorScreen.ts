@@ -5,7 +5,7 @@ import {
   DEFAULT_ROUTE_SEARCH_ORDER,
 } from 'constants/routeSearch';
 import { useAppSelector } from 'store/hook';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
   useGetAuthorQuery,
   useSearchRoutesQuery,
@@ -45,24 +45,24 @@ export function useAuthorScreen(authorId: string) {
     refetch,
   } = useSearchRoutesQuery({ q: '', sort: order, authorId });
 
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
 
   const handleToggleFavorite = useCallback(
-    (roadId: string) => {
+    (routeId: string) => {
       if (!isLoggedIn) {
         navigation.navigate('SignInScreen');
         return;
       }
-      toggleFavoriteRoad({ roadId });
+      toggleFavoriteRoute({ routeId });
     },
-    [isLoggedIn, navigation, toggleFavoriteRoad],
+    [isLoggedIn, navigation, toggleFavoriteRoute],
   );
 
   const openRoute = useCallback(
-    (roadId: string) => {
-      const hit = routes.find((route) => route.id === roadId);
+    (routeId: string) => {
+      const hit = routes.find((route) => route.id === routeId);
       navigation.navigate('CommunityRouteScreen', {
-        roadId,
+        routeId,
         title: hit?.title ?? 'Route',
       });
     },

@@ -4,7 +4,7 @@ import {
   transformApiResponse,
   transformApiResponseWithToast,
 } from 'store/bases/transformApiResponse';
-import { roadService } from 'store/services/roadService';
+import { routeService } from 'store/services/routeService';
 import {
   applyFavoriteAnnotation,
   normalizeFavorites,
@@ -17,7 +17,7 @@ import {
   GetAllFavoritesResponse,
   RawFavorites,
   ToggleFavoriteResponse,
-  ToggleFavoriteRoadArgs,
+  ToggleFavoriteRouteArgs,
   ToggleFavoriteStopArgs,
   UpdateFavoriteAnnotationArgs,
   UpdateFavoriteAnnotationResponse,
@@ -43,33 +43,34 @@ export const favoriteService = createApi({
       providesTags: [{ type: 'Favorite', id: 'LIST' }],
     }),
 
-    toggleFavoriteRoad: builder.mutation<
+    toggleFavoriteRoute: builder.mutation<
       ToggleFavoriteResponse,
-      ToggleFavoriteRoadArgs
+      ToggleFavoriteRouteArgs
     >({
-      query: ({ roadId }) => ({
+      query: ({ routeId }) => ({
         url: '/favorites/toggle-road',
         method: 'POST',
-        body: { roadId },
+        // `roadId` is the server's key for it; see the note on routeService.
+        body: { roadId: routeId },
       }),
       transformResponse: (res: ApiResponse<ToggleFavoriteResponse>) =>
         transformApiResponseWithToast(res),
       invalidatesTags: [{ type: 'Favorite', id: 'LIST' }],
-      async onQueryStarted({ roadId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ routeId }, { dispatch, queryFulfilled }) {
         const favoritesPatch = dispatch(
           favoriteService.util.updateQueryData(
             'getFavorites',
             undefined,
-            (draft) => removeFromFavorites(draft, roadId),
+            (draft) => removeFromFavorites(draft, routeId),
           ),
         );
 
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getOwnRoads',
+          routeService.util.updateQueryData(
+            'getOwnRoutes',
             undefined,
             (draft) => {
-              const target = draft.find((road) => road.id === roadId);
+              const target = draft.find((route) => route.id === routeId);
               if (!target) return;
               target.isFavorite = !target.isFavorite;
             },
@@ -79,7 +80,7 @@ export const favoriteService = createApi({
         try {
           await queryFulfilled;
           dispatch(
-            roadService.util.invalidateTags([{ type: 'Road', id: 'LIST' }]),
+            routeService.util.invalidateTags([{ type: 'Route', id: 'LIST' }]),
           );
         } catch {
           patch.undo();
@@ -101,7 +102,7 @@ export const favoriteService = createApi({
         transformApiResponseWithToast(res),
       invalidatesTags: [{ type: 'Favorite', id: 'LIST' }],
       async onQueryStarted(
-        { stopId, roadId },
+        { stopId, routeId },
         { dispatch, queryFulfilled },
       ) {
         const favoritesPatch = dispatch(
@@ -112,11 +113,11 @@ export const favoriteService = createApi({
           ),
         );
 
-        const patch = roadId
+        const patch = routeId
           ? dispatch(
-              roadService.util.updateQueryData(
-                'getRoadById',
-                { roadId },
+              routeService.util.updateQueryData(
+                'getRouteById',
+                { routeId },
                 (draft) => {
                   const target = draft.stops.find(
                     (stop) => stop.id === stopId,
@@ -140,9 +141,9 @@ export const favoriteService = createApi({
 
         try {
           await queryFulfilled;
-          if (roadId) {
+          if (routeId) {
             dispatch(
-              roadService.util.invalidateTags([{ type: 'Road', id: roadId }]),
+              routeService.util.invalidateTags([{ type: 'Route', id: routeId }]),
             );
           }
         } catch {
@@ -156,7 +157,8 @@ export const favoriteService = createApi({
       UpdateFavoriteAnnotationArgs
     >({
       query: ({ favoriteId, kind, title, description }) => ({
-        url: `/favorites/${kind}/${favoriteId}`,
+        // The route segment is still `road` on the server side.
+        url: `/favorites/${kind === 'route' ? 'road' : kind}/${favoriteId}`,
         method: 'PATCH',
         body: { title, description },
       }),
@@ -191,5 +193,5 @@ export const {
   useGetFavoritesQuery,
   useUpdateFavoriteAnnotationMutation,
   useToggleFavoriteStopMutation,
-  useToggleFavoriteRoadMutation,
+  useToggleFavoriteRouteMutation,
 } = favoriteService;

@@ -21,7 +21,7 @@ export const FavoriteItem = memo(
     const styles = useThemedStyles(createStyles);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const isRoad = item.kind === 'road';
+    const isRoute = item.kind === 'route';
 
     const handlePress = useCallback(() => onPress(item), [item, onPress]);
     const openMenu = useCallback(() => setIsMenuOpen(true), []);
@@ -30,8 +30,8 @@ export const FavoriteItem = memo(
     const options = useMemo(() => {
       const rows: ContextMenuOption[] = [
         {
-          label: isRoad ? 'Open route' : 'Open place',
-          icon: isRoad ? 'map-outline' : 'location-outline',
+          label: isRoute ? 'Open route' : 'Open place',
+          icon: isRoute ? 'map-outline' : 'location-outline',
           action: () => onPress(item),
         },
         {
@@ -52,13 +52,13 @@ export const FavoriteItem = memo(
 
       rows.push({
         label: 'Remove from favourites',
-        icon: 'star-outline',
+        icon: 'heart-dislike-outline',
         tone: 'danger',
         action: () => onRemove(item),
       });
 
       return rows;
-    }, [isRoad, item, onCopyAddress, onEdit, onPress, onRemove]);
+    }, [isRoute, item, onCopyAddress, onEdit, onPress, onRemove]);
 
     return (
       <View
@@ -71,11 +71,11 @@ export const FavoriteItem = memo(
           accessibilityRole='button'
           accessibilityLabel={`Open ${item.title}`}
         >
-          <View style={[styles.iconContainer, !isRoad && styles.iconStop]}>
+          <View style={[styles.iconContainer, !isRoute && styles.iconStop]}>
             <Ionicons
-              name={isRoad ? 'git-branch-outline' : 'location-outline'}
+              name={isRoute ? 'git-branch-outline' : 'location-outline'}
               size={18}
-              color={isRoad ? colors.primary : colors.accent}
+              color={isRoute ? colors.primary : colors.accent}
             />
           </View>
 
