@@ -108,7 +108,8 @@ export class ElevationService {
       }
 
       return results.map((result) =>
-        typeof result.elevation === 'number' && Number.isFinite(result.elevation)
+        typeof result.elevation === 'number' &&
+        Number.isFinite(result.elevation)
           ? result.elevation
           : null,
       );

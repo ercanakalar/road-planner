@@ -22,11 +22,24 @@ export interface RouteRequest {
   optimize?: boolean;
 }
 
+/** One stop-to-stop hop of a route, as Google measures it. */
+export interface RouteLeg {
+  durationSeconds: number;
+  distanceMeters: number;
+}
+
 export interface RouteResult {
   coordinates: LatLng[];
   durationSeconds: number;
   distanceMeters: number;
   mode: TransportMode;
+  /**
+   * The same journey broken at each stop. The totals above are these summed;
+   * they are kept separately because a per-stop reading — how far and how
+   * steeply the road climbs to reach this one — cannot be recovered from a
+   * total.
+   */
+  legs: RouteLeg[];
 }
 
 export type ModeDurations = Partial<Record<TransportMode, number>>;

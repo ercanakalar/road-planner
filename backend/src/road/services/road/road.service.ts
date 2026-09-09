@@ -11,11 +11,7 @@ import {
   UpdateRoadDto,
   StopInputDto,
 } from 'src/road/dto/road.dto';
-import {
-  applyStopValues,
-  positionByRank,
-  StopValues,
-} from './stop-writes';
+import { applyStopValues, positionByRank, StopValues } from './stop-writes';
 import { withStopMetrics } from '../stop/stop-metrics';
 import { RoadVisibility } from '../visibility/road-visibility';
 
@@ -57,7 +53,9 @@ function buildNewStopRows(
  * pipe their result straight through.
  */
 function withRoadStopMetrics<
-  T extends { stops: { latitude: number; longitude: number; elevation: number | null }[] },
+  T extends {
+    stops: { latitude: number; longitude: number; elevation: number | null }[];
+  },
 >(road: T | null) {
   if (!road) return road;
 
@@ -182,12 +180,6 @@ export class RoadService {
           isPublic: true,
           createdAt: true,
           updatedAt: true,
-          _count: { select: { stops: true } },
-          favoriteRoads: {
-            where: { userId },
-            select: { id: true },
-            take: 1,
-          },
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pagination.limit,
@@ -196,10 +188,15 @@ export class RoadService {
       this.prisma.road.count({ where }),
     ]);
 
-    const shaped = roads.map(({ _count, favoriteRoads, ...road }) => ({
+    const { stopCounts, favorited } = await this.decorate(
+      roads.map(({ id }) => id),
+      userId,
+    );
+
+    const shaped = roads.map((road) => ({
       ...road,
-      stopCount: _count.stops,
-      isFavorite: favoriteRoads.length > 0,
+      stopCount: stopCounts.get(road.id) ?? 0,
+      isFavorite: favorited.has(road.id),
     }));
 
     return ok({
@@ -208,6 +205,42 @@ export class RoadService {
       data: shaped,
       meta: pageMeta(total, pagination),
     });
+  }
+
+  /**
+   * The stop count and the star for one page of roads.
+   *
+   * Both are asked for by road id rather than left to a nested `select`.
+   * Prisma answers a relation `_count` with a join onto an aggregate of the
+   * *whole* child table — every stop of every road in the database, grouped,
+   * to decorate the fifty on screen — so its cost grew with the table instead
+   * of with the page. Keyed by id, both reads ride the indexes the page
+   * already used, and they are independent of each other, so they go together.
+   */
+  private async decorate(roadIds: string[], userId: string) {
+    if (roadIds.length === 0) {
+      return {
+        stopCounts: new Map<string, number>(),
+        favorited: new Set<string>(),
+      };
+    }
+
+    const [counts, favorites] = await Promise.all([
+      this.prisma.stop.groupBy({
+        by: ['roadId'],
+        where: { roadId: { in: roadIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.favoriteRoad.findMany({
+        where: { userId, roadId: { in: roadIds } },
+        select: { roadId: true },
+      }),
+    ]);
+
+    return {
+      stopCounts: new Map(counts.map((row) => [row.roadId, row._count._all])),
+      favorited: new Set(favorites.map(({ roadId }) => roadId)),
+    };
   }
 
   async getDiscoverRoads(userId: string | null, limit: number) {
@@ -410,7 +443,10 @@ export class RoadService {
 
       const rows = buildNewStopRows(
         id,
-        added.map((stop) => ({ ...stop, elevation: resolved.get(stop) ?? null })),
+        added.map((stop) => ({
+          ...stop,
+          elevation: resolved.get(stop) ?? null,
+        })),
       );
 
       if (rows.length) {

@@ -20,10 +20,7 @@ export class RoadRouteService {
   ) {}
 
   async getRoute(roadId: string, userId: string | null, mode?: TransportMode) {
-    const request = toRouteRequest(
-      await this.stopsOf(roadId, userId),
-      mode,
-    );
+    const request = toRouteRequest(await this.stopsOf(roadId, userId), mode);
 
     if (!request) {
       return ok({ header: 'Route', message: TOO_SHORT, data: null });

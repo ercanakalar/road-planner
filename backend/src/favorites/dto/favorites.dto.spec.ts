@@ -1,8 +1,5 @@
 import { collectDtoErrors, validateDto } from 'src/testing/validate-dto';
-import {
-  ToggleFavoriteRoadDto,
-  ToggleFavoriteStopDto,
-} from './favorites.dto';
+import { ToggleFavoriteRoadDto, ToggleFavoriteStopDto } from './favorites.dto';
 
 const UUID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 

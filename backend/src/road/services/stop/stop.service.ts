@@ -15,10 +15,7 @@ import {
   UpdateStopDto,
 } from 'src/road/dto/road.dto';
 import { RoadVisibility } from '../visibility/road-visibility';
-import {
-  applyStopOrder,
-  compactStopOrder,
-} from '../road/stop-writes';
+import { applyStopOrder, compactStopOrder } from '../road/stop-writes';
 import { NO_METRICS, stopMetrics } from './stop-metrics';
 
 @Injectable()
@@ -140,8 +137,7 @@ export class StopService {
       throw new NotFoundException('Stop not found');
     }
 
-    const moved =
-      stop.latitude !== latitude || stop.longitude !== longitude;
+    const moved = stop.latitude !== latitude || stop.longitude !== longitude;
 
     const [address, elevation] = await Promise.all([
       this.geocoding.resolveAddress(body, body.address),

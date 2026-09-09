@@ -25,6 +25,7 @@ import {
   STOPS_MAX,
 } from 'src/common/dto/constants';
 import { trim } from 'src/common/dto/transforms';
+import { TRANSPORT_MODES, TransportMode } from 'src/maps/types/maps.types';
 
 export class StopInputDto {
   @IsOptional()
@@ -54,6 +55,39 @@ export class StopInputDto {
   @IsString()
   @MaxLength(LONG_TEXT_MAX_LENGTH)
   address?: string;
+}
+
+/** A point on a route that has not been saved, so has no id to look up. */
+export class TerrainPointDto {
+  @IsNumber()
+  @Min(LATITUDE_MIN)
+  @Max(LATITUDE_MAX)
+  latitude!: number;
+
+  @IsNumber()
+  @Min(LONGITUDE_MIN)
+  @Max(LONGITUDE_MAX)
+  longitude!: number;
+}
+
+/**
+ * Measure the road running through these points, in the order given.
+ *
+ * The saved-route reading is `GET /road/:id/terrain`; this is the same reading
+ * for a route still being built on the map, which has no id yet. Capped at the
+ * same number of stops a road may hold, since it costs the same one directions
+ * call and one elevation call.
+ */
+export class TerrainStopsDto {
+  @IsArray()
+  @ArrayMaxSize(STOPS_MAX)
+  @ValidateNested({ each: true })
+  @Type(() => TerrainPointDto)
+  stops!: TerrainPointDto[];
+
+  @IsOptional()
+  @IsIn(TRANSPORT_MODES)
+  mode?: TransportMode;
 }
 
 export class CreateRoadDto {

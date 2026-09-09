@@ -42,6 +42,7 @@ const MapScreen = () => {
     activeRoad,
     roads,
     stops,
+    measuredStops,
     routeLine,
     routeSearch,
     transportMode,
@@ -166,7 +167,7 @@ const MapScreen = () => {
         backgroundStyle={styles.sheetBackground}
       >
         <LocalStopList
-          stops={stops}
+          stops={measuredStops}
           transportMode={transportMode}
           selectedPair={stopPair.selected}
           onToggleSelection={stopPair.toggle}

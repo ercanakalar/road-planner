@@ -1,8 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import {
   useDeleteStopByIdMutation,
   useGetRoadByIdQuery,
+  useGetRoadTerrainQuery,
   useReOrderStopsMutation,
 } from 'store/services/roadService';
 import { useToggleFavoriteStopMutation } from 'store/services/favoriteService';
@@ -47,11 +48,34 @@ const EnhancedStopList = ({
     },
   );
 
+  // The stops already carry a shape worked out from the straight lines between
+  // them. This asks for the same reading taken along the road Google actually
+  // routes, which is the one worth showing when it arrives: two stops either
+  // side of a valley are not a climb, and the pins alone cannot tell.
+  //
+  // A leg needs two stops. Below that there is nothing to measure, so nothing
+  // is asked for.
+  const { data: terrain } = useGetRoadTerrainQuery(
+    { roadId },
+    { skip: !roadId || stops.length < 2 },
+  );
+
+  const measuredStops = useMemo(() => {
+    if (!terrain?.length) return stops;
+
+    const byStop = new Map(terrain.map(({ stopId, shape }) => [stopId, shape]));
+
+    return stops.map((stop) => {
+      const shape = byStop.get(stop.id);
+      return shape ? { ...stop, ...shape } : stop;
+    });
+  }, [stops, terrain]);
+
   const [deleteStopById] = useDeleteStopByIdMutation();
   const [reOrderStops] = useReOrderStopsMutation();
   const [toggleFavoriteStop] = useToggleFavoriteStopMutation();
 
-  const durations = useModeDurations(stops, selectedPair);
+  const durations = useModeDurations(measuredStops, selectedPair);
   const copyAddress = useCopyAddress();
 
   const handleDelete = useCallback(
@@ -106,7 +130,7 @@ const EnhancedStopList = ({
 
   return (
     <StopList
-      stops={stops}
+      stops={measuredStops}
       selectedPair={selectedPair}
       durations={durations}
       transportMode={transportMode}

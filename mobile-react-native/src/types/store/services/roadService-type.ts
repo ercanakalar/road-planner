@@ -1,5 +1,6 @@
 import {
   OwnRoadSummary,
+  StopShape,
   StopWithAddress,
   StopWithAddressAndId,
 } from 'types/map-screen-type';
@@ -138,3 +139,17 @@ export interface ReorderStopsArgs {
   to: number;
 }
 export type ReorderStopsResponse = Stop[];
+
+/**
+ * The road's own shape at one stop, measured along the route Google draws
+ * rather than the straight line between pins. Same fields as the shape a stop
+ * already carries, so a card can take whichever it has.
+ */
+export type StopTerrain = {
+  stopId: string;
+  /** Null for the first stop: nothing leads to it. */
+  shape: StopShape | null;
+};
+
+export type GetRoadTerrainArgs = { roadId: string };
+export type GetRoadTerrainResponse = StopTerrain[];

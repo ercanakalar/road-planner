@@ -20,7 +20,10 @@ import {
   localStopMoved,
   localStopsReordered,
 } from 'store/slices/localRoadSlice';
-import { useRouteLine } from 'hooks/map/useRouteDirections';
+import {
+  useRouteLine,
+  useRouteTerrain,
+} from 'hooks/map/useRouteDirections';
 import useRouteSearch from 'hooks/map/useRouteSearch';
 import {
   MapLongPressEvent,
@@ -107,6 +110,10 @@ const useLocalMapLogic = () => {
   );
 
   const routeLine = useRouteLine(stops, transportMode);
+
+  // The list wants the road's own shape at each stop; everything else here
+  // works off `stops`, whose identity the drag and reorder handlers depend on.
+  const measuredStops = useRouteTerrain(stops, transportMode);
   const routeSearch = useRouteSearch(stops, transportMode);
 
   const stopsRef = useRef(stops);
@@ -349,6 +356,7 @@ const useLocalMapLogic = () => {
     activeRoad,
     roads,
     stops,
+    measuredStops,
     routeLine,
     routeSearch,
     transportMode,
