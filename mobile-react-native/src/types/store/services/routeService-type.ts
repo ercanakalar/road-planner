@@ -1,11 +1,16 @@
 import {
-  OwnRoadSummary,
+  OwnRouteSummary,
   StopShape,
   StopWithAddress,
   StopWithAddressAndId,
 } from 'types/map-screen-type';
 
-export interface Road {
+/**
+ * A route exactly as the API returns it. The `roadId` key is the server's own
+ * name for the field, kept verbatim so this type still describes the payload
+ * rather than what the app wishes it were called.
+ */
+export interface Route {
   id: string;
   userId: string;
   title: string;
@@ -17,6 +22,7 @@ export interface Road {
 }
 
 
+/** A stop as the API returns it; `roadId` is the server's key, kept verbatim. */
 export interface Stop {
   id: string;
   latitude: number;
@@ -39,10 +45,10 @@ export interface StopInput {
   address?: string;
 }
 
-export type GetOwnRoadsArgs = void;
-export type GetOwnRoadsResponse = OwnRoadSummary[];
+export type GetOwnRoutesArgs = void;
+export type GetOwnRoutesResponse = OwnRouteSummary[];
 
-export interface DiscoverRoad {
+export interface DiscoverRoute {
   id: string;
   title: string;
   description: string;
@@ -53,88 +59,88 @@ export interface DiscoverRoad {
   stops: StopWithAddress[];
 }
 
-export interface ShareRoadArgs {
-  roadId: string;
+export interface ShareRouteArgs {
+  routeId: string;
 }
 
-export interface ShareRoadResponse {
+export interface ShareRouteResponse {
   url: string;
   token: string;
 }
 
-export interface GetSharedRoadArgs {
+export interface GetSharedRouteArgs {
   token: string;
 }
 
-export type GetSharedRoadResponse = StopWithAddressAndId & {
+export type GetSharedRouteResponse = StopWithAddressAndId & {
   author: string;
   isFavorite: boolean;
 };
 
-export interface CloneRoadArgs {
-  roadId: string;
+export interface CloneRouteArgs {
+  routeId: string;
 }
 
-export interface CloneRoadResponse {
+export interface CloneRouteResponse {
   id: string;
   title: string;
 }
 
-export type GetDiscoverRoadsArgs = void;
-export type GetDiscoverRoadsResponse = DiscoverRoad[];
+export type GetDiscoverRoutesArgs = void;
+export type GetDiscoverRoutesResponse = DiscoverRoute[];
 
-export interface GetRoadByIdArgs {
-  roadId: string;
+export interface GetRouteByIdArgs {
+  routeId: string;
 }
-export type GetRoadByIdResponse = StopWithAddressAndId;
+export type GetRouteByIdResponse = StopWithAddressAndId;
 
 export interface GetStopByIdArgs {
   stopId: string;
 }
 export type GetStopByIdResponse = StopWithAddress;
 
-export interface DeleteRoadByIdArgs {
-  roadId: string;
+export interface DeleteRouteByIdArgs {
+  routeId: string;
 }
-export type DeleteRoadByIdResponse = null;
+export type DeleteRouteByIdResponse = null;
 
-export interface CreateRoadArgs {
+export interface CreateRouteArgs {
   title: string;
   description?: string;
   stops?: StopInput[];
 }
-export type CreateRoadResponse = StopWithAddressAndId;
+export type CreateRouteResponse = StopWithAddressAndId;
 
-export interface UpdateRoadByIdArgs {
-  roadId: string;
+export interface UpdateRouteByIdArgs {
+  routeId: string;
   title: string;
   description?: string;
   isPublic?: boolean;
   stops?: StopInput[];
 }
-export type UpdateRoadByIdResponse = StopWithAddressAndId;
+export type UpdateRouteByIdResponse = StopWithAddressAndId;
 
 export interface AddStopArgs {
-  roadId: string;
+  routeId: string;
   stop: StopInput;
 }
 export type AddStopResponse = Stop;
 
-export interface DeleteStopByRoadIdArgs {
-  roadId: string;
+export interface DeleteStopByRouteIdArgs {
+  routeId: string;
   stopId: string;
 }
-export type DeleteStopByRoadIdResponse = null;
+export type DeleteStopByRouteIdResponse = null;
 
 export interface UpdateStopByStopIdArgs {
-  roadId: string;
+  routeId: string;
   stopId: string;
   stop: StopInput;
 }
 export type UpdateStopByStopIdResponse = Stop;
 
 export interface ReorderStopsArgs {
-  roadId: string;
+  routeId: string;
   from: number;
   to: number;
 }
@@ -151,5 +157,5 @@ export type StopTerrain = {
   shape: StopShape | null;
 };
 
-export type GetRoadTerrainArgs = { roadId: string };
-export type GetRoadTerrainResponse = StopTerrain[];
+export type GetRouteTerrainArgs = { routeId: string };
+export type GetRouteTerrainResponse = StopTerrain[];

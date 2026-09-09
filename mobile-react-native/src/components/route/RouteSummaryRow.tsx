@@ -134,7 +134,7 @@ const RouteSummaryRow = ({
           onPress={handleToggleFavorite}
           disabled={isSaving}
           hitSlop={10}
-          style={({ pressed }) => [styles.star, pressed && styles.starPressed]}
+          style={({ pressed }) => [styles.heart, pressed && styles.heartPressed]}
           accessibilityRole='button'
           accessibilityState={{ selected: route.isFavorite, busy: !!isSaving }}
           accessibilityLabel={
@@ -144,9 +144,9 @@ const RouteSummaryRow = ({
           }
         >
           <Ionicons
-            name={route.isFavorite ? 'star' : 'star-outline'}
+            name={route.isFavorite ? 'heart' : 'heart-outline'}
             size={20}
-            color={route.isFavorite ? colors.warning : colors.textSubtle}
+            color={route.isFavorite ? colors.primary : colors.textSubtle}
           />
         </Pressable>
       ) : null}
@@ -198,14 +198,14 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       flexShrink: 1,
     },
-    star: {
+    heart: {
       width: 34,
       height: 34,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: radius.pill,
     },
-    starPressed: { backgroundColor: colors.surfaceAlt },
+    heartPressed: { backgroundColor: colors.surfaceAlt },
   });
 
 export default memo(RouteSummaryRow);

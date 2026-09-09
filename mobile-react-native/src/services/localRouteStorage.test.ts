@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import localRoadStorage from './localRoadStorage';
-import { LocalRoad } from 'types/local-road';
+import localRouteStorage from './localRouteStorage';
+import { LocalRoute } from 'types/local-route';
 
 const STORAGE_KEY = 'local_roads_v1';
 
-const road = (stops: unknown[]) => ({
-  id: 'local-road-1',
+const route = (stops: unknown[]) => ({
+  id: 'local-route-1',
   title: 'Trip',
   description: '',
   stops,
@@ -14,30 +14,30 @@ const road = (stops: unknown[]) => ({
   updatedAt: '',
 });
 
-const write = (roads: unknown[]) =>
-  AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(roads));
+const write = (routes: unknown[]) =>
+  AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(routes));
 
-describe('localRoadStorage', () => {
+describe('localRouteStorage', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
   });
 
-  it('reads back the roads it stored', async () => {
-    const saved: LocalRoad[] = [
-      road([
+  it('reads back the routes it stored', async () => {
+    const saved: LocalRoute[] = [
+      route([
         { id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: 'Konak' },
-      ]) as LocalRoad,
+      ]) as LocalRoute,
     ];
 
-    await localRoadStorage.save(saved);
+    await localRouteStorage.save(saved);
 
-    await expect(localRoadStorage.load()).resolves.toEqual(saved);
+    await expect(localRouteStorage.load()).resolves.toEqual(saved);
   });
 
-  describe('roads saved before the address became a plain string', () => {
+  describe('routes saved before the address became a plain string', () => {
     it('flattens the old address object down to its address line', async () => {
       await write([
-        road([
+        route([
           {
             id: 'wp-1',
             latitude: 1,
@@ -53,7 +53,7 @@ describe('localRoadStorage', () => {
         ]),
       ]);
 
-      const [loaded] = await localRoadStorage.load();
+      const [loaded] = await localRouteStorage.load();
 
       // Left alone this renders as "[object Object]" on the card.
       expect(loaded.stops[0].address).toBe('Konak, İzmir');
@@ -61,44 +61,44 @@ describe('localRoadStorage', () => {
 
     it('treats an old pin with no address line as unnamed', async () => {
       await write([
-        road([{ id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: {} }]),
+        route([{ id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: {} }]),
       ]);
 
-      const [loaded] = await localRoadStorage.load();
+      const [loaded] = await localRouteStorage.load();
 
       expect(loaded.stops[0].address).toBe('');
     });
 
     it('survives a stop with no address at all', async () => {
       await write([
-        road([{ id: 'wp-1', latitude: 1, longitude: 2, order: 1 }]),
+        route([{ id: 'wp-1', latitude: 1, longitude: 2, order: 1 }]),
       ]);
 
-      const [loaded] = await localRoadStorage.load();
+      const [loaded] = await localRouteStorage.load();
 
       expect(loaded.stops[0].address).toBe('');
     });
 
     it('leaves an already-flat address untouched', async () => {
       await write([
-        road([
+        route([
           { id: 'wp-1', latitude: 1, longitude: 2, order: 1, address: 'Konak' },
         ]),
       ]);
 
-      const [loaded] = await localRoadStorage.load();
+      const [loaded] = await localRouteStorage.load();
 
       expect(loaded.stops[0].address).toBe('Konak');
     });
   });
 
   it('returns nothing when there is nothing stored', async () => {
-    await expect(localRoadStorage.load()).resolves.toEqual([]);
+    await expect(localRouteStorage.load()).resolves.toEqual([]);
   });
 
   it('ignores stored junk rather than throwing', async () => {
     await AsyncStorage.setItem(STORAGE_KEY, 'not json');
 
-    await expect(localRoadStorage.load()).resolves.toEqual([]);
+    await expect(localRouteStorage.load()).resolves.toEqual([]);
   });
 });

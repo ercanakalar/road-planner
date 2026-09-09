@@ -20,7 +20,7 @@ const PLUS_CODE =
 
 /** What Google returns for a road it has no name for, folded (see `fold`). */
 const UNNAMED = new Set([
-  'unnamed road',
+  'unnamed route',
   'unnamed rd',
   'isimsiz yol',
   'adsiz yol',

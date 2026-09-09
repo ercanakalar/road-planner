@@ -6,9 +6,9 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import {
   useAddStopMutation,
   useDeleteStopByIdMutation,
-  useGetRoadByIdQuery,
+  useGetRouteByIdQuery,
   useUpdateStopByIdMutation,
-} from 'store/services/roadService';
+} from 'store/services/routeService';
 import { ShowRouteByIdRouteProp } from 'types/map-screen-type';
 import { addressName } from 'utils/address';
 import { RoutePlace } from 'services/mapsService';
@@ -37,7 +37,7 @@ const EMPTY_STOPS: never[] = [];
 
 const useMapLogic = () => {
   const { params } = useRoute<ShowRouteByIdRouteProp>();
-  const { roadId } = params;
+  const { routeId } = params;
   const dispatch = useAppDispatch();
 
   const mapRef = useRef<MapView>(null);
@@ -52,12 +52,12 @@ const useMapLogic = () => {
     draggingStopId,
   } = useAppSelector((state) => state.map);
 
-  const { stops, road, isLoading } = useGetRoadByIdQuery(
-    { roadId },
+  const { stops, route, isLoading } = useGetRouteByIdQuery(
+    { routeId },
     {
-      skip: !roadId,
+      skip: !routeId,
       selectFromResult: ({ data, isLoading: loading }) => ({
-        road: data,
+        route: data,
         stops: data?.stops ?? EMPTY_STOPS,
         isLoading: loading,
       }),
@@ -111,7 +111,7 @@ const useMapLogic = () => {
 
     try {
       await addStop({
-        roadId,
+        routeId,
         stop: {
           latitude: clickedLocation.latitude,
           longitude: clickedLocation.longitude,
@@ -125,7 +125,7 @@ const useMapLogic = () => {
         message: 'Failed to add stop.',
       });
     }
-  }, [addStop, clickedLocation, dispatch, roadId]);
+  }, [addStop, clickedLocation, dispatch, routeId]);
 
   const handleDeleteStop = useCallback(async () => {
     if (!contextMenuStopId) return;
@@ -133,7 +133,7 @@ const useMapLogic = () => {
 
     try {
       await deleteStop({
-        roadId,
+        routeId,
         stopId: contextMenuStopId,
       }).unwrap();
     } catch {
@@ -143,7 +143,7 @@ const useMapLogic = () => {
         message: 'Failed to delete stop.',
       });
     }
-  }, [contextMenuStopId, deleteStop, dispatch, roadId]);
+  }, [contextMenuStopId, deleteStop, dispatch, routeId]);
 
   const handleMarkerDragEnd = useCallback(
     async (event: MarkerDragEndEvent, stopId: string): Promise<void> => {
@@ -154,7 +154,7 @@ const useMapLogic = () => {
 
       try {
         await updateStop({
-          roadId,
+          routeId,
           stopId,
           stop: { latitude, longitude },
         }).unwrap();
@@ -166,7 +166,7 @@ const useMapLogic = () => {
         });
       }
     },
-    [dispatch, draggingStopId, roadId, updateStop],
+    [dispatch, draggingStopId, routeId, updateStop],
   );
 
   const handleNavigateToStop = useCallback(() => {
@@ -225,7 +225,7 @@ const useMapLogic = () => {
     async (place: RoutePlace) => {
       try {
         await addStop({
-          roadId,
+          routeId,
           stop: {
             latitude: place.latitude,
             longitude: place.longitude,
@@ -246,7 +246,7 @@ const useMapLogic = () => {
         });
       }
     },
-    [addStop, roadId],
+    [addStop, routeId],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
@@ -298,8 +298,8 @@ const useMapLogic = () => {
   );
 
   return {
-    roadId,
-    road,
+    routeId,
+    route,
     mapRef,
     bottomSheetRef,
     isLoading,

@@ -21,13 +21,14 @@ import { EMPTY_FAVORITES } from 'store/adapters/favoriteAdapter';
 import { useAppSelector } from 'store/hook';
 import {
   useGetFavoritesQuery,
-  useToggleFavoriteRoadMutation,
+  useToggleFavoriteRouteMutation,
   useToggleFavoriteStopMutation,
   useUpdateFavoriteAnnotationMutation,
 } from 'store/services/favoriteService';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
 import {
   FavoriteEntry,
+  FavoriteKind,
   FavoriteSectionKey,
 } from 'types/store/services/favoriteService-type';
 import { HomeTabParamList, RootStackParamList } from 'types/screens/screens';
@@ -57,9 +58,10 @@ export function useFavoritesScreen() {
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  // Sections start open and are collapsed one at a time, so "My roads" and
+  // Sections start open and are collapsed one at a time, so "My routes" and
   // "My places" can be read together — the pairing most of this screen is for.
   const [collapsed, setCollapsed] = useState<readonly FavoriteSectionKey[]>([]);
+  const [tab, setTab] = useState<FavoriteKind>('route');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<FavoriteEntry | null>(null);
 
@@ -88,7 +90,7 @@ export function useFavoritesScreen() {
     refetch,
   } = useGetFavoritesQuery(undefined, { skip: !isLoggedIn });
 
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
   const [toggleFavoriteStop] = useToggleFavoriteStopMutation();
   const [updateAnnotation, { isLoading: isSavingAnnotation }] =
     useUpdateFavoriteAnnotationMutation();
@@ -101,7 +103,18 @@ export function useFavoritesScreen() {
   );
 
   const totalCount = useMemo(() => countFavorites(favorites), [favorites]);
-  const matchCount = useMemo(() => countFavorites(matches), [matches]);
+
+  // Counted per tab as well as overall: an empty Stops tab with a full Routes
+  // tab is a different thing from having saved nothing at all, and the two
+  // deserve different empty states.
+  const tabCounts = useMemo(
+    () => ({
+      route: countFavorites(favorites, 'route'),
+      stop: countFavorites(favorites, 'stop'),
+    }),
+    [favorites],
+  );
+  const matchCount = useMemo(() => countFavorites(matches, tab), [matches, tab]);
 
   const isExpanded = useCallback(
     // A search that hid its own results would look broken, so searching opens
@@ -111,8 +124,8 @@ export function useFavoritesScreen() {
   );
 
   const sections = useMemo(
-    () => buildSections(matches, isExpanded),
-    [isExpanded, matches],
+    () => buildSections(matches, isExpanded, tab),
+    [isExpanded, matches, tab],
   );
 
   const toggleSection = useCallback((key: FavoriteSectionKey) => {
@@ -164,14 +177,14 @@ export function useFavoritesScreen() {
         title: 'Remove favourite',
         message: `“${item.title}” will be removed from your favourites.`,
         confirmLabel: 'Remove',
-        icon: 'star-outline',
+        icon: 'heart-dislike-outline',
         tone: 'danger',
       });
       if (!confirmed) return;
 
       try {
-        if (item.kind === 'road') {
-          await toggleFavoriteRoad({ roadId: item.targetId }).unwrap();
+        if (item.kind === 'route') {
+          await toggleFavoriteRoute({ routeId: item.targetId }).unwrap();
         } else {
           await toggleFavoriteStop({
             stopId: item.targetId,
@@ -185,7 +198,7 @@ export function useFavoritesScreen() {
         });
       }
     },
-    [confirm, toggleFavoriteRoad, toggleFavoriteStop],
+    [confirm, toggleFavoriteRoute, toggleFavoriteStop],
   );
 
   const handleItemPress = useCallback(
@@ -196,12 +209,12 @@ export function useFavoritesScreen() {
       }
 
       if (item.isOwn) {
-        navigation.navigate('ShowRouteByIdScreen', { roadId: item.targetId });
+        navigation.navigate('ShowRouteByIdScreen', { routeId: item.targetId });
         return;
       }
 
       navigation.navigate('CommunityRouteScreen', {
-        roadId: item.targetId,
+        routeId: item.targetId,
         title: item.title,
       });
     },
@@ -218,6 +231,9 @@ export function useFavoritesScreen() {
     isSearching,
     isFiltering,
     clearSearch,
+    tab,
+    setTab,
+    tabCounts,
     sections,
     totalCount,
     matchCount,

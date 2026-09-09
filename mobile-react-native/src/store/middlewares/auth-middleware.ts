@@ -5,7 +5,7 @@ import { resetAllApiStates } from 'store/actions/authAction';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 import { authenticationService } from 'store/services/authenticationService';
 import { favoriteService } from 'store/services/favoriteService';
-import { roadService } from 'store/services/roadService';
+import { routeService } from 'store/services/routeService';
 import { clearAuth, logout } from 'store/slices/authSlice';
 import type { AppDispatch } from 'store';
 
@@ -33,7 +33,7 @@ authMiddleware.startListening({
     // for both now means the request is already in flight while the screen
     // mounts, instead of starting once it has.
     const dispatch = listenerApi.dispatch as AppDispatch;
-    dispatch(roadService.util.prefetch('getOwnRoads', undefined, { force: true }));
+    dispatch(routeService.util.prefetch('getOwnRoutes', undefined, { force: true }));
     dispatch(
       favoriteService.util.prefetch('getFavorites', undefined, { force: true }),
     );

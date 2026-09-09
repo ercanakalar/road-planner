@@ -1,6 +1,9 @@
 import localStorageService from './localStorageService';
-import { LocalRoad } from 'types/local-road';
+import { LocalRoute } from 'types/local-route';
 
+// Written by every version of this app that came before the rename. Changing
+// either the key or the id prefix would hide routes already on the device, so
+// both keep the older word.
 const STORAGE_KEY = 'local_roads_v1';
 
 export const createLocalId = (prefix: 'road' | 'wp') =>
@@ -8,13 +11,13 @@ export const createLocalId = (prefix: 'road' | 'wp') =>
     .toString(36)
     .slice(2, 8)}`;
 
-const isLocalRoad = (value: unknown): value is LocalRoad => {
-  const road = value as LocalRoad | undefined;
+const isLocalRoute = (value: unknown): value is LocalRoute => {
+  const route = value as LocalRoute | undefined;
   return (
-    !!road &&
-    typeof road.id === 'string' &&
-    typeof road.title === 'string' &&
-    Array.isArray(road.stops)
+    !!route &&
+    typeof route.id === 'string' &&
+    typeof route.title === 'string' &&
+    Array.isArray(route.stops)
   );
 };
 
@@ -23,9 +26,9 @@ const isLocalRoad = (value: unknown): value is LocalRoad => {
  * … }` under that key. Left alone they would render as "[object Object]", so the
  * shape is corrected on the way in rather than everywhere it is read.
  */
-const withFlatAddresses = (road: LocalRoad): LocalRoad => ({
-  ...road,
-  stops: road.stops.map((stop) => {
+const withFlatAddresses = (route: LocalRoute): LocalRoute => ({
+  ...route,
+  stops: route.stops.map((stop) => {
     const address: unknown = stop.address;
 
     if (typeof address === 'string') return stop;
@@ -36,8 +39,8 @@ const withFlatAddresses = (road: LocalRoad): LocalRoad => ({
   }),
 });
 
-export const localRoadStorage = {
-  async load(): Promise<LocalRoad[]> {
+export const localRouteStorage = {
+  async load(): Promise<LocalRoute[]> {
     try {
       const raw = await localStorageService.getItem(STORAGE_KEY);
       if (!raw) return [];
@@ -45,15 +48,15 @@ export const localRoadStorage = {
       const parsed: unknown = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
 
-      return parsed.filter(isLocalRoad).map(withFlatAddresses);
+      return parsed.filter(isLocalRoute).map(withFlatAddresses);
     } catch {
       return [];
     }
   },
 
-  async save(roads: LocalRoad[]): Promise<void> {
+  async save(routes: LocalRoute[]): Promise<void> {
     try {
-      await localStorageService.setItem(STORAGE_KEY, JSON.stringify(roads));
+      await localStorageService.setItem(STORAGE_KEY, JSON.stringify(routes));
     } catch {
     }
   },
@@ -66,4 +69,4 @@ export const localRoadStorage = {
   },
 };
 
-export default localRoadStorage;
+export default localRouteStorage;

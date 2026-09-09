@@ -31,10 +31,10 @@ type FavoriteStop = {
   updatedAt: string;
 };
 
-type FavoriteRoad = {
+type FavoriteRoute = {
   id: string;
   userId: string;
-  roadId: string;
+  routeId: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -75,7 +75,7 @@ export type StopWithAddress = StopShape & {
   latitude: number;
   longitude: number;
   order: number;
-  roadId: string;
+  routeId: string;
   /** Google's formatted address for the stop, or '' for a bare dropped pin. */
   address: string;
   /** Ground height in metres above sea level, or null if never resolved. */
@@ -94,17 +94,17 @@ export type StopWithAddressAndId = {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  favoriteRoads: FavoriteRoad[];
+  favoriteRoutes: FavoriteRoute[];
   isFavorite: boolean;
   isPublic?: boolean;
 };
 
 /**
- * One row of "My Routes". The list shows a name, a star and how many stops a
+ * One row of "My Routes". The list shows a name, a heart and how many stops a
  * route holds, so the stops themselves are never sent — only their count.
- * Opening a route fetches it in full through `getRoadById`.
+ * Opening a route fetches it in full through `getRouteById`.
  */
-export type OwnRoadSummary = {
+export type OwnRouteSummary = {
   id: string;
   title: string;
   description: string;

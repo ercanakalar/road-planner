@@ -29,7 +29,6 @@ const SignInScreen = ({ navigation }: Props) => {
 
   return (
     <AuthScreenLayout
-      icon='navigate'
       title='Welcome back'
       subtitle='Sign in to pick up where you left off.'
       footerText="Don't have an account?"

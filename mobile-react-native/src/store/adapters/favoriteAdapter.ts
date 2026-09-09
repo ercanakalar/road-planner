@@ -5,7 +5,7 @@ import {
 } from 'utils/address';
 import {
   FavoriteEntry,
-  FavoriteRoadRow,
+  FavoriteRouteRow,
   FavoriteSectionKey,
   FavoriteStopRow,
   NormalizedFavorites,
@@ -14,27 +14,27 @@ import {
 
 /** The four buckets the API splits favourites into, in the order they show. */
 export const FAVORITE_SECTION_KEYS: readonly FavoriteSectionKey[] = [
-  'ownRoads',
+  'ownRoutes',
   'ownStops',
-  'othersRoads',
+  'othersRoutes',
   'othersStops',
 ] as const;
 
 export const EMPTY_FAVORITES: NormalizedFavorites = {
-  ownRoads: [],
+  ownRoutes: [],
   ownStops: [],
-  othersRoads: [],
+  othersRoutes: [],
   othersStops: [],
 };
 
-const toRoadEntry =
+const toRouteEntry =
   (isOwn: boolean) =>
-  (row: FavoriteRoadRow): FavoriteEntry => {
+  (row: FavoriteRouteRow): FavoriteEntry => {
     const defaultTitle = row.road?.title ?? 'Untitled route';
     return {
       favoriteId: row.id,
       targetId: row.road?.id ?? row.id,
-      kind: 'road',
+      kind: 'route',
       title: row.title || defaultTitle,
       subtitle: row.description || row.road?.description || undefined,
       annotationTitle: row.title ?? undefined,
@@ -71,12 +71,17 @@ const toStopEntry =
     };
   };
 
+/**
+ * The API's four buckets, renamed to the app's vocabulary on the way in. This
+ * is the only place that reads the server's `ownRoads` / `othersRoads` / `road`
+ * keys, so nothing downstream has to know they exist.
+ */
 export const normalizeFavorites = (raw?: RawFavorites): NormalizedFavorites => {
   if (!raw) return EMPTY_FAVORITES;
   return {
-    ownRoads: (raw.ownRoads ?? []).map(toRoadEntry(true)),
+    ownRoutes: (raw.ownRoads ?? []).map(toRouteEntry(true)),
     ownStops: (raw.ownStops ?? []).map(toStopEntry(true)),
-    othersRoads: (raw.othersRoads ?? []).map(toRoadEntry(false)),
+    othersRoutes: (raw.othersRoads ?? []).map(toRouteEntry(false)),
     othersStops: (raw.othersStops ?? []).map(toStopEntry(false)),
   };
 };

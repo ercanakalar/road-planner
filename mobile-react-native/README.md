@@ -22,13 +22,13 @@ request. Writing it in anyway is harmless; the prefix is never doubled.
 ### The Map tab works signed out
 
 Anyone can open **Map**, drop stops and compare travel times without an
-account. Those routes live on the device (`localRoadSlice` + AsyncStorage via
-`services/localRoadStorage`), never on the server.
+account. Those routes live on the device (`localRouteSlice` + AsyncStorage via
+`services/localRouteStorage`), never on the server.
 
 When a signed-out user with local routes signs in or signs up,
-`LocalRoadMigrationPrompt` offers to keep them. The transfer itself lives in
+`LocalRouteMigrationPrompt` offers to keep them. The transfer itself lives in
 **Settings → Routes on this device**, so one screen owns it:
-`uploadLocalRoads` posts each route to `POST /road/create` — waypoints
+`uploadLocalRoutes` posts each route to `POST /road/create` — waypoints
 included, one request per route — and drops only the ones the server accepted,
 so a partial failure leaves the rest on the device to retry.
 
@@ -100,7 +100,7 @@ belong to the route list, so they leave with it when the People tab is showing.
 Length is filtered in bands — 2-4, 5-9, 10+ — rather than as a number, because
 nobody wants "at least seven stops", they want a short route or a long one. The
 API turns a band into a clause on the stop `order` rather than counting rows:
-`order` is a dense 1-based rank per road, so "has a stop ranked 5 or higher" is
+`order` is a dense 1-based rank per route, so "has a stop ranked 5 or higher" is
 the same question as "has at least five stops", and unlike a count it is one
 Postgres can answer inside the same query. That matters because filtering after
 the page came back would return short pages and a wrong total.
@@ -157,7 +157,7 @@ the point is that the recipient may not have an account — onto
 saving or copying it.
 
 The link is a JWT, so it expires (`ROAD_SHARE_EXPIRE_IN`, 7 days by default) and
-carries no road id anyone can guess at. A road its owner has deleted resolves to
+carries no route id anyone can guess at. A route its owner has deleted resolves to
 a 404 rather than outliving the deletion.
 
 **A link only opens the app instead of a browser if it points at a host that
@@ -174,7 +174,7 @@ The community feed on Home and the routes in it are readable without an account.
 `GET /road/discover` and `GET /road/:id` both run under `OptionalAccessGuard`,
 and `visibleRoadWhere` narrows to `{ isPublic: true, archivedAt: null }` when
 there is no caller — a signed-out reader can reach exactly what somebody chose
-to publish, and a road id is a UUID rather than something to walk through.
+to publish, and a route id is a UUID rather than something to walk through.
 
 An anonymous read still returns the `favoriteRoads` and `favoriteWaypoints`
 arrays, empty. The server skips the query, but the app reads both without
@@ -183,7 +183,7 @@ favourites.
 
 Favourites themselves live on the server against a user, so those affordances
 are absent rather than present-and-inert: no star on community cards
-(`DiscoverRoadCard`'s `canFavorite`), no favourite action in the signed-out Map
+(`DiscoverRouteCard`'s `canFavorite`), no favourite action in the signed-out Map
 tab's stop list (`LocalWaypointList` passes `showFavoriteAction`), and the
 community and shared route screens offer sign-in where the save button would be.
 
@@ -196,10 +196,10 @@ Two constraints shape how:
 
 - `PUT /road/update/:id` treats its `waypoints` array as the route's complete
   desired state, so an omitted array deletes every stop. A title-only edit goes
-  through `updateRoadDetails`, which reads the current waypoints and sends them
+  through `updateRouteDetails`, which reads the current waypoints and sends them
   back with their ids.
 - A favourite's title and description annotate the **favourite row**, not its
-  target. A waypoint has no title of its own, and a road belongs to its author,
+  target. A waypoint has no title of its own, and a route belongs to its author,
   so this is the only text a user can edit on something they merely saved.
   Clearing the field falls back to the target's own name.
 
@@ -228,15 +228,19 @@ it — the route line, the four waypoint pins, places found along the way, the
 compared pair — so the basemap is built only from the neutrals, and two tests
 check that none of the pin or route colours appear anywhere in it. There are two
 deliberate exceptions where grey would read as wrong rather than as neutral:
-water takes `primarySoft` and parkland `successSoft`, both the palette's softest
-tints. Google's own POI, road and transit icons are switched off, because this
+water takes `water` and parkland `successSoft`. Water has a token of its own
+rather than a brand tint because a family can be any hue, and a green or
+indigo sea reads as land. Google's own POI, road and transit icons are switched off, because this
 app draws its own pins and the two compete for the same glance.
 
 ### Route line styling
 
 Each transport mode draws its own colour and dash pattern
 (`constants/transportStyles.ts`) — driving solid blue, transit long-dashed
-purple, walking dotted green. The pattern carries the same information as the
+purple, walking dotted green. These belong to the map rather than to the
+brand, so they do not change with the family; the line is drawn over the
+basemap, not over the app's own surfaces, and it has to stay clear of the pins
+at either end of it. The pattern carries the same information as the
 colour, so the modes stay distinguishable without relying on hue alone.
 
 ### Settings
@@ -337,6 +341,27 @@ The ones worth recognising:
 | *Google issued no id token…* | The compiled client id is not one for this platform — typically the web client id on Android. |
 | `redirect_uri_mismatch`, `invalid_client` | The signing certificate does not match the one on the OAuth client. A debug build signed with a release client's fingerprint fails here. |
 
+### The tab bar
+
+Home · Map · **♥** · Routes · Profile, with Favourites raised into the middle
+as one filled circle in `primary` (`navigators/CentreTabButton`).
+
+The raised one is still an ordinary tab, not a floating action button drawn
+over it: the press is the tab press React Navigation hands over, and only the
+drawing is different. `centreTabButton(icon, label)` builds the button for
+whichever screen sits there, so moving the middle around is a line in the
+navigator rather than a new component — call it at module scope, though, since
+`tabBarButton` is invoked on every render of the bar and a function built
+inside one remounts the button with it.
+
+Every screen keeps the name it had through the reorder, so
+`navigate('Favourites')` from the community and shared-route screens — the
+`highlightTargetId` param and all — still lands where it did, and the app
+still opens on Map.
+
+Favourites are hearts, filled in `primary`. The one star left in the app
+is the Google rating on a place found along a route, which is a rating.
+
 ## Architecture
 
 ```
@@ -346,7 +371,8 @@ src/
     feedback/   Errors, toasts and confirmation, app-wide
     auth/       Sign-in surface and session gating
     map/        The map, its controls and the waypoint list
-    road/       Road details, the compact route row, the upload prompt
+    route/      Route details, the compact route row, the rail card, the
+                upload prompt
     profile/    Avatar and theme controls
     search/     The search field, its filters, and a person's row
   hooks/        All the logic, grouped the same way components/ is
@@ -362,10 +388,10 @@ src/
   navigators/   Root stack + bottom tabs
   screens/      One folder per bottom tab, plus what each tab pushes
     home/       Discover feed
-    map/        The Map tab: pick a road, drop stops, save it
+    map/        The Map tab: pick a route, drop stops, save it
     routes/     The Routes tab and the route detail screens it opens
     favorites/  The Favourites tab
-    profile/    The Profile tab: auth gate, settings, legal
+    profile/    The Profile tab: welcome, auth gate, settings, legal
     search/     Search results, and one author's published routes
   services/     Platform + third-party access (Google Maps, storage)
   store/        RTK Query APIs, slices, middleware, adapters
@@ -514,10 +540,10 @@ is cached like the rest and debounced hardest (600ms). It takes no
 `AbortSignal` for the same reason `fetchDirections` does not; a result that
 arrives after the search has moved on is dropped by the hook instead.
 
-Adding or moving a waypoint on a saved road sends coordinates only. The server
+Adding or moving a waypoint on a saved route sends coordinates only. The server
 names the pin as it stores it, so the write is one round trip instead of a
 lookup followed by a save; the list shows *Locating…* for as long as that takes.
-Roads kept on the device still geocode through `/api/maps/geocode/reverse`,
+Routes kept on the device still geocode through `/api/maps/geocode/reverse`,
 since there is no server-side write to hang the lookup off.
 
 ## Checks
@@ -525,20 +551,29 @@ since there is no server-side write to hang the lookup off.
 ```bash
 npm run typecheck                     # tsc --noEmit
 npm test                              # jest
+npm run check:contrast                # the palette's own constraints
 npx expo export --platform android    # verify the bundle builds
 ```
 
-All three run in CI on any change under `mobile-react-native/`
+The first, second and last run in CI on any change under `mobile-react-native/`
 (`.github/workflows/mobile-ci.yml`). The bundle step is there because `tsc`
 cannot see unresolved imports or a broken path alias — only Metro can.
 
 Tests cover the pure logic and the reducers: the favourites adapter, the
 directions cache, duration/distance formatting, and the auth, map, settings and
-local-road slices. `baseQuery` is exercised against a stubbed `fetch`, since it
+local-route slices. `baseQuery` is exercised against a stubbed `fetch`, since it
 holds the retry, refresh and replay logic.
 
 ### Known gaps
 
+- Almost no component tests. `CreateRouteTabButton` has one, because it
+  crashed the app on launch in a way `tsc`, jest and the bundle export all
+  passed straight over: `tabBarButton` is *called* by `BottomTabItem` rather
+  than mounted, so a `memo()` object there is not callable — and its props
+  are the DOM-ish spellings (`aria-selected`, `aria-label`), which the prop
+  type permits you to ignore in favour of `accessibilityState` that never
+  arrives. Anything else rendered only by the navigator has the same hole
+  under it.
 - The collection endpoints are paginated (`DEFAULT_PAGE_SIZE` 50,
   `MAX_PAGE_SIZE` 200). The app requests the maximum page and does not page
   further — see `src/constants/pagination.ts` for what real paging needs.
@@ -548,36 +583,82 @@ holds the retry, refresh and replay logic.
 
 ### Palette
 
-`theme/palettes.ts` holds the only two colour objects in the app — Google
-Maps' own palette: Google Blue primary, red destination pins, green for start
-and success, over Google's greys (`#202124`, `#5F6368`, `#DADCE0`), one
-palette per scheme. Everything else reads them through `useTheme()` /
-`useThemedStyles()`, so a colour is changed in one place.
+`theme/palettes.ts` holds every colour in the app. A **family** is a light
+scheme and a dark one that go together, and there are three:
 
-Values are Google's own Material/Maps steps, picked at the step that clears
-the contrast each token needs rather than the brightest one. `primary` is Blue
-**700** (`#1967D2`) rather than the Blue 600 (`#1A73E8`) Google uses for
-buttons, because it also sets small label text on `primarySoft`, where 600
-falls to 3.93:1.
+| Family | `primary` | `brand` | Paper |
+| --- | --- | --- | --- |
+| `maps` (in use) | `#1967D2` Blue 700 | `#1A73E8` Blue 600 | Google greys |
+| `forest` | `#146C2E` Green 800 | `#1E8E3E` Green 600 | Google greys |
+| `harbour` | `#4A50A8` indigo | `#6A70C4` | cool off-white |
 
-Three constraints are load-bearing, and the comment at the top of the file
-repeats them:
+All three sit on Google's Material steps, picked at the step that clears the
+contrast each token needs rather than the brightest one. `maps` uses Blue
+**700** rather than the Blue 600 Google fills its buttons with, because
+`primary` also sets small label text on `primarySoft`: Blue 600 reaches 4.51:1
+on pure white and nothing above it, so any tint at all puts it under 4.5. Blue
+600 lives in `brand`, which is display-sized only and needs 3:1.
 
-- Waypoint pins colour by position — start `success`, destination `accent`,
-  stops `primary` — and a place found along the route uses `place`. All four
-  share a screen, so they stay far apart in hue (green ~145°, red ~1°, blue
-  ~215°, olive ~77°); the closest pair is 63° apart. `place` exists because
-  these markers used `warning`, which sits 33° from `accent` and read as a
-  second destination pin.
+`ACTIVE_PALETTE` names the one the app wears, and `lightColors` / `darkColors`
+are that choice — nothing outside the file names a family, so switching is one
+word and reskins every screen, the basemap included. It is not a user setting:
+light and dark are, and a second axis of choice on top of those is a lot of
+surface for something an app usually just decides.
+
+In `maps`, `primary` and `route` are the same blue, so the stops between the
+ends really are brand-coloured — the one place a family knowingly breaks the
+pin rule below. That is what Google Maps looks like, and the four pin hues
+still separate by 60°, so it is a deliberate borrow rather than an oversight.
+
+Harbour is indigo rather than a third green because at ~236° it is far enough
+from forest's ~140° that the two read as different apps, while still clearing
+`route` blue (~215°) and `selection` violet (~272°) by enough that neither the
+map nor the compared pair goes muddy against the chrome.
+
+The map colours — the four pins, `selection`, the three route modes, `water` —
+are about reading a map rather than about the brand, so families share them
+unless a family has a reason not to.
+
+Six constraints are load-bearing for *every* family, in use or not, and the
+comment at the top of the file repeats them:
+
+- Stop pins colour by position — start `success`, destination `accent`, the
+  stops between them `route` — and a place found along the way uses `place`.
+  All four share a screen, so they stay far apart in hue (green ~140°, red
+  ~5°, blue ~215°, olive ~77°); the closest pair is 60° apart. The middle
+  stops take `route` rather than `primary` because a brand-coloured pin reads
+  as a second start — except in `maps`, where the two are the same blue on
+  purpose. `warning` is out for the
+  matching reason on the red side: 33° from `accent`, and it read as a second
+  destination.
+- `selection` marks the compared pair and temporarily replaces whichever of
+  those four a pin would otherwise use, so it is a fifth hue kept clear of
+  them all — violet ~282°.
 - The three route modes are drawn over the same map — driving ~215°, transit
   ~272°, walking ~145°. Each casing is a lighter halo of its own hue holding
   ≥ 3:1 against the line it outlines; a *darker* same-hue casing cannot reach
   3:1 at all, which is why the outline lightens rather than deepens.
 - `primary` is used for small label text, so it holds ≥ 4.5:1 against
-  `surface`, `background`, `surfaceAlt` and `primarySoft`.
-- `text` and `textMuted` clear 4.5:1 on all three backgrounds; `textSubtle` is
-  placeholder-only and clears 3:1. In dark that pushes `textMuted` one step
-  lighter than Google's `#9AA0A6`, which reaches only 3.96:1 on `surfaceAlt`.
+  `surface`, `background`, `surfaceAlt` and `primarySoft` — that last one is
+  what secondary buttons are filled with, and it is what caps how light
+  `primary` may go.
+- `text` and `textMuted` clear 4.5:1 on all three backgrounds; `textSubtle`
+  never carries meaning on its own and clears 3:1. `brand` is display-sized
+  only, so it clears 3:1.
+- `water` is the one basemap colour that never follows the brand. A green or
+  indigo sea reads as land, so it stays blue, separated from `background` so
+  the coast is visible and far enough from `route` that a line drawn across a
+  lake still holds 3:1.
+
+None of that is checkable by eye:
+
+```bash
+npm run check:contrast
+```
+
+walks every pair in every palette — a family sitting unused is one somebody
+will switch to, and it should not have been allowed to rot in the meantime —
+and fails with the ratio it measured.
 
 ### Icons
 

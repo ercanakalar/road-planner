@@ -25,7 +25,7 @@ const ShowRouteByIdScreen = () => {
   const insets = useSafeAreaInsets();
 
   const {
-    roadId,
+    routeId,
     mapRef,
     bottomSheetRef,
     isLoading,
@@ -150,7 +150,7 @@ const ShowRouteByIdScreen = () => {
         backgroundStyle={styles.sheetBackground}
       >
         <EnhancedStopList
-          roadId={roadId}
+          routeId={routeId}
           transportMode={transportMode}
           selectedPair={stopPair.selected}
           onToggleSelection={stopPair.toggle}

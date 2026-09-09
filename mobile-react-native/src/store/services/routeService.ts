@@ -11,35 +11,35 @@ import { StopWithAddress } from 'types/map-screen-type';
 import {
   AddStopArgs,
   AddStopResponse,
-  CreateRoadArgs,
-  CreateRoadResponse,
-  DeleteRoadByIdArgs,
-  DeleteRoadByIdResponse,
-  DeleteStopByRoadIdArgs,
-  DeleteStopByRoadIdResponse,
-  CloneRoadArgs,
-  CloneRoadResponse,
-  GetDiscoverRoadsArgs,
-  GetDiscoverRoadsResponse,
-  GetOwnRoadsArgs,
-  GetOwnRoadsResponse,
-  GetRoadByIdArgs,
-  GetRoadByIdResponse,
-  GetRoadTerrainArgs,
-  GetRoadTerrainResponse,
-  GetSharedRoadArgs,
-  GetSharedRoadResponse,
-  ShareRoadArgs,
-  ShareRoadResponse,
+  CreateRouteArgs,
+  CreateRouteResponse,
+  DeleteRouteByIdArgs,
+  DeleteRouteByIdResponse,
+  DeleteStopByRouteIdArgs,
+  DeleteStopByRouteIdResponse,
+  CloneRouteArgs,
+  CloneRouteResponse,
+  GetDiscoverRoutesArgs,
+  GetDiscoverRoutesResponse,
+  GetOwnRoutesArgs,
+  GetOwnRoutesResponse,
+  GetRouteByIdArgs,
+  GetRouteByIdResponse,
+  GetRouteTerrainArgs,
+  GetRouteTerrainResponse,
+  GetSharedRouteArgs,
+  GetSharedRouteResponse,
+  ShareRouteArgs,
+  ShareRouteResponse,
   GetStopByIdArgs,
   GetStopByIdResponse,
   ReorderStopsArgs,
   ReorderStopsResponse,
-  UpdateRoadByIdArgs,
-  UpdateRoadByIdResponse,
+  UpdateRouteByIdArgs,
+  UpdateRouteByIdResponse,
   UpdateStopByStopIdArgs,
   UpdateStopByStopIdResponse,
-} from 'types/store/services/roadService-type';
+} from 'types/store/services/routeService-type';
 
 const TEMP_STOP_ID = 'temp-stop-id';
 
@@ -61,99 +61,106 @@ const moveItem = <T>(items: T[], from: number, to: number): T[] => {
   return next;
 };
 
-export const roadService = createApi({
-  reducerPath: 'roadService',
+/**
+ * The app calls these things routes. The API still calls them roads, and its
+ * paths and payload keys are a contract this client does not get to rewrite —
+ * so `/road/...`, `own-roads` and the `roadId` body key below stay as the
+ * server names them, and the translation happens here rather than leaking the
+ * older word back into the screens.
+ */
+export const routeService = createApi({
+  reducerPath: 'routeService',
   baseQuery: baseQuery(),
-  tagTypes: ['Road', 'Stop'],
+  tagTypes: ['Route', 'Stop'],
   keepUnusedDataFor: 300,
   refetchOnFocus: true,
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: 30,
   endpoints: (builder) => ({
-    getOwnRoads: builder.query<GetOwnRoadsResponse, GetOwnRoadsArgs>({
+    getOwnRoutes: builder.query<GetOwnRoutesResponse, GetOwnRoutesArgs>({
       query: () => ({
         url: '/road/own-roads',
         method: 'POST',
         body: {},
         params: { limit: COLLECTION_PAGE_SIZE },
       }),
-      transformResponse: (res: ApiResponse<GetOwnRoadsResponse>) =>
+      transformResponse: (res: ApiResponse<GetOwnRoutesResponse>) =>
         transformApiResponse(res) ?? [],
       providesTags: (result) => [
-        { type: 'Road' as const, id: 'LIST' },
-        ...(result ?? []).map((road) => ({
-          type: 'Road' as const,
-          id: road.id,
+        { type: 'Route' as const, id: 'LIST' },
+        ...(result ?? []).map((route) => ({
+          type: 'Route' as const,
+          id: route.id,
         })),
       ],
     }),
 
-    getDiscoverRoads: builder.query<
-      GetDiscoverRoadsResponse,
-      GetDiscoverRoadsArgs
+    getDiscoverRoutes: builder.query<
+      GetDiscoverRoutesResponse,
+      GetDiscoverRoutesArgs
     >({
       query: () => ({
         url: '/road/discover',
         method: 'GET',
         params: { limit: DISCOVER_PAGE_SIZE },
       }),
-      transformResponse: (res: ApiResponse<GetDiscoverRoadsResponse>) =>
+      transformResponse: (res: ApiResponse<GetDiscoverRoutesResponse>) =>
         transformApiResponse(res) ?? [],
-      providesTags: [{ type: 'Road' as const, id: 'DISCOVER' }],
+      providesTags: [{ type: 'Route' as const, id: 'DISCOVER' }],
     }),
 
-    cloneRoad: builder.mutation<CloneRoadResponse, CloneRoadArgs>({
-      query: ({ roadId }) => ({
-        url: `/road/clone/${roadId}`,
+    cloneRoute: builder.mutation<CloneRouteResponse, CloneRouteArgs>({
+      query: ({ routeId }) => ({
+        url: `/road/clone/${routeId}`,
         method: 'POST',
         body: {},
       }),
-      transformResponse: (res: ApiResponse<CloneRoadResponse>) =>
+      transformResponse: (res: ApiResponse<CloneRouteResponse>) =>
         transformApiResponseWithToast(res),
-      invalidatesTags: [{ type: 'Road', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Route', id: 'LIST' }],
     }),
 
-    shareRoad: builder.query<ShareRoadResponse, ShareRoadArgs>({
-      query: ({ roadId }) => ({
-        url: `/road/share/${roadId}`,
+    shareRoute: builder.query<ShareRouteResponse, ShareRouteArgs>({
+      query: ({ routeId }) => ({
+        url: `/road/share/${routeId}`,
         method: 'GET',
       }),
-      transformResponse: (res: ApiResponse<ShareRoadResponse>) =>
+      transformResponse: (res: ApiResponse<ShareRouteResponse>) =>
         transformApiResponse(res),
     }),
 
-    getSharedRoad: builder.query<GetSharedRoadResponse, GetSharedRoadArgs>({
+    getSharedRoute: builder.query<GetSharedRouteResponse, GetSharedRouteArgs>({
       query: ({ token }) => ({
         url: `/road/share/${encodeURIComponent(token)}`,
         method: 'POST',
         body: {},
       }),
-      transformResponse: (res: ApiResponse<GetSharedRoadResponse>) =>
+      transformResponse: (res: ApiResponse<GetSharedRouteResponse>) =>
         transformApiResponse(res),
     }),
 
-    getRoadById: builder.query<GetRoadByIdResponse, GetRoadByIdArgs>({
-      query: ({ roadId }) => ({
-        url: `/road/${roadId}`,
+    getRouteById: builder.query<GetRouteByIdResponse, GetRouteByIdArgs>({
+      query: ({ routeId }) => ({
+        url: `/road/${routeId}`,
         method: 'GET',
       }),
-      transformResponse: (res: ApiResponse<GetRoadByIdResponse>) =>
+      transformResponse: (res: ApiResponse<GetRouteByIdResponse>) =>
         transformApiResponse(res),
-      providesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
+      providesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
       ],
     }),
 
-    getRoadTerrain: builder.query<GetRoadTerrainResponse, GetRoadTerrainArgs>({
-      query: ({ roadId }) => ({
-        url: `/road/${roadId}/terrain`,
+    getRouteTerrain: builder.query<GetRouteTerrainResponse, GetRouteTerrainArgs>({
+      query: ({ routeId }) => ({
+        url: `/road/${routeId}/terrain`,
         method: 'GET',
       }),
-      transformResponse: (res: ApiResponse<GetRoadTerrainResponse>) =>
+      transformResponse: (res: ApiResponse<GetRouteTerrainResponse>) =>
         transformApiResponse(res) ?? [],
       // Read off the stops' positions, so it is stale the moment one moves.
-      providesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
+      providesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
       ],
     }),
 
@@ -172,26 +179,26 @@ export const roadService = createApi({
       ],
     }),
 
-    deleteRoadById: builder.mutation<
-      DeleteRoadByIdResponse,
-      DeleteRoadByIdArgs
+    deleteRouteById: builder.mutation<
+      DeleteRouteByIdResponse,
+      DeleteRouteByIdArgs
     >({
-      query: ({ roadId }) => ({
-        url: `/road/delete/${roadId}`,
+      query: ({ routeId }) => ({
+        url: `/road/delete/${routeId}`,
         method: 'POST',
         body: {},
       }),
-      transformResponse: (res: ApiResponse<DeleteRoadByIdResponse>) =>
+      transformResponse: (res: ApiResponse<DeleteRouteByIdResponse>) =>
         transformApiResponseWithToast(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: 'LIST' },
-        { type: 'Road', id: 'DISCOVER' },
-        { type: 'Road', id: roadId },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: 'LIST' },
+        { type: 'Route', id: 'DISCOVER' },
+        { type: 'Route', id: routeId },
       ],
-      async onQueryStarted({ roadId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ routeId }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
-          roadService.util.updateQueryData('getOwnRoads', undefined, (draft) =>
-            draft.filter((road) => road.id !== roadId),
+          routeService.util.updateQueryData('getOwnRoutes', undefined, (draft) =>
+            draft.filter((route) => route.id !== routeId),
           ),
         );
         try {
@@ -202,23 +209,23 @@ export const roadService = createApi({
       },
     }),
 
-    createRoad: builder.mutation<CreateRoadResponse, CreateRoadArgs>({
+    createRoute: builder.mutation<CreateRouteResponse, CreateRouteArgs>({
       query: ({ title, description, stops }) => ({
         url: '/road/create',
         method: 'POST',
         body: { title, description: description ?? '', stops },
       }),
-      transformResponse: (res: ApiResponse<CreateRoadResponse>) =>
+      transformResponse: (res: ApiResponse<CreateRouteResponse>) =>
         transformApiResponse(res),
-      invalidatesTags: [{ type: 'Road', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Route', id: 'LIST' }],
     }),
 
-    updateRoadById: builder.mutation<
-      UpdateRoadByIdResponse,
-      UpdateRoadByIdArgs
+    updateRouteById: builder.mutation<
+      UpdateRouteByIdResponse,
+      UpdateRouteByIdArgs
     >({
-      query: ({ roadId, title, description, isPublic, stops }) => ({
-        url: `/road/update/${roadId}`,
+      query: ({ routeId, title, description, isPublic, stops }) => ({
+        url: `/road/update/${routeId}`,
         method: 'PUT',
         body: {
           title,
@@ -227,17 +234,17 @@ export const roadService = createApi({
           ...(isPublic === undefined ? {} : { isPublic }),
         },
       }),
-      transformResponse: (res: ApiResponse<UpdateRoadByIdResponse>) =>
+      transformResponse: (res: ApiResponse<UpdateRouteByIdResponse>) =>
         transformApiResponseWithToast(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: 'LIST' },
-        { type: 'Road', id: roadId },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: 'LIST' },
+        { type: 'Route', id: routeId },
       ],
     }),
 
     addStop: builder.mutation<AddStopResponse, AddStopArgs>({
-      query: ({ roadId, stop }) => ({
-        url: `/road/add-stop/${roadId}`,
+      query: ({ routeId, stop }) => ({
+        url: `/road/add-stop/${routeId}`,
         method: 'POST',
         body: {
           latitude: stop.latitude,
@@ -248,16 +255,16 @@ export const roadService = createApi({
       }),
       transformResponse: (res: ApiResponse<AddStopResponse>) =>
         transformApiResponse(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
-        { type: 'Road', id: 'LIST' },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
+        { type: 'Route', id: 'LIST' },
       ],
-      async onQueryStarted({ roadId, stop }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ routeId, stop }, { dispatch, queryFulfilled }) {
         const now = new Date().toISOString();
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getRoadById',
-            { roadId },
+          routeService.util.updateQueryData(
+            'getRouteById',
+            { routeId },
             (draft) => {
               draft.stops.push({
                 // The server works slope and bend out from a stop's
@@ -266,7 +273,7 @@ export const roadService = createApi({
                 ...UNSHAPED_STOP,
                 elevation: null,
                 id: TEMP_STOP_ID,
-                roadId,
+                routeId,
                 latitude: stop.latitude,
                 longitude: stop.longitude,
                 order: draft.stops.length + 1,
@@ -288,27 +295,27 @@ export const roadService = createApi({
     }),
 
     deleteStopById: builder.mutation<
-      DeleteStopByRoadIdResponse,
-      DeleteStopByRoadIdArgs
+      DeleteStopByRouteIdResponse,
+      DeleteStopByRouteIdArgs
     >({
       query: ({ stopId }) => ({
         url: `/road/delete-stop/${stopId}`,
         method: 'DELETE',
         body: {},
       }),
-      transformResponse: (res: ApiResponse<DeleteStopByRoadIdResponse>) =>
+      transformResponse: (res: ApiResponse<DeleteStopByRouteIdResponse>) =>
         transformApiResponse(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
       ],
       async onQueryStarted(
-        { roadId, stopId },
+        { routeId, stopId },
         { dispatch, queryFulfilled },
       ) {
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getRoadById',
-            { roadId },
+          routeService.util.updateQueryData(
+            'getRouteById',
+            { routeId },
             (draft) => {
               draft.stops = withSequentialOrder(
                 draft.stops.filter(
@@ -342,17 +349,17 @@ export const roadService = createApi({
       transformResponse: (
         res: ApiResponse<UpdateStopByStopIdResponse>,
       ) => transformApiResponse(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
       ],
       async onQueryStarted(
-        { roadId, stopId, stop },
+        { routeId, stopId, stop },
         { dispatch, queryFulfilled },
       ) {
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getRoadById',
-            { roadId },
+          routeService.util.updateQueryData(
+            'getRouteById',
+            { routeId },
             (draft) => {
               const target = draft.stops.find(
                 (candidate) => candidate.id === stopId,
@@ -376,21 +383,21 @@ export const roadService = createApi({
       ReorderStopsResponse,
       ReorderStopsArgs
     >({
-      query: ({ roadId, from, to }) => ({
-        url: `/road/reorder-stop/${roadId}`,
+      query: ({ routeId, from, to }) => ({
+        url: `/road/reorder-stop/${routeId}`,
         method: 'PUT',
-        body: { roadId, from, to },
+        body: { roadId: routeId, from, to },
       }),
       transformResponse: (res: ApiResponse<ReorderStopsResponse>) =>
         transformApiResponse(res),
-      invalidatesTags: (_result, _error, { roadId }) => [
-        { type: 'Road', id: roadId },
+      invalidatesTags: (_result, _error, { routeId }) => [
+        { type: 'Route', id: routeId },
       ],
-      async onQueryStarted({ roadId, from, to }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ routeId, from, to }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
-          roadService.util.updateQueryData(
-            'getRoadById',
-            { roadId },
+          routeService.util.updateQueryData(
+            'getRouteById',
+            { routeId },
             (draft) => {
               draft.stops = withSequentialOrder(
                 moveItem(draft.stops, from, to),
@@ -409,20 +416,20 @@ export const roadService = createApi({
 });
 
 export const {
-  useGetOwnRoadsQuery,
-  useGetDiscoverRoadsQuery,
-  useCloneRoadMutation,
-  useLazyShareRoadQuery,
-  useGetSharedRoadQuery,
-  useGetRoadByIdQuery,
-  useGetRoadTerrainQuery,
-  useLazyGetRoadByIdQuery,
+  useGetOwnRoutesQuery,
+  useGetDiscoverRoutesQuery,
+  useCloneRouteMutation,
+  useLazyShareRouteQuery,
+  useGetSharedRouteQuery,
+  useGetRouteByIdQuery,
+  useGetRouteTerrainQuery,
+  useLazyGetRouteByIdQuery,
   useGetStopByIdQuery,
   useAddStopMutation,
-  useCreateRoadMutation,
-  useDeleteRoadByIdMutation,
-  useUpdateRoadByIdMutation,
+  useCreateRouteMutation,
+  useDeleteRouteByIdMutation,
+  useUpdateRouteByIdMutation,
   useUpdateStopByIdMutation,
   useDeleteStopByIdMutation,
   useReOrderStopsMutation,
-} = roadService;
+} = routeService;

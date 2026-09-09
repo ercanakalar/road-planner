@@ -37,7 +37,7 @@ const StopOptions = ({
     if (showFavoriteAction) {
       rows.push({
         label: isFavorite ? 'Remove from favourites' : 'Add to favourites',
-        icon: isFavorite ? 'star' : 'star-outline',
+        icon: isFavorite ? 'heart' : 'heart-outline',
         action: () => onOptionSelect('favorite'),
       });
     }

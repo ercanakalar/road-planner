@@ -73,8 +73,8 @@ describe('garbage in the stored address', () => {
     expect(addressName('Blok A+B, Kadıköy')).toBe('Blok A+B');
   });
 
-  it('drops an unnamed road', () => {
-    expect(addressName('Unnamed Road, Kadıköy')).toBe('Kadıköy');
+  it('drops an unnamed route', () => {
+    expect(addressName('Unnamed Route, Kadıköy')).toBe('Kadıköy');
     expect(addressName('İsimsiz Yol, Konak')).toBe('Konak');
   });
 
@@ -92,7 +92,7 @@ describe('garbage in the stored address', () => {
   });
 
   it('shows nothing at all when every segment was noise', () => {
-    expect(splitAddress('7GXR+8C, Unnamed Road, 34710')).toEqual({
+    expect(splitAddress('7GXR+8C, Unnamed Route, 34710')).toEqual({
       primary: '',
       secondary: '',
     });

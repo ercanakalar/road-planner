@@ -9,7 +9,7 @@ export const routeSearchOrders: {
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
   { key: 'recent', label: 'Newest', icon: 'time-outline' },
-  { key: 'popular', label: 'Most saved', icon: 'star-outline' },
+  { key: 'popular', label: 'Most saved', icon: 'heart-outline' },
   { key: 'stops', label: 'Most stops', icon: 'location-outline' },
   { key: 'title', label: 'A–Z', icon: 'text-outline' },
   { key: 'oldest', label: 'Oldest', icon: 'hourglass-outline' },

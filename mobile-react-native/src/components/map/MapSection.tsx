@@ -61,10 +61,13 @@ type MarkerProps = {
 
 const SELECTION_LABELS = ['A', 'B'];
 
+// Not `primary`: the app is green all over, and a brand-coloured pin in the
+// middle of a route reads as another start. `route` is the colour of the line
+// joining these stops, which is what they are.
 const pinColor = (colors: ThemeColors, index: number, total: number) => {
   if (index === 0) return colors.success;
   if (index === total - 1) return colors.accent;
-  return colors.primary;
+  return colors.route;
 };
 
 const StopMarker = memo(

@@ -9,7 +9,7 @@ const stop = (latitude: number, longitude: number): StopWithAddress => ({
   latitude,
   longitude,
   order: 1,
-  roadId: 'road',
+  routeId: 'route',
   address: 'Somewhere, Fatih, İstanbul, TR',
   createdAt: '',
   updatedAt: '',

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Container from 'components/ui/Container';
 import ScreenHeader from 'components/ui/ScreenHeader';
 import ScreenState from 'components/ui/ScreenState';
-import EditDetailsModal from 'components/road/EditDetailsModal';
+import EditDetailsModal from 'components/route/EditDetailsModal';
 import useRoutesScreen from 'hooks/routes/useRoutesScreen';
 import RoutesList from './RouteList';
 
@@ -16,22 +16,22 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
   const {
     isLoggedIn,
-    roads,
+    routes,
     stopCount,
     isLoading,
     isFetching,
     isError,
     editing,
     isSaving,
-    sharingRoadId,
-    openingRoadId,
-    shareRoad,
+    sharingRouteId,
+    openingRouteId,
+    shareRoute,
     handleRefresh,
     handleView,
     handleEdit,
     closeEditor,
     handleSaveDetails,
-    handleDeleteRoad,
+    handleDeleteRoute,
     handleTogglePublic,
     handleToggleFavorite,
     handleOpenInGoogleMaps,
@@ -56,9 +56,9 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
         <ScreenHeader
           title='My Routes'
           subtitle={
-            roads.length === 0
+            routes.length === 0
               ? 'Nothing saved yet'
-              : `${roads.length} road${roads.length === 1 ? '' : 's'} · ${stopCount} stop${
+              : `${routes.length} route${routes.length === 1 ? '' : 's'} · ${stopCount} stop${
                   stopCount === 1 ? '' : 's'
                 }`
           }
@@ -76,18 +76,18 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
           />
         ) : (
           <RoutesList
-            data={roads}
+            data={routes}
             isRefreshing={isFetching}
             onRefresh={handleRefresh}
             onToggleFavorite={handleToggleFavorite}
-            onDelete={handleDeleteRoad}
+            onDelete={handleDeleteRoute}
             onEdit={handleEdit}
             onView={handleView}
             onTogglePublic={handleTogglePublic}
-            onShare={shareRoad}
+            onShare={shareRoute}
             onOpenInGoogleMaps={handleOpenInGoogleMaps}
-            sharingRoadId={sharingRoadId}
-            openingInMapsRoadId={openingRoadId}
+            sharingRouteId={sharingRouteId}
+            openingInMapsRouteId={openingRouteId}
           />
         )}
       </View>

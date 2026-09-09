@@ -14,10 +14,10 @@ import PrimaryButton from 'components/ui/PrimaryButton';
 import { MapSection } from 'components/map/MapSection';
 import OpenInGoogleMapsButton from 'components/map/OpenInGoogleMapsButton';
 import {
-  useCloneRoadMutation,
-  useGetRoadByIdQuery,
-} from 'store/services/roadService';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+  useCloneRouteMutation,
+  useGetRouteByIdQuery,
+} from 'store/services/routeService';
+import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import { useAppSelector } from 'store/hook';
 import { useRouteLine } from 'hooks/map/useRouteDirections';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
@@ -39,17 +39,17 @@ const CommunityRouteScreen = () => {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   const {
-    data: road,
+    data: route,
     isLoading,
     isError,
-  } = useGetRoadByIdQuery({
-    roadId: params.roadId,
+  } = useGetRouteByIdQuery({
+    routeId: params.routeId,
   });
-  const [toggleFavoriteRoad, { isLoading: isSaving }] =
-    useToggleFavoriteRoadMutation();
-  const [cloneRoad, { isLoading: isCloning }] = useCloneRoadMutation();
+  const [toggleFavoriteRoute, { isLoading: isSaving }] =
+    useToggleFavoriteRouteMutation();
+  const [cloneRoute, { isLoading: isCloning }] = useCloneRouteMutation();
 
-  const stops = useMemo(() => road?.stops ?? [], [road?.stops]);
+  const stops = useMemo(() => route?.stops ?? [], [route?.stops]);
   const routeLine = useRouteLine(stops, 'driving');
 
   const summary = useMemo(() => {
@@ -62,16 +62,16 @@ const CommunityRouteScreen = () => {
 
   const handleSave = useCallback(async () => {
     try {
-      await toggleFavoriteRoad({ roadId: params.roadId }).unwrap();
+      await toggleFavoriteRoute({ routeId: params.routeId }).unwrap();
     } catch {
       return;
     }
 
     navigation.navigate('HomeTabNavigator', {
       screen: 'Favourites',
-      params: { highlightTargetId: params.roadId },
+      params: { highlightTargetId: params.routeId },
     });
-  }, [navigation, params.roadId, toggleFavoriteRoad]);
+  }, [navigation, params.routeId, toggleFavoriteRoute]);
 
   const goToSignIn = useCallback(
     () => navigation.navigate('SignInScreen'),
@@ -80,17 +80,17 @@ const CommunityRouteScreen = () => {
 
   const handleClone = useCallback(async () => {
     try {
-      const copy = await cloneRoad({ roadId: params.roadId }).unwrap();
-      navigation.navigate('ShowRouteByIdScreen', { roadId: copy.id });
+      const copy = await cloneRoute({ routeId: params.routeId }).unwrap();
+      navigation.navigate('ShowRouteByIdScreen', { routeId: copy.id });
     } catch {
     }
-  }, [cloneRoad, navigation, params.roadId]);
+  }, [cloneRoute, navigation, params.routeId]);
 
   if (isLoading) {
     return <ScreenState variant='loading' title='Loading route…' />;
   }
 
-  if (isError || !road) {
+  if (isError || !route) {
     return (
       <ScreenState
         variant='error'
@@ -120,9 +120,9 @@ const CommunityRouteScreen = () => {
         contentContainerStyle={styles.sheetContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{road.title}</Text>
-        {road.description ? (
-          <Text style={styles.description}>{road.description}</Text>
+        <Text style={styles.title}>{route.title}</Text>
+        {route.description ? (
+          <Text style={styles.description}>{route.description}</Text>
         ) : null}
 
         <View style={styles.metaRow}>
@@ -130,9 +130,9 @@ const CommunityRouteScreen = () => {
           <Text style={styles.meta}>
             {stops.length} stop{stops.length === 1 ? '' : 's'}
           </Text>
-          {road.isFavorite ? (
+          {route.isFavorite ? (
             <View style={styles.savedPill}>
-              <Ionicons name='star' size={11} color={colors.warning} />
+              <Ionicons name='heart' size={11} color={colors.primary} />
               <Text style={styles.savedText}>Saved</Text>
             </View>
           ) : null}
@@ -141,7 +141,7 @@ const CommunityRouteScreen = () => {
 
         {isLoggedIn ? (
           <>
-            {road.isFavorite ? null : (
+            {route.isFavorite ? null : (
               <PrimaryButton
                 label='Save to my favourites'
                 onPress={handleSave}

@@ -4,11 +4,11 @@ import jwtService from 'services/jwtService';
 import tokenStorage from 'services/tokenStorage';
 import kvkkStorage from 'services/kvkkStorage';
 import preferencesStorage from 'services/preferencesStorage';
-import localRoadStorage from 'services/localRoadStorage';
+import localRouteStorage from 'services/localRouteStorage';
 import { useAppDispatch } from 'store/hook';
 import { sessionRestored } from 'store/slices/authSlice';
 import { settingsRestored } from 'store/slices/settingsSlice';
-import { localRoadsHydrated } from 'store/slices/localRoadSlice';
+import { localRoutesHydrated } from 'store/slices/localRouteSlice';
 import { kvkkHydrated } from 'store/slices/kvkkSlice';
 import { JwtPayload } from 'types/services/jwt-service-type';
 
@@ -22,15 +22,15 @@ export function useSessionBootstrap(): boolean {
 
     const restore = async () => {
       try {
-        const [preferences, localRoads, kvkkConsent] = await Promise.all([
+        const [preferences, localRoutes, kvkkConsent] = await Promise.all([
           preferencesStorage.load(),
-          localRoadStorage.load(),
+          localRouteStorage.load(),
           kvkkStorage.load(),
         ]);
         if (cancelled) return;
 
         dispatch(settingsRestored(preferences));
-        dispatch(localRoadsHydrated(localRoads));
+        dispatch(localRoutesHydrated(localRoutes));
         dispatch(kvkkHydrated(kvkkConsent));
         consentHydrated = true;
 

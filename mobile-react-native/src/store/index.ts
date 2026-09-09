@@ -3,7 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 
 import { authenticationService } from './services/authenticationService';
 import { profileService } from './services/profileService';
-import { roadService } from './services/roadService';
+import { routeService } from './services/routeService';
 import { favoriteService } from './services/favoriteService';
 import { searchService } from './services/searchService';
 
@@ -14,7 +14,7 @@ import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import mapReducer from './slices/mapSlice';
 import settingsReducer from './slices/settingsSlice';
-import localRoadReducer from './slices/localRoadSlice';
+import localRouteReducer from './slices/localRouteSlice';
 import kvkkReducer from './slices/kvkkSlice';
 
 const rootReducer = combineReducers({
@@ -22,11 +22,11 @@ const rootReducer = combineReducers({
   user: userReducer,
   map: mapReducer,
   settings: settingsReducer,
-  localRoad: localRoadReducer,
+  localRoute: localRouteReducer,
   kvkk: kvkkReducer,
   [authenticationService.reducerPath]: authenticationService.reducer,
   [profileService.reducerPath]: profileService.reducer,
-  [roadService.reducerPath]: roadService.reducer,
+  [routeService.reducerPath]: routeService.reducer,
   [favoriteService.reducerPath]: favoriteService.reducer,
   [searchService.reducerPath]: searchService.reducer,
 });
@@ -41,7 +41,7 @@ const rootReducer = combineReducers({
 const API_REDUCER_PATHS = [
   authenticationService.reducerPath,
   profileService.reducerPath,
-  roadService.reducerPath,
+  routeService.reducerPath,
   favoriteService.reducerPath,
   searchService.reducerPath,
 ];
@@ -57,7 +57,7 @@ export const store = configureStore({
       .concat(
         authenticationService.middleware,
         profileService.middleware,
-        roadService.middleware,
+        routeService.middleware,
         favoriteService.middleware,
         searchService.middleware,
       ),

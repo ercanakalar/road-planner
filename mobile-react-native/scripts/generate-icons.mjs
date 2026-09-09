@@ -18,9 +18,16 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const assets = join(root, 'assets');
 const store = join(root, 'store-assets');
 
-// Kept in step with src/theme/palettes.ts — the launcher icon is the first
-// piece of the app anyone sees, so it uses the same Google Blue as the UI,
-// and the destination node the same red the destination pin uses.
+// Kept in step with the active family in src/theme/palettes.ts — the launcher
+// icon is the first piece of the app anyone sees, so it is the same blue as
+// the UI. Change `ACTIVE_PALETTE` and these five follow it by hand; there is
+// no import here because this runs outside the bundler.
+//
+// The mark is two-tone wherever it sits on the blue: a white route running up
+// to a red destination node, the same red the destination pin uses. On a
+// light background both go to `blue` instead, and the open start node against
+// the solid destination still tells the two ends apart — red on off-white next
+// to a blue route reads as two unrelated marks rather than one.
 const brand = {
   blue: '#1967D2',
   blueLight: '#4285F4',
@@ -29,7 +36,7 @@ const brand = {
   white: '#FFFFFF',
 };
 
-// The mark is drawn in a 512x512 box: a road curving from an open start node up
+// The mark is drawn in a 512x512 box: a route curving from an open start node up
 // to a solid destination node, which is the app's own start/stops/destination
 // model in one shape. Artwork reaches to 38..474 of that box, so a caller
 // scaling the box to N pixels gets a mark 0.85N across.
@@ -109,7 +116,7 @@ const images = [
     w: 1024,
     h: 1024,
     alpha: true,
-    svg: () => svg(1024, 1024, centred(1024, 1024, 600, mark(brand.blue, brand.red))),
+    svg: () => svg(1024, 1024, centred(1024, 1024, 600, mark(brand.blue, brand.blue))),
   },
   {
     file: join(assets, 'splash-icon-dark.png'),

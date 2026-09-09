@@ -1,4 +1,4 @@
-interface FavoriteRoadTarget {
+interface FavoriteRouteTarget {
   id: string;
   userId?: string;
   title?: string | null;
@@ -15,11 +15,16 @@ interface FavoriteStopTarget {
   address?: string | null;
 }
 
-export interface FavoriteRoadRow {
+/**
+ * One favourited route, as the API returns it. The nested target arrives under
+ * `road` — the server's word — so the key stays even though everything above
+ * `normalizeFavorites` calls it a route.
+ */
+export interface FavoriteRouteRow {
   id: string;
   title?: string | null;
   description?: string | null;
-  road?: FavoriteRoadTarget | null;
+  road?: FavoriteRouteTarget | null;
 }
 
 export interface FavoriteStopRow {
@@ -29,14 +34,15 @@ export interface FavoriteStopRow {
   stop?: FavoriteStopTarget | null;
 }
 
+/** The four buckets as the API sends them, under the server's own names. */
 export interface RawFavorites {
-  ownRoads: FavoriteRoadRow[];
+  ownRoads: FavoriteRouteRow[];
   ownStops: FavoriteStopRow[];
-  othersRoads: FavoriteRoadRow[];
+  othersRoads: FavoriteRouteRow[];
   othersStops: FavoriteStopRow[];
 }
 
-type FavoriteKind = 'road' | 'stop';
+export type FavoriteKind = 'route' | 'stop';
 
 export interface FavoriteEntry {
   favoriteId: string;
@@ -54,9 +60,9 @@ export interface FavoriteEntry {
 }
 
 export type FavoriteSectionKey =
-  | 'ownRoads'
+  | 'ownRoutes'
   | 'ownStops'
-  | 'othersRoads'
+  | 'othersRoutes'
   | 'othersStops';
 
 export type NormalizedFavorites = Record<FavoriteSectionKey, FavoriteEntry[]>;
@@ -64,13 +70,13 @@ export type NormalizedFavorites = Record<FavoriteSectionKey, FavoriteEntry[]>;
 export type GetAllFavoritesArgs = void;
 export type GetAllFavoritesResponse = NormalizedFavorites;
 
-export interface ToggleFavoriteRoadArgs {
-  roadId: string;
+export interface ToggleFavoriteRouteArgs {
+  routeId: string;
 }
 
 export interface ToggleFavoriteStopArgs {
   stopId: string;
-  roadId?: string;
+  routeId?: string;
 }
 
 export type ToggleFavoriteResponse = { id: string } | null;

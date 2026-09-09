@@ -18,11 +18,11 @@ interface Props {
   title: string;
   /** More than one route on the device, so the name doubles as a picker. */
   canSwitch: boolean;
-  hasActiveRoad: boolean;
+  hasActiveRoute: boolean;
   onSwitch: () => void;
   onEditDetails: () => void;
-  onNewRoad: () => void;
-  onDeleteRoad: () => void;
+  onNewRoute: () => void;
+  onDeleteRoute: () => void;
   onImportFromGoogleMaps: () => void;
 }
 
@@ -34,11 +34,11 @@ const MapToolbar = ({
   top,
   title,
   canSwitch,
-  hasActiveRoad,
+  hasActiveRoute,
   onSwitch,
   onEditDetails,
-  onNewRoad,
-  onDeleteRoad,
+  onNewRoute,
+  onDeleteRoute,
   onImportFromGoogleMaps,
 }: Props) => {
   const { colors } = useTheme();
@@ -47,13 +47,13 @@ const MapToolbar = ({
   return (
     <View style={[styles.toolbar, { top }]}>
       <Pressable
-        style={styles.roadChip}
+        style={styles.routeChip}
         onPress={canSwitch ? onSwitch : onEditDetails}
         accessibilityRole='button'
         accessibilityLabel={canSwitch ? 'Switch route' : 'Edit route details'}
       >
         <Ionicons name='git-branch-outline' size={15} color={colors.primary} />
-        <Text style={styles.roadChipText} numberOfLines={1}>
+        <Text style={styles.routeChipText} numberOfLines={1}>
           {title}
         </Text>
         {canSwitch ? (
@@ -63,7 +63,7 @@ const MapToolbar = ({
 
       <Pressable
         style={styles.iconChip}
-        onPress={onNewRoad}
+        onPress={onNewRoute}
         accessibilityRole='button'
         accessibilityLabel='Start a new route'
       >
@@ -79,7 +79,7 @@ const MapToolbar = ({
         <Ionicons name='link' size={16} color={colors.primary} />
       </Pressable>
 
-      {hasActiveRoad ? (
+      {hasActiveRoute ? (
         <>
           <Pressable
             style={styles.iconChip}
@@ -92,7 +92,7 @@ const MapToolbar = ({
 
           <Pressable
             style={styles.iconChip}
-            onPress={onDeleteRoad}
+            onPress={onDeleteRoute}
             accessibilityRole='button'
             accessibilityLabel='Delete this route'
           >
@@ -114,7 +114,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       gap: spacing.sm,
     },
-    roadChip: {
+    routeChip: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
@@ -125,7 +125,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
       ...shadows.sm,
     },
-    roadChipText: {
+    routeChipText: {
       ...typography.label,
       color: colors.text,
       flexShrink: 1,

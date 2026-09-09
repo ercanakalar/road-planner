@@ -6,7 +6,7 @@ import MapView, {
 import type { MaterialIcons } from '@expo/vector-icons';
 
 import {
-  OwnRoadSummary,
+  OwnRouteSummary,
   RouteCoordinate,
   StopWithAddress,
 } from 'types/map-screen-type';
@@ -51,19 +51,19 @@ export interface FavoriteSectionHeaderProps {
 }
 
 export interface RoutesListProps {
-  data: OwnRoadSummary[];
+  data: OwnRouteSummary[];
   isRefreshing: boolean;
   onRefresh: () => void;
-  onToggleFavorite: (road: OwnRoadSummary) => void;
-  onDelete: (road: OwnRoadSummary) => void;
-  onEdit: (road: OwnRoadSummary) => void;
-  onView: (roadId: string) => void;
-  onTogglePublic: (road: OwnRoadSummary) => void;
-  onShare: (road: OwnRoadSummary) => void;
-  onOpenInGoogleMaps: (road: OwnRoadSummary) => void;
-  sharingRoadId?: string | null;
+  onToggleFavorite: (route: OwnRouteSummary) => void;
+  onDelete: (route: OwnRouteSummary) => void;
+  onEdit: (route: OwnRouteSummary) => void;
+  onView: (routeId: string) => void;
+  onTogglePublic: (route: OwnRouteSummary) => void;
+  onShare: (route: OwnRouteSummary) => void;
+  onOpenInGoogleMaps: (route: OwnRouteSummary) => void;
+  sharingRouteId?: string | null;
   /** The route whose stops are being fetched for the handover to Google. */
-  openingInMapsRoadId?: string | null;
+  openingInMapsRouteId?: string | null;
 }
 
 interface RouteSummary {

@@ -1,4 +1,4 @@
-import { buildSections } from './sections';
+import { buildSections, sectionKeysFor } from './sections';
 import {
   FavoriteEntry,
   FavoriteSectionKey,
@@ -8,80 +8,111 @@ import {
 const entry = (id: string): FavoriteEntry => ({
   favoriteId: id,
   targetId: id,
-  kind: 'road',
+  kind: 'route',
   title: id,
   defaultTitle: id,
   isOwn: true,
 });
 
 const favorites: NormalizedFavorites = {
-  ownRoads: [entry('r1'), entry('r2')],
+  ownRoutes: [entry('r1'), entry('r2')],
   ownStops: [entry('w1')],
-  othersRoads: [],
+  othersRoutes: [],
   othersStops: [],
 };
 
 const allExpanded = () => true;
 const allCollapsed = () => false;
 
+describe('sectionKeysFor', () => {
+  it('puts yours and other people’s behind the same tab', () => {
+    expect(sectionKeysFor('route')).toEqual(['ownRoutes', 'othersRoutes']);
+    expect(sectionKeysFor('stop')).toEqual(['ownStops', 'othersStops']);
+  });
+});
+
 describe('buildSections', () => {
   it('leaves out a section with nothing in it', () => {
-    // Four headers, two of them reading "0", is chrome standing in for content.
-    expect(buildSections(favorites, allExpanded).map((s) => s.key)).toEqual([
-      'ownRoads',
-      'ownStops',
-    ]);
+    // Two headers, one of them reading "0", is chrome standing in for content.
+    expect(buildSections(favorites, allExpanded, 'route').map((s) => s.key)).toEqual(
+      ['ownRoutes'],
+    );
   });
 
-  it('keeps the order the buckets are meant to read in', () => {
+  it('shows only the tab it was asked for', () => {
     const mine: NormalizedFavorites = {
-      ownRoads: [entry('r1')],
+      ownRoutes: [entry('r1')],
       ownStops: [entry('w1')],
-      othersRoads: [entry('r2')],
+      othersRoutes: [entry('r2')],
       othersStops: [entry('w2')],
     };
 
-    expect(buildSections(mine, allExpanded).map((s) => s.key)).toEqual([
-      'ownRoads',
+    expect(buildSections(mine, allExpanded, 'route').map((s) => s.key)).toEqual([
+      'ownRoutes',
+      'othersRoutes',
+    ]);
+    expect(buildSections(mine, allExpanded, 'stop').map((s) => s.key)).toEqual([
       'ownStops',
-      'othersRoads',
       'othersStops',
     ]);
   });
 
+  it('keeps yours above other people’s', () => {
+    const mine: NormalizedFavorites = {
+      ownRoutes: [entry('r1')],
+      ownStops: [],
+      othersRoutes: [entry('r2')],
+      othersStops: [],
+    };
+
+    expect(buildSections(mine, allExpanded, 'route').map((s) => s.key)).toEqual([
+      'ownRoutes',
+      'othersRoutes',
+    ]);
+  });
+
   it('gives the list the rows of an expanded section', () => {
-    expect(buildSections(favorites, allExpanded)[0].data).toHaveLength(2);
+    expect(buildSections(favorites, allExpanded, 'route')[0].data).toHaveLength(
+      2,
+    );
   });
 
   it('draws no rows for a collapsed section but still counts them', () => {
     // The badge is how you know what you collapsed, so it reports the real
     // size rather than the zero rows currently drawn.
-    const [roads] = buildSections(favorites, allCollapsed);
+    const [routes] = buildSections(favorites, allCollapsed, 'route');
 
-    expect(roads.data).toEqual([]);
-    expect(roads.count).toBe(2);
+    expect(routes.data).toEqual([]);
+    expect(routes.count).toBe(2);
   });
 
   it('collapses one section without touching the next', () => {
-    const isExpanded = (key: FavoriteSectionKey) => key !== 'ownRoads';
-    const [roads, places] = buildSections(favorites, isExpanded);
+    const mine: NormalizedFavorites = {
+      ownRoutes: [entry('r1')],
+      ownStops: [],
+      othersRoutes: [entry('r2')],
+      othersStops: [],
+    };
+    const isExpanded = (key: FavoriteSectionKey) => key !== 'ownRoutes';
+    const [own, others] = buildSections(mine, isExpanded, 'route');
 
-    expect(roads.data).toEqual([]);
-    expect(places.data).toHaveLength(1);
+    expect(own.data).toEqual([]);
+    expect(others.data).toHaveLength(1);
   });
 
   it('names each section and gives it an icon', () => {
-    const [roads] = buildSections(favorites, allExpanded);
+    const [routes] = buildSections(favorites, allExpanded, 'route');
 
-    expect(roads.title).toBe('My routes');
-    expect(roads.icon).toBe('directions-car');
+    expect(routes.title).toBe('My routes');
+    expect(routes.icon).toBe('directions-car');
   });
 
-  it('returns nothing at all when no favourites are saved', () => {
+  it('returns nothing at all when this tab has no favourites', () => {
     expect(
       buildSections(
-        { ownRoads: [], ownStops: [], othersRoads: [], othersStops: [] },
+        { ownRoutes: [], ownStops: [], othersRoutes: [], othersStops: [] },
         allExpanded,
+        'route',
       ),
     ).toEqual([]);
   });

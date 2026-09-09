@@ -7,14 +7,14 @@ import PlacesSearchBar from 'components/map/PlacesSearchBar';
 import RouteSearchSheet from 'components/map/RouteSearchSheet';
 import ContextMenu from 'components/ui/ContextMenu';
 import ScreenState from 'components/ui/ScreenState';
-import EditDetailsModal from 'components/road/EditDetailsModal';
+import EditDetailsModal from 'components/route/EditDetailsModal';
 import BottomSheetHandle from 'components/ui/BottomSheetHandle';
 import { MapSection } from 'components/map/MapSection';
 import ImportFromGoogleMapsModal from 'components/map/ImportFromGoogleMapsModal';
 import MapStatusPill from 'components/map/MapStatusPill';
 import MapToolbar from 'components/map/MapToolbar';
 import LocalStopList from './LocalStopList';
-import LocalRoadPicker from './LocalRoadPicker';
+import LocalRoutePicker from './LocalRoutePicker';
 
 import useMapScreen from 'hooks/map/useMapScreen';
 
@@ -39,8 +39,8 @@ const MapScreen = () => {
     isHydrated,
     isSavingPin,
     isLoggedIn,
-    activeRoad,
-    roads,
+    activeRoute,
+    routes,
     stops,
     measuredStops,
     routeLine,
@@ -74,12 +74,12 @@ const MapScreen = () => {
     isImporting,
     openImport,
     closeImport,
-    isPickingRoad,
-    handleSwitchRoad,
-    handlePickRoad,
+    isPickingRoute,
+    handleSwitchRoute,
+    handlePickRoute,
     closePicker,
-    handleNewRoad,
-    handleDeleteRoad,
+    handleNewRoute,
+    handleDeleteRoute,
   } = useMapScreen();
 
   if (!isHydrated) {
@@ -110,13 +110,13 @@ const MapScreen = () => {
 
         <MapToolbar
           top={insets.top + 64}
-          title={activeRoad?.title ?? 'New route'}
-          canSwitch={roads.length > 1}
-          hasActiveRoad={activeRoad !== undefined}
-          onSwitch={handleSwitchRoad}
+          title={activeRoute?.title ?? 'New route'}
+          canSwitch={routes.length > 1}
+          hasActiveRoute={activeRoute !== undefined}
+          onSwitch={handleSwitchRoute}
           onEditDetails={openDetailsEditor}
-          onNewRoad={handleNewRoad}
-          onDeleteRoad={handleDeleteRoad}
+          onNewRoute={handleNewRoute}
+          onDeleteRoute={handleDeleteRoute}
           onImportFromGoogleMaps={openImport}
         />
 
@@ -184,18 +184,18 @@ const MapScreen = () => {
         visible={isEditingDetails}
         heading='Route details'
         hint='Saved on this device until you sign in and upload it.'
-        initialTitle={activeRoad?.title}
-        initialDescription={activeRoad?.description}
+        initialTitle={activeRoute?.title}
+        initialDescription={activeRoute?.description}
         titleLabel='Route name'
         onSave={handleSaveDetails}
         onCancel={closeDetailsEditor}
       />
 
-      <LocalRoadPicker
-        visible={isPickingRoad}
-        roads={roads}
-        activeRoadId={activeRoad?.id}
-        onSelect={handlePickRoad}
+      <LocalRoutePicker
+        visible={isPickingRoute}
+        routes={routes}
+        activeRouteId={activeRoute?.id}
+        onSelect={handlePickRoute}
         onClose={closePicker}
       />
 

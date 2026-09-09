@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useRoute } from '@react-navigation/native';
 import MapView, { Region } from 'react-native-maps';
 
-import { useGetStopByIdQuery } from 'store/services/roadService';
+import { useGetStopByIdQuery } from 'store/services/routeService';
 import { StopRoute } from 'types/screens/mapScreenType';
 
 const DELTA = 0.01;

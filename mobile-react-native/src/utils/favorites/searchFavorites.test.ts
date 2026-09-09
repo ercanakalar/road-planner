@@ -7,7 +7,7 @@ import {
 const entry = (partial: Partial<FavoriteEntry>): FavoriteEntry => ({
   favoriteId: 'f1',
   targetId: 't1',
-  kind: 'road',
+  kind: 'route',
   title: 'Coast run',
   defaultTitle: 'Coast run',
   isOwn: true,
@@ -15,7 +15,7 @@ const entry = (partial: Partial<FavoriteEntry>): FavoriteEntry => ({
 });
 
 const favorites: NormalizedFavorites = {
-  ownRoads: [
+  ownRoutes: [
     entry({ favoriteId: 'r1', title: 'Sunday drive', defaultTitle: 'Coast run' }),
     entry({
       favoriteId: 'r2',
@@ -33,7 +33,7 @@ const favorites: NormalizedFavorites = {
       address: 'Sultanahmet Sq, Fatih, İstanbul, Türkiye',
     }),
   ],
-  othersRoads: [],
+  othersRoutes: [],
   othersStops: [entry({ favoriteId: 'w2', kind: 'stop', title: 'Kadıköy' })],
 };
 
@@ -46,12 +46,12 @@ describe('searchFavorites', () => {
   it('matches on the title, ignoring case', () => {
     const found = searchFavorites(favorites, 'AIRPORT');
 
-    expect(found.ownRoads.map((row) => row.favoriteId)).toEqual(['r2']);
+    expect(found.ownRoutes.map((row) => row.favoriteId)).toEqual(['r2']);
   });
 
   it('matches on the name the entry came with, not only the label', () => {
     // Someone who renamed "Coast run" to "Sunday drive" may search for either.
-    expect(searchFavorites(favorites, 'coast').ownRoads).toHaveLength(1);
+    expect(searchFavorites(favorites, 'coast').ownRoutes).toHaveLength(1);
   });
 
   it('matches on where a place is', () => {
@@ -59,8 +59,8 @@ describe('searchFavorites', () => {
   });
 
   it('needs every word, in any order', () => {
-    expect(searchFavorites(favorites, 'sunday coast').ownRoads).toHaveLength(1);
-    expect(searchFavorites(favorites, 'sunday airport').ownRoads).toHaveLength(0);
+    expect(searchFavorites(favorites, 'sunday coast').ownRoutes).toHaveLength(1);
+    expect(searchFavorites(favorites, 'sunday airport').ownRoutes).toHaveLength(0);
   });
 
   it('finds a Turkish name typed on an English keyboard', () => {

@@ -19,7 +19,7 @@ import {
   localStopFavoriteToggled,
   localStopMoved,
   localStopsReordered,
-} from 'store/slices/localRoadSlice';
+} from 'store/slices/localRouteSlice';
 import {
   useRouteLine,
   useRouteTerrain,
@@ -30,7 +30,7 @@ import {
   MarkerDragEndEvent,
   OnPlaceSelected,
 } from 'types/hooks/map/useMapLogic-type';
-import { LocalRoad, LocalStop } from 'types/local-road';
+import { LocalRoute, LocalStop } from 'types/local-route';
 import { UNSHAPED_STOP } from 'utils/stopShape';
 import { StopWithAddress } from 'types/map-screen-type';
 import { ContextMenuOption } from 'types/components/contextMenu';
@@ -41,7 +41,7 @@ const EMPTY_STOPS: StopWithAddress[] = [];
 
 const toSharedStop = (
   stop: LocalStop,
-  roadId: string,
+  routeId: string,
 ): StopWithAddress => ({
   // A route kept on this device has never been through the server, so nothing
   // has measured the ground under it or the angle it turns through.
@@ -51,7 +51,7 @@ const toSharedStop = (
   latitude: stop.latitude,
   longitude: stop.longitude,
   order: stop.order,
-  roadId,
+  routeId,
   address: stop.address,
   createdAt: '',
   updatedAt: '',
@@ -68,11 +68,11 @@ const toSharedStop = (
     : [],
 });
 
-const selectActiveLocalRoad = (
-  roads: LocalRoad[],
-  activeRoadId?: string,
-): LocalRoad | undefined =>
-  roads.find((road) => road.id === activeRoadId) ?? roads[0];
+const selectActiveLocalRoute = (
+  routes: LocalRoute[],
+  activeRouteId?: string,
+): LocalRoute | undefined =>
+  routes.find((route) => route.id === activeRouteId) ?? routes[0];
 
 const useLocalMapLogic = () => {
   const dispatch = useAppDispatch();
@@ -90,23 +90,23 @@ const useLocalMapLogic = () => {
     draggingStopId,
   } = useAppSelector((state) => state.map);
 
-  const roads = useAppSelector((state) => state.localRoad.roads);
-  const activeRoadId = useAppSelector((state) => state.localRoad.activeRoadId);
-  const isHydrated = useAppSelector((state) => state.localRoad.isHydrated);
+  const routes = useAppSelector((state) => state.localRoute.routes);
+  const activeRouteId = useAppSelector((state) => state.localRoute.activeRouteId);
+  const isHydrated = useAppSelector((state) => state.localRoute.isHydrated);
 
-  const activeRoad = useMemo(
-    () => selectActiveLocalRoad(roads, activeRoadId),
-    [roads, activeRoadId],
+  const activeRoute = useMemo(
+    () => selectActiveLocalRoute(routes, activeRouteId),
+    [routes, activeRouteId],
   );
 
   const stops = useMemo(
     () =>
-      activeRoad
-        ? activeRoad.stops.map((stop) =>
-            toSharedStop(stop, activeRoad.id),
+      activeRoute
+        ? activeRoute.stops.map((stop) =>
+            toSharedStop(stop, activeRoute.id),
           )
         : EMPTY_STOPS,
-    [activeRoad],
+    [activeRoute],
   );
 
   const routeLine = useRouteLine(stops, transportMode);
@@ -353,8 +353,8 @@ const useLocalMapLogic = () => {
     bottomSheetRef,
     isHydrated,
     isSavingPin,
-    activeRoad,
-    roads,
+    activeRoute,
+    routes,
     stops,
     measuredStops,
     routeLine,

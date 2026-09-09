@@ -9,11 +9,11 @@ import { RawFavorites } from 'types/store/services/favoriteService-type';
 const raw = {
   ownRoads: [
     {
-      id: 'fav-road-1',
+      id: 'fav-route-1',
       title: null,
       description: null,
       road: {
-        id: 'road-42',
+        id: 'route-42',
         title: 'Coast run',
         description: 'Weekend loop',
         userId: 'u1',
@@ -50,11 +50,11 @@ const raw = {
 } satisfies RawFavorites;
 
 describe('normalizeFavorites', () => {
-  it('points targetId at the road, not the favourite row', () => {
-    expect(normalizeFavorites(raw).ownRoads[0]).toEqual({
-      favoriteId: 'fav-road-1',
-      targetId: 'road-42',
-      kind: 'road',
+  it('points targetId at the route, not the favourite row', () => {
+    expect(normalizeFavorites(raw).ownRoutes[0]).toEqual({
+      favoriteId: 'fav-route-1',
+      targetId: 'route-42',
+      kind: 'route',
       title: 'Coast run',
       subtitle: 'Weekend loop',
       annotationTitle: undefined,
@@ -65,7 +65,7 @@ describe('normalizeFavorites', () => {
     });
   });
 
-  it('marks a saved road whose owner has removed the original', () => {
+  it('marks a saved route whose owner has removed the original', () => {
     const withdrawn = {
       ...raw,
       ownRoads: [
@@ -76,7 +76,7 @@ describe('normalizeFavorites', () => {
       ],
     } satisfies RawFavorites;
 
-    expect(normalizeFavorites(withdrawn).ownRoads[0].isWithdrawn).toBe(true);
+    expect(normalizeFavorites(withdrawn).ownRoutes[0].isWithdrawn).toBe(true);
   });
 
   it('points targetId at the stop and titles it from the address', () => {
@@ -131,7 +131,7 @@ describe('normalizeFavorites', () => {
   });
 
   it('keeps a section that genuinely has no rows', () => {
-    expect(normalizeFavorites(raw).othersRoads).toEqual([]);
+    expect(normalizeFavorites(raw).othersRoutes).toEqual([]);
   });
 });
 
@@ -142,20 +142,20 @@ describe('annotations', () => {
       ownRoads: [{ ...raw.ownRoads[0], title: 'Sunday drive' }],
     });
 
-    expect(annotated.ownRoads[0].title).toBe('Sunday drive');
-    expect(annotated.ownRoads[0].defaultTitle).toBe('Coast run');
-    expect(annotated.ownRoads[0].annotationTitle).toBe('Sunday drive');
+    expect(annotated.ownRoutes[0].title).toBe('Sunday drive');
+    expect(annotated.ownRoutes[0].defaultTitle).toBe('Coast run');
+    expect(annotated.ownRoutes[0].annotationTitle).toBe('Sunday drive');
   });
 
   it('applies an annotation to the cached entry', () => {
     const draft = normalizeFavorites(raw);
-    applyFavoriteAnnotation(draft, 'fav-road-1', {
+    applyFavoriteAnnotation(draft, 'fav-route-1', {
       title: 'Sunday drive',
       description: 'With a coffee stop',
     });
 
-    expect(draft.ownRoads[0].title).toBe('Sunday drive');
-    expect(draft.ownRoads[0].subtitle).toBe('With a coffee stop');
+    expect(draft.ownRoutes[0].title).toBe('Sunday drive');
+    expect(draft.ownRoutes[0].subtitle).toBe('With a coffee stop');
   });
 
   it('falls back to the original name when the label is cleared', () => {
@@ -163,18 +163,18 @@ describe('annotations', () => {
       ...raw,
       ownRoads: [{ ...raw.ownRoads[0], title: 'Sunday drive' }],
     });
-    applyFavoriteAnnotation(draft, 'fav-road-1', { title: '' });
+    applyFavoriteAnnotation(draft, 'fav-route-1', { title: '' });
 
-    expect(draft.ownRoads[0].title).toBe('Coast run');
-    expect(draft.ownRoads[0].annotationTitle).toBeUndefined();
+    expect(draft.ownRoutes[0].title).toBe('Coast run');
+    expect(draft.ownRoutes[0].annotationTitle).toBeUndefined();
   });
 
   it('leaves untouched fields alone', () => {
     const draft = normalizeFavorites(raw);
-    applyFavoriteAnnotation(draft, 'fav-road-1', { description: 'Notes' });
+    applyFavoriteAnnotation(draft, 'fav-route-1', { description: 'Notes' });
 
-    expect(draft.ownRoads[0].title).toBe('Coast run');
-    expect(draft.ownRoads[0].subtitle).toBe('Notes');
+    expect(draft.ownRoutes[0].title).toBe('Coast run');
+    expect(draft.ownRoutes[0].subtitle).toBe('Notes');
   });
 });
 
@@ -184,16 +184,16 @@ describe('removeFromFavorites', () => {
     removeFromFavorites(draft, 'wp-7');
 
     expect(draft.ownStops).toHaveLength(0);
-    expect(draft.ownRoads).toHaveLength(1);
+    expect(draft.ownRoutes).toHaveLength(1);
     expect(draft.othersStops).toHaveLength(1);
   });
 
   it('matches on targetId, not favoriteId', () => {
     const draft = normalizeFavorites(raw);
-    removeFromFavorites(draft, 'fav-road-1');
-    expect(draft.ownRoads).toHaveLength(1);
+    removeFromFavorites(draft, 'fav-route-1');
+    expect(draft.ownRoutes).toHaveLength(1);
 
-    removeFromFavorites(draft, 'road-42');
-    expect(draft.ownRoads).toHaveLength(0);
+    removeFromFavorites(draft, 'route-42');
+    expect(draft.ownRoutes).toHaveLength(0);
   });
 });

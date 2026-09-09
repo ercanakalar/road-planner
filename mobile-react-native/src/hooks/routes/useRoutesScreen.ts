@@ -1,20 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import useConfirm from 'hooks/feedback/useConfirm';
-import { useOpenRoadInGoogleMaps } from 'hooks/routes/useOpenInGoogleMaps';
-import useShareRoad from 'hooks/routes/useShareRoad';
+import { useOpenRouteInGoogleMaps } from 'hooks/routes/useOpenInGoogleMaps';
+import useShareRoute from 'hooks/routes/useShareRoute';
 import { showNotification } from 'services/notificationService';
-import { updateRoadDetails } from 'store/actions/roadActions';
+import { updateRouteDetails } from 'store/actions/routeActions';
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
-  useDeleteRoadByIdMutation,
-  useGetOwnRoadsQuery,
-} from 'store/services/roadService';
+  useDeleteRouteByIdMutation,
+  useGetOwnRoutesQuery,
+} from 'store/services/routeService';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
-import { MapScreenProps, OwnRoadSummary } from 'types/map-screen-type';
+import { MapScreenProps, OwnRouteSummary } from 'types/map-screen-type';
 
-const EMPTY_ROADS: OwnRoadSummary[] = [];
+const EMPTY_ROUTES: OwnRouteSummary[] = [];
 
 /**
  * The saved-routes list and everything you can do to a row of it: rename,
@@ -25,50 +25,50 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const confirm = useConfirm();
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const { shareRoad, sharingRoadId } = useShareRoad();
-  const { openRoadInGoogleMaps, openingRoadId } = useOpenRoadInGoogleMaps();
+  const { shareRoute, sharingRouteId } = useShareRoute();
+  const { openRouteInGoogleMaps, openingRouteId } = useOpenRouteInGoogleMaps();
 
-  const [editing, setEditing] = useState<OwnRoadSummary | null>(null);
+  const [editing, setEditing] = useState<OwnRouteSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const {
-    data: roads = EMPTY_ROADS,
+    data: routes = EMPTY_ROUTES,
     refetch,
     isFetching,
     isLoading,
     isError,
-  } = useGetOwnRoadsQuery(undefined, { skip: !isLoggedIn });
+  } = useGetOwnRoutesQuery(undefined, { skip: !isLoggedIn });
 
-  const [deleteRoadById] = useDeleteRoadByIdMutation();
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [deleteRouteById] = useDeleteRouteByIdMutation();
+  const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
 
   const stopCount = useMemo(
-    () => roads.reduce((total, road) => total + (road.stopCount ?? 0), 0),
-    [roads],
+    () => routes.reduce((total, route) => total + (route.stopCount ?? 0), 0),
+    [routes],
   );
 
-  const handleDeleteRoad = useCallback(
-    async (road: OwnRoadSummary) => {
+  const handleDeleteRoute = useCallback(
+    async (route: OwnRouteSummary) => {
       const confirmed = await confirm({
         title: 'Remove route',
-        message: `“${road.title}” leaves your list and stops being shared. Anyone who saved it keeps their copy.`,
+        message: `“${route.title}” leaves your list and stops being shared. Anyone who saved it keeps their copy.`,
         confirmLabel: 'Remove',
         icon: 'trash-outline',
         tone: 'danger',
       });
-      if (confirmed) deleteRoadById({ roadId: road.id });
+      if (confirmed) deleteRouteById({ routeId: route.id });
     },
-    [confirm, deleteRoadById],
+    [confirm, deleteRouteById],
   );
 
   const handleTogglePublic = useCallback(
-    async (road: OwnRoadSummary) => {
-      const next = !road.isPublic;
+    async (route: OwnRouteSummary) => {
+      const next = !route.isPublic;
 
       if (next) {
         const confirmed = await confirm({
           title: 'Share this route',
-          message: `“${road.title}” and its stops become visible to everyone, next to your name. You can stop sharing at any time.`,
+          message: `“${route.title}” and its stops become visible to everyone, next to your name. You can stop sharing at any time.`,
           confirmLabel: 'Share',
           icon: 'globe-outline',
         });
@@ -76,10 +76,10 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
       }
 
       await dispatch(
-        updateRoadDetails({
-          roadId: road.id,
-          title: road.title,
-          description: road.description,
+        updateRouteDetails({
+          routeId: route.id,
+          title: route.title,
+          description: route.description,
           isPublic: next,
         }),
       );
@@ -88,10 +88,10 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   );
 
   const handleToggleFavorite = useCallback(
-    (road: OwnRoadSummary) => {
-      toggleFavoriteRoad({ roadId: road.id });
+    (route: OwnRouteSummary) => {
+      toggleFavoriteRoute({ routeId: route.id });
     },
-    [toggleFavoriteRoad],
+    [toggleFavoriteRoute],
   );
 
   const handleRefresh = useCallback(() => {
@@ -99,20 +99,20 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   }, [isLoggedIn, refetch]);
 
   const handleView = useCallback(
-    (roadId: string) => navigation.navigate('ShowRouteByIdScreen', { roadId }),
+    (routeId: string) => navigation.navigate('ShowRouteByIdScreen', { routeId }),
     [navigation],
   );
 
   const handleEdit = useCallback(
-    (road: OwnRoadSummary) => setEditing(road),
+    (route: OwnRouteSummary) => setEditing(route),
     [],
   );
 
   const handleOpenInGoogleMaps = useCallback(
-    (road: OwnRoadSummary) => {
-      openRoadInGoogleMaps(road.id);
+    (route: OwnRouteSummary) => {
+      openRouteInGoogleMaps(route.id);
     },
-    [openRoadInGoogleMaps],
+    [openRouteInGoogleMaps],
   );
 
   const closeEditor = useCallback(() => setEditing(null), []);
@@ -124,8 +124,8 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
 
       try {
         await dispatch(
-          updateRoadDetails({
-            roadId: editing.id,
+          updateRouteDetails({
+            routeId: editing.id,
             title,
             description,
             isPublic,
@@ -147,22 +147,22 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
 
   return {
     isLoggedIn,
-    roads,
+    routes,
     stopCount,
     isLoading,
     isFetching,
     isError,
     editing,
     isSaving,
-    sharingRoadId,
-    openingRoadId,
-    shareRoad,
+    sharingRouteId,
+    openingRouteId,
+    shareRoute,
     handleRefresh,
     handleView,
     handleEdit,
     closeEditor,
     handleSaveDetails,
-    handleDeleteRoad,
+    handleDeleteRoute,
     handleTogglePublic,
     handleToggleFavorite,
     handleOpenInGoogleMaps,

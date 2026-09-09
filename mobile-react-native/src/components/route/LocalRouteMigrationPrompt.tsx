@@ -16,17 +16,17 @@ import {
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
 
-const LocalRoadMigrationPrompt = () => {
+const LocalRouteMigrationPrompt = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const isHydrated = useAppSelector((state) => state.localRoad.isHydrated);
+  const isHydrated = useAppSelector((state) => state.localRoute.isHydrated);
   const transferableCount = useAppSelector(
     (state) =>
-      state.localRoad.roads.filter((road) => road.stops.length > 0).length,
+      state.localRoute.routes.filter((route) => route.stops.length > 0).length,
   );
 
   const [isVisible, setIsVisible] = useState(false);
@@ -150,4 +150,4 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-export default memo(LocalRoadMigrationPrompt);
+export default memo(LocalRouteMigrationPrompt);

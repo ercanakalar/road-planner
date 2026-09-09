@@ -8,7 +8,7 @@ import {
 } from 'constants/routeSearch';
 import useDebouncedValue from 'hooks/common/useDebouncedValue';
 import { useAppSelector } from 'store/hook';
-import { useToggleFavoriteRoadMutation } from 'store/services/favoriteService';
+import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
   useSearchAuthorsQuery,
   useSearchRoutesQuery,
@@ -88,26 +88,26 @@ export function useSearchScreen() {
     { skip: tab !== 'people' || isTermTooShort },
   );
 
-  const [toggleFavoriteRoad] = useToggleFavoriteRoadMutation();
+  const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
 
   const clear = useCallback(() => setQuery(''), []);
 
   const handleToggleFavorite = useCallback(
-    (roadId: string) => {
+    (routeId: string) => {
       if (!isLoggedIn) {
         navigation.navigate('SignInScreen');
         return;
       }
-      toggleFavoriteRoad({ roadId });
+      toggleFavoriteRoute({ routeId });
     },
-    [isLoggedIn, navigation, toggleFavoriteRoad],
+    [isLoggedIn, navigation, toggleFavoriteRoute],
   );
 
   const openRoute = useCallback(
-    (roadId: string) => {
-      const hit = routes.find((route) => route.id === roadId);
+    (routeId: string) => {
+      const hit = routes.find((route) => route.id === routeId);
       navigation.navigate('CommunityRouteScreen', {
-        roadId,
+        routeId,
         title: hit?.title ?? 'Route',
       });
     },

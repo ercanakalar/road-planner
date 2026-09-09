@@ -1,9 +1,9 @@
-import { roadService } from 'store/services/roadService';
+import { routeService } from 'store/services/routeService';
 import { StopWithAddress } from 'types/map-screen-type';
-import { StopInput } from 'types/store/services/roadService-type';
+import { StopInput } from 'types/store/services/routeService-type';
 import type { AppDispatch } from 'store';
 
-class RoadDetailsUpdateError extends Error {}
+class RouteDetailsUpdateError extends Error {}
 
 const toStopInput = (stop: StopWithAddress): StopInput => ({
   id: stop.id,
@@ -13,39 +13,39 @@ const toStopInput = (stop: StopWithAddress): StopInput => ({
   address: stop.address,
 });
 
-export const updateRoadDetails =
+export const updateRouteDetails =
   ({
-    roadId,
+    routeId,
     title,
     description,
     isPublic,
   }: {
-    roadId: string;
+    routeId: string;
     title: string;
     description: string;
     isPublic?: boolean;
   }) =>
   async (dispatch: AppDispatch): Promise<void> => {
-    const road = await dispatch(
-      roadService.endpoints.getRoadById.initiate(
-        { roadId },
+    const route = await dispatch(
+      routeService.endpoints.getRouteById.initiate(
+        { routeId },
         { forceRefetch: false },
       ),
     ).unwrap();
 
-    if (!road) {
-      throw new RoadDetailsUpdateError(
+    if (!route) {
+      throw new RouteDetailsUpdateError(
         'Could not load the route to update it.',
       );
     }
 
     await dispatch(
-      roadService.endpoints.updateRoadById.initiate({
-        roadId,
+      routeService.endpoints.updateRouteById.initiate({
+        routeId,
         title,
         description,
         ...(isPublic === undefined ? {} : { isPublic }),
-        stops: (road.stops ?? []).map(toStopInput),
+        stops: (route.stops ?? []).map(toStopInput),
       }),
     ).unwrap();
   };

@@ -8,13 +8,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
-import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
+import BrandMark from 'components/ui/BrandMark';
+import { spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 
 interface Props {
-  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
   children: ReactNode;
@@ -24,7 +23,6 @@ interface Props {
 }
 
 const AuthScreenLayout = ({
-  icon,
   title,
   subtitle,
   children,
@@ -32,7 +30,6 @@ const AuthScreenLayout = ({
   footerActionLabel,
   onFooterAction,
 }: Props) => {
-  const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   return (
@@ -46,9 +43,7 @@ const AuthScreenLayout = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.badge}>
-            <Ionicons name={icon} size={26} color={colors.primary} />
-          </View>
+          <BrandMark size={56} />
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
@@ -84,15 +79,6 @@ const createStyles = (colors: ThemeColors) =>
       gap: spacing.xxl,
     },
     header: { gap: spacing.sm },
-    badge: {
-      width: 56,
-      height: 56,
-      borderRadius: radius.lg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primarySoft,
-      marginBottom: spacing.sm,
-    },
     title: {
       ...typography.display,
       color: colors.text,

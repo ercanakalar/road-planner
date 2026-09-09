@@ -1,7 +1,9 @@
 import { foldForSearch } from 'utils/text';
 import { FAVORITE_SECTION_KEYS } from 'store/adapters/favoriteAdapter';
+import { sectionKeysFor } from 'utils/favorites/sections';
 import {
   FavoriteEntry,
+  FavoriteKind,
   NormalizedFavorites,
 } from 'types/store/services/favoriteService-type';
 
@@ -43,6 +45,15 @@ export const searchFavorites = (
   return result;
 };
 
-/** How many favourites are in all four sections together. */
-export const countFavorites = (favorites: NormalizedFavorites): number =>
-  FAVORITE_SECTION_KEYS.reduce((total, key) => total + favorites[key].length, 0);
+/**
+ * How many favourites there are: in all four sections, or — given a kind — in
+ * the two behind one tab.
+ */
+export const countFavorites = (
+  favorites: NormalizedFavorites,
+  kind?: FavoriteKind,
+): number =>
+  (kind ? sectionKeysFor(kind) : FAVORITE_SECTION_KEYS).reduce(
+    (total, key) => total + favorites[key].length,
+    0,
+  );
