@@ -37,15 +37,26 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    // The picker is another app's activity, and it can fail to open or come
+    // back empty-handed. Unhandled, that rejection is invisible: the tap does
+    // nothing at all and there is no way to tell it apart from a dead button.
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    const uri = result.canceled ? null : result.assets?.[0]?.uri;
-    if (uri) onPicked(uri);
+      const uri = result.canceled ? null : result.assets?.[0]?.uri;
+      if (uri) onPicked(uri);
+    } catch {
+      showNotification({
+        type: 'error',
+        header: 'Could not open your photos',
+        message: 'The photo picker did not open. Please try again.',
+      });
+    }
   }, [onPicked]);
 
   const source = resolvePhotoUrl(photo);

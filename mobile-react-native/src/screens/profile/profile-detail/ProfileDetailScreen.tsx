@@ -17,6 +17,7 @@ import {
   useUpdatePhotoMutation,
   useUpdateUserMutation,
 } from 'store/services/profileService';
+import { apiErrorMessage } from 'store/bases/apiErrorMessage';
 import { useAppDispatch } from 'store/hook';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { showNotification } from 'services/notificationService';
@@ -66,9 +67,29 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
   const [updatePhoto, { isLoading: isUploadingPhoto }] =
     useUpdatePhotoMutation();
 
+  // A photo that does not upload has to say so. The mutation only toasts on
+  // success, so without this the spinner stops, the avatar stays as it was and
+  // nothing on screen says whether the file was the wrong sort, too large, or
+  // never left the phone.
   const handlePickPhoto = useCallback(
-    (uri: string) => {
-      updatePhoto({ uri });
+    async (uri: string) => {
+      try {
+        await updatePhoto({ uri }).unwrap();
+      } catch (error) {
+        // The toast is written for the person holding the phone; the raw
+        // failure is what someone reading the logs needs, and the two are
+        // rarely the same sentence.
+        if (__DEV__) console.warn('Avatar upload failed', error);
+
+        showNotification({
+          type: 'error',
+          header: 'Upload failed',
+          message: apiErrorMessage(
+            error,
+            'Your photo could not be uploaded. Please try again.',
+          ),
+        });
+      }
     },
     [updatePhoto],
   );

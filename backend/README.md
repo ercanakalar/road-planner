@@ -36,6 +36,17 @@ docker compose up backend test-db     # from the repository root
 
 Postgres is exposed on host port `5434`.
 
+Avatars are written to `UPLOAD_DIR` (`uploads/` by default), which compose keeps
+in the `backend-uploads` volume. The image creates that directory and hands it
+to the `node` user the API runs as, so a fresh volume inherits the right
+ownership. A volume created before that — every upload answering 503, with
+`Could not write an avatar to …` in the logs — was made root-owned and has to be
+replaced:
+
+```bash
+docker compose down && docker volume rm road-planner-challenge_backend-uploads
+```
+
 ### Against a managed Postgres (Cloud SQL)
 
 **The instance has to be PostgreSQL.** Cloud SQL's console offers MySQL first,

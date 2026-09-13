@@ -60,6 +60,14 @@ COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
 
+# Avatars are written here at runtime, by the unprivileged `node` user, and
+# /app belongs to root — so the directory has to exist and be handed over
+# before the drop. Without it the first upload fails with EACCES on mkdir and
+# the API answers 500 to every attempt. Creating it here also settles the
+# ownership of a volume mounted over it: Docker seeds a fresh named volume
+# from the image, ownership included.
+RUN mkdir -p uploads/avatars && chown -R node:node uploads
+
 USER node
 
 EXPOSE 3000
@@ -104,6 +112,14 @@ COPY prisma ./prisma
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN chmod +x ./docker-entrypoint.sh
+
+# Avatars are written here at runtime, by the unprivileged `node` user, and
+# /app belongs to root — so the directory has to exist and be handed over
+# before the drop. Without it the first upload fails with EACCES on mkdir and
+# the API answers 500 to every attempt. Creating it here also settles the
+# ownership of a volume mounted over it: Docker seeds a fresh named volume
+# from the image, ownership included.
+RUN mkdir -p uploads/avatars && chown -R node:node uploads
 
 USER node
 

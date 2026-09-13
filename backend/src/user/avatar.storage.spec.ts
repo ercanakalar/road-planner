@@ -1,4 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -67,6 +71,22 @@ describe('avatar storage', () => {
       await expect(writeAvatar('up', jpeg(AVATAR_MAX_BYTES))).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('says the server is at fault when the directory cannot be written', async () => {
+      // An UPLOAD_DIR the process cannot create, which is what a container
+      // that drops to an unprivileged user over a root-owned /app looks like
+      // from in here. Nothing is wrong with the caller's upload, and a 400
+      // would send them off editing a photo that was fine.
+      const logged = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => {});
+      await writeFile(join(uploadDir, 'blocked'), 'not a directory');
+
+      await expect(writeAvatar('blocked', jpeg())).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      expect(logged).toHaveBeenCalled();
     });
   });
 
