@@ -1,7 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join, normalize, resolve } from 'path';
+
+const logger = new Logger('AvatarStorage');
 
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -49,10 +55,28 @@ export async function writeAvatar(
   }
 
   const directory = avatarDirectory(uploadDir);
-  await mkdir(directory, { recursive: true });
-
   const filename = `${randomUUID()}.${type.extension}`;
-  await writeFile(join(directory, filename), buffer);
+
+  // An upload directory the process cannot write to is a deployment fault, not
+  // a bad request, and it fails the same way for everybody until someone fixes
+  // it. Saying so — with the path and the underlying errno — is the difference
+  // between one log line and an afternoon: the usual cause is a container that
+  // drops to an unprivileged user over a root-owned directory, and a bare 500
+  // says nothing about which of the two is wrong.
+  try {
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, filename), buffer);
+  } catch (error) {
+    logger.error(
+      `Could not write an avatar to ${directory} (UPLOAD_DIR=${uploadDir}). ` +
+        'The directory must exist and be writable by the user the API runs as.',
+      error instanceof Error ? error.stack : String(error),
+    );
+
+    throw new ServiceUnavailableException(
+      'Photos cannot be saved at the moment. Please try again later.',
+    );
+  }
 
   return filename;
 }

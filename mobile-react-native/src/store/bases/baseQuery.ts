@@ -11,6 +11,15 @@ import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 import type { RootState } from 'store';
 
 const TIMEOUT_MS = 15000;
+
+/**
+ * What an upload gets instead. 15 seconds is a sensible deadline for a JSON
+ * round trip of a few hundred bytes and a poor one for a photo of a few
+ * megabytes: on a phone's uplink that is a request killed mid-flight, which
+ * surfaces as a failure with nothing to say for itself.
+ */
+export const UPLOAD_TIMEOUT_MS = 60000;
+
 const MAX_RETRIES = 2;
 
 export const MULTIPART = 'multipart/form-data';

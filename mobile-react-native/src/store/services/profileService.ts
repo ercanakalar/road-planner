@@ -1,5 +1,8 @@
 import createApi from 'store/middlewares/createApi';
-import baseQuery, { MULTIPART } from 'store/bases/baseQuery';
+import baseQuery, {
+  MULTIPART,
+  UPLOAD_TIMEOUT_MS,
+} from 'store/bases/baseQuery';
 import {
   transformApiResponse,
   transformApiResponseWithToast,
@@ -57,8 +60,14 @@ export const profileService = createApi({
           method: 'POST',
           body,
           headers: { 'Content-Type': MULTIPART },
+          timeout: UPLOAD_TIMEOUT_MS,
         };
       },
+      // Sending the file again is not free the way replaying a GET is: a retry
+      // re-uploads every byte, so two of them turn one slow minute into three
+      // before anything is said. An upload reports its failure and lets the
+      // person decide whether to try again.
+      extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<UserResponse>) =>
         transformApiResponseWithToast(res),
       invalidatesTags: (result) => [

@@ -20,7 +20,7 @@ import useMapStyle from 'hooks/map/useMapStyle';
 
 const ShowStopByIdScreen = () => {
   const { colors } = useTheme();
-  const { mapStyle, isDark } = useMapStyle();
+  const { mapStyle, isDark, mapKey } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
   const { mapRef, data, isLoading, isError, initialRegion } =
@@ -45,6 +45,7 @@ const ShowStopByIdScreen = () => {
   return (
     <View style={styles.container}>
       <MapView
+        key={mapKey}
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         showsUserLocation

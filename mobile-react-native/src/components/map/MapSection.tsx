@@ -236,12 +236,22 @@ const MapSectionComponent = ({
   selectedStopIds = EMPTY_SELECTION,
 }: MapSectionProps) => {
   const { colors } = useTheme();
-  const { mapStyle, isDark } = useMapStyle();
+  const { mapStyle, isDark, mapKey } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
   const hasFittedRef = useRef(false);
   const hasCentredOnUserRef = useRef(false);
   const insets = useSafeAreaInsets();
+
+  // Changing the theme rebuilds the MapView (see useMapStyle), and a fresh map
+  // gets nothing but `initialRegion`. Remembering where the old one was looking
+  // is what stops a rebuild throwing the user back to the first stop. Both
+  // platforms move the camera to `initialRegion` once per map, so feeding the
+  // remembered region back on later renders costs nothing.
+  const lastRegionRef = useRef<Region | null>(null);
+  const rememberRegion = useCallback((region: Region) => {
+    lastRegionRef.current = region;
+  }, []);
   const lineStyle = useMemo(
     () => createRouteLineStyles(colors)[transportMode],
     [colors, transportMode],
@@ -355,16 +365,18 @@ const MapSectionComponent = ({
   return (
     <View style={styles.container} pointerEvents='box-none'>
       <MapView
+        key={mapKey}
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         onLongPress={onMapLongPress}
         onPress={onMapPress}
         onPanDrag={isFollowing ? stopFollowing : undefined}
+        onRegionChangeComplete={rememberRegion}
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
         toolbarEnabled={false}
-        initialRegion={initialRegion}
+        initialRegion={lastRegionRef.current ?? initialRegion}
         minZoomLevel={3}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
         customMapStyle={mapStyle}
