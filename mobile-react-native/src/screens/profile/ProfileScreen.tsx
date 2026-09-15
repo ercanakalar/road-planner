@@ -39,6 +39,8 @@ const ProfileScreen = ({ navigation }: Props) => {
     isLoading,
     isLoggingOut,
     handleLogout,
+    unreadCount,
+    goToNotifications,
     goToProfile,
     goToSettings,
     goToKvkk,
@@ -53,44 +55,100 @@ const ProfileScreen = ({ navigation }: Props) => {
 
   return (
     <Container>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          {/*
-            An avatar nobody has set is drawn as their initial rather than
-            fetched from a stranger's placeholder service: the old fallback
-            put a photograph of an unrelated person on this screen, and told
-            that service who was looking at it.
-          */}
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitial}>{initial}</Text>
-            </View>
-          )}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/*
+          The card is the one place the brand shows up on a screen that is
+          otherwise a list, and the whole of it opens the editor — the avatar,
+          the name and the address are exactly what that screen changes, so
+          making them the button saves a trip through a row named after them.
+        */}
+        <Pressable
+          onPress={goToProfile}
+          style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+          accessibilityRole='button'
+          accessibilityLabel={`Edit the profile of ${displayName}`}
+        >
+          <View style={styles.avatarWrap}>
+            {/*
+              An avatar nobody has set is drawn as their initial rather than
+              fetched from a stranger's placeholder service: the old fallback
+              put a photograph of an unrelated person on this screen, and told
+              that service who was looking at it.
+            */}
+            {photo ? (
+              <Image source={{ uri: photo }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitial}>{initial}</Text>
+              </View>
+            )}
 
-          <Text style={styles.name}>{displayName}</Text>
-          {user?.email ? (
-            <Text style={styles.email}>{user.email}</Text>
-          ) : null}
+            <View style={styles.editBadge}>
+              <Ionicons name='pencil' size={12} color={colors.primary} />
+            </View>
+          </View>
+
+          <View style={styles.identity}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+
+            {user?.nickName ? (
+              <Text style={styles.handle} numberOfLines={1}>
+                @{user.nickName}
+              </Text>
+            ) : null}
+
+            {user?.email ? (
+              <Text style={styles.email} numberOfLines={1}>
+                {user.email}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your account</Text>
+
+          <View style={styles.group}>
+            <SettingsRow
+              icon='person-outline'
+              label='Edit profile'
+              description='Your photo, name and nickname'
+              divided={false}
+              onPress={goToProfile}
+            />
+            <SettingsRow
+              icon='notifications-outline'
+              label='Notifications'
+              description='New routes from the people you follow'
+              badge={unreadCount}
+              onPress={goToNotifications}
+            />
+            <SettingsRow
+              icon='options-outline'
+              label='Settings'
+              description='Theme, notifications and map behaviour'
+              onPress={goToSettings}
+            />
+          </View>
         </View>
 
-        <View style={styles.group}>
-          <SettingsRow
-            icon='person-outline'
-            label='Edit profile'
-            onPress={goToProfile}
-          />
-          <SettingsRow
-            icon='settings-outline'
-            label='Settings'
-            onPress={goToSettings}
-          />
-          <SettingsRow
-            icon='shield-checkmark-outline'
-            label='KVKK consent'
-            onPress={goToKvkk}
-          />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Privacy</Text>
+
+          <View style={styles.group}>
+            <SettingsRow
+              icon='shield-checkmark-outline'
+              label='KVKK consent'
+              description='What you have agreed to, and how to withdraw it'
+              divided={false}
+              onPress={goToKvkk}
+            />
+          </View>
         </View>
 
         <Pressable
@@ -101,7 +159,7 @@ const ProfileScreen = ({ navigation }: Props) => {
           onPress={handleLogout}
           disabled={isLoggingOut}
           accessibilityRole='button'
-          accessibilityState={{ disabled: isLoggingOut }}
+          accessibilityState={{ disabled: isLoggingOut, busy: isLoggingOut }}
         >
           <Ionicons name='log-out-outline' size={20} color={colors.danger} />
           <Text style={styles.logoutText}>
@@ -117,24 +175,24 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       padding: spacing.lg,
-      gap: spacing.lg,
+      gap: spacing.xl,
+      paddingBottom: spacing.xxxl,
     },
-    // The green panel behind the avatar is the only place on this screen the
-    // brand shows up, which is enough for a screen that is mostly a list.
     header: {
+      flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      paddingVertical: spacing.xxl,
-      paddingHorizontal: spacing.lg,
+      gap: spacing.lg,
+      padding: spacing.lg,
       borderRadius: radius.xl,
       backgroundColor: colors.primary,
       ...shadows.md,
     },
+    pressed: { opacity: 0.9 },
+    avatarWrap: { width: 72, height: 72 },
     avatar: {
-      width: 88,
-      height: 88,
+      width: 72,
+      height: 72,
       borderRadius: radius.pill,
-      marginBottom: spacing.sm,
       backgroundColor: colors.surfaceAlt,
       borderWidth: 3,
       borderColor: colors.textInverse,
@@ -145,19 +203,46 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.textInverse,
     },
     avatarInitial: {
-      ...typography.display,
+      ...typography.title,
+      fontSize: 28,
+      lineHeight: 34,
       color: colors.primary,
     },
+    editBadge: {
+      position: 'absolute',
+      right: -2,
+      bottom: -2,
+      width: 26,
+      height: 26,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.textInverse,
+    },
+    // Takes the leftover width so a long name truncates instead of pushing the
+    // avatar off the card.
+    identity: { flex: 1, gap: spacing.xxs },
     name: {
       ...typography.title,
       fontSize: 20,
       lineHeight: 25,
       color: colors.textInverse,
     },
+    handle: {
+      ...typography.label,
+      color: colors.textInverse,
+      opacity: 0.9,
+    },
     email: {
       ...typography.caption,
       color: colors.textInverse,
-      opacity: 0.85,
+      opacity: 0.8,
+    },
+    section: { gap: spacing.sm },
+    sectionTitle: {
+      ...typography.overline,
+      color: colors.textSubtle,
+      paddingHorizontal: spacing.xs,
     },
     group: {
       backgroundColor: colors.surface,

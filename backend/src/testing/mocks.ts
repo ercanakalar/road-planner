@@ -15,6 +15,8 @@ const PRISMA_MODELS = [
   'stop',
   'favoriteRoad',
   'favoriteStop',
+  'authorFollow',
+  'notification',
 ] as const;
 
 const PRISMA_METHODS = [

@@ -28,6 +28,32 @@ describe('apiBaseUrl', () => {
   });
 });
 
+describe('an address the app cannot use', () => {
+  it('refuses a host carrying two ports', () => {
+    // The compose file holds both the packager's port and the API's, and it is
+    // easy to paste one onto the other. The result is not a URL at all, so
+    // every request fails with what looks like a network problem.
+    expect(() => apiBaseUrl('http://10.198.226.199:8081:3000')).toThrow(
+      /not a valid address/i,
+    );
+  });
+
+  it('names the variable to fix, and shows what was in it', () => {
+    expect(() => apiBaseUrl('http://10.0.0.1:8081:3000')).toThrow(
+      /EXPO_PUBLIC_BASE_URL.*10\.0\.0\.1:8081:3000/s,
+    );
+  });
+
+  it('refuses an address with no host', () => {
+    // What the compose file ships when the LAN IP has not been filled in.
+    expect(() => apiBaseUrl('http://:3000')).toThrow(/not a valid address/i);
+  });
+
+  it.each(['', '   '])('refuses %p', (raw) => {
+    expect(() => apiBaseUrl(raw)).toThrow(/is empty/i);
+  });
+});
+
 describe('apiOrigin', () => {
   it('is the address without the prefix, however it was written', () => {
     expect(apiOrigin('http://192.168.1.20:3000')).toBe(

@@ -2,6 +2,16 @@ import appConfig from 'constants/appConfig';
 
 export const SHARE_PATH = 'share';
 
+/**
+ * Where a link to a published route points. Unlike a share link this carries
+ * the route's own id rather than a token: the route is public, so there is
+ * nothing for a token to grant.
+ *
+ * `backend/src/notification/publish/route-publish.notifier.ts` builds the same
+ * path into the email it sends an author's followers.
+ */
+export const ROUTE_PATH = 'route';
+
 export const APP_SCHEME = 'net.travelroutes.travelroutes';
 
 const trimBase = (value: string): string => value.trim().replace(/\/+$/, '');

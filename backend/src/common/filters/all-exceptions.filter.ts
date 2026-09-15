@@ -70,6 +70,47 @@ const SQLSTATE_ERRORS: Record<string, { status: HttpStatus; message: string }> =
     },
   };
 
+/**
+ * What Multer refuses an upload for, and what the caller should be told.
+ *
+ * Recognised by shape rather than by `instanceof`: Multer arrives through
+ * `@nestjs/platform-express` rather than as a dependency of ours, so importing
+ * its error class here would pin a transitive version. Left unmapped these
+ * reach the client as a 500, which reads as a broken server rather than as a
+ * photo that is too big.
+ */
+const MULTER_ERRORS: Record<string, { status: HttpStatus; message: string }> = {
+  LIMIT_FILE_SIZE: {
+    status: HttpStatus.PAYLOAD_TOO_LARGE,
+    message: 'That file is too large to upload.',
+  },
+  LIMIT_UNEXPECTED_FILE: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'That file was sent under a field this endpoint does not accept.',
+  },
+  LIMIT_FILE_COUNT: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Only one file may be uploaded at a time.',
+  },
+};
+
+const MULTER_FALLBACK = {
+  status: HttpStatus.BAD_REQUEST,
+  message: 'That upload could not be read.',
+};
+
+function multerFailure(
+  exception: unknown,
+): { status: HttpStatus; message: string; code: string } | undefined {
+  if (!(exception instanceof Error) || exception.name !== 'MulterError') {
+    return undefined;
+  }
+
+  const code = String((exception as { code?: unknown }).code ?? 'UNKNOWN');
+
+  return { ...(MULTER_ERRORS[code] ?? MULTER_FALLBACK), code };
+}
+
 interface Described {
   status: number;
   body: Record<string, unknown>;
@@ -110,6 +151,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : { ...(payload as Record<string, unknown>) };
 
       return { status, body };
+    }
+
+    const multer = multerFailure(exception);
+    if (multer) {
+      return {
+        status: multer.status,
+        body: { message: multer.message },
+        logDetail: `Multer ${multer.code}: ${messageOf(exception)}`,
+      };
     }
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {

@@ -1,4 +1,5 @@
 import { StopWithAddress } from 'types/map-screen-type';
+import { Page } from 'types/store/bases';
 
 /** How a page of route results is ordered. Mirrors the API's own list. */
 export type RouteSearchOrder =
@@ -21,6 +22,8 @@ export interface SearchRoutesArgs extends RouteSearchFilters {
   q: string;
   sort: RouteSearchOrder;
   limit?: number;
+  /** How many rows to skip. Everything above this is one cache entry. */
+  offset?: number;
 }
 
 /**
@@ -42,11 +45,12 @@ export interface RouteSearchHit {
   stops: StopWithAddress[];
 }
 
-export type SearchRoutesResponse = RouteSearchHit[];
+export type SearchRoutesResponse = Page<RouteSearchHit>;
 
 export interface SearchAuthorsArgs {
   q: string;
   limit?: number;
+  offset?: number;
 }
 
 /**
@@ -58,12 +62,24 @@ export interface AuthorHit {
   displayName: string;
   photo: string | null;
   publicRouteCount: number;
+  /** Whether the signed-in reader has asked to hear about their new routes. */
+  isFollowed: boolean;
 }
 
-export type SearchAuthorsResponse = AuthorHit[];
+export type SearchAuthorsResponse = Page<AuthorHit>;
 
 export interface GetAuthorArgs {
   authorId: string;
 }
 
 export type GetAuthorResponse = AuthorHit;
+
+export interface FollowAuthorArgs {
+  authorId: string;
+  follow: boolean;
+}
+
+export interface FollowAuthorResponse {
+  authorId: string;
+  isFollowed: boolean;
+}

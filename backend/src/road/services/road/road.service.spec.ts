@@ -8,6 +8,7 @@ import {
   createPrismaMock,
   PrismaMock,
 } from 'src/testing/mocks';
+import { RoutePublishNotifier } from 'src/notification/publish/route-publish.notifier';
 import { RoadVisibility } from '../visibility/road-visibility';
 import { RoadService } from './road.service';
 
@@ -18,10 +19,12 @@ describe('RoadService', () => {
   let service: RoadService;
   let prisma: PrismaMock;
   let elevation: ReturnType<typeof createElevationMock>;
+  let publishNotifier: { notifyInBackground: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
     elevation = createElevationMock();
+    publishNotifier = { notifyInBackground: jest.fn() };
 
     // Prisma answers a findMany with an array or not at all.
     prisma.stop.findMany.mockResolvedValue([]);
@@ -32,6 +35,7 @@ describe('RoadService', () => {
         RoadVisibility,
         { provide: PrismaService, useValue: prisma },
         { provide: ElevationService, useValue: elevation },
+        { provide: RoutePublishNotifier, useValue: publishNotifier },
       ],
     }).compile();
 
@@ -866,6 +870,59 @@ describe('RoadService', () => {
 
       const stops = prisma.stop.createMany.mock.calls[0][0].data;
       expect(stops.map((w: { order: number }) => w.order)).toEqual([1, 2]);
+    });
+  });
+  describe('updateRoadById — telling followers', () => {
+    /**
+     * `road.findUnique` is called twice inside the transaction: once to read
+     * the visibility being written over, once to read the finished road back.
+     */
+    const storedVisibility = (isPublic: boolean) => {
+      prisma.stop.findMany.mockResolvedValue([]);
+      prisma.road.findUnique
+        .mockResolvedValueOnce({ isPublic })
+        .mockResolvedValue({ id: ROAD_ID, stops: [] });
+    };
+
+    const save = (isPublic?: boolean) =>
+      service.updateRoadById(ROAD_ID, {
+        title: 'T',
+        description: 'D',
+        stops: [],
+        ...(isPublic === undefined ? {} : { isPublic }),
+      });
+
+    it('tells them when a private route is published', async () => {
+      storedVisibility(false);
+
+      await save(true);
+
+      expect(publishNotifier.notifyInBackground).toHaveBeenCalledWith(ROAD_ID);
+    });
+
+    it('says nothing when an already public route is saved again', async () => {
+      // A title fix on a route everyone can already see is not news.
+      storedVisibility(true);
+
+      await save(true);
+
+      expect(publishNotifier.notifyInBackground).not.toHaveBeenCalled();
+    });
+
+    it('says nothing when a route is unpublished', async () => {
+      storedVisibility(true);
+
+      await save(false);
+
+      expect(publishNotifier.notifyInBackground).not.toHaveBeenCalled();
+    });
+
+    it('says nothing when the save does not touch visibility at all', async () => {
+      storedVisibility(false);
+
+      await save();
+
+      expect(publishNotifier.notifyInBackground).not.toHaveBeenCalled();
     });
   });
 });

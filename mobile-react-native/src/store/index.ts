@@ -6,6 +6,7 @@ import { profileService } from './services/profileService';
 import { routeService } from './services/routeService';
 import { favoriteService } from './services/favoriteService';
 import { searchService } from './services/searchService';
+import { notificationService } from './services/notificationService';
 
 import authMiddleware from './middlewares/auth-middleware';
 import persistenceMiddleware from './middlewares/persistence-middleware';
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   [routeService.reducerPath]: routeService.reducer,
   [favoriteService.reducerPath]: favoriteService.reducer,
   [searchService.reducerPath]: searchService.reducer,
+  [notificationService.reducerPath]: notificationService.reducer,
 });
 
 /**
@@ -44,6 +46,7 @@ const API_REDUCER_PATHS = [
   routeService.reducerPath,
   favoriteService.reducerPath,
   searchService.reducerPath,
+  notificationService.reducerPath,
 ];
 
 export const store = configureStore({
@@ -60,6 +63,7 @@ export const store = configureStore({
         routeService.middleware,
         favoriteService.middleware,
         searchService.middleware,
+        notificationService.middleware,
       ),
 });
 
