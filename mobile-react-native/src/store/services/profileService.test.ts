@@ -24,8 +24,9 @@ const jsonResponse = (status: number, body: string) =>
 
 const upload = async (store: ReturnType<typeof makeStore>) => {
   const pending = store.dispatch(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (profileService.endpoints.updatePhoto as any).initiate({
+    // Only the uri: the file itself supplies the name and the MIME type when
+    // Expo encodes the body. See toUploadPart.
+    profileService.endpoints.updatePhoto.initiate({
       uri: 'file:///tmp/pick.jpeg',
     }),
   );

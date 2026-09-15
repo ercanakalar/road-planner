@@ -9,6 +9,7 @@ import { join } from 'path';
 
 import {
   AVATAR_MAX_BYTES,
+  AVATAR_UPLOAD_CEILING_BYTES,
   avatarDirectory,
   avatarPath,
   removeAvatar,
@@ -71,6 +72,21 @@ describe('avatar storage', () => {
       await expect(writeAvatar('up', jpeg(AVATAR_MAX_BYTES))).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('says what the limit is when a photo is over it', async () => {
+      // The sentence matters as much as the status. Multer's own refusal is
+      // turned into PayloadTooLarge("File too large") before any of our code
+      // runs, and that does not tell anyone what to do about it.
+      await expect(writeAvatar('up', jpeg(AVATAR_MAX_BYTES))).rejects.toThrow(
+        /5 MB/,
+      );
+    });
+
+    it('leaves Multer a margin, so a realistic overshoot reaches that message', async () => {
+      // A phone photo a megabyte over the line should be refused here, by
+      // name, rather than by the upload ceiling that only guards memory.
+      expect(AVATAR_UPLOAD_CEILING_BYTES).toBeGreaterThan(AVATAR_MAX_BYTES);
     });
 
     it('says the server is at fault when the directory cannot be written', async () => {

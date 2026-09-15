@@ -11,6 +11,7 @@ import {
   UpdateRoadDto,
   StopInputDto,
 } from 'src/road/dto/road.dto';
+import { RoutePublishNotifier } from 'src/notification/publish/route-publish.notifier';
 import { applyStopValues, positionByRank, StopValues } from './stop-writes';
 import { withStopMetrics } from '../stop/stop-metrics';
 import { RoadVisibility } from '../visibility/road-visibility';
@@ -68,6 +69,7 @@ export class RoadService {
     private prisma: PrismaService,
     private visibility: RoadVisibility,
     private elevationService: ElevationService,
+    private publishNotifier: RoutePublishNotifier,
   ) {}
 
   /**
@@ -399,67 +401,87 @@ export class RoadService {
       needsElevation.map((stop, index) => [stop, heights[index] ?? null]),
     );
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.road.update({
-        where: { id },
-        data: {
-          title,
-          description,
-          ...(isPublic === undefined ? {} : { isPublic }),
-        },
-      });
-
-      const existing = await tx.stop.findMany({
-        where: { roadId: id },
-        select: { id: true },
-      });
-      const existingIds = new Set(existing.map((w) => w.id));
-
-      const kept = stops.filter((w) => w.id && existingIds.has(w.id));
-      const added = stops.filter((w) => !w.id || !existingIds.has(w.id));
-      const keptIds = new Set(kept.map((w) => w.id as string));
-
-      const removed = existing.filter((w) => !keptIds.has(w.id));
-
-      if (removed.length) {
-        await tx.stop.deleteMany({
-          where: { id: { in: removed.map((w) => w.id) } },
+    const { road: updated, wasPublic } = await this.prisma.$transaction(
+      async (tx) => {
+        // Read the visibility from inside the transaction, so "was it already
+        // public?" is answered by the same snapshot the update writes over.
+        // Two saves racing each other would otherwise both look like the one
+        // that published it, and both would tell the followers so.
+        const before = await tx.road.findUnique({
+          where: { id },
+          select: { isPublic: true },
         });
-      }
 
-      await applyStopValues(
-        tx,
-        id,
-        kept.map((w): StopValues => ({
-          id: w.id as string,
-          latitude: w.latitude,
-          longitude: w.longitude,
-          order: w.order,
-          address: w.address ?? null,
-          refreshElevation: resolved.has(w),
-          elevation: resolved.get(w) ?? null,
-        })),
-      );
+        await tx.road.update({
+          where: { id },
+          data: {
+            title,
+            description,
+            ...(isPublic === undefined ? {} : { isPublic }),
+          },
+        });
 
-      const rows = buildNewStopRows(
-        id,
-        added.map((stop) => ({
-          ...stop,
-          elevation: resolved.get(stop) ?? null,
-        })),
-      );
+        const existing = await tx.stop.findMany({
+          where: { roadId: id },
+          select: { id: true },
+        });
+        const existingIds = new Set(existing.map((w) => w.id));
 
-      if (rows.length) {
-        await tx.stop.createMany({ data: rows });
-      }
+        const kept = stops.filter((w) => w.id && existingIds.has(w.id));
+        const added = stops.filter((w) => !w.id || !existingIds.has(w.id));
+        const keptIds = new Set(kept.map((w) => w.id as string));
 
-      return tx.road.findUnique({
-        where: { id },
-        include: {
-          stops: { orderBy: { order: 'asc' } },
-        },
-      });
-    });
+        const removed = existing.filter((w) => !keptIds.has(w.id));
+
+        if (removed.length) {
+          await tx.stop.deleteMany({
+            where: { id: { in: removed.map((w) => w.id) } },
+          });
+        }
+
+        await applyStopValues(
+          tx,
+          id,
+          kept.map((w): StopValues => ({
+            id: w.id as string,
+            latitude: w.latitude,
+            longitude: w.longitude,
+            order: w.order,
+            address: w.address ?? null,
+            refreshElevation: resolved.has(w),
+            elevation: resolved.get(w) ?? null,
+          })),
+        );
+
+        const rows = buildNewStopRows(
+          id,
+          added.map((stop) => ({
+            ...stop,
+            elevation: resolved.get(stop) ?? null,
+          })),
+        );
+
+        if (rows.length) {
+          await tx.stop.createMany({ data: rows });
+        }
+
+        const road = await tx.road.findUnique({
+          where: { id },
+          include: {
+            stops: { orderBy: { order: 'asc' } },
+          },
+        });
+
+        return { road, wasPublic: before?.isPublic ?? false };
+      },
+    );
+
+    // Only the save that turns a private route public writes to anybody. Saving
+    // a route that is already public again — a title fix, a stop moved — is not
+    // news, and the notifier is told nothing.
+    if (isPublic === true && !wasPublic) {
+      this.publishNotifier.notifyInBackground(id);
+    }
 
     return ok({
       header: 'Route Updated',

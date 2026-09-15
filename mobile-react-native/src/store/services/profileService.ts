@@ -15,6 +15,7 @@ import {
   GetUserByIdResponse,
 } from 'types/store/services/userService-type';
 import { ApiResponse } from 'types/store/bases';
+import { PickedPhoto, toUploadPart } from 'utils/photoUpload';
 
 export const profileService = createApi({
   reducerPath: 'profileService',
@@ -38,27 +39,25 @@ export const profileService = createApi({
         transformApiResponse(res),
     }),
 
-    updatePhoto: builder.mutation<UserResponse, { uri: string }>({
-      query: ({ uri }) => {
+    /**
+     * The file itself, as multipart rather than as JSON.
+     *
+     * See `toUploadPart`: the part has to be a Blob-like object Expo's own
+     * fetch can encode, not React Native's `{ uri, name, type }` file — that
+     * one never leaves the device.
+     */
+    updatePhoto: builder.mutation<UserResponse, PickedPhoto>({
+      query: (photo) => {
         const body = new FormData();
-        const extension = uri.split('.').pop()?.toLowerCase();
-        const type =
-          extension === 'png'
-            ? 'image/png'
-            : extension === 'webp'
-              ? 'image/webp'
-              : 'image/jpeg';
 
-        body.append('photo', {
-          uri,
-          name: `avatar.${extension ?? 'jpg'}`,
-          type,
-        } as unknown as Blob);
+        body.append('photo', toUploadPart(photo));
 
         return {
           url: '/user/photo',
           method: 'POST',
           body,
+          // Deleted again in prepareHeaders once the boundary can be generated
+          // — this only says "do not default me to JSON".
           headers: { 'Content-Type': MULTIPART },
           timeout: UPLOAD_TIMEOUT_MS,
         };

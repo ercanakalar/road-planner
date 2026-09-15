@@ -17,6 +17,7 @@ import { EnvironmentVariables } from 'src/config/env.validation';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSearchQueryDto } from './dto/user-search.dto';
 import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
+import { FollowService } from './follow.service';
 
 /**
  * What search may reveal about someone. Deliberately narrower than
@@ -46,6 +47,7 @@ export class UserService {
   constructor(
     private prisma: PrismaService,
     private config: ConfigService<EnvironmentVariables, true>,
+    private follows: FollowService,
   ) {}
 
   private get uploadDir(): string {
@@ -128,7 +130,7 @@ export class UserService {
    * it. Someone who has published nothing cannot be discovered this way, which
    * is why this is safe to leave open to signed-out callers.
    */
-  async searchAuthors(query: UserSearchQueryDto) {
+  async searchAuthors(query: UserSearchQueryDto, viewerId: string | null) {
     const term = searchTerm(query.q);
 
     const published: Prisma.UserWhereInput = {
@@ -169,10 +171,16 @@ export class UserService {
       }),
     ]);
 
+    const followed = await this.follows.followedAmong(
+      users.map((user) => user.id),
+      viewerId,
+    );
+
     const shaped = users.map(({ _count, nickName, firstName, ...user }) => ({
       ...user,
       displayName: nickName ?? firstName ?? 'A traveller',
       publicRouteCount: _count.roads,
+      isFollowed: followed.has(user.id),
     }));
 
     return ok({
@@ -184,7 +192,7 @@ export class UserService {
   }
 
   /** The public face of one author: their name, and how much they have shared. */
-  async getAuthorById(id: string) {
+  async getAuthorById(id: string, viewerId: string | null) {
     const user = await this.prisma.user.findFirst({
       where: { id, roads: { some: { isPublic: true, archivedAt: null } } },
       select: {
@@ -208,6 +216,7 @@ export class UserService {
         ...rest,
         displayName: nickName ?? firstName ?? 'A traveller',
         publicRouteCount: _count.roads,
+        isFollowed: await this.follows.isFollowing(id, viewerId),
       },
     });
   }

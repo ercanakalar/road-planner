@@ -11,6 +11,21 @@ const logger = new Logger('AvatarStorage');
 
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * What Multer is allowed to buffer before it gives up, as opposed to what this
+ * service will store.
+ *
+ * Deliberately above AVATAR_MAX_BYTES rather than equal to it. Multer's own
+ * refusal is a `MulterError` that Nest turns into `PayloadTooLarge("File too
+ * large")` before any of our code sees it, and that sentence does not say what
+ * the limit is — so a photo a little over the line got the least useful message
+ * of the two. Leaving Multer a margin means the realistic overshoot, a phone
+ * photo of six or seven megabytes, is refused by `writeAvatar` below with a
+ * sentence that names the limit, while Multer still stops an upload that is
+ * only trying to exhaust memory.
+ */
+export const AVATAR_UPLOAD_CEILING_BYTES = AVATAR_MAX_BYTES * 2;
+
 const TYPES: { mime: string; extension: string; magic: number[] }[] = [
   { mime: 'image/jpeg', extension: 'jpg', magic: [0xff, 0xd8, 0xff] },
   { mime: 'image/png', extension: 'png', magic: [0x89, 0x50, 0x4e, 0x47] },

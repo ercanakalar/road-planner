@@ -1,12 +1,14 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
+import { SEARCH_PAGE_SIZE } from 'constants/pagination';
 import {
   DEFAULT_ROUTE_LENGTH,
   DEFAULT_ROUTE_SEARCH_ORDER,
   routeLengthFilters,
 } from 'constants/routeSearch';
 import useDebouncedValue from 'hooks/common/useDebouncedValue';
+import usePagedOffset from 'hooks/common/usePagedOffset';
 import { useAppSelector } from 'store/hook';
 import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
@@ -18,6 +20,7 @@ import {
   RouteSearchOrder,
   RouteSearchHit,
 } from 'types/store/services/searchService-type';
+import { Page } from 'types/store/bases';
 import { RootStackParamList } from 'types/screens/screens';
 
 /** Long enough to stop typing, short enough not to feel like waiting. */
@@ -28,8 +31,18 @@ export const MIN_TERM_LENGTH = 2;
 
 export type SearchTab = 'routes' | 'people';
 
-const EMPTY_ROUTES: RouteSearchHit[] = [];
-const EMPTY_AUTHORS: AuthorHit[] = [];
+const EMPTY_ROUTES: Page<RouteSearchHit> = {
+  items: [],
+  total: 0,
+  hasMore: false,
+};
+const EMPTY_AUTHORS: Page<AuthorHit> = { items: [], total: 0, hasMore: false };
+
+/** Who the route list is narrowed to, as little of them as a chip needs. */
+export interface AuthorFilter {
+  id: string;
+  displayName: string;
+}
 
 /**
  * The search screen: one field over two lists, with the order and the filters
@@ -50,6 +63,7 @@ export function useSearchScreen() {
     DEFAULT_ROUTE_SEARCH_ORDER,
   );
   const [length, setLength] = useState(DEFAULT_ROUTE_LENGTH);
+  const [author, setAuthor] = useState<AuthorFilter | null>(null);
 
   const deferredQuery = useDeferredValue(query);
   const term = useDebouncedValue(deferredQuery.trim(), TYPING_PAUSE_MS);
@@ -67,23 +81,40 @@ export function useSearchScreen() {
   // so the request is held back until the term means something.
   const isTermTooShort = term.length > 0 && term.length < MIN_TERM_LENGTH;
 
+  // Every part of the question the route list is asking. Change any of them and
+  // the reader is back at the top of a different list.
+  const [routeOffset, loadMoreRoutes] = usePagedOffset(
+    `${term}|${order}|${length}|${author?.id ?? ''}`,
+    SEARCH_PAGE_SIZE,
+  );
+  const [authorOffset, loadMoreAuthors] = usePagedOffset(
+    term,
+    SEARCH_PAGE_SIZE,
+  );
+
   const {
-    data: routes = EMPTY_ROUTES,
+    data: routePage = EMPTY_ROUTES,
     isFetching: isSearchingRoutes,
     isError: routesFailed,
     refetch: refetchRoutes,
   } = useSearchRoutesQuery(
-    { q: term, sort: order, ...filters },
+    {
+      q: term,
+      sort: order,
+      ...filters,
+      authorId: author?.id,
+      offset: routeOffset,
+    },
     { skip: isTermTooShort },
   );
 
   const {
-    data: authors = EMPTY_AUTHORS,
+    data: authorPage = EMPTY_AUTHORS,
     isFetching: isSearchingAuthors,
     isError: authorsFailed,
     refetch: refetchAuthors,
   } = useSearchAuthorsQuery(
-    { q: term },
+    { q: term, offset: authorOffset },
     // Nothing on the routes tab shows a person, so nothing there needs them.
     { skip: tab !== 'people' || isTermTooShort },
   );
@@ -103,9 +134,12 @@ export function useSearchScreen() {
     [isLoggedIn, navigation, toggleFavoriteRoute],
   );
 
+  const routes = isTermTooShort ? EMPTY_ROUTES : routePage;
+  const authors = isTermTooShort ? EMPTY_AUTHORS : authorPage;
+
   const openRoute = useCallback(
     (routeId: string) => {
-      const hit = routes.find((route) => route.id === routeId);
+      const hit = routes.items.find((route) => route.id === routeId);
       navigation.navigate('CommunityRouteScreen', {
         routeId,
         title: hit?.title ?? 'Route',
@@ -115,10 +149,10 @@ export function useSearchScreen() {
   );
 
   const openAuthor = useCallback(
-    (author: { id: string; displayName: string }) =>
+    (person: { id: string; displayName: string }) =>
       navigation.navigate('AuthorScreen', {
-        authorId: author.id,
-        displayName: author.displayName,
+        authorId: person.id,
+        displayName: person.displayName,
       }),
     [navigation],
   );
@@ -131,7 +165,42 @@ export function useSearchScreen() {
     [openAuthor],
   );
 
+  /**
+   * Picking somebody in the People tab narrows the routes to theirs and shows
+   * them, rather than leaving the screen: this is a filter the search bar owns,
+   * so it stays where the rest of the filters are and comes off the same way.
+   * Their profile is still one tap away, from the chevron on the row.
+   */
+  const filterByAuthor = useCallback((person: AuthorFilter) => {
+    setAuthor({ id: person.id, displayName: person.displayName });
+    setTab('routes');
+  }, []);
+
+  const clearAuthorFilter = useCallback(() => setAuthor(null), []);
+
+  /**
+   * The list asks for more only while it has not got everything and is not
+   * already asking. `onEndReached` fires again on every few pixels of overscroll
+   * and would otherwise queue a page per frame.
+   */
+  const loadMore = useCallback(() => {
+    if (tab === 'routes') {
+      if (routes.hasMore && !isSearchingRoutes) loadMoreRoutes();
+      return;
+    }
+    if (authors.hasMore && !isSearchingAuthors) loadMoreAuthors();
+  }, [
+    authors.hasMore,
+    isSearchingAuthors,
+    isSearchingRoutes,
+    loadMoreAuthors,
+    loadMoreRoutes,
+    routes.hasMore,
+    tab,
+  ]);
+
   const isSearching = tab === 'routes' ? isSearchingRoutes : isSearchingAuthors;
+  const shown = tab === 'routes' ? routes : authors;
 
   return {
     query,
@@ -146,8 +215,17 @@ export function useSearchScreen() {
     setOrder,
     length,
     setLength,
-    routes: isTermTooShort ? EMPTY_ROUTES : routes,
-    authors: isTermTooShort ? EMPTY_AUTHORS : authors,
+    author,
+    filterByAuthor,
+    clearAuthorFilter,
+    routes: routes.items,
+    authors: authors.items,
+    /** How many matched in total, which is what the filters are about. */
+    total: shown.total,
+    hasMore: shown.hasMore,
+    loadMore,
+    /** True only while a further page is on its way, not the first one. */
+    isLoadingMore: isSearching && shown.items.length > 0,
     isSearching,
     isFailed: tab === 'routes' ? routesFailed : authorsFailed,
     retry: tab === 'routes' ? refetchRoutes : refetchAuthors,

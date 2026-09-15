@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     ListRenderItemInfo,
     Pressable,
@@ -28,6 +29,18 @@ const TABS: { key: SearchTab; label: string }[] = [
     { key: 'people', label: 'People' },
 ];
 
+/**
+ * How many matched, which is the question the filters just asked. Deliberately
+ * the unpaged total rather than the number of rows loaded: "312 routes" does
+ * not change as the list is scrolled.
+ */
+const countLabel = (tab: SearchTab, total: number): string => {
+    if (tab === 'people') {
+        return total === 1 ? '1 person' : `${total} people`;
+    }
+    return total === 1 ? '1 route' : `${total} routes`;
+};
+
 const SearchScreen = () => {
     const styles = useThemedStyles(createStyles);
 
@@ -44,8 +57,15 @@ const SearchScreen = () => {
         setOrder,
         length,
         setLength,
+        author,
+        filterByAuthor,
+        clearAuthorFilter,
         routes,
         authors,
+        total,
+        hasMore,
+        loadMore,
+        isLoadingMore,
         isSearching,
         isFailed,
         retry,
@@ -71,9 +91,13 @@ const SearchScreen = () => {
 
     const renderAuthor = useCallback(
         ({ item }: ListRenderItemInfo<AuthorHit>) => (
-            <AuthorRow author={item} onOpen={openAuthor} />
+            <AuthorRow
+                author={item}
+                onSelect={filterByAuthor}
+                onOpenProfile={openAuthor}
+            />
         ),
-        [openAuthor],
+        [filterByAuthor, openAuthor],
     );
 
     const keyExtractor = useCallback((item: { id: string }) => item.id, []);
@@ -101,9 +125,27 @@ const SearchScreen = () => {
             variant='empty'
             icon='search-outline'
             title={term ? 'No matches' : 'Search'}
-            message={emptyMessage}
+            message={
+                author
+                    ? `${author.displayName} has nothing that matches these filters.`
+                    : emptyMessage
+            }
         />
     );
+
+    // Only under a list that has rows: the spinner says "more is coming", and
+    // an empty list says that for itself.
+    const footer =
+        isLoadingMore || hasMore ? (
+            <View style={styles.footer}>
+                {isLoadingMore ? <ActivityIndicator size='small' /> : null}
+            </View>
+        ) : null;
+
+    // Held back until there is an answer: "0 routes" under a spinner reads as
+    // a result rather than as a question still being asked.
+    const hasAnswer = !isTermTooShort && !(isSearching && total === 0);
+    const count = hasAnswer ? countLabel(tab, total) : null;
 
     return (
         <Container>
@@ -144,52 +186,83 @@ const SearchScreen = () => {
                     ))}
                 </View>
 
-                {/* Order and filter belong to the route list, so they leave with it. */}
                 {tab === 'routes' ? (
-                    <SearchFilterBar
-                        order={order}
-                        onOrderChange={setOrder}
-                        length={length}
-                        onLengthChange={setLength}
-                    />
-                ) : null}
+                    <>
+                        {/*
+                            Order and filter belong to the route list, so they
+                            leave with it. The person chip lives here too:
+                            narrowing to somebody is a filter on this list, set
+                            from the other tab.
+                        */}
+                        <SearchFilterBar
+                            order={order}
+                            onOrderChange={setOrder}
+                            length={length}
+                            onLengthChange={setLength}
+                            authorName={author?.displayName}
+                            onClearAuthor={
+                                author ? clearAuthorFilter : undefined
+                            }
+                            summary={count}
+                            isSummaryStale={isBehind || isSearching}
+                        />
 
-                {tab === 'routes' ? (
-                    <FlatList
-                        data={routes}
-                        keyExtractor={keyExtractor}
-                        renderItem={renderRoute}
-                        style={isBehind ? styles.stale : undefined}
-                        contentContainerStyle={
-                            routes.length === 0
-                                ? styles.emptyContent
-                                : styles.listContent
-                        }
-                        keyboardShouldPersistTaps='handled'
-                        keyboardDismissMode='on-drag'
-                        ListEmptyComponent={empty}
-                        initialNumToRender={10}
-                        maxToRenderPerBatch={10}
-                        windowSize={7}
-                    />
+                        <FlatList
+                            data={routes}
+                            keyExtractor={keyExtractor}
+                            renderItem={renderRoute}
+                            style={isBehind ? styles.stale : undefined}
+                            contentContainerStyle={
+                                routes.length === 0
+                                    ? styles.emptyContent
+                                    : styles.listContent
+                            }
+                            keyboardShouldPersistTaps='handled'
+                            keyboardDismissMode='on-drag'
+                            ListEmptyComponent={empty}
+                            ListFooterComponent={footer}
+                            onEndReached={loadMore}
+                            onEndReachedThreshold={0.6}
+                            initialNumToRender={10}
+                            maxToRenderPerBatch={10}
+                            windowSize={7}
+                        />
+                    </>
                 ) : (
-                    <FlatList
-                        data={authors}
-                        keyExtractor={keyExtractor}
-                        renderItem={renderAuthor}
-                        style={isBehind ? styles.stale : undefined}
-                        contentContainerStyle={
-                            authors.length === 0
-                                ? styles.emptyContent
-                                : styles.listContent
-                        }
-                        keyboardShouldPersistTaps='handled'
-                        keyboardDismissMode='on-drag'
-                        ListEmptyComponent={empty}
-                        initialNumToRender={12}
-                        maxToRenderPerBatch={12}
-                        windowSize={7}
-                    />
+                    <>
+                        <FlatList
+                            data={authors}
+                            keyExtractor={keyExtractor}
+                            renderItem={renderAuthor}
+                            style={isBehind ? styles.stale : undefined}
+                            contentContainerStyle={
+                                authors.length === 0
+                                    ? styles.emptyContent
+                                    : styles.listContent
+                            }
+                            keyboardShouldPersistTaps='handled'
+                            keyboardDismissMode='on-drag'
+                            ListEmptyComponent={empty}
+                            ListHeaderComponent={
+                                count ? (
+                                    <Text
+                                        style={[
+                                            styles.peopleCount,
+                                            isSearching && styles.stale,
+                                        ]}
+                                    >
+                                        {count}
+                                    </Text>
+                                ) : null
+                            }
+                            ListFooterComponent={footer}
+                            onEndReached={loadMore}
+                            onEndReachedThreshold={0.6}
+                            initialNumToRender={12}
+                            maxToRenderPerBatch={12}
+                            windowSize={7}
+                        />
+                    </>
                 )}
             </View>
         </Container>
@@ -229,6 +302,16 @@ const createStyles = (colors: ThemeColors) =>
         },
         emptyContent: { flexGrow: 1 },
         stale: { opacity: 0.6 },
+        peopleCount: {
+            ...typography.caption,
+            fontSize: 11,
+            color: colors.textSubtle,
+            paddingBottom: spacing.xxs,
+        },
+        footer: {
+            paddingVertical: spacing.lg,
+            alignItems: 'center',
+        },
     });
 
 export default SearchScreen;

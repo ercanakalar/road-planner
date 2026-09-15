@@ -5,6 +5,7 @@ import useConfirm from 'hooks/feedback/useConfirm';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { useLogoutMutation } from 'store/services/authenticationService';
 import { useGetUserQuery } from 'store/services/profileService';
+import { useGetUnreadCountQuery } from 'store/services/notificationService';
 import { logout } from 'store/slices/authSlice';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { RootStackParamList } from 'types/screens/screens';
@@ -26,6 +27,12 @@ export function useProfileScreen(
     { userId: userId ?? '' },
     { skip: !userId },
   );
+
+  // Its own request, and a small one: the badge has to be right every time this
+  // screen is looked at, and the profile is cached for five minutes.
+  const { data: unreadCount = 0 } = useGetUnreadCountQuery(undefined, {
+    skip: !userId,
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -59,6 +66,11 @@ export function useProfileScreen(
     if (userId) navigation.navigate('ProfileDetailScreen', { userId });
   }, [navigation, userId]);
 
+  const goToNotifications = useCallback(
+    () => navigation.navigate('NotificationsScreen'),
+    [navigation],
+  );
+
   const goToSettings = useCallback(
     () => navigation.navigate('SettingsScreen'),
     [navigation],
@@ -80,6 +92,8 @@ export function useProfileScreen(
     isLoading,
     isLoggingOut,
     handleLogout,
+    unreadCount,
+    goToNotifications,
     goToProfile,
     goToSettings,
     goToKvkk,

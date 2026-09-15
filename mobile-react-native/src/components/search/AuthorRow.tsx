@@ -2,37 +2,46 @@ import { memo, useCallback } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import {
-  radius,
-  spacing,
-  typography,
-  useTheme,
-  useThemedStyles,
-} from 'theme';
+import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { AuthorHit } from 'types/store/services/searchService-type';
 import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
 
 interface Props {
   author: AuthorHit;
-  onOpen: (author: AuthorHit) => void;
+  /** Narrows the route list to this person, which is what the row is for. */
+  onSelect: (author: AuthorHit) => void;
+  /** Opens their page, from the arrow rather than the row. */
+  onOpenProfile: (author: AuthorHit) => void;
 }
 
-/** One person in the results: their name, and how much they have published. */
-const AuthorRow = ({ author, onOpen }: Props) => {
+/**
+ * One person in the results: their name, and how much they have published.
+ *
+ * Tapping the row filters the routes to theirs — the reason to look someone up
+ * from a search screen is almost always to see what they have made, and that
+ * list is already open behind this one. The arrow is for the other case, their
+ * page, where their routes can be followed.
+ */
+const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const handleOpen = useCallback(() => onOpen(author), [author, onOpen]);
+  const handleSelect = useCallback(() => onSelect(author), [author, onSelect]);
+
+  const handleOpenProfile = useCallback(
+    () => onOpenProfile(author),
+    [author, onOpenProfile],
+  );
 
   const photo = resolvePhotoUrl(author.photo);
 
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-      onPress={handleOpen}
+      onPress={handleSelect}
       accessibilityRole='button'
-      accessibilityLabel={`See routes by ${author.displayName}`}
+      accessibilityLabel={`Show only routes by ${author.displayName}`}
     >
       {photo ? (
         <Image source={{ uri: photo }} style={styles.avatar} />
@@ -48,13 +57,35 @@ const AuthorRow = ({ author, onOpen }: Props) => {
         <Text style={styles.name} numberOfLines={1}>
           {author.displayName}
         </Text>
-        <Text style={styles.meta}>
-          {author.publicRouteCount} published route
-          {author.publicRouteCount === 1 ? '' : 's'}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta}>
+            {author.publicRouteCount} published route
+            {author.publicRouteCount === 1 ? '' : 's'}
+          </Text>
+
+          {author.isFollowed ? (
+            <>
+              <Text style={styles.dot}>·</Text>
+              <Ionicons
+                name='notifications'
+                size={11}
+                color={colors.primary}
+              />
+              <Text style={styles.following}>Notifying you</Text>
+            </>
+          ) : null}
+        </View>
       </View>
 
-      <Ionicons name='chevron-forward' size={18} color={colors.textSubtle} />
+      <Pressable
+        onPress={handleOpenProfile}
+        hitSlop={10}
+        style={({ pressed }) => [styles.open, pressed && styles.openPressed]}
+        accessibilityRole='button'
+        accessibilityLabel={`Open ${author.displayName}'s profile`}
+      >
+        <Ionicons name='chevron-forward' size={18} color={colors.textSubtle} />
+      </Pressable>
     </Pressable>
   );
 };
@@ -66,7 +97,8 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       gap: spacing.md,
       paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.sm,
       backgroundColor: colors.surface,
       borderRadius: radius.md,
       borderWidth: StyleSheet.hairlineWidth,
@@ -95,11 +127,34 @@ const createStyles = (colors: ThemeColors) =>
       lineHeight: 20,
       color: colors.text,
     },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
     meta: {
       ...typography.caption,
       fontSize: 12,
       color: colors.textMuted,
     },
+    dot: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSubtle,
+    },
+    following: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.primary,
+    },
+    open: {
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.pill,
+    },
+    openPressed: { backgroundColor: colors.surfaceAlt },
   });
 
 export default memo(AuthorRow);

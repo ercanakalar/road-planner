@@ -286,4 +286,49 @@ describe('AllExceptionsFilter', () => {
       expect(Logger.prototype.error).not.toHaveBeenCalled();
     });
   });
+  describe('Multer', () => {
+    /**
+     * Multer's own error, spelled the way it arrives: it comes in through
+     * `@nestjs/platform-express` rather than as a dependency of ours, so the
+     * filter recognises it by name and code rather than by `instanceof`.
+     */
+    const multerError = (code: string, message = 'File too large') => {
+      const error = new Error(message);
+      error.name = 'MulterError';
+      (error as Error & { code?: string }).code = code;
+      return error;
+    };
+
+    it('turns a file over the limit into 413 rather than a 500', () => {
+      // A photo that is too big is the caller's to fix, and a 500 tells them
+      // the server is broken instead.
+      filter.catch(multerError('LIMIT_FILE_SIZE'), host);
+
+      expect(status).toHaveBeenCalledWith(HttpStatus.PAYLOAD_TOO_LARGE);
+      expect(body()).toMatchObject({
+        status: ToastType.Error,
+        header: 'Too Large',
+        message: 'That file is too large to upload.',
+      });
+    });
+
+    it('turns an unexpected field into a 400', () => {
+      filter.catch(multerError('LIMIT_UNEXPECTED_FILE'), host);
+
+      expect(status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    });
+
+    it('still answers 400 for a code it does not recognise', () => {
+      filter.catch(multerError('LIMIT_SOMETHING_NEW'), host);
+
+      expect(status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(body().message).toBe('That upload could not be read.');
+    });
+
+    it('leaves an ordinary error alone', () => {
+      filter.catch(new Error('File too large'), host);
+
+      expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    });
+  });
 });

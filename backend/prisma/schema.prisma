@@ -119,8 +119,81 @@ model User {
   favoriteRoads FavoriteRoad[]
   favoriteStops FavoriteStop[]
 
+  following AuthorFollow[] @relation("FollowsMade")
+  followers AuthorFollow[] @relation("FollowsReceived")
+
+  /// Where this person wants to hear about the things they follow. Both are on
+  /// by default: they only ever arrive because something was followed on
+  /// purpose, and an empty inbox after following somebody reads as broken.
+  notifyInApp   Boolean @default(true)
+  notifyByEmail Boolean @default(true)
+
+  notifications      Notification[] @relation("NotificationsReceived")
+  causedNotifications Notification[] @relation("NotificationsCaused")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Someone asking to hear about an author's next public route.
+///
+/// One row per (follower, author) pair, created by the follower and readable
+/// only through their own account — following is a private subscription, not a
+/// public audience an author can enumerate.
+model AuthorFollow {
+  id String @id @default(uuid())
+
+  followerId String
+  follower   User   @relation("FollowsMade", fields: [followerId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("FollowsReceived", fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, authorId])
+  @@index([authorId])
+}
+
+/// What a notification is about. One kind so far; the column exists so a
+/// second does not need a migration of every existing row.
+enum NotificationKind {
+  ROUTE_PUBLISHED
+}
+
+/// One line in somebody's inbox.
+///
+/// Written when something they follow happens, and read only by them. The row
+/// holds who and what rather than a rendered sentence, so the wording can
+/// change — and be translated — without rewriting anybody's history.
+model Notification {
+  id String @id @default(uuid())
+
+  /// Whose inbox this is.
+  userId String
+  user   User   @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+
+  kind NotificationKind
+
+  /// Who did the thing. Null once that account is gone, which leaves the line
+  /// readable rather than deleting news that already happened.
+  actorId String?
+  actor   User?   @relation("NotificationsCaused", fields: [actorId], references: [id], onDelete: SetNull)
+
+  /// The route it is about. Deleting the route takes the line with it: there
+  /// is nothing left to open.
+  roadId String?
+  road   Road?   @relation(fields: [roadId], references: [id], onDelete: Cascade)
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  /// Publishing the same route twice is not news twice. The constraint is what
+  /// makes the write at publish time safe to repeat.
+  @@unique([userId, roadId, kind])
+  @@index([userId, createdAt, id])
+  @@index([userId, readAt])
 }
 
 model Road {
@@ -138,6 +211,7 @@ model Road {
 
   stops         Stop[]
   favoriteRoads FavoriteRoad[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

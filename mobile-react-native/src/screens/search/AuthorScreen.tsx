@@ -1,14 +1,17 @@
 import { useCallback } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ListRenderItemInfo,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 import Container from 'components/ui/Container';
 import ScreenState from 'components/ui/ScreenState';
@@ -17,7 +20,13 @@ import SearchFilterBar from 'components/search/SearchFilterBar';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import useAuthorScreen from 'hooks/search/useAuthorScreen';
 
-import { radius, spacing, typography, useThemedStyles } from 'theme';
+import {
+  radius,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+} from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
 import { RouteSearchHit } from 'types/store/services/searchService-type';
@@ -26,6 +35,7 @@ import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
 type Props = { route: RouteProp<RootStackParamList, 'AuthorScreen'> };
 
 const AuthorScreen = ({ route }: Props) => {
+  const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
 
@@ -34,12 +44,22 @@ const AuthorScreen = ({ route }: Props) => {
   const {
     author,
     routes,
+    total,
+    hasMore,
+    loadMore,
+    isLoadingMore,
     order,
     setOrder,
+    length,
+    setLength,
     isLoading,
     isFetching,
     isError,
     refetch,
+    refresh,
+    isFollowed,
+    isUpdatingFollow,
+    handleToggleFollow,
     isLoggedIn,
     handleToggleFavorite,
     openRoute,
@@ -80,21 +100,68 @@ const AuthorScreen = ({ route }: Props) => {
             }`
           : 'Published routes'}
       </Text>
+
+      {/*
+        Following is an email subscription to this person's next publish, so it
+        belongs next to their name rather than on any one route. It stays
+        pressable while the request is in flight — the row is already showing
+        the new state, and blocking the way back out of it is worse than a
+        second tap that lands.
+      */}
+      <Pressable
+        onPress={handleToggleFollow}
+        style={({ pressed }) => [
+          styles.follow,
+          isFollowed && styles.followOn,
+          pressed && styles.followPressed,
+        ]}
+        accessibilityRole='button'
+        accessibilityState={{ selected: isFollowed, busy: isUpdatingFollow }}
+        accessibilityLabel={
+          isFollowed
+            ? `Stop being notified when ${name} publishes a route`
+            : `Notify me when ${name} publishes a route`
+        }
+        accessibilityHint='We will email you when they publish a new route.'
+      >
+        <Ionicons
+          name={isFollowed ? 'notifications' : 'notifications-outline'}
+          size={16}
+          color={isFollowed ? colors.textInverse : colors.primary}
+        />
+        <Text style={[styles.followText, isFollowed && styles.followTextOn]}>
+          {isFollowed ? 'Notifying you' : 'Notify me'}
+        </Text>
+      </Pressable>
     </View>
   );
+
+  const footer =
+    isLoadingMore || hasMore ? (
+      <View style={styles.footer}>
+        {isLoadingMore ? <ActivityIndicator size='small' /> : null}
+      </View>
+    ) : null;
 
   return (
     <Container>
       <View style={styles.container}>
         {header}
 
+        {/*
+          The same order and length controls as search, and they work the same
+          way: somebody with fifty published routes is a list worth narrowing,
+          and a filter row that only redraws itself is worse than none.
+        */}
         <SearchFilterBar
           order={order}
           onOrderChange={setOrder}
-          length='any'
-          // Somebody's whole shelf is short enough to read; ordering it is
-          // useful, narrowing it is not.
-          onLengthChange={noop}
+          length={length}
+          onLengthChange={setLength}
+          summary={
+            isLoading ? null : `${total} route${total === 1 ? '' : 's'}`
+          }
+          isSummaryStale={isFetching}
         />
 
         {isLoading ? (
@@ -117,8 +184,10 @@ const AuthorScreen = ({ route }: Props) => {
             }
             refreshControl={
               <RefreshControl
-                refreshing={isFetching}
-                onRefresh={refetch}
+                // Only the pull counts as refreshing. Loading the next page is
+                // the footer's business, and showing both spins two at once.
+                refreshing={isFetching && !isLoadingMore}
+                onRefresh={refresh}
                 {...refreshColors}
               />
             }
@@ -126,10 +195,17 @@ const AuthorScreen = ({ route }: Props) => {
               <ScreenState
                 variant='empty'
                 icon='map-outline'
-                title='Nothing published'
-                message={`${name} has no public routes right now.`}
+                title='Nothing here'
+                message={
+                  length === 'any'
+                    ? `${name} has no public routes right now.`
+                    : `${name} has no routes of that length.`
+                }
               />
             }
+            ListFooterComponent={footer}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.6}
             initialNumToRender={10}
             maxToRenderPerBatch={10}
             windowSize={7}
@@ -139,8 +215,6 @@ const AuthorScreen = ({ route }: Props) => {
     </Container>
   );
 };
-
-const noop = () => undefined;
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
@@ -173,12 +247,38 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
+    follow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    followOn: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    followPressed: { opacity: 0.8 },
+    followText: {
+      ...typography.label,
+      color: colors.primary,
+    },
+    followTextOn: { color: colors.textInverse },
     listContent: {
       gap: spacing.sm,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.xxl,
     },
     emptyContent: { flexGrow: 1 },
+    footer: {
+      paddingVertical: spacing.lg,
+      alignItems: 'center',
+    },
   });
 
 export default AuthorScreen;

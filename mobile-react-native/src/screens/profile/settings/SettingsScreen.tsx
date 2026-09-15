@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import PrimaryButton from 'components/ui/PrimaryButton';
 import ThemeModeSelector from 'components/profile/ThemeModeSelector';
+import NotificationSettingsSection from 'components/profile/NotificationSettingsSection';
 import ChangePasswordSection from './ChangePasswordSection';
 import useConfirm from 'hooks/feedback/useConfirm';
 import { useAppDispatch, useAppSelector } from 'store/hook';
@@ -26,7 +27,7 @@ import type { ThemeColors } from 'theme';
 const PREFERENCES: { key: SettingKey; label: string; hint: string }[] = [
   {
     key: 'notificationsEnabled',
-    label: 'Notifications',
+    label: 'In-app messages',
     hint: 'Show toast messages for route and favourite changes.',
   },
   {
@@ -120,6 +121,12 @@ const SettingsScreen = () => {
           </View>
         ))}
       </View>
+
+      {/*
+        Only for somebody signed in: these are the account's, not the phone's,
+        and there is nobody to save them against otherwise.
+      */}
+      {isLoggedIn ? <NotificationSettingsSection /> : null}
 
       {isLoggedIn ? <ChangePasswordSection /> : null}
 

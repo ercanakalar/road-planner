@@ -1,5 +1,41 @@
 /* eslint-env jest */
 
+// expo-file-system's File is a native object. The stand-in reads the real file
+// from disk and exposes the three members Expo's multipart encoder reads off a
+// part — `bytes()`, `name` and `type` — so a test can encode a body for real.
+jest.mock('expo-file-system', () => {
+  const { readFileSync } = require('fs');
+  const { basename, extname } = require('path');
+
+  const MIME = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+  };
+
+  class File {
+    constructor(uri) {
+      this.uri = uri;
+      const path = String(uri).replace(/^file:\/\//, '');
+      this.name = basename(path);
+      this.type = MIME[extname(path).toLowerCase()] ?? '';
+      try {
+        this._bytes = new Uint8Array(readFileSync(path));
+      } catch {
+        this._bytes = new Uint8Array();
+      }
+      this.size = this._bytes.length;
+    }
+
+    async bytes() {
+      return this._bytes;
+    }
+  }
+
+  return { File };
+});
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

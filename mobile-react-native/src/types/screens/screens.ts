@@ -10,6 +10,7 @@ type RootStackParamList = {
   ProfileDetailScreen: { userId: string };
   ProfileScreen: { userId: string } | undefined;
   SettingsScreen: undefined;
+  NotificationsScreen: undefined;
   KvkkScreen: undefined;
   SignUpScreen: undefined;
   SignInScreen: undefined;

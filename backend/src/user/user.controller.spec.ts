@@ -3,6 +3,8 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { ok } from 'src/common/http/api-response';
+import { OptionalAccessGuard } from 'src/common/guards/optional-access/optional-access.guard';
+import { FollowService } from './follow.service';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 
@@ -16,6 +18,7 @@ describe('UserController routing', () => {
     getAuthorById: jest.Mock;
     getUserById: jest.Mock;
   };
+  let followService: { setFollowing: jest.Mock };
 
   const get = (path: string) => request(app.getHttpServer()).get(path);
 
@@ -25,11 +28,21 @@ describe('UserController routing', () => {
       getAuthorById: jest.fn().mockResolvedValue(ok()),
       getUserById: jest.fn().mockResolvedValue(ok()),
     };
+    followService = { setFollowing: jest.fn().mockResolvedValue(ok()) };
 
     const module = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [{ provide: UserService, useValue: userService }],
-    }).compile();
+      providers: [
+        { provide: UserService, useValue: userService },
+        { provide: FollowService, useValue: followService },
+      ],
+    })
+      // The routes under test are about which handler a path reaches, not
+      // about who is allowed through, and the real guard wants a JWT strategy
+      // this module does not assemble.
+      .overrideGuard(OptionalAccessGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = module.createNestApplication();
     app.use((request: { user?: unknown }, _res: unknown, next: () => void) => {
@@ -51,13 +64,14 @@ describe('UserController routing', () => {
     expect(userService.getUserById).not.toHaveBeenCalled();
     expect(userService.searchAuthors).toHaveBeenCalledWith(
       expect.objectContaining({ q: 'erc' }),
+      CALLER_ID,
     );
   });
 
   it('reaches the public author at /user/author/:id', async () => {
     await get(`/user/author/${USER_ID}`).expect(200);
 
-    expect(userService.getAuthorById).toHaveBeenCalledWith(USER_ID);
+    expect(userService.getAuthorById).toHaveBeenCalledWith(USER_ID, CALLER_ID);
     expect(userService.getUserById).not.toHaveBeenCalled();
   });
 
@@ -69,5 +83,18 @@ describe('UserController routing', () => {
 
   it('rejects a user id that is not a uuid', async () => {
     await get('/user/not-a-uuid').expect(400);
+  });
+
+  it('reaches the follow toggle, not the profile lookup, at /user/author/:id/follow', async () => {
+    await request(app.getHttpServer())
+      .post(`/user/author/${USER_ID}/follow`)
+      .send({ follow: true })
+      .expect(200);
+
+    expect(followService.setFollowing).toHaveBeenCalledWith(
+      USER_ID,
+      CALLER_ID,
+      true,
+    );
   });
 });
