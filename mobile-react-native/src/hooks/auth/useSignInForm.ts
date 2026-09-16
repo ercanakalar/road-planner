@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { NavigationProp } from '@react-navigation/native';
 
 import useFormAction from 'hooks/common/useFormAction';
+import useSignedIn from 'hooks/auth/useSignedIn';
 import { useSignInMutation } from 'store/services/authenticationService';
 import { SignInRequest } from 'types/libs/auth';
 import { RootStackParamList } from 'types/screens/screens';
@@ -18,13 +19,14 @@ const validate = ({ email, password }: SignInRequest) => {
 
 export function useSignInForm(navigation: NavigationProp<RootStackParamList>) {
   const [signIn] = useSignInMutation();
+  const handleSignedIn = useSignedIn();
 
   const submit = useCallback(
     async (credentials: SignInRequest) => {
       await signIn(credentials).unwrap();
-      navigation.navigate('HomeTabNavigator', { screen: 'Routes' });
+      handleSignedIn();
     },
-    [navigation, signIn],
+    [handleSignedIn, signIn],
   );
 
   const form = useFormAction({
@@ -52,7 +54,7 @@ export function useSignInForm(navigation: NavigationProp<RootStackParamList>) {
     [form.values.email, navigation],
   );
 
-  return { ...form, goToSignUp, goToKvkk, goToForgotPassword };
+  return { ...form, handleSignedIn, goToSignUp, goToKvkk, goToForgotPassword };
 }
 
 export default useSignInForm;
