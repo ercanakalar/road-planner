@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
 import useFormAction from 'hooks/common/useFormAction';
+import useSignedIn from 'hooks/auth/useSignedIn';
 import { useSignUpMutation } from 'store/services/authenticationService';
 import { EMAIL_PATTERN } from 'hooks/auth/useSignInForm';
 import { RootStackParamList } from 'types/screens/screens';
@@ -33,13 +34,14 @@ const validate = ({ email, password, confirmPassword }: SignUpValues) => {
 export function useSignUpForm() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [signUp] = useSignUpMutation();
+  const handleSignedIn = useSignedIn();
 
   const submit = useCallback(
     async (values: SignUpValues) => {
       await signUp(values).unwrap();
-      navigation.navigate('HomeTabNavigator', { screen: 'Routes' });
+      handleSignedIn();
     },
-    [navigation, signUp],
+    [handleSignedIn, signUp],
   );
 
   const form = useFormAction({
