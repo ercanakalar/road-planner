@@ -25,6 +25,7 @@ const SignInScreen = ({ navigation }: Props) => {
     goToSignUp,
     goToKvkk,
     goToForgotPassword,
+    handleSignedIn,
   } = useSignInForm(navigation);
 
   return (
@@ -70,7 +71,12 @@ const SignInScreen = ({ navigation }: Props) => {
         isLoading={isPending}
       />
 
-      <GoogleSignInButton />
+      {/*
+        Google needs telling where to go on success, same as the form above:
+        the hook signs the person in and calls back, and without this the
+        screen it was opened from is still the screen they are looking at.
+      */}
+      <GoogleSignInButton onSuccess={handleSignedIn} />
 
       <Pressable
         onPress={goToKvkk}
