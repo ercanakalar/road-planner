@@ -8,12 +8,12 @@ import {
 import { trim } from 'src/common/dto/transforms';
 
 export class ToggleFavoriteStopDto {
-  @IsUUID('4', { message: 'stopId must be a UUID' })
+  @IsUUID('4')
   stopId!: string;
 }
 
 export class ToggleFavoriteRoadDto {
-  @IsUUID('4', { message: 'roadId must be a UUID' })
+  @IsUUID('4')
   roadId!: string;
 }
 

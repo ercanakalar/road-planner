@@ -121,7 +121,7 @@ describe('EmailService', () => {
 
     await expect(
       service.sendEmail({ to: 'a@b.com', subject: 's', html: 'h' }),
-    ).rejects.toThrow('Failed to send email');
+    ).rejects.toThrow('error.emailSendFailed');
   });
 
   describe('verifyConnection', () => {

@@ -150,7 +150,7 @@ describe('StopService', () => {
       it('accepts the last valid index', async () => {
         await expect(
           service.reorderStops(ROAD_ID, { from: 2, to: 0 }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
+        ).resolves.toMatchObject({ header: 'stop.reorderHeader' });
       });
 
       it('is a no-op when from equals to', async () => {
@@ -206,13 +206,13 @@ describe('StopService', () => {
             from: 0,
             to: 1,
           }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
+        ).resolves.toMatchObject({ header: 'stop.reorderHeader' });
       });
 
       it('accepts a body with no roadId at all', async () => {
         await expect(
           service.reorderStops(ROAD_ID, { from: 0, to: 1 }),
-        ).resolves.toMatchObject({ header: 'Reordered' });
+        ).resolves.toMatchObject({ header: 'stop.reorderHeader' });
       });
     });
   });
@@ -462,7 +462,7 @@ describe('StopService', () => {
       prisma.stop.delete.mockResolvedValue({ roadId: ROAD_ID });
 
       await expect(service.deleteStopById('wp-1')).resolves.toMatchObject({
-        header: 'Delete Stop',
+        header: 'stop.deleteHeader',
       });
 
       // The address is a column, so deleting the stop is the whole job.

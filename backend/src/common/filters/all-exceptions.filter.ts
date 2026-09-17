@@ -8,45 +8,54 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { Request, Response } from 'express';
+import { I18nService } from 'nestjs-i18n';
 
 import { ToastType } from 'src/common/type/status.type';
+import { Phrase } from 'src/common/http/api-response';
+import { translatePhrase } from 'src/common/interceptors/response-envelope.interceptor';
+import { resolveAcceptLanguage } from 'src/i18n/languages';
 
+/**
+ * Everything below is a translation key rather than a sentence. A message that
+ * arrives from a thrown `HttpException` is left as it is and resolves to
+ * itself, so a corner of the API still throwing English keeps working.
+ */
 const STATUS_HEADERS: Record<number, string> = {
-  [HttpStatus.BAD_REQUEST]: 'Invalid Request',
-  [HttpStatus.UNAUTHORIZED]: 'Not Signed In',
-  [HttpStatus.FORBIDDEN]: 'Not Allowed',
-  [HttpStatus.NOT_FOUND]: 'Not Found',
-  [HttpStatus.CONFLICT]: 'Conflict',
-  [HttpStatus.PAYLOAD_TOO_LARGE]: 'Too Large',
-  [HttpStatus.TOO_MANY_REQUESTS]: 'Slow Down',
-  [HttpStatus.INTERNAL_SERVER_ERROR]: 'Something Went Wrong',
-  [HttpStatus.SERVICE_UNAVAILABLE]: 'Temporarily Unavailable',
+  [HttpStatus.BAD_REQUEST]: 'error.invalidRequest',
+  [HttpStatus.UNAUTHORIZED]: 'error.notSignedIn',
+  [HttpStatus.FORBIDDEN]: 'error.notAllowed',
+  [HttpStatus.NOT_FOUND]: 'error.notFoundHeader',
+  [HttpStatus.CONFLICT]: 'error.conflict',
+  [HttpStatus.PAYLOAD_TOO_LARGE]: 'error.tooLarge',
+  [HttpStatus.TOO_MANY_REQUESTS]: 'error.slowDown',
+  [HttpStatus.INTERNAL_SERVER_ERROR]: 'error.somethingWentWrongHeader',
+  [HttpStatus.SERVICE_UNAVAILABLE]: 'error.temporarilyUnavailable',
 };
 
 const PRISMA_ERRORS: Record<string, { status: HttpStatus; message: string }> = {
   P2000: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'A supplied value is too long.',
+    message: 'error.valueTooLong',
   },
   P2002: {
     status: HttpStatus.CONFLICT,
-    message: 'That value is already taken.',
+    message: 'error.valueTaken',
   },
   P2003: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'A referenced record does not exist.',
+    message: 'error.referenceMissing',
   },
   P2011: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'A required value was missing.',
+    message: 'error.valueMissing',
   },
   P2014: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'That change would break a required relation.',
+    message: 'error.breaksRelation',
   },
   P2025: {
     status: HttpStatus.NOT_FOUND,
-    message: 'The requested record no longer exists.',
+    message: 'error.recordGone',
   },
 };
 
@@ -54,19 +63,19 @@ const SQLSTATE_ERRORS: Record<string, { status: HttpStatus; message: string }> =
   {
     '23505': {
       status: HttpStatus.CONFLICT,
-      message: 'That value is already taken.',
+      message: 'error.valueTaken',
     },
     '23503': {
       status: HttpStatus.BAD_REQUEST,
-      message: 'A referenced record does not exist.',
+      message: 'error.referenceMissing',
     },
     '23502': {
       status: HttpStatus.BAD_REQUEST,
-      message: 'A required value was missing.',
+      message: 'error.valueMissing',
     },
     '23514': {
       status: HttpStatus.BAD_REQUEST,
-      message: 'A supplied value is not allowed.',
+      message: 'error.valueNotAllowed',
     },
   };
 
@@ -82,21 +91,21 @@ const SQLSTATE_ERRORS: Record<string, { status: HttpStatus; message: string }> =
 const MULTER_ERRORS: Record<string, { status: HttpStatus; message: string }> = {
   LIMIT_FILE_SIZE: {
     status: HttpStatus.PAYLOAD_TOO_LARGE,
-    message: 'That file is too large to upload.',
+    message: 'error.fileTooLarge',
   },
   LIMIT_UNEXPECTED_FILE: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'That file was sent under a field this endpoint does not accept.',
+    message: 'error.fileWrongField',
   },
   LIMIT_FILE_COUNT: {
     status: HttpStatus.BAD_REQUEST,
-    message: 'Only one file may be uploaded at a time.',
+    message: 'error.fileTooMany',
   },
 };
 
 const MULTER_FALLBACK = {
   status: HttpStatus.BAD_REQUEST,
-  message: 'That upload could not be read.',
+  message: 'error.uploadUnreadable',
 };
 
 function multerFailure(
@@ -121,6 +130,8 @@ interface Described {
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
 
+  constructor(private readonly i18n: Pick<I18nService, 'translate'>) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -130,10 +141,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     this.log(status, request, exception, logDetail);
 
+    const language = resolveAcceptLanguage(
+      request.headers?.['accept-language'],
+    );
+    const say = (phrase: Phrase | undefined) =>
+      translatePhrase(phrase, language, this.i18n);
+
+    // Validation errors arrive as an array of sentences; each is translated on
+    // its own so one unrecognised key does not swallow the rest.
+    const message = Array.isArray(body.message)
+      ? (body.message as Phrase[]).map(say)
+      : say(body.message as Phrase | undefined);
+
     response.status(status).json({
       status: ToastType.Error,
-      header: STATUS_HEADERS[status] ?? 'Error',
+      header: say(STATUS_HEADERS[status] ?? 'error.genericHeader'),
       ...body,
+      ...(message === undefined ? {} : { message }),
       statusCode: status,
       path: request.url,
       timestamp: new Date().toISOString(),
@@ -193,7 +217,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     ) {
       return {
         status: HttpStatus.SERVICE_UNAVAILABLE,
-        body: { message: 'The service is temporarily unavailable.' },
+        body: { message: 'error.serviceUnavailable' },
         logDetail: exception.message,
       };
     }
@@ -212,7 +236,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private internal(): Described {
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      body: { message: 'An unexpected error occurred.' },
+      body: { message: 'error.unexpected' },
     };
   }
 

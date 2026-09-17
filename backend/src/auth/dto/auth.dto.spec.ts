@@ -72,7 +72,7 @@ describe('SignUpDto', () => {
         collectDtoErrors(SignUpDto, { ...valid(), password: 'onlyletters' }),
       ).resolves.toEqual(
         expect.arrayContaining([
-          expect.stringMatching(/at least one letter and one digit/),
+          expect.stringMatching('validation.passwordPattern'),
         ]),
       );
     });

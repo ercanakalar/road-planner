@@ -52,7 +52,7 @@ export class EmailService implements OnModuleInit {
       return true;
     } catch (error) {
       this.logger.error(`Failed to send email to ${payload.to}`, error);
-      throw new InternalServerErrorException('Failed to send email');
+      throw new InternalServerErrorException('error.emailSendFailed');
     }
   }
 
@@ -62,7 +62,7 @@ export class EmailService implements OnModuleInit {
       this.logger.log('Mail transporter connection verified');
     } catch (error) {
       this.logger.error('Mail transporter verification failed', error);
-      throw new InternalServerErrorException('Mail service unavailable');
+      throw new InternalServerErrorException('error.mailUnavailable');
     }
   }
 }

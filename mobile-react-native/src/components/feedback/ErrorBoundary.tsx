@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 
+import i18n from 'i18n';
 import ScreenState from 'components/ui/ScreenState';
 
 interface Props {
@@ -28,9 +29,12 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <ScreenState
           variant='error'
-          title='Something went wrong'
+          // A class component, because that is what catches a render error —
+          // so the translator is reached through the instance rather than a
+          // hook, which cannot be called from here.
+          title={i18n.t('common.somethingWentWrong')}
           message={this.state.error.message}
-          actionLabel='Try again'
+          actionLabel={i18n.t('actions.tryAgain')}
           onAction={this.handleReset}
         />
       );

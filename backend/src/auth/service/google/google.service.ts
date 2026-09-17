@@ -102,7 +102,7 @@ export class GoogleService implements OnModuleInit {
       );
     }
     if (!idToken) {
-      throw new BadRequestException('Missing Google id token');
+      throw new BadRequestException('error.googleTokenMissing');
     }
 
     let payload: TokenPayload | undefined;
@@ -116,14 +116,14 @@ export class GoogleService implements OnModuleInit {
       this.logger.warn(
         `Rejected Google id token: ${String(error)}${this.audienceHint(idToken, audience)}`,
       );
-      throw new UnauthorizedException('Google sign-in failed');
+      throw new UnauthorizedException('error.googleSignInFailed');
     }
 
     if (!payload?.email) {
-      throw new UnauthorizedException('Google account has no email address');
+      throw new UnauthorizedException('error.googleNoEmail');
     }
     if (payload.email_verified === false) {
-      throw new UnauthorizedException('Google email address is not verified');
+      throw new UnauthorizedException('error.googleEmailUnverified');
     }
 
     return this.toProfile({ ...payload, email: payload.email }, payload.sub);
@@ -182,12 +182,12 @@ export class GoogleService implements OnModuleInit {
 
   verifyState(state: string | undefined): void {
     if (!state) {
-      throw new UnauthorizedException('Missing OAuth state parameter');
+      throw new UnauthorizedException('error.googleStateMissing');
     }
 
     const parts = state.split('.');
     if (parts.length !== 3) {
-      throw new UnauthorizedException('Malformed OAuth state parameter');
+      throw new UnauthorizedException('error.googleStateMalformed');
     }
 
     const [nonce, issuedAt, signature] = parts;
@@ -200,12 +200,12 @@ export class GoogleService implements OnModuleInit {
       provided.length !== computed.length ||
       !timingSafeEqual(provided, computed)
     ) {
-      throw new UnauthorizedException('Invalid OAuth state parameter');
+      throw new UnauthorizedException('error.googleStateInvalid');
     }
 
     const age = Date.now() - Number(issuedAt);
     if (!Number.isFinite(age) || age < 0 || age > STATE_TTL_MS) {
-      throw new UnauthorizedException('Expired OAuth state parameter');
+      throw new UnauthorizedException('error.googleStateExpired');
     }
   }
 
@@ -242,7 +242,7 @@ export class GoogleService implements OnModuleInit {
     this.assertConfigured();
 
     if (!code) {
-      throw new BadRequestException('Missing authorization code');
+      throw new BadRequestException('error.googleCodeMissing');
     }
 
     const authClient = this.getAuthClient();
@@ -260,16 +260,14 @@ export class GoogleService implements OnModuleInit {
     const userInfo = userInfoResponse.data as GoogleAuthClient;
 
     if (!userInfo?.email) {
-      throw new UnauthorizedException('Google did not return an email address');
+      throw new UnauthorizedException('error.googleNoEmail');
     }
 
     if (!this.isEmailVerified(userInfo)) {
       this.logger.warn(
         `Rejected Google sign-in for unverified address ${userInfo.email}`,
       );
-      throw new UnauthorizedException(
-        'Your Google email address is not verified',
-      );
+      throw new UnauthorizedException('error.googleEmailUnverified');
     }
 
     return this.toProfile(userInfo, userInfo.id);

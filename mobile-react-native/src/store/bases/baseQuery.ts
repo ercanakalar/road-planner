@@ -5,6 +5,8 @@ import {
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query';
 
+import i18n from 'i18n';
+
 import { API_BASE_URL } from 'constants/apiUrl';
 import tokenStorage from 'services/tokenStorage';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
@@ -33,6 +35,11 @@ const rawBaseQuery = fetchBaseQuery({
     } else if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
+
+    // Everything the API says back — a toast, a validation message, an error
+    // — is worded from this header, so it goes on every request rather than
+    // only the ones that happen to show a message.
+    headers.set('Accept-Language', i18n.language);
 
     const stateToken = (getState() as RootState).auth.accessToken;
     const token = stateToken ?? (await tokenStorage.getAccessToken());

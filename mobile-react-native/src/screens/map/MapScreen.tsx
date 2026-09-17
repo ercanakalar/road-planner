@@ -13,6 +13,7 @@ import { MapSection } from 'components/map/MapSection';
 import ImportFromGoogleMapsModal from 'components/map/ImportFromGoogleMapsModal';
 import MapStatusPill from 'components/map/MapStatusPill';
 import MapToolbar from 'components/map/MapToolbar';
+import SaveRouteButton from 'components/map/SaveRouteButton';
 import LocalStopList from './LocalStopList';
 import LocalRoutePicker from './LocalRoutePicker';
 
@@ -27,10 +28,12 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 const MapScreen = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const {
@@ -60,6 +63,9 @@ const MapScreen = () => {
     stopPair,
     snapPoints,
     summary,
+    canSaveRoute,
+    isSavingRoute,
+    handleSaveRoute,
     sheetGesturesEnabled,
     setIsReordering,
     isEditingDetails,
@@ -83,7 +89,7 @@ const MapScreen = () => {
   } = useMapScreen();
 
   if (!isHydrated) {
-    return <ScreenState variant='loading' title='Opening the map…' />;
+    return <ScreenState variant='loading' title={t('map.opening')} />;
   }
 
   return (
@@ -110,7 +116,7 @@ const MapScreen = () => {
 
         <MapToolbar
           top={insets.top + 64}
-          title={activeRoute?.title ?? 'New route'}
+          title={activeRoute?.title ?? t('map.newRoute')}
           canSwitch={routes.length > 1}
           hasActiveRoute={activeRoute !== undefined}
           onSwitch={handleSwitchRoute}
@@ -125,7 +131,7 @@ const MapScreen = () => {
             style={[styles.onTheWay, { top: insets.top + 112 }]}
             onPress={openRouteSearch}
             accessibilityRole='button'
-            accessibilityLabel='Search for places along this route'
+            accessibilityLabel={t('routes.searchAlong')}
           >
             <Ionicons
               name='restaurant-outline'
@@ -135,20 +141,31 @@ const MapScreen = () => {
             <Text style={styles.onTheWayText}>
               {routeSearch.places.length > 0
                 ? `${routeSearch.places.length} on the way`
-                : 'On the way'}
+                : t('map.onTheWay')}
             </Text>
           </Pressable>
         ) : null}
 
         {isSavingPin ? (
-          <MapStatusPill top={insets.top + 158} label='Looking up that place…' />
+          <MapStatusPill
+            top={insets.top + 158}
+            label={t('map.lookingUpPlace')}
+          />
         ) : null}
 
         {!isLoggedIn && stops.length > 0 ? (
           <MapStatusPill
             top={insets.top + 158}
             icon='phone-portrait-outline'
-            label='Saved on this device'
+            label={t('map.savedOnThisDevice')}
+          />
+        ) : null}
+
+        {canSaveRoute ? (
+          <SaveRouteButton
+            bottom={snapPoints[0] + spacing.lg}
+            isSaving={isSavingRoute}
+            onPress={handleSaveRoute}
           />
         ) : null}
 
@@ -182,11 +199,11 @@ const MapScreen = () => {
 
       <EditDetailsModal
         visible={isEditingDetails}
-        heading='Route details'
-        hint='Saved on this device until you sign in and upload it.'
+        heading={t('routes.routeDetails')}
+        hint={t('mapUi.localHint')}
         initialTitle={activeRoute?.title}
         initialDescription={activeRoute?.description}
-        titleLabel='Route name'
+        titleLabel={t('defaults.routeName')}
         onSave={handleSaveDetails}
         onCancel={closeDetailsEditor}
       />

@@ -14,10 +14,22 @@ const LABELS: Record<
   FavoriteSectionKey,
   { title: string; icon: MaterialIconName; kind: FavoriteKind }
 > = {
-  ownRoutes: { title: 'My routes', icon: 'directions-car', kind: 'route' },
-  ownStops: { title: 'My places', icon: 'location-on', kind: 'stop' },
-  othersRoutes: { title: "Others' routes", icon: 'public', kind: 'route' },
-  othersStops: { title: "Others' places", icon: 'place', kind: 'stop' },
+  ownRoutes: {
+    title: 'favorites.ownRoutes',
+    icon: 'directions-car',
+    kind: 'route',
+  },
+  ownStops: { title: 'favorites.ownStops', icon: 'location-on', kind: 'stop' },
+  othersRoutes: {
+    title: 'favorites.othersRoutes',
+    icon: 'public',
+    kind: 'route',
+  },
+  othersStops: {
+    title: 'favorites.othersStops',
+    icon: 'place',
+    kind: 'stop',
+  },
 };
 
 /** Which of the four buckets belong to each tab. */

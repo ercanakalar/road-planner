@@ -13,6 +13,7 @@ import {
 } from 'store/services/routeService';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
 import { MapScreenProps, OwnRouteSummary } from 'types/map-screen-type';
+import { useTranslation } from 'react-i18next';
 
 const EMPTY_ROUTES: OwnRouteSummary[] = [];
 
@@ -23,6 +24,7 @@ const EMPTY_ROUTES: OwnRouteSummary[] = [];
 export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { t } = useTranslation();
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const { shareRoute, sharingRouteId } = useShareRoute();
@@ -50,15 +52,15 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const handleDeleteRoute = useCallback(
     async (route: OwnRouteSummary) => {
       const confirmed = await confirm({
-        title: 'Remove route',
-        message: `“${route.title}” leaves your list and stops being shared. Anyone who saved it keeps their copy.`,
-        confirmLabel: 'Remove',
+        title: t('dialogs.removeRouteTitle'),
+        message: t('dialogs.removeRouteMessage', { title: route.title }),
+        confirmLabel: t('actions.remove'),
         icon: 'trash-outline',
         tone: 'danger',
       });
       if (confirmed) deleteRouteById({ routeId: route.id });
     },
-    [confirm, deleteRouteById],
+    [confirm, deleteRouteById, t],
   );
 
   const handleTogglePublic = useCallback(
@@ -67,9 +69,9 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
 
       if (next) {
         const confirmed = await confirm({
-          title: 'Share this route',
-          message: `“${route.title}” and its stops become visible to everyone, next to your name. You can stop sharing at any time.`,
-          confirmLabel: 'Share',
+          title: t('dialogs.shareRouteTitle'),
+          message: t('dialogs.shareRouteMessage', { title: route.title }),
+          confirmLabel: t('actions.share'),
           icon: 'globe-outline',
         });
         if (!confirmed) return;
@@ -135,14 +137,14 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
       } catch {
         showNotification({
           type: 'error',
-          header: 'Could not save',
-          message: 'Your changes were not applied. Please try again.',
+          header: t('toast.couldNotSave'),
+          message: t('toast.changesNotAppliedRetry'),
         });
       } finally {
         setIsSaving(false);
       }
     },
-    [dispatch, editing],
+    [dispatch, editing, t],
   );
 
   return {

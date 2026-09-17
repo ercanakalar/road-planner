@@ -17,7 +17,14 @@ import {
 } from 'src/auth/dto/auth.dto';
 import { HelperService } from 'src/auth/helper/helper.service';
 import { GoogleProfile } from 'src/auth/type/auth.types';
+import { I18nService } from 'nestjs-i18n';
+
 import { ok } from 'src/common/http/api-response';
+import {
+  AppLanguage,
+  FALLBACK_LANGUAGE,
+  isAppLanguage,
+} from 'src/i18n/languages';
 import {
   RESET_CODE_LOCKOUT_HOURS,
   RESET_CODE_MAX_ATTEMPTS,
@@ -32,6 +39,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 const USER_AUTH_SELECT = {
   id: true,
   email: true,
+  language: true,
   manuelAuth: {
     select: { id: true, password: true },
   },
@@ -124,7 +132,7 @@ const DUMMY_PASSWORD_HASH =
   'scrypt$N=32768,r=8,p=1$00000000000000000000000000000000$' + '0'.repeat(128);
 
 const FORGOT_PASSWORD_RESPONSE = ok({
-  header: 'Password Reset Requested',
+  header: 'auth.resetRequestedHeader',
   message:
     'If an account exists for that address, a reset code has been sent to it.',
 });
@@ -140,6 +148,7 @@ export class AuthService {
     private readonly helperService: HelperService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService<EnvironmentVariables, true>,
+    private readonly i18n: I18nService,
   ) {}
 
   private async findUserByEmail(email: string) {
@@ -147,6 +156,44 @@ export class AuthService {
       where: { email },
       select: USER_AUTH_SELECT,
     });
+  }
+
+  /**
+   * Notes which language to write to somebody in, when signing in says.
+   *
+   * Every answer the API gives takes its language from the request that asked;
+   * an email has no request behind it, so the last one this account was seen in
+   * is the only thing to go on. Best-effort and swallowed: failing to note a
+   * preference must not fail a sign-in that has already succeeded.
+   */
+  private async rememberLanguage(
+    userId: string,
+    language: AppLanguage | undefined,
+  ): Promise<void> {
+    if (!language) return;
+
+    try {
+      await this.prisma.user.updateMany({
+        where: { id: userId, language: { not: language } },
+        data: { language },
+      });
+    } catch (error) {
+      this.logger.warn(`Could not note the language for ${userId}`, error);
+    }
+  }
+
+  /**
+   * How to word an email to somebody.
+   *
+   * Their stored language wins over the request's: a password reset can be
+   * asked for from a browser set to something else, and what the account
+   * chose is the better guess at what they read.
+   */
+  private sayTo(stored: string | null | undefined, asked?: AppLanguage) {
+    const lang = isAppLanguage(stored) ? stored : (asked ?? FALLBACK_LANGUAGE);
+
+    return (key: string, args: Record<string, unknown> = {}): string =>
+      this.i18n.translate(key, { lang, args }) as string;
   }
 
   private async findUserById(userId: string) {
@@ -225,12 +272,12 @@ export class AuthService {
     });
   }
 
-  async signUp(signUpData: SignUpDto) {
+  async signUp(signUpData: SignUpDto, language?: AppLanguage) {
     const { email, password } = signUpData;
 
     const existingUser = await this.findUserByEmail(email);
     if (existingUser?.manuelAuth) {
-      throw new BadRequestException('User already exists');
+      throw new BadRequestException('error.userExists');
     }
 
     const [userPermit, hashedPassword] = await Promise.all([
@@ -243,9 +290,11 @@ export class AuthService {
         where: { email },
         update: {
           permit: { connect: { id: userPermit.id } },
+          ...(language ? { language } : {}),
         },
         create: {
           email,
+          ...(language ? { language } : {}),
           permit: { connect: { id: userPermit.id } },
         },
       });
@@ -264,8 +313,8 @@ export class AuthService {
     });
 
     return ok({
-      header: 'Signup successful',
-      message: 'You signed up successfully',
+      header: 'auth.signupHeader',
+      message: 'auth.signupMessage',
       data: {
         userId: result.userId,
         accessToken: result.accessToken,
@@ -274,14 +323,14 @@ export class AuthService {
     });
   }
 
-  async signIn(signInData: SignInDto) {
+  async signIn(signInData: SignInDto, language?: AppLanguage) {
     const { email, password } = signInData;
 
     const user = await this.findUserByEmail(email);
 
     if (!user?.manuelAuth) {
       await this.helperService.comparePassword(DUMMY_PASSWORD_HASH, password);
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('error.badCredentials');
     }
 
     const isPasswordValid = await this.helperService.comparePassword(
@@ -290,7 +339,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('error.badCredentials');
     }
 
     if (this.helperService.needsRehash(user.manuelAuth.password)) {
@@ -302,9 +351,11 @@ export class AuthService {
 
     const { accessToken, refreshToken } = await this.createSession(user);
 
+    await this.rememberLanguage(user.id, language);
+
     return ok({
-      header: 'Login successful',
-      message: 'You signed in successfully',
+      header: 'auth.loginHeader',
+      message: 'auth.loginMessage',
       data: {
         userId: user.id,
         accessToken,
@@ -315,20 +366,20 @@ export class AuthService {
 
   async signOut(userId: string) {
     if (!userId) {
-      throw new BadRequestException('User ID is required');
+      throw new BadRequestException('error.userIdRequired');
     }
 
     const user = await this.findUserById(userId);
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('error.userNotFound');
     }
 
     await this.revokeAllSessions(userId);
 
     return ok({
-      header: 'Logout successful',
-      message: 'Successfully signed out',
+      header: 'auth.logoutHeader',
+      message: 'auth.logoutMessage',
     });
   }
 
@@ -338,11 +389,11 @@ export class AuthService {
     try {
       decoded = await this.helperService.verifyRefreshToken(refreshToken);
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('error.sessionExpired');
     }
 
     if (!decoded?.userId) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('error.sessionExpired');
     }
 
     const session = await this.prisma.session.findUnique({
@@ -355,15 +406,15 @@ export class AuthService {
         `Refresh token replay detected for user ${decoded.userId}; sessions revoked`,
       );
       await this.revokeAllSessions(decoded.userId);
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('error.sessionExpired');
     }
 
     if (session.revokedAt || session.expiresAt <= new Date()) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('error.sessionExpired');
     }
 
     if (session.userId !== decoded.userId) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('error.sessionExpired');
     }
 
     const issued = await this.prisma.$transaction(async (tx) => {
@@ -380,7 +431,7 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string, language?: AppLanguage) {
     const user = await this.findUserByEmail(email);
     if (!user?.manuelAuth) {
       return FORGOT_PASSWORD_RESPONSE;
@@ -399,17 +450,21 @@ export class AuthService {
     const frontendUrl = this.config.get('FRONTEND_URL', { infer: true });
     const resetTokenUrl = `${frontendUrl}/reset-password/${token}`;
 
+    const say = this.sayTo(user.language, language);
+
     await this.emailService.sendEmail({
       to: email,
-      subject: 'Password Reset',
-      text: `Click the link to reset your password: ${resetTokenUrl}`,
-      html: `<p>Click the link to reset your password: <a href="${resetTokenUrl}">${resetTokenUrl}</a></p>`,
+      subject: say('email.resetSubject'),
+      text: say('email.resetBody', { link: resetTokenUrl }),
+      html: `<p>${say('email.resetBody', {
+        link: `<a href="${resetTokenUrl}">${resetTokenUrl}</a>`,
+      })}</p>`,
     });
 
     return FORGOT_PASSWORD_RESPONSE;
   }
 
-  async requestPasswordResetCode(email: string) {
+  async requestPasswordResetCode(email: string, language?: AppLanguage) {
     const user = await this.findUserByEmail(email);
     if (!user?.manuelAuth) return FORGOT_PASSWORD_RESPONSE;
 
@@ -425,11 +480,20 @@ export class AuthService {
       expiresAt,
     });
 
+    const say = this.sayTo(user.language, language);
+    const body = (shown: string) =>
+      say('email.resetCodeBody', {
+        code: shown,
+        minutes: RESET_CODE_TTL_MINUTES,
+      });
+
     await this.emailService.sendEmail({
       to: email,
-      subject: 'Your password reset code',
-      text: `Your password reset code is ${code}. It expires in ${RESET_CODE_TTL_MINUTES} minutes.`,
-      html: `<p>Your password reset code is <strong>${code}</strong>.</p><p>It expires in ${RESET_CODE_TTL_MINUTES} minutes. If you did not ask for it, you can ignore this email.</p>`,
+      subject: say('email.resetCodeSubject'),
+      text: `${body(code)} ${say('email.resetCodeIgnore')}`,
+      html:
+        `<p>${body(`<strong>${code}</strong>`)}</p>` +
+        `<p>${say('email.resetCodeIgnore')}</p>`,
     });
 
     return FORGOT_PASSWORD_RESPONSE;
@@ -531,17 +595,15 @@ export class AuthService {
     }
 
     return ok({
-      header: 'Code Verified',
-      message: 'Enter a new password to finish.',
+      header: 'auth.codeVerifiedHeader',
+      message: 'auth.codeVerifiedMessage',
       data: { resetToken: token, expiresAt: expiresAt.toISOString() },
     });
   }
 
   async resetPassword(resetPasswordData: ResetPasswordDto, token: string) {
     if (resetPasswordData.password !== resetPasswordData.confirmPassword) {
-      throw new BadRequestException(
-        'password and confirmPassword do not match',
-      );
+      throw new BadRequestException('error.passwordsDoNotMatch');
     }
 
     const tokenHash = this.helperService.hashToken(token);
@@ -562,7 +624,7 @@ export class AuthService {
         grant.expiresAt <= new Date() ||
         !grant.user.manuelAuth
       ) {
-        throw new BadRequestException('Reset token is invalid or expired');
+        throw new BadRequestException('error.resetTokenInvalid');
       }
 
       const consumed = await tx.passwordReset.updateMany({
@@ -571,7 +633,7 @@ export class AuthService {
       });
 
       if (consumed.count === 0) {
-        throw new BadRequestException('Reset token is invalid or expired');
+        throw new BadRequestException('error.resetTokenInvalid');
       }
 
       await tx.manuelAuth.update({
@@ -583,16 +645,14 @@ export class AuthService {
     });
 
     return ok({
-      header: 'Password Reset Successful',
-      message: 'Password has been reset successfully',
+      header: 'auth.resetDoneHeader',
+      message: 'auth.resetDoneMessage',
     });
   }
 
   async changePassword(userId: string, body: ChangePasswordDto) {
     if (body.newPassword !== body.confirmPassword) {
-      throw new BadRequestException(
-        'newPassword and confirmPassword do not match',
-      );
+      throw new BadRequestException('error.passwordsDoNotMatch');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -604,9 +664,7 @@ export class AuthService {
     });
 
     if (!user?.manuelAuth) {
-      throw new BadRequestException(
-        'This account does not sign in with a password',
-      );
+      throw new BadRequestException('error.noPasswordLogin');
     }
 
     const isCurrentValid = await this.helperService.comparePassword(
@@ -615,13 +673,11 @@ export class AuthService {
     );
 
     if (!isCurrentValid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      throw new UnauthorizedException('error.currentPasswordWrong');
     }
 
     if (body.currentPassword === body.newPassword) {
-      throw new BadRequestException(
-        'New password must differ from the current one',
-      );
+      throw new BadRequestException('error.passwordUnchanged');
     }
 
     const hashedPassword = await this.helperService.toHashPassword(
@@ -634,12 +690,12 @@ export class AuthService {
     });
 
     return ok({
-      header: 'Password Changed',
-      message: 'Your password has been updated',
+      header: 'auth.changedHeader',
+      message: 'auth.changedMessage',
     });
   }
 
-  async signInWithGoogle(profile: GoogleProfile) {
+  async signInWithGoogle(profile: GoogleProfile, language?: AppLanguage) {
     const { email } = profile;
 
     const existingUser = await this.prisma.user.findUnique({
@@ -654,6 +710,7 @@ export class AuthService {
           data: {
             email,
             ...googleProfileFields(profile),
+            ...(language ? { language } : {}),
             permit: { connect: { id: userPermit.id } },
           },
           select: USER_GOOGLE_SELECT,
@@ -669,8 +726,8 @@ export class AuthService {
       });
 
       return ok({
-        header: 'Google Sign In Successful',
-        message: 'New user created and signed in with Google',
+        header: 'auth.googleHeader',
+        message: 'auth.googleCreated',
         data: {
           userId: created.user.id,
           accessToken: created.accessToken,
@@ -700,9 +757,11 @@ export class AuthService {
       return { user, ...(await this.createSession(user, tx)) };
     });
 
+    await this.rememberLanguage(issued.user.id, language);
+
     return ok({
-      header: 'Google Sign In Successful',
-      message: 'User signed in with Google',
+      header: 'auth.googleHeader',
+      message: 'auth.googleSignedIn',
       data: {
         userId: issued.user.id,
         accessToken: issued.accessToken,

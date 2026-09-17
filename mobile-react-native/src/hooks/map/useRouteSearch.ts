@@ -11,6 +11,7 @@ import useDebouncedValue from 'hooks/common/useDebouncedValue';
 import { DEFAULT_SEARCH_RADIUS_METERS } from 'constants/placeCategories';
 import { StopWithAddress } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
+import i18n from 'i18n';
 
 const DEBOUNCE_MS = 600;
 
@@ -156,7 +157,7 @@ export function useRouteSearch(
         if (cancelled) return;
         setResult(undefined);
         setHasSearched(true);
-        setError('Could not search along this route.');
+        setError(i18n.t('errors.couldNotSearchAlong'));
       })
       .finally(() => {
         if (!cancelled) setIsSearching(false);

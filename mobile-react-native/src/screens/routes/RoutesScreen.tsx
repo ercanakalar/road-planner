@@ -10,9 +10,11 @@ import RoutesList from './RouteList';
 import { spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { MapScreenProps } from 'types/map-screen-type';
+import { useTranslation } from 'react-i18next';
 
 const RoutesScreen = ({ navigation }: MapScreenProps) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const {
     isLoggedIn,
@@ -43,8 +45,8 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
         <ScreenState
           variant='empty'
           icon='lock-closed-outline'
-          title='Sign in to see your routes'
-          message='Your saved routes live with your account. The Map tab works without one.'
+          title={t('routes.signedOutTitle')}
+          message={t('routes.signedOutMessage')}
         />
       </Container>
     );
@@ -54,24 +56,24 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
     <Container>
       <View style={styles.container}>
         <ScreenHeader
-          title='My Routes'
+          title={t('routes.title')}
           subtitle={
             routes.length === 0
-              ? 'Nothing saved yet'
-              : `${routes.length} route${routes.length === 1 ? '' : 's'} · ${stopCount} stop${
-                  stopCount === 1 ? '' : 's'
-                }`
+              ? t('routes.nothingSavedYet')
+              : `${t('routes.routeCount', {
+                  count: routes.length,
+                })} · ${t('routes.stopCount', { count: stopCount })}`
           }
         />
 
         {isLoading ? (
-          <ScreenState variant='loading' title='Loading your routes…' />
+          <ScreenState variant='loading' title={t('states.loadingRoutes')} />
         ) : isError ? (
           <ScreenState
             variant='error'
-            title='Could not load routes'
-            message='Check your connection and try again.'
-            actionLabel='Retry'
+            title={t('routes.errorTitle')}
+            message={t('states.checkConnection')}
+            actionLabel={t('common.retry')}
             onAction={handleRefresh}
           />
         ) : (
@@ -94,10 +96,10 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
       <EditDetailsModal
         visible={editing !== null}
-        heading='Edit route'
+        heading={t('routes.editRoute')}
         initialTitle={editing?.title}
         initialDescription={editing?.description}
-        titleLabel='Route name'
+        titleLabel={t('defaults.routeName')}
         isSaving={isSaving}
         showPublishToggle
         initialIsPublic={editing?.isPublic ?? false}

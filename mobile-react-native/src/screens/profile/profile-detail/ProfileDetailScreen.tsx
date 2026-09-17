@@ -38,6 +38,7 @@ import {
 import type { ThemeColors } from 'theme';
 import { ProfileForm } from 'types/store/services/userService-type';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NavigationProp<RootStackParamList>;
@@ -56,12 +57,12 @@ const FIELDS: {
   hint?: string;
   autoCapitalize: 'words' | 'none';
 }[] = [
-  { key: 'firstName', label: 'First name', autoCapitalize: 'words' },
-  { key: 'lastName', label: 'Last name', autoCapitalize: 'words' },
+  { key: 'firstName', label: 'forms.firstName', autoCapitalize: 'words' },
+  { key: 'lastName', label: 'forms.lastName', autoCapitalize: 'words' },
   {
     key: 'nickName',
-    label: 'Nickname',
-    hint: 'The name shown on the routes you publish.',
+    label: 'forms.nickName',
+    hint: 'forms.nickNameHint',
     autoCapitalize: 'none',
   },
 ];
@@ -69,6 +70,7 @@ const FIELDS: {
 const ProfileDetailScreen = ({ navigation, route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const dispatch = useAppDispatch();
@@ -100,15 +102,12 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
 
         showNotification({
           type: 'error',
-          header: 'Upload failed',
-          message: apiErrorMessage(
-            error,
-            'Your photo could not be uploaded. Please try again.',
-          ),
+          header: t('toast.uploadFailed'),
+          message: apiErrorMessage(error, t('toast.photoUploadFailed')),
         });
       }
     },
-    [updatePhoto],
+    [t, updatePhoto],
   );
 
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
@@ -144,22 +143,22 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
     } catch {
       showNotification({
         type: 'error',
-        header: 'Update failed',
-        message: 'Could not save your profile. Please try again.',
+        header: t('toast.updateFailed'),
+        message: t('toast.profileSaveFailed'),
       });
     }
   }, [data, dispatch, form, navigation, updateUser]);
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading profile…' />;
+    return <ScreenState variant='loading' title={t('states.loadingProfile')} />;
   }
 
   if (isError || !data) {
     return (
       <ScreenState
         variant='error'
-        title='Could not load your profile'
-        message='Check your connection and try again.'
+        title={t('states.couldNotLoadProfile')}
+        message={t('states.checkConnection')}
       />
     );
   }
@@ -193,7 +192,7 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
               key={key}
               style={[styles.field, index > 0 && styles.fieldDivided]}
             >
-              <Text style={styles.label}>{label}</Text>
+              <Text style={styles.label}>{t(label)}</Text>
               <TextInput
                 value={form[key]}
                 onChangeText={onChangeText(key)}
@@ -203,14 +202,14 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
                 autoCorrect={false}
                 returnKeyType='done'
               />
-              {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+              {hint ? <Text style={styles.hint}>{t(hint)}</Text> : null}
             </View>
           ))}
         </View>
 
         <View style={styles.card}>
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('fields.email')}</Text>
             <View style={styles.readOnly}>
               <Ionicons
                 name='lock-closed-outline'
@@ -221,9 +220,7 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
                 {data.email || '—'}
               </Text>
             </View>
-            <Text style={styles.hint}>
-              Your email address cannot be changed.
-            </Text>
+            <Text style={styles.hint}>{t('fields.emailUnchangeable')}</Text>
           </View>
         </View>
 
@@ -242,7 +239,7 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
             <ActivityIndicator color={colors.textInverse} />
           ) : (
             <Text style={styles.buttonText}>
-              {isDirty ? 'Save changes' : 'Nothing to save'}
+              {isDirty ? t('forms.saveChanges') : t('forms.nothingToSave')}
             </Text>
           )}
         </Pressable>

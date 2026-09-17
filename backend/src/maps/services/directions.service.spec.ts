@@ -170,11 +170,11 @@ describe('DirectionsService', () => {
     });
 
     it('lets a client failure through rather than reporting no route', async () => {
-      client.get.mockRejectedValue(new Error('Map service is unavailable'));
+      client.get.mockRejectedValue(new Error('error.mapsUnavailable'));
 
       await expect(
         service.route({ origin: ISTANBUL, destination: ANKARA }),
-      ).rejects.toThrow('Map service is unavailable');
+      ).rejects.toThrow('error.mapsUnavailable');
     });
   });
 

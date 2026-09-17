@@ -64,10 +64,10 @@ export class RoadTerrainService {
     const shapes = await this.measure(stops, mode);
 
     return ok({
-      header: 'Terrain',
+      header: 'terrain.header',
       message: shapes.some(Boolean)
-        ? 'Terrain calculated'
-        : 'Nothing to measure along this route',
+        ? 'terrain.calculated'
+        : 'terrain.nothingToMeasure',
       data: stops.map<StopTerrain>(({ id }, index) => ({
         stopId: id,
         shape: shapes[index] ?? null,
@@ -80,10 +80,10 @@ export class RoadTerrainService {
     const shapes = await this.measure(coordinates, mode);
 
     return ok({
-      header: 'Terrain',
+      header: 'terrain.header',
       message: shapes.some(Boolean)
-        ? 'Terrain calculated'
-        : 'Nothing to measure along this route',
+        ? 'terrain.calculated'
+        : 'terrain.nothingToMeasure',
       data: shapes,
     });
   }

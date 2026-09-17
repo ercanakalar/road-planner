@@ -8,9 +8,10 @@ import {
 import { showNotification } from 'services/notificationService';
 import { useAppDispatch } from 'store/hook';
 import { localRouteImported } from 'store/slices/localRouteSlice';
+import { useTranslation } from 'react-i18next';
 
 const NOT_A_ROUTE =
-  'That link has no route in it. Open a route in Google Maps, use Share, and paste the link it gives you.';
+  'errors.notARoute';
 
 /**
  * Brings a route in from a Google Maps link.
@@ -21,6 +22,7 @@ const NOT_A_ROUTE =
  */
 export function useGoogleMapsImport() {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   const [link, setLink] = useState('');
   const [isReading, setIsReading] = useState(false);
@@ -57,14 +59,14 @@ export function useGoogleMapsImport() {
 
       if (!result || result.resolved.length === 0) {
         setPreview(null);
-        setError(result ? 'None of those stops could be found.' : NOT_A_ROUTE);
+        setError(t(result ? 'errors.noStopsFound' : NOT_A_ROUTE));
         return;
       }
 
       setPreview(result);
     } catch {
       setPreview(null);
-      setError('Could not read that link. Check your connection.');
+      setError(t('errors.couldNotReadLink'));
     } finally {
       setIsReading(false);
     }
@@ -77,7 +79,7 @@ export function useGoogleMapsImport() {
 
       dispatch(
         localRouteImported({
-          title: title.trim() || 'Imported route',
+          title: title.trim() || t('defaults.importedRoute'),
           stops: preview.resolved.map(({ latitude, longitude, address }) => ({
             latitude,
             longitude,
@@ -88,10 +90,10 @@ export function useGoogleMapsImport() {
 
       showNotification({
         type: 'success',
-        header: 'Route imported',
-        message: `${preview.resolved.length} stop${
-          preview.resolved.length === 1 ? '' : 's'
-        } added from Google Maps.`,
+        header: t('toast.routeImported'),
+        message: t('toast.stopsAddedFromGoogle', {
+          count: preview.resolved.length,
+        }),
       });
 
       reset();

@@ -17,6 +17,7 @@ import {
 import { useGetUserQuery } from 'store/services/profileService';
 import { DiscoverRoute } from 'types/store/services/routeService-type';
 import { RootStackParamList } from 'types/screens/screens';
+import i18n from 'i18n';
 
 const EMPTY_DISCOVER: DiscoverRoute[] = [];
 
@@ -108,7 +109,7 @@ export function useHomeScreen() {
       const route = optimisticDiscoverRoutes.find((item) => item.id === routeId);
       navigation.navigate('CommunityRouteScreen', {
         routeId,
-        title: route?.title ?? 'Community route',
+        title: route?.title ?? i18n.t('nav.communityRoute'),
       });
     },
     [navigation, optimisticDiscoverRoutes],

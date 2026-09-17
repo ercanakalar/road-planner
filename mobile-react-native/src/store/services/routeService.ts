@@ -40,11 +40,19 @@ import {
   UpdateStopByStopIdArgs,
   UpdateStopByStopIdResponse,
 } from 'types/store/services/routeService-type';
+import i18n from 'i18n';
 
 const TEMP_STOP_ID = 'temp-stop-id';
 
 /** Shown on an optimistically added stop until the server names it. */
-const PENDING_ADDRESS = 'Locating…';
+/**
+ * Shown against a stop whose address has not come back yet.
+ *
+ * Read through the translator at each use rather than resolved once: this
+ * module is imported before i18next has settled on a language, and the value
+ * would be fixed at whatever it was then.
+ */
+const pendingAddress = () => i18n.t('defaults.locating');
 
 const withSequentialOrder = (
   stops: StopWithAddress[],
@@ -281,7 +289,7 @@ export const routeService = createApi({
                 favoriteStops: [],
                 createdAt: now,
                 updatedAt: now,
-                address: stop.address ?? PENDING_ADDRESS,
+                address: stop.address ?? pendingAddress(),
               });
             },
           ),
@@ -367,7 +375,7 @@ export const routeService = createApi({
               if (!target) return;
               target.latitude = stop.latitude;
               target.longitude = stop.longitude;
-              target.address = stop.address ?? PENDING_ADDRESS;
+              target.address = stop.address ?? pendingAddress();
             },
           ),
         );

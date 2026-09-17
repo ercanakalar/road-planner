@@ -31,6 +31,7 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { metersToDistance } from 'utils/secondsToHour';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   visible: boolean;
@@ -95,6 +96,8 @@ const CategoryChip = memo(
     isSelected: boolean;
     onToggle: (key: string) => void;
   }) => {
+    const { t } = useTranslation();
+
     const handlePress = useCallback(
       () => onToggle(category.key),
       [category.key, onToggle],
@@ -102,7 +105,7 @@ const CategoryChip = memo(
 
     return (
       <Chip
-        label={category.label}
+        label={t(category.label)}
         icon={category.icon}
         isSelected={isSelected}
         onPress={handlePress}
@@ -150,6 +153,8 @@ const SortChip = memo(
     isSelected: boolean;
     onSelect: (sortBy: RouteSearchSort) => void;
   }) => {
+    const { t } = useTranslation();
+
     const handlePress = useCallback(
       () => onSelect(option.key),
       [onSelect, option.key],
@@ -157,7 +162,7 @@ const SortChip = memo(
 
     return (
       <Chip
-        label={option.label}
+        label={t(option.label)}
         isSelected={isSelected}
         onPress={handlePress}
       />
@@ -179,6 +184,7 @@ const PlaceRow = memo(
   }) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
 
     const handleShow = useCallback(
       () => onShowOnMap(place),
@@ -218,11 +224,13 @@ const PlaceRow = memo(
             ) : null}
 
             <Text style={styles.rowMetaText}>
-              {metersToDistance(place.distanceFromRouteMeters)} off route
+              {t('mapUi.offRoute', {
+                distance: metersToDistance(place.distanceFromRouteMeters),
+              })}
             </Text>
 
             {place.openNow === false ? (
-              <Text style={styles.closed}>Closed</Text>
+              <Text style={styles.closed}>{t('mapUi.closed')}</Text>
             ) : null}
           </View>
         </View>
@@ -252,6 +260,7 @@ const RouteSearchSheet = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const {
@@ -300,11 +309,13 @@ const RouteSearchSheet = ({
         <Pressable style={styles.sheet} onPress={swallowPress}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.heading}>On the way</Text>
+              <Text style={styles.heading}>{t('map.onTheWay')}</Text>
               <Text style={styles.subheading}>
                 {isRoutable
-                  ? `Within ${metersToDistance(radiusMeters)} of your route`
-                  : 'Add a second stop to search along a route'}
+                  ? t('mapUi.withinOfRoute', {
+                      distance: metersToDistance(radiusMeters),
+                    })
+                  : t('mapUi.addSecondStop')}
               </Text>
             </View>
 
@@ -312,7 +323,7 @@ const RouteSearchSheet = ({
               onPress={onClose}
               hitSlop={8}
               accessibilityRole='button'
-              accessibilityLabel='Close search'
+              accessibilityLabel={t('mapUi.closeSearch')}
             >
               <Ionicons name='close' size={22} color={colors.textMuted} />
             </Pressable>
@@ -321,7 +332,7 @@ const RouteSearchSheet = ({
           <View style={styles.inputWrapper}>
             <Ionicons name='search' size={18} color={colors.textMuted} />
             <TextInput
-              placeholder='Anything: sushi, car wash, playground…'
+              placeholder={t('mapUi.searchAnything')}
               value={query}
               onChangeText={setQuery}
               style={styles.input}
@@ -371,7 +382,7 @@ const RouteSearchSheet = ({
             <View style={styles.chipDivider} />
 
             <Chip
-              label='Open now'
+              label={t('mapUi.openNow')}
               icon='time-outline'
               isSelected={openNow}
               onPress={toggleOpenNow}
@@ -432,11 +443,11 @@ const RouteSearchSheet = ({
                   : error
                     ? error
                     : !hasSearch
-                      ? 'Pick a kind of place, or type what you are after.'
+                      ? t('errors.pickAKind')
                       : isSearching
-                        ? 'Looking along your route…'
+                        ? t('errors.lookingAlongRoute')
                         : hasSearched
-                          ? 'Nothing of the sort along this route. Try a wider radius.'
+                          ? t('errors.nothingOfTheSort')
                           : ''}
               </Text>
             }

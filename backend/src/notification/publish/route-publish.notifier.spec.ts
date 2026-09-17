@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -10,6 +11,7 @@ import {
 import { EmailService } from '../email/email.service';
 import { NotificationService } from '../inbox/notification.service';
 import { escapeHtml, RoutePublishNotifier } from './route-publish.notifier';
+import { testI18n } from 'src/testing/i18n';
 
 const ROAD_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 const AUTHOR_ID = 'c2f0d0b3-2a4e-4d9b-8e3c-1b2c3d4e5f60';
@@ -34,12 +36,28 @@ describe('RoutePublishNotifier', () => {
         id: `follower-${index}`,
         email: address,
         notifyByEmail: true,
+        language: null,
       },
     }));
 
+  /** A follower who has been seen in a particular language. */
+  const followerReading = (language: string | null) => ({
+    follower: {
+      id: `follower-${language ?? 'unknown'}`,
+      email: `${language ?? 'unknown'}@example.com`,
+      notifyByEmail: true,
+      language,
+    },
+  });
+
   /** Somebody who wants the inbox line but not the email. */
   const quietFollower = (id: string) => ({
-    follower: { id, email: `${id}@example.com`, notifyByEmail: false },
+    follower: {
+      id,
+      email: `${id}@example.com`,
+      notifyByEmail: false,
+      language: null,
+    },
   });
 
   beforeEach(async () => {
@@ -60,6 +78,7 @@ describe('RoutePublishNotifier', () => {
             FRONTEND_URL: 'https://app.example',
           }),
         },
+        { provide: I18nService, useValue: testI18n() },
       ],
     }).compile();
 
@@ -103,6 +122,39 @@ describe('RoutePublishNotifier', () => {
     expect(payload.subject).toBe('ercan published a new route');
     expect(payload.html).toContain('Aegean coast');
     expect(payload.html).toContain(`https://routes.example/route/${ROAD_ID}`);
+  });
+
+  it('writes to each follower in the language they were last seen in', async () => {
+    // Nobody asked for this email, so there is no request to read a language
+    // off: what the account was last seen in is the whole of what is known.
+    prisma.authorFollow.findMany.mockResolvedValue([
+      followerReading('tr'),
+      followerReading('en'),
+    ]);
+
+    await notifier.notifyFollowers(ROAD_ID);
+
+    const subjects = email.sendEmail.mock.calls.map(
+      ([payload]: [{ to: string; subject: string }]) => [
+        payload.to,
+        payload.subject,
+      ],
+    );
+
+    expect(subjects).toEqual([
+      ['tr@example.com', 'ercan yeni bir rota yayınladı'],
+      ['en@example.com', 'ercan published a new route'],
+    ]);
+  });
+
+  it('falls back to English for somebody never seen in one', async () => {
+    prisma.authorFollow.findMany.mockResolvedValue([followerReading(null)]);
+
+    await notifier.notifyFollowers(ROAD_ID);
+
+    const [payload] = email.sendEmail.mock.calls[0];
+
+    expect(payload.subject).toBe('ercan published a new route');
   });
 
   it('says nothing to anyone about a route that is no longer public', async () => {

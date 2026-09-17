@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import ScreenState from 'components/ui/ScreenState';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
@@ -27,6 +28,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
+  const { t } = useTranslation();
 
   const {
     notifications,
@@ -62,7 +64,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
                 pressed && styles.headerButtonPressed,
               ]}
               accessibilityRole='button'
-              accessibilityLabel='Clear all notifications'
+              accessibilityLabel={t('notifications.clearAll')}
             >
               <Ionicons
                 name='trash-outline'
@@ -80,7 +82,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
               pressed && styles.headerButtonPressed,
             ]}
             accessibilityRole='button'
-            accessibilityLabel='Notification settings'
+            accessibilityLabel={t('notifications.openSettings')}
           >
             <Ionicons name='options-outline' size={20} color={colors.text} />
           </Pressable>
@@ -96,6 +98,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
     navigation,
     notifications.length,
     styles,
+    t,
   ]);
 
   const renderItem = useCallback(
@@ -116,23 +119,23 @@ const NotificationsScreen = ({ navigation }: Props) => {
       <ScreenState
         variant='empty'
         icon='notifications-outline'
-        title='Sign in to see notifications'
-        message='Follow the people whose routes you want to hear about, and their new ones show up here.'
+        title={t('notifications.signedOutTitle')}
+        message={t('notifications.signedOutMessage')}
       />
     );
   }
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading notifications…' />;
+    return <ScreenState variant='loading' title={t('notifications.loading')} />;
   }
 
   if (isError) {
     return (
       <ScreenState
         variant='error'
-        title='Could not load your notifications'
-        message='Check your connection and try again.'
-        actionLabel='Retry'
+        title={t('notifications.errorTitle')}
+        message={t('notifications.errorMessage')}
+        actionLabel={t('common.retry')}
         onAction={refetch}
       />
     );
@@ -165,8 +168,8 @@ const NotificationsScreen = ({ navigation }: Props) => {
         <ScreenState
           variant='empty'
           icon='notifications-outline'
-          title='Nothing yet'
-          message='Tap “Notify me” on somebody’s profile, and their next published route turns up here.'
+          title={t('notifications.emptyTitle')}
+          message={t('notifications.emptyMessage')}
         />
       }
       ListFooterComponent={footer}

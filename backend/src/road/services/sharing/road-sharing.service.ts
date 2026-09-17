@@ -52,7 +52,7 @@ export class RoadSharingService {
     });
 
     if (!road || road.archivedAt) {
-      throw new NotFoundException('The shared route no longer exists');
+      throw new NotFoundException('error.sharedRouteGone');
     }
 
     const { user, favoriteRoads, ...rest } = road;

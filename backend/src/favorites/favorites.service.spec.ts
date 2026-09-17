@@ -43,7 +43,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteRoad({ roadId: ROAD_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Favorite Added' });
+      ).resolves.toMatchObject({ header: 'favorite.addedHeader' });
     });
 
     it('removes an existing favourite', async () => {
@@ -51,7 +51,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteRoad({ roadId: ROAD_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Removed Favorite' });
+      ).resolves.toMatchObject({ header: 'favorite.removedHeader' });
       expect(prisma.favoriteRoad.delete).toHaveBeenCalledWith({
         where: { id: 'fav-1' },
       });
@@ -73,7 +73,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteRoad({ roadId: ROAD_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Removed Favorite' });
+      ).resolves.toMatchObject({ header: 'favorite.removedHeader' });
     });
 
     it('scopes the existing-favourite lookup to the caller', async () => {
@@ -98,7 +98,7 @@ describe('FavoritesService', () => {
         service.toggleFavoriteRoad({ roadId: ROAD_ID }, USER_ID),
       ).resolves.toMatchObject({
         status: ToastType.Success,
-        header: 'Already Favorited',
+        header: 'favorite.alreadyHeader',
       });
     });
 
@@ -136,7 +136,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Favorite Added' });
+      ).resolves.toMatchObject({ header: 'favorite.addedHeader' });
     });
 
     it('removes an existing favourite', async () => {
@@ -144,7 +144,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Removed Favorite' });
+      ).resolves.toMatchObject({ header: 'favorite.removedHeader' });
     });
 
     it('still removes a favourite whose stop has since been deleted', async () => {
@@ -153,7 +153,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Removed Favorite' });
+      ).resolves.toMatchObject({ header: 'favorite.removedHeader' });
     });
 
     it('propagates a missing stop as a 404 rather than a 200', async () => {
@@ -174,7 +174,7 @@ describe('FavoritesService', () => {
         service.toggleFavoriteStop({ stopId: STOP_ID }, USER_ID),
       ).resolves.toMatchObject({
         status: ToastType.Success,
-        header: 'Already Favorited',
+        header: 'favorite.alreadyHeader',
       });
     });
 
@@ -286,7 +286,7 @@ describe('FavoritesService', () => {
 
       await expect(
         service.toggleFavoriteRoad({ roadId: ROAD_ID }, USER_ID),
-      ).resolves.toMatchObject({ header: 'Removed Favorite' });
+      ).resolves.toMatchObject({ header: 'favorite.removedHeader' });
       expect(prisma.road.findFirst).not.toHaveBeenCalled();
     });
   });

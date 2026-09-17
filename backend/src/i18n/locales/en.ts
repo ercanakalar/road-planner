@@ -1,0 +1,377 @@
+/**
+ * The source strings for everything the API says to a person.
+ *
+ * Grouped by the part of the app that says it. Every other locale is a
+ * translation of this file, and a key missing there falls back to the sentence
+ * written here rather than to the key itself.
+ */
+const en = {
+  common: {
+    somethingWentWrong: 'Something went wrong',
+    notFound: 'Not found',
+    unauthorized: 'Unauthorized',
+    forbidden: 'You do not have permission to do that',
+    tooManyRequests: 'Too many requests. Try again shortly.',
+    validationFailed: 'Some of the details were not accepted',
+  },
+
+  error: {
+    invalidRequest: 'Invalid Request',
+    notSignedIn: 'Not Signed In',
+    notAllowed: 'Not Allowed',
+    notFoundHeader: 'Not Found',
+    conflict: 'Conflict',
+    tooLarge: 'Too Large',
+    slowDown: 'Slow Down',
+    somethingWentWrongHeader: 'Something Went Wrong',
+    temporarilyUnavailable: 'Temporarily Unavailable',
+    genericHeader: 'Error',
+
+    valueTooLong: 'A supplied value is too long.',
+    valueTaken: 'That value is already taken.',
+    referenceMissing: 'A referenced record does not exist.',
+    valueMissing: 'A required value was missing.',
+    breaksRelation: 'That change would break a required relation.',
+    recordGone: 'The requested record no longer exists.',
+    valueNotAllowed: 'A supplied value is not allowed.',
+
+    serviceUnavailable: 'The service is temporarily unavailable.',
+    unexpected: 'An unexpected error occurred.',
+
+    fileTooLarge: 'That file is too large to upload.',
+    fileWrongField:
+      'That file was sent under a field this endpoint does not accept.',
+    fileTooMany: 'Only one file may be uploaded at a time.',
+    uploadUnreadable: 'That upload could not be read.',
+
+    adminsOnly: 'Access denied: Admins only',
+    emailTaken: 'An account with this email already exists',
+    imageRequired: 'An image file is required',
+    currentPasswordWrong: 'Current password is incorrect',
+    googleStateExpired: 'Expired OAuth state parameter',
+    emailSendFailed: 'Failed to send email',
+    favoriteRouteNotFound: 'Favorite route not found',
+    favoriteStopNotFound: 'Favorite stop not found',
+    googleNoEmail: 'Google account has no email address',
+    googleEmailUnverified: 'Google email address is not verified',
+    googleSignInFailed: 'Google sign-in failed',
+    imageTooLarge: 'Images must be 5 MB or smaller',
+    googleStateInvalid: 'Invalid OAuth state parameter',
+    googleStateMalformed: 'Malformed OAuth state parameter',
+    googleStateMissing: 'Missing OAuth state parameter',
+    badCredentials: 'Invalid email or password',
+    sessionExpired: 'Invalid refresh token',
+    mailUnavailable: 'Mail service unavailable',
+    mapsBusy: 'Map service is busy, try again',
+    mapsUnavailable: 'Map service is unavailable',
+    mapsFailed: 'Map service returned an error',
+    googleTokenMissing: 'Missing Google id token',
+    googleCodeMissing: 'Missing authorization code',
+    passwordUnchanged: 'New password must differ from the current one',
+    nothingToUpdate: 'No updatable fields were supplied',
+    notAuthenticated: 'Not authenticated',
+    permissionIdsUnknown: 'One or more permissionIds do not exist',
+    imageWrongType: 'Only JPEG, PNG and WebP images are accepted',
+    photoStoreUnavailable:
+      'Photos cannot be saved at the moment. Please try again later.',
+    missingIdentifier: 'Request is missing a route or stop identifier',
+    resetTokenInvalid: 'Reset token is invalid or expired',
+    routeNotFound: 'Route not found',
+    stopNotFound: 'Stop not found',
+    personNotFound: 'That person has not published a route',
+    sharedRouteGone: 'The shared route no longer exists',
+    noPasswordLogin: 'This account does not sign in with a password',
+    nicknameTaken: 'This nickname is already in use',
+    tokenNoSubject: 'Token is missing a subject',
+    userIdRequired: 'User ID is required',
+    userExists: 'User already exists',
+    userNotFound: 'User not found',
+    cannotFollowSelf: 'You already hear about your own routes',
+    noAccess: 'You do not have access to this resource',
+    notYourRoute: 'You do not own this route',
+    ownProfileOnly: 'You may only read your own profile',
+    passwordsDoNotMatch: 'The passwords do not match',
+    roadIdMismatch: 'roadId in the body does not match the roadId in the path',
+    stopIdRequired: 'stopId is required',
+  },
+
+  notification: {
+    header: 'Notifications',
+    fetched: 'Notifications fetched',
+    nothingNew: 'Nothing new',
+    markedRead: 'Marked as read',
+    nothingUnread: 'Nothing was unread',
+    cleared: 'Notifications cleared',
+    nothingToClear: 'Nothing to clear',
+    settingsHeader: 'Notification settings',
+    saved: 'Saved',
+  },
+
+  follow: {
+    following: 'Following',
+    notFollowing: 'Not following',
+    willHear: 'You will hear about their next route',
+    willNotHear: 'You will not hear about their new routes',
+  },
+
+  email: {
+    publishSubject: '{{author}} published a new route',
+    publishBody: '{{author}} has just published “{{title}}”.',
+    publishOpenHere: 'Open it here: {{link}}',
+    publishOpenApp: 'Open Route Planner to see it.',
+    publishAction: 'Open the route',
+    publishFooter:
+      'You are getting this because you asked to hear about their routes. Turn it off from their profile in the app.',
+
+    resetSubject: 'Password Reset',
+    resetBody: 'Click the link to reset your password: {{link}}',
+    resetCodeSubject: 'Your password reset code',
+    resetCodeBody:
+      'Your password reset code is {{code}}. It expires in {{minutes}} minutes.',
+    resetCodeIgnore: 'If you did not ask for it, you can ignore this email.',
+  },
+
+  favorite: {
+    removedHeader: 'Removed Favorite',
+    stopRemoved: 'Favorite stop removed successfully',
+    addedHeader: 'Favorite Added',
+    stopAdded: 'Favorite stop added successfully',
+    alreadyHeader: 'Already Favorited',
+    stopAlready: 'This stop is already in your favorites',
+    routeRemoved: 'Favorite route removed successfully',
+    routeAdded: 'Favorite route added successfully',
+    routeAlready: 'This route is already in your favorites',
+    allHeader: 'All Favorites',
+    retrieved: 'Favorites retrieved successfully',
+    updatedHeader: 'Favorite updated',
+    changesSaved: 'Your changes were saved',
+  },
+
+  auth: {
+    resetRequestedHeader: 'Password Reset Requested',
+    signupHeader: 'Signup successful',
+    signupMessage: 'You signed up successfully',
+    loginHeader: 'Login successful',
+    loginMessage: 'You signed in successfully',
+    logoutHeader: 'Logout successful',
+    logoutMessage: 'Successfully signed out',
+    codeVerifiedHeader: 'Code Verified',
+    codeVerifiedMessage: 'Enter a new password to finish.',
+    resetDoneHeader: 'Password Reset Successful',
+    resetDoneMessage: 'Password has been reset successfully',
+    changedHeader: 'Password Changed',
+    changedMessage: 'Your password has been updated',
+    googleHeader: 'Google Sign In Successful',
+    googleCreated: 'New user created and signed in with Google',
+    googleSignedIn: 'User signed in with Google',
+  },
+
+  road: {
+    createdHeader: 'Route Created',
+    createdMessage: 'Route created successfully',
+    foundHeader: 'Route Found',
+    foundMessage: 'Route found successfully',
+    ownHeader: 'Own Routes',
+    ownMessage: 'Own routes retrieved successfully',
+    discoverHeader: 'Discover Routes',
+    discoverEmpty: 'No published routes yet',
+    discoverMessage: 'Published routes retrieved successfully',
+    copiedHeader: 'Route Copied',
+    copiedMessage: 'The route is now yours to edit',
+    updatedHeader: 'Route Updated',
+    updatedMessage: 'Route updated successfully',
+    removedHeader: 'Route Removed',
+    removedMessage: 'Route removed from your list',
+  },
+
+  stop: {
+    foundHeader: 'Stop Found',
+    foundMessage: 'Stop found successfully',
+    addHeader: 'Add Stop',
+    addMessage: 'Stop added successfully',
+    deleteHeader: 'Delete Stop',
+    deleteMessage: 'Stop deleted and order updated successfully',
+    updateHeader: 'Update Stop',
+    updateMessage: 'Stop updated successfully',
+    reorderHeader: 'Reordered',
+    reorderMessage: 'Stop order updated successfully',
+  },
+
+  permit: {
+    assignedHeader: 'Permit Assigned',
+    assigned: '{{name}} now holds the {{permit}} permit',
+    updatedHeader: 'Permit Updated',
+    updated: 'The {{permit}} permit was updated',
+  },
+
+  user: {
+    photoHeader: 'Photo Updated',
+    photoMessage: 'Profile photo updated successfully',
+    photoNotFound: 'Photo not found',
+    updatedHeader: 'User Updated',
+    updatedMessage: 'User updated successfully',
+    peopleHeader: 'People',
+    peopleFound: 'People found',
+    peopleNone: 'Nobody matches that search',
+    authorHeader: 'Author',
+    authorMessage: 'Author fetched successfully',
+    fetchedHeader: 'User Fetched',
+    fetchedMessage: 'User fetched successfully',
+    dashboardWelcome: 'Welcome to the admin dashboard',
+  },
+
+  route: {
+    header: 'Route',
+    tooShort: 'A route needs at least two stops',
+    calculated: 'Route calculated',
+    none: 'No route between those points',
+    durationsHeader: 'Durations',
+    durationsCalculated: 'Travel times calculated',
+  },
+
+  terrain: {
+    header: 'Terrain',
+    calculated: 'Terrain calculated',
+    nothingToMeasure: 'Nothing to measure along this route',
+  },
+
+  search: {
+    header: 'Route Search',
+    found: 'Routes found',
+    none: 'No routes match that search yet',
+  },
+
+  maps: {
+    addressHeader: 'Address Found',
+    addressMessage: 'Address resolved successfully',
+    placesHeader: 'Places',
+    placesMessage: 'Place suggestions retrieved',
+    placeHeader: 'Place',
+    placeFound: 'Place found',
+    placeNoLocation: 'That place has no location',
+    alongHeader: 'Along your route',
+    alongNothing: 'Nothing matching along this route',
+    alongFound: {
+      one: '{{count}} place along your route',
+      other: '{{count}} places along your route',
+    },
+    alongPartial: {
+      one: '{{count}} place along your route, from part of it',
+      other: '{{count}} places along your route, from part of it',
+    },
+  },
+
+  validation: {
+    required: '{{field}} is required',
+    mustBeText: '{{field}} must be text',
+    mustBeYesOrNo: '{{field}} must be yes or no',
+    mustBeWholeNumber: '{{field}} must be a whole number',
+    mustBeNumber: '{{field}} must be a number',
+    mustBeList: '{{field}} must be a list',
+    mustBeOneOf: '{{field}} must be one of: {{values}}',
+    mustBeEmail: '{{field}} must be a valid email address',
+    mustBeUrl: '{{field}} must be a valid web address',
+    mustBeId: '{{field}} must be a valid id',
+    mustBeToken: '{{field}} must be a valid token',
+    mustBeLatitude: '{{field}} must be a valid latitude',
+    mustBeLongitude: '{{field}} must be a valid longitude',
+    wrongFormat: '{{field}} is not in the expected format',
+    tooShort: '{{field}} must be at least {{bound}} characters',
+    tooLong: '{{field}} must be at most {{bound}} characters',
+    tooSmall: '{{field}} must be {{bound}} or more',
+    tooBig: '{{field}} must be {{bound}} or less',
+    tooFewItems: '{{field}} must have at least {{bound}} entries',
+    tooManyItems: '{{field}} must have at most {{bound}} entries',
+
+    passwordPattern: 'Password must contain at least one letter and one digit',
+    nickNamePattern:
+      'Nickname may contain only letters, numbers, dots, underscores and hyphens',
+    resetCodeLength: 'The code must be {{bound}} digits',
+  },
+
+  field: {
+    address: 'Address',
+    authorId: 'Author',
+    category: 'Category',
+    code: 'Code',
+    confirmPassword: 'Password confirmation',
+    currentPassword: 'Current password',
+    description: 'Description',
+    destination: 'Destination',
+    email: 'Email',
+    firstName: 'First name',
+    lastName: 'Last name',
+    idToken: 'Google sign-in token',
+    inApp: 'In-app notifications',
+    input: 'Search text',
+    isPublic: 'Published',
+    latitude: 'Latitude',
+    limit: 'Page size',
+    longitude: 'Longitude',
+    maxStops: 'Most stops',
+    minStops: 'Fewest stops',
+    minRating: 'Lowest rating',
+    mode: 'Travel mode',
+    modes: 'Travel modes',
+    newPassword: 'New password',
+    nickName: 'Nickname',
+    offset: 'Page offset',
+    openNow: 'Open now',
+    optimize: 'Optimise order',
+    order: 'Order',
+    origin: 'Starting point',
+    password: 'Password',
+    permissionIds: 'Permissions',
+    permitId: 'Permit',
+    photo: 'Photo',
+    q: 'Search text',
+    query: 'Search text',
+    radiusMeters: 'Search radius',
+    refreshToken: 'Session token',
+    roadId: 'Route',
+    sessionToken: 'Session token',
+    sort: 'Sort order',
+    sortBy: 'Sort order',
+    stopId: 'Stop',
+    stops: 'Stops',
+    title: 'Title',
+    type: 'Type',
+    userId: 'User',
+    waypoints: 'Stops',
+    follow: 'Notifications',
+    from: 'From',
+    to: 'To',
+    id: 'Id',
+    language: 'Language',
+    hasMore: 'Has more',
+    total: 'Total',
+  },
+} as const;
+
+/**
+ * A sentence that changes with a count.
+ *
+ * `nestjs-i18n` picks the branch with `Intl.PluralRules` for the language it is
+ * resolving in, so a language with more categories than English can add them
+ * here without anything in the code changing.
+ */
+export interface PluralForms {
+  one: string;
+  other: string;
+}
+
+/**
+ * The shape every other locale fills in: the same keys, any wording.
+ *
+ * Which keys count and which do not is carried over from the English file, so a
+ * translation cannot quietly flatten a plural into one sentence.
+ */
+export type Translations = {
+  [Namespace in keyof typeof en]: {
+    [
+      Key in keyof (typeof en)[Namespace]
+    ]: (typeof en)[Namespace][Key] extends string ? string : PluralForms;
+  };
+};
+
+export default en;

@@ -128,6 +128,14 @@ model User {
   notifyInApp   Boolean @default(true)
   notifyByEmail Boolean @default(true)
 
+  /// Which language to write to this person in, as a two-letter code.
+  ///
+  /// Everything the API answers takes its language from the request's own
+  /// Accept-Language header. An email has no request behind it — it is sent
+  /// because somebody else published a route — so the only place to look is
+  /// here. Null until they have been seen once, which reads as the fallback.
+  language String? @db.VarChar(8)
+
   notifications      Notification[] @relation("NotificationsReceived")
   causedNotifications Notification[] @relation("NotificationsCaused")
 

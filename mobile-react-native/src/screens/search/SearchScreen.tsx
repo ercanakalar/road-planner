@@ -23,10 +23,12 @@ import {
     AuthorHit,
     RouteSearchHit,
 } from 'types/store/services/searchService-type';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 const TABS: { key: SearchTab; label: string }[] = [
-    { key: 'routes', label: 'Routes' },
-    { key: 'people', label: 'People' },
+    { key: 'routes', label: 'searchScreen.tabRoutes' },
+    { key: 'people', label: 'searchScreen.tabPeople' },
 ];
 
 /**
@@ -34,15 +36,21 @@ const TABS: { key: SearchTab; label: string }[] = [
  * the unpaged total rather than the number of rows loaded: "312 routes" does
  * not change as the list is scrolled.
  */
-const countLabel = (tab: SearchTab, total: number): string => {
-    if (tab === 'people') {
-        return total === 1 ? '1 person' : `${total} people`;
-    }
-    return total === 1 ? '1 route' : `${total} routes`;
-};
+const countLabel = (
+    tab: SearchTab,
+    total: number,
+    t: TFunction,
+): string =>
+    t(
+        tab === 'people'
+            ? 'searchScreen.personCount'
+            : 'searchScreen.routeCount',
+        { count: total },
+    );
 
 const SearchScreen = () => {
     const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
     const {
         query,
@@ -103,31 +111,37 @@ const SearchScreen = () => {
     const keyExtractor = useCallback((item: { id: string }) => item.id, []);
 
     const emptyMessage = isTermTooShort
-        ? 'Keep typing — two letters at least.'
+        ? t('searchScreen.keepTyping')
         : term
-          ? `Nothing matches “${term}”.`
+          ? t('searchScreen.nothingMatches', { term })
           : tab === 'routes'
-            ? 'Search published routes, or browse the newest below.'
-            : 'Search for someone who has published a route.';
+            ? t('searchScreen.searchRoutesHint')
+            : t('searchScreen.searchPeopleHint');
 
     const empty = isFailed ? (
         <ScreenState
             variant='error'
-            title='Search is not answering'
-            message='Check your connection and try again.'
-            actionLabel='Retry'
+            title={t('searchScreen.errorTitle')}
+            message={t('states.checkConnection')}
+            actionLabel={t('common.retry')}
             onAction={retry}
         />
     ) : isSearching ? (
-        <ScreenState variant='loading' title='Searching…' />
+        <ScreenState variant='loading' title={t('states.searching')} />
     ) : (
         <ScreenState
             variant='empty'
             icon='search-outline'
-            title={term ? 'No matches' : 'Search'}
+            title={
+                term
+                    ? t('searchScreen.noMatchesTitle')
+                    : t('searchScreen.searchTitle')
+            }
             message={
                 author
-                    ? `${author.displayName} has nothing that matches these filters.`
+                    ? t('searchScreen.authorNoMatches', {
+                          name: author.displayName,
+                      })
                     : emptyMessage
             }
         />
@@ -145,7 +159,7 @@ const SearchScreen = () => {
     // Held back until there is an answer: "0 routes" under a spinner reads as
     // a result rather than as a question still being asked.
     const hasAnswer = !isTermTooShort && !(isSearching && total === 0);
-    const count = hasAnswer ? countLabel(tab, total) : null;
+    const count = hasAnswer ? countLabel(tab, total, t) : null;
 
     return (
         <Container>
@@ -180,7 +194,7 @@ const SearchScreen = () => {
                                         styles.tabTextSelected,
                                 ]}
                             >
-                                {option.label}
+                                {t(option.label)}
                             </Text>
                         </Pressable>
                     ))}

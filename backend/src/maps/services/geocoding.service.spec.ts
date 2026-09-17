@@ -116,10 +116,10 @@ describe('GeocodingService', () => {
     });
 
     it('lets an upstream failure through', async () => {
-      client.get.mockRejectedValue(new Error('Map service is unavailable'));
+      client.get.mockRejectedValue(new Error('error.mapsUnavailable'));
 
       await expect(service.reverseGeocode(KADIKOY)).rejects.toThrow(
-        'Map service is unavailable',
+        'error.mapsUnavailable',
       );
     });
   });
@@ -167,7 +167,7 @@ describe('GeocodingService', () => {
     });
 
     it('costs the user nothing when the lookup fails', async () => {
-      client.get.mockRejectedValue(new Error('Map service is unavailable'));
+      client.get.mockRejectedValue(new Error('error.mapsUnavailable'));
 
       // A stop with no name is worth keeping; a failed save is not.
       await expect(service.resolveAddress(KADIKOY)).resolves.toBe(

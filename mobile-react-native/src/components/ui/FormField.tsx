@@ -18,6 +18,7 @@ import {
   useThemedTextInputProps,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -28,6 +29,7 @@ interface Props extends Omit<TextInputProps, 'style'> {
 const FormField = ({ label, error, isPassword, ...inputProps }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const isMultiline = !!inputProps.multiline;
@@ -69,7 +71,9 @@ const FormField = ({ label, error, isPassword, ...inputProps }: Props) => {
             onPress={toggleHidden}
             hitSlop={8}
             accessibilityRole='button'
-            accessibilityLabel={isHidden ? 'Show password' : 'Hide password'}
+            accessibilityLabel={
+              isHidden ? t('forms.showPassword') : t('forms.hidePassword')
+            }
           >
             <Ionicons
               name={isHidden ? 'eye-outline' : 'eye-off-outline'}

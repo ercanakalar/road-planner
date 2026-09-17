@@ -25,12 +25,14 @@ import { addressName } from 'utils/address';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 const noop = () => {};
 
 const CommunityRouteScreen = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const mapRef = useRef<MapView | null>(null);
 
   const { params } =
@@ -87,15 +89,15 @@ const CommunityRouteScreen = () => {
   }, [cloneRoute, navigation, params.routeId]);
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading route…' />;
+    return <ScreenState variant='loading' title={t('states.loadingRoute')} />;
   }
 
   if (isError || !route) {
     return (
       <ScreenState
         variant='error'
-        title='Route unavailable'
-        message='It may have been unpublished by its owner.'
+        title={t('routes.unavailableTitle')}
+        message={t('routes.unavailableMessage')}
       />
     );
   }
@@ -133,24 +135,24 @@ const CommunityRouteScreen = () => {
           {route.isFavorite ? (
             <View style={styles.savedPill}>
               <Ionicons name='heart' size={11} color={colors.primary} />
-              <Text style={styles.savedText}>Saved</Text>
+              <Text style={styles.savedText}>{t('routes.saved')}</Text>
             </View>
           ) : null}
-          <Text style={styles.readOnly}>Read only</Text>
+          <Text style={styles.readOnly}>{t('routes.readOnly')}</Text>
         </View>
 
         {isLoggedIn ? (
           <>
             {route.isFavorite ? null : (
               <PrimaryButton
-                label='Save to my favourites'
+                label={t('actions.saveToFavourites')}
                 onPress={handleSave}
                 isLoading={isSaving}
               />
             )}
 
             <PrimaryButton
-              label='Make a copy I can edit'
+              label={t('actions.makeACopy')}
               variant='secondary'
               onPress={handleClone}
               isLoading={isCloning}
@@ -167,7 +169,7 @@ const CommunityRouteScreen = () => {
               it in your favourites or make a copy you can edit.
             </Text>
             <PrimaryButton
-              label='Sign in'
+              label={t('common.signIn')}
               variant='secondary'
               onPress={goToSignIn}
             />

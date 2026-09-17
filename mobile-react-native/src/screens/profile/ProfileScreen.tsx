@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import Container from 'components/ui/Container';
 import ScreenState from 'components/ui/ScreenState';
@@ -32,6 +33,7 @@ type Props = { navigation: NavigationProp<RootStackParamList> };
 const ProfileScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const {
     user,
@@ -47,7 +49,7 @@ const ProfileScreen = ({ navigation }: Props) => {
   } = useProfileScreen(navigation);
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading profile…' />;
+    return <ScreenState variant='loading' title={t('profile.loading')} />;
   }
 
   const photo = resolvePhotoUrl(user?.photo);
@@ -69,7 +71,7 @@ const ProfileScreen = ({ navigation }: Props) => {
           onPress={goToProfile}
           style={({ pressed }) => [styles.header, pressed && styles.pressed]}
           accessibilityRole='button'
-          accessibilityLabel={`Edit the profile of ${displayName}`}
+          accessibilityLabel={t('profile.editProfileOf', { name: displayName })}
         >
           <View style={styles.avatarWrap}>
             {/*
@@ -111,40 +113,40 @@ const ProfileScreen = ({ navigation }: Props) => {
         </Pressable>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your account</Text>
+          <Text style={styles.sectionTitle}>{t('profile.yourAccount')}</Text>
 
           <View style={styles.group}>
             <SettingsRow
               icon='person-outline'
-              label='Edit profile'
-              description='Your photo, name and nickname'
+              label={t('profile.editProfile')}
+              description={t('profile.editProfileHint')}
               divided={false}
               onPress={goToProfile}
             />
             <SettingsRow
               icon='notifications-outline'
-              label='Notifications'
-              description='New routes from the people you follow'
+              label={t('profile.notifications')}
+              description={t('profile.notificationsHint')}
               badge={unreadCount}
               onPress={goToNotifications}
             />
             <SettingsRow
               icon='options-outline'
-              label='Settings'
-              description='Theme, notifications and map behaviour'
+              label={t('profile.settings')}
+              description={t('profile.settingsHint')}
               onPress={goToSettings}
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
+          <Text style={styles.sectionTitle}>{t('profile.privacy')}</Text>
 
           <View style={styles.group}>
             <SettingsRow
               icon='shield-checkmark-outline'
-              label='KVKK consent'
-              description='What you have agreed to, and how to withdraw it'
+              label={t('profile.kvkkConsent')}
+              description={t('profile.kvkkHint')}
               divided={false}
               onPress={goToKvkk}
             />
@@ -163,7 +165,7 @@ const ProfileScreen = ({ navigation }: Props) => {
         >
           <Ionicons name='log-out-outline' size={20} color={colors.danger} />
           <Text style={styles.logoutText}>
-            {isLoggingOut ? 'Signing out…' : 'Sign out'}
+            {isLoggingOut ? t('profile.signingOut') : t('profile.signOut')}
           </Text>
         </Pressable>
       </ScrollView>

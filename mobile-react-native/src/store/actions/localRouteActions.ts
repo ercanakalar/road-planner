@@ -9,6 +9,7 @@ import localRouteStorage from 'services/localRouteStorage';
 import { LocalRoute } from 'types/local-route';
 import { StopInput } from 'types/store/services/routeService-type';
 import type { AppDispatch, RootState } from 'store';
+import i18n from 'i18n';
 
 const TITLE_MAX_LENGTH = 255;
 const STOPS_MAX = 500;
@@ -26,11 +27,22 @@ const toStopInput = (route: LocalRoute): StopInput[] =>
     address: stop.address,
   }));
 
+/**
+ * Saves routes held on this device to the account.
+ *
+ * `routeId` narrows it to one. The map saves the route somebody is looking at
+ * — sweeping up the other three they have not opened would be a surprise from
+ * a button on a screen showing only this one — while Settings, which is about
+ * the device rather than any one route, still saves the lot.
+ */
 export const uploadLocalRoutes =
-  () =>
+  ({ routeId }: { routeId?: string } = {}) =>
   async (dispatch: AppDispatch, getState: () => RootState): Promise<UploadResult> => {
     const { localRoute, auth } = getState();
-    const routes = localRoute.routes.filter((route) => route.stops.length > 0);
+    const routes = localRoute.routes.filter(
+      (route) =>
+        route.stops.length > 0 && (routeId === undefined || route.id === routeId),
+    );
 
     if (!auth.isLoggedIn || routes.length === 0) {
       return { uploaded: 0, failed: 0 };
@@ -45,7 +57,9 @@ export const uploadLocalRoutes =
       try {
         await dispatch(
           routeService.endpoints.createRoute.initiate({
-            title: route.title.slice(0, TITLE_MAX_LENGTH) || 'Untitled route',
+            title:
+              route.title.slice(0, TITLE_MAX_LENGTH) ||
+              i18n.t('defaults.untitledRoute'),
             description: route.description,
             stops: toStopInput(route),
           }),
@@ -61,7 +75,7 @@ export const uploadLocalRoutes =
     if (uploadedIds.length > 0) {
       showNotification({
         type: 'success',
-        header: 'Routes saved',
+        header: i18n.t('defaults.routesSaved'),
         message: `${uploadedIds.length} route${
           uploadedIds.length === 1 ? '' : 's'
         } added to your account.`,
@@ -71,7 +85,7 @@ export const uploadLocalRoutes =
     if (failed > 0) {
       showNotification({
         type: 'error',
-        header: 'Some routes failed',
+        header: i18n.t('defaults.someRoutesFailed'),
         message: `${failed} route${
           failed === 1 ? '' : 's'
         } stayed on this device. Try again later.`,

@@ -6,6 +6,7 @@ import useSignedIn from 'hooks/auth/useSignedIn';
 import { useSignUpMutation } from 'store/services/authenticationService';
 import { EMAIL_PATTERN } from 'hooks/auth/useSignInForm';
 import { RootStackParamList } from 'types/screens/screens';
+import i18n from 'i18n';
 
 export const MIN_PASSWORD_LENGTH = 6;
 
@@ -22,12 +23,13 @@ const EMPTY_FORM: SignUpValues = {
 };
 
 const validate = ({ email, password, confirmPassword }: SignUpValues) => {
-  if (!email || !password || !confirmPassword) return 'All fields are required.';
-  if (!EMAIL_PATTERN.test(email)) return 'Enter a valid email address.';
+  if (!email || !password || !confirmPassword)
+    return i18n.t('forms.allFieldsRequired');
+  if (!EMAIL_PATTERN.test(email)) return i18n.t('forms.validEmail');
   if (password.length < MIN_PASSWORD_LENGTH) {
     return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
-  if (password !== confirmPassword) return 'Passwords do not match.';
+  if (password !== confirmPassword) return i18n.t('forms.passwordsDoNotMatch');
   return '';
 };
 

@@ -35,6 +35,7 @@ import {
 import type { ThemeColors } from 'theme';
 import { RESET_CODE_LENGTH } from 'types/store/services/authenticationService-type';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -46,6 +47,7 @@ type Props = {
 const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const { email } = route.params;
@@ -107,7 +109,7 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
           ? `That code is not right. ${remaining} attempt${
               remaining === 1 ? '' : 's'
             } left.`
-          : 'That code is incorrect or has expired.',
+          : t('forms.codeIncorrect'),
       );
       setCode('');
       inputRef.current?.focus();
@@ -122,7 +124,7 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
       setAttemptsRemaining(null);
       setError('');
     } catch {
-      setError('Could not send a new code. Please try again.');
+      setError(t('forms.couldNotResend'));
     }
   }, [email, requestCode]);
 
@@ -134,13 +136,15 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
         <View style={styles.lockedIcon}>
           <Ionicons name='lock-closed' size={28} color={colors.danger} />
         </View>
-        <Text style={styles.title}>Reset locked</Text>
+        <Text style={styles.title}>{t('resetPassword.lockedTitle')}</Text>
         <Text style={styles.lockedBody}>
-          Too many incorrect codes were entered for {email}. For security, you
-          can try again in {formatWait(lockoutMs)}.
+          {t('resetPassword.lockedBody', {
+            email,
+            wait: formatWait(lockoutMs),
+          })}
         </Text>
         <PrimaryButton
-          label='Back to sign in'
+          label={t('actions.backToSignIn')}
           variant='secondary'
           onPress={() => navigation.navigate('SignInScreen')}
           style={styles.lockedAction}
@@ -160,9 +164,14 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
       >
         <View style={styles.container}>
           <View style={styles.heading}>
-            <Text style={styles.title}>Enter your code</Text>
+            <Text style={styles.title}>
+              {t('resetPassword.enterCodeTitle')}
+            </Text>
             <Text style={styles.subtitle}>
-              We sent a {RESET_CODE_LENGTH}-digit code to {email}.
+              {t('resetPassword.codeSentTo', {
+                length: RESET_CODE_LENGTH,
+                email,
+              })}
             </Text>
           </View>
 
@@ -209,7 +218,7 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
           ) : null}
 
           <PrimaryButton
-            label='Verify code'
+            label={t('actions.verifyCode')}
             onPress={handleSubmit}
             isLoading={isLoading}
             disabled={code.length !== RESET_CODE_LENGTH}
@@ -228,7 +237,9 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
                 resendIn > 0 && styles.resendTextDisabled,
               ]}
             >
-              {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Send a new code'}
+              {resendIn > 0
+                ? t('forms.resendIn', { seconds: resendIn })
+                : t('forms.sendNewCode')}
             </Text>
           </Pressable>
         </View>

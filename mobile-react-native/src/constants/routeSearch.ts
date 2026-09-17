@@ -8,11 +8,11 @@ export const routeSearchOrders: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { key: 'recent', label: 'Newest', icon: 'time-outline' },
-  { key: 'popular', label: 'Most saved', icon: 'heart-outline' },
-  { key: 'stops', label: 'Most stops', icon: 'location-outline' },
-  { key: 'title', label: 'A–Z', icon: 'text-outline' },
-  { key: 'oldest', label: 'Oldest', icon: 'hourglass-outline' },
+  { key: 'recent', label: 'sorting.newest', icon: 'time-outline' },
+  { key: 'popular', label: 'sorting.mostSaved', icon: 'heart-outline' },
+  { key: 'stops', label: 'sorting.mostStops', icon: 'location-outline' },
+  { key: 'title', label: 'sorting.alphabetical', icon: 'text-outline' },
+  { key: 'oldest', label: 'sorting.oldest', icon: 'hourglass-outline' },
 ];
 
 export const DEFAULT_ROUTE_SEARCH_ORDER: RouteSearchOrder = 'recent';
@@ -27,10 +27,10 @@ export const routeLengthFilters: {
   minStops?: number;
   maxStops?: number;
 }[] = [
-  { key: 'any', label: 'Any length' },
-  { key: 'short', label: '2–4 stops', minStops: 2, maxStops: 4 },
-  { key: 'medium', label: '5–9 stops', minStops: 5, maxStops: 9 },
-  { key: 'long', label: '10+ stops', minStops: 10 },
+  { key: 'any', label: 'sorting.anyLength' },
+  { key: 'short', label: 'sorting.shortRoutes', minStops: 2, maxStops: 4 },
+  { key: 'medium', label: 'sorting.mediumRoutes', minStops: 5, maxStops: 9 },
+  { key: 'long', label: 'sorting.longRoutes', minStops: 10 },
 ];
 
 export const DEFAULT_ROUTE_LENGTH = 'any';

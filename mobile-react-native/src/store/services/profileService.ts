@@ -16,6 +16,7 @@ import {
 } from 'types/store/services/userService-type';
 import { ApiResponse } from 'types/store/bases';
 import { PickedPhoto, toUploadPart } from 'utils/photoUpload';
+import type { AppLanguage } from 'types/i18n';
 
 export const profileService = createApi({
   reducerPath: 'profileService',
@@ -93,6 +94,26 @@ export const profileService = createApi({
       transformResponse: (res: ApiResponse<UserResponse>) =>
         transformApiResponseWithToast(res),
     }),
+
+    /**
+     * Tells the account which language to write to this person in.
+     *
+     * Everything the API answers is worded from the request's own
+     * Accept-Language. An email is not answering anything — it goes out because
+     * somebody else published a route — so a deliberate choice has to be
+     * recorded against the account for it to reach one.
+     *
+     * Silent: nobody tapping a language expects a toast about their profile.
+     */
+    setLanguage: builder.mutation<UserResponse, AppLanguage>({
+      query: (language) => ({
+        url: '/user/update',
+        method: 'POST',
+        body: { language },
+      }),
+      transformResponse: (res: ApiResponse<UserResponse>) =>
+        transformApiResponse(res),
+    }),
   }),
 });
 
@@ -100,4 +121,5 @@ export const {
   useGetUserQuery,
   useUpdateUserMutation,
   useUpdatePhotoMutation,
+  useSetLanguageMutation,
 } = profileService;

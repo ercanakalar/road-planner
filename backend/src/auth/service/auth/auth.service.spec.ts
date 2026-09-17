@@ -9,7 +9,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { HelperService } from 'src/auth/helper/helper.service';
 import { ToastType } from 'src/common/type/status.type';
+import { I18nService } from 'nestjs-i18n';
+
 import { EmailService } from 'src/notification/email/email.service';
+import { testI18n } from 'src/testing/i18n';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   createConfigMock,
@@ -77,6 +80,7 @@ describe('AuthService', () => {
             REFRESH_EXPIRES_IN: '7d',
           }),
         },
+        { provide: I18nService, useValue: testI18n() },
       ],
     }).compile();
 
@@ -214,6 +218,42 @@ describe('AuthService', () => {
       expect(result.status).toBe(ToastType.Success);
     });
 
+    describe('the language to write to them in', () => {
+      // An email is sent because somebody else published a route, so there is
+      // no request behind it to read Accept-Language off. Signing in is the
+      // moment the header is available and the account is known.
+      it('notes the one the request arrived in', async () => {
+        prisma.user.findUnique.mockResolvedValue(existingUser());
+
+        await service.signIn(
+          { email: 'user@example.com', password: 'pw' },
+          'tr',
+        );
+
+        expect(prisma.user.updateMany).toHaveBeenCalledWith({
+          where: { id: 'user-1', language: { not: 'tr' } },
+          data: { language: 'tr' },
+        });
+      });
+
+      it('leaves it alone when the request did not say', async () => {
+        prisma.user.findUnique.mockResolvedValue(existingUser());
+
+        await service.signIn({ email: 'user@example.com', password: 'pw' });
+
+        expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('does not fail a sign-in that has already succeeded', async () => {
+        prisma.user.findUnique.mockResolvedValue(existingUser());
+        prisma.user.updateMany.mockRejectedValue(new Error('column gone'));
+
+        await expect(
+          service.signIn({ email: 'user@example.com', password: 'pw' }, 'tr'),
+        ).resolves.toMatchObject({ header: 'auth.loginHeader' });
+      });
+    });
+
     it('stores the digest of the refresh token, not the token', async () => {
       prisma.user.findUnique.mockResolvedValue(existingUser());
 
@@ -268,7 +308,7 @@ describe('AuthService', () => {
           .catch((error) => error.message);
 
         expect(unknown).toBe(wrongPassword);
-        expect(unknown).toBe('Invalid email or password');
+        expect(unknown).toBe('error.badCredentials');
       });
 
       it('still performs a password comparison when no account exists', async () => {
@@ -508,7 +548,7 @@ describe('AuthService', () => {
         prisma.session.findUnique.mockResolvedValue(null);
 
         await expect(service.refreshToken(REFRESH_TOKEN)).rejects.toThrow(
-          'Invalid refresh token',
+          'error.sessionExpired',
         );
       });
     });
@@ -556,7 +596,7 @@ describe('AuthService', () => {
       helper.comparePassword!.mockResolvedValue(false);
 
       await expect(service.changePassword('user-1', body)).rejects.toThrow(
-        'Current password is incorrect',
+        'error.currentPasswordWrong',
       );
       expect(prisma.manuelAuth.update).not.toHaveBeenCalled();
     });
@@ -567,7 +607,7 @@ describe('AuthService', () => {
           ...body,
           confirmPassword: 'Different0',
         }),
-      ).rejects.toThrow(/do not match/);
+      ).rejects.toThrow('error.passwordsDoNotMatch');
       expect(prisma.manuelAuth.update).not.toHaveBeenCalled();
     });
 
@@ -578,7 +618,7 @@ describe('AuthService', () => {
           newPassword: 'Sam3Password',
           confirmPassword: 'Sam3Password',
         }),
-      ).rejects.toThrow(/must differ/);
+      ).rejects.toThrow('error.passwordUnchanged');
     });
 
     it('rejects an account with no password to change', async () => {
@@ -588,7 +628,7 @@ describe('AuthService', () => {
       });
 
       await expect(service.changePassword('user-1', body)).rejects.toThrow(
-        /does not sign in with a password/,
+        'error.noPasswordLogin',
       );
     });
   });
@@ -1049,7 +1089,7 @@ describe('AuthService', () => {
           { password: 'Str0ng-Password', confirmPassword: 'Different-1' },
           'raw-reset-token',
         ),
-      ).rejects.toThrow(/do not match/);
+      ).rejects.toThrow('error.passwordsDoNotMatch');
     });
 
     it('does not touch the database on a mismatched confirmation', async () => {

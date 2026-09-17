@@ -19,6 +19,7 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { LocalRoute } from 'types/local-route';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   visible: boolean;
@@ -80,6 +81,7 @@ const LocalRoutePicker = ({
   onClose,
 }: Props) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const renderItem = useCallback(
     ({ item }: { item: LocalRoute }) => (
@@ -104,7 +106,7 @@ const LocalRoutePicker = ({
     >
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={swallowPress}>
-          <Text style={styles.heading}>Switch route</Text>
+          <Text style={styles.heading}>{t('actions.switchRoute')}</Text>
 
           <FlatList
             data={routes}
@@ -119,7 +121,7 @@ const LocalRoutePicker = ({
             onPress={onClose}
             accessibilityRole='button'
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

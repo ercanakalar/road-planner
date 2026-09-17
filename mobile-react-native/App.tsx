@@ -14,6 +14,10 @@ import SessionGate from 'components/auth/SessionGate';
 import ConfirmProvider from 'components/feedback/ConfirmProvider';
 import LocalRouteMigrationPrompt from 'components/route/LocalRouteMigrationPrompt';
 import store from 'store';
+// Imported for its side effect: this is what creates the i18next instance the
+// rest of the app translates against.
+import 'i18n';
+import useAppLanguage from 'hooks/common/useAppLanguage';
 import { ThemeProvider, useTheme } from 'theme';
 
 const fonts = {
@@ -25,6 +29,10 @@ const fonts = {
 
 const ThemedApp = () => {
   const { colors, isDark } = useTheme();
+
+  // Inside the Provider, so the stored choice reaches i18next as soon as the
+  // bootstrap restores it — before that it is the phone's language.
+  useAppLanguage();
 
   const navigationTheme = useMemo(
     () => ({

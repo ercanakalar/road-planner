@@ -12,6 +12,7 @@ import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import { spacing, useThemedStyles } from 'theme';
 import { OwnRouteSummary } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
+import { useTranslation } from 'react-i18next';
 
 const RoutesList = ({
   data,
@@ -29,6 +30,7 @@ const RoutesList = ({
 }: RoutesListProps) => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
+  const { t } = useTranslation();
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<OwnRouteSummary>) => (
@@ -81,8 +83,8 @@ const RoutesList = ({
       ListEmptyComponent={
         <ScreenState
           variant='empty'
-          title='No routes yet'
-          message='Create a route to start planning stops and comparing travel times.'
+          title={t('routes.emptyTitle')}
+          message={t('routes.emptyMessage')}
         />
       }
       initialNumToRender={6}

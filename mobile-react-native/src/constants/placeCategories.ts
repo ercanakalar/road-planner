@@ -5,16 +5,16 @@ export const placeCategories: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
 }[] = [
-  { key: 'restaurant', icon: 'restaurant', label: 'Eat' },
-  { key: 'cafe', icon: 'cafe', label: 'Coffee' },
-  { key: 'gas_station', icon: 'car', label: 'Fuel' },
-  { key: 'lodging', icon: 'bed', label: 'Stay' },
-  { key: 'supermarket', icon: 'cart', label: 'Groceries' },
-  { key: 'pharmacy', icon: 'medkit', label: 'Pharmacy' },
-  { key: 'atm', icon: 'card', label: 'ATM' },
-  { key: 'parking', icon: 'car-outline', label: 'Parking' },
-  { key: 'tourist_attraction', icon: 'camera', label: 'See' },
-  { key: 'park', icon: 'leaf', label: 'Park' },
+  { key: 'restaurant', icon: 'restaurant', label: 'sorting.eat' },
+  { key: 'cafe', icon: 'cafe', label: 'sorting.coffee' },
+  { key: 'gas_station', icon: 'car', label: 'sorting.fuel' },
+  { key: 'lodging', icon: 'bed', label: 'sorting.stay' },
+  { key: 'supermarket', icon: 'cart', label: 'sorting.groceries' },
+  { key: 'pharmacy', icon: 'medkit', label: 'sorting.pharmacy' },
+  { key: 'atm', icon: 'card', label: 'sorting.atm' },
+  { key: 'parking', icon: 'car-outline', label: 'sorting.parking' },
+  { key: 'tourist_attraction', icon: 'camera', label: 'sorting.see' },
+  { key: 'park', icon: 'leaf', label: 'sorting.park' },
 ];
 
 export const searchRadiusOptions: { meters: number; label: string }[] = [
@@ -31,7 +31,7 @@ export const routeSearchSorts: {
   key: 'detour' | 'route' | 'rating';
   label: string;
 }[] = [
-  { key: 'detour', label: 'Closest' },
-  { key: 'route', label: 'In order' },
-  { key: 'rating', label: 'Top rated' },
+  { key: 'detour', label: 'sorting.closest' },
+  { key: 'route', label: 'sorting.inOrder' },
+  { key: 'rating', label: 'sorting.topRated' },
 ];

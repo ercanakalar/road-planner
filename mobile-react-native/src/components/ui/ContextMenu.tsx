@@ -15,6 +15,7 @@ import {
   ContextMenuOption,
   ContextMenuProps,
 } from 'types/components/contextMenu';
+import { useTranslation } from 'react-i18next';
 
 const MenuRow = memo(
   ({ option, onClose }: { option: ContextMenuOption; onClose: () => void }) => {
@@ -64,6 +65,7 @@ const ContextMenu = ({
   onClose,
 }: ContextMenuProps) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   return (
     <Modal
@@ -94,7 +96,7 @@ const ContextMenu = ({
             onPress={onClose}
             accessibilityRole='button'
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

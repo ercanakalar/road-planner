@@ -7,6 +7,7 @@ import { setNotificationsEnabled } from 'services/notificationService';
 import { localRouteSlice } from 'store/slices/localRouteSlice';
 import { kvkkAccepted, kvkkWithdrawn } from 'store/slices/kvkkSlice';
 import {
+  languageSet,
   settingsRestored,
   settingSet,
   settingToggled,
@@ -17,7 +18,13 @@ import type { RootState } from 'store';
 const persistenceMiddleware = createListenerMiddleware();
 
 persistenceMiddleware.startListening({
-  matcher: isAnyOf(settingsRestored, settingToggled, settingSet, themeModeSet),
+  matcher: isAnyOf(
+    settingsRestored,
+    settingToggled,
+    settingSet,
+    themeModeSet,
+    languageSet,
+  ),
   effect: async (_action, listenerApi) => {
     const { settings } = listenerApi.getState() as RootState;
     setNotificationsEnabled(settings.notificationsEnabled);

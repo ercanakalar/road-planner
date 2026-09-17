@@ -11,7 +11,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 
 import { Public } from 'src/common/decorators';
-import { ok } from 'src/common/http/api-response';
+import { ok, Phrase, phrase } from 'src/common/http/api-response';
 import { MAPS_THROTTLE } from 'src/config/throttle';
 import {
   DirectionsDto,
@@ -47,8 +47,8 @@ export class MapsController {
     const route = await this.directions.route(body);
 
     return ok({
-      header: 'Route',
-      message: route ? 'Route calculated' : 'No route between those points',
+      header: 'route.header',
+      message: route ? 'route.calculated' : 'route.none',
       data: route,
     });
   }
@@ -65,8 +65,8 @@ export class MapsController {
     );
 
     return ok({
-      header: 'Durations',
-      message: 'Travel times calculated',
+      header: 'route.durationsHeader',
+      message: 'route.durationsCalculated',
       data: durations,
     });
   }
@@ -76,8 +76,8 @@ export class MapsController {
   @HttpCode(HttpStatus.OK)
   async reverseGeocode(@Query() query: ReverseGeocodeQueryDto) {
     return ok({
-      header: 'Address Found',
-      message: 'Address resolved successfully',
+      header: 'maps.addressHeader',
+      message: 'maps.addressMessage',
       data: await this.geocoding.reverseGeocode(query),
     });
   }
@@ -92,8 +92,8 @@ export class MapsController {
     );
 
     return ok({
-      header: 'Places',
-      message: 'Place suggestions retrieved',
+      header: 'maps.placesHeader',
+      message: 'maps.placesMessage',
       data: predictions,
     });
   }
@@ -108,8 +108,8 @@ export class MapsController {
     const place = await this.places.placeDetails(placeId, query.sessionToken);
 
     return ok({
-      header: 'Place',
-      message: place ? 'Place found' : 'That place has no location',
+      header: 'maps.placeHeader',
+      message: place ? 'maps.placeFound' : 'maps.placeNoLocation',
       data: place,
     });
   }
@@ -129,21 +129,23 @@ export class MapsController {
     });
 
     return ok({
-      header: 'Along your route',
+      header: 'maps.alongHeader',
       message: this.describe(result),
       data: result,
     });
   }
 
-  private describe(result: RouteSearchResult | null): string {
-    if (!result) return 'No route between those points';
+  private describe(result: RouteSearchResult | null): Phrase {
+    if (!result) return 'route.none';
 
     const { places, coversWholeRoute } = result;
 
-    if (places.length === 0) return 'Nothing matching along this route';
+    if (places.length === 0) return 'maps.alongNothing';
 
-    const found = `${places.length} place${places.length === 1 ? '' : 's'} along your route`;
-
-    return coversWholeRoute ? found : `${found}, from part of it`;
+    // The count is handed over rather than written in: how it reads at one and
+    // at many is the translation's business, not this method's.
+    return phrase(coversWholeRoute ? 'maps.alongFound' : 'maps.alongPartial', {
+      count: places.length,
+    });
   }
 }

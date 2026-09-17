@@ -150,7 +150,7 @@ describe('GoogleMapsClient', () => {
       );
 
       await expect(client().get('/geocode/json', {})).rejects.toThrow(
-        /^Map service returned an error$/,
+        /^error\.mapsFailed$/,
       );
     });
   });

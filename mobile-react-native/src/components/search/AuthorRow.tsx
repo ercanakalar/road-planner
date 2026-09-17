@@ -6,6 +6,7 @@ import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { AuthorHit } from 'types/store/services/searchService-type';
 import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   author: AuthorHit;
@@ -26,6 +27,7 @@ interface Props {
 const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const handleSelect = useCallback(() => onSelect(author), [author, onSelect]);
 
@@ -71,7 +73,7 @@ const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
                 size={11}
                 color={colors.primary}
               />
-              <Text style={styles.following}>Notifying you</Text>
+              <Text style={styles.following}>{t('searchScreen.notifyingYou')}</Text>
             </>
           ) : null}
         </View>

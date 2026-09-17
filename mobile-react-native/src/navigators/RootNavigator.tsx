@@ -20,10 +20,13 @@ import AuthorScreen from 'screens/search/AuthorScreen';
 
 import { useTheme } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
+  const { t } = useTranslation();
+
   const { colors } = useTheme();
 
   return (
@@ -67,13 +70,13 @@ const RootNavigator = () => {
         name='CommunityRouteScreen'
         component={CommunityRouteScreen}
         options={({ route }) => ({
-          title: route.params?.title ?? 'Community route',
+          title: route.params?.title ?? t('nav.communityRoute'),
         })}
       />
       <Stack.Screen
         name='SharedRouteScreen'
         component={SharedRouteScreen}
-        options={{ title: 'Shared route' }}
+        options={{ title: t('nav.sharedRoute') }}
       />
       <Stack.Screen
         name='ShowStopById'
@@ -88,27 +91,27 @@ const RootNavigator = () => {
       <Stack.Screen
         name='SignUpScreen'
         component={SignUpScreen}
-        options={{ title: 'Create account' }}
+        options={{ title: t('nav.createAccount') }}
       />
       <Stack.Screen
         name='SignInScreen'
         component={SignInScreen}
-        options={{ title: 'Sign in' }}
+        options={{ title: t('nav.signIn') }}
       />
       <Stack.Screen
         name='ForgotPasswordScreen'
         component={ForgotPasswordScreen}
-        options={{ title: 'Forgot password' }}
+        options={{ title: t('nav.forgotPassword') }}
       />
       <Stack.Screen
         name='VerifyResetCodeScreen'
         component={VerifyResetCodeScreen}
-        options={{ title: 'Enter code' }}
+        options={{ title: t('nav.enterCode') }}
       />
       <Stack.Screen
         name='ResetPasswordScreen'
         component={ResetPasswordScreen}
-        options={{ title: 'New password', headerBackVisible: false }}
+        options={{ title: t('nav.newPassword'), headerBackVisible: false }}
       />
       <Stack.Screen
         name='SettingsScreen'

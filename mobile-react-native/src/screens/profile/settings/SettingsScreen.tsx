@@ -1,11 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import PrimaryButton from 'components/ui/PrimaryButton';
+import LanguageSelector from 'components/profile/LanguageSelector';
 import ThemeModeSelector from 'components/profile/ThemeModeSelector';
 import NotificationSettingsSection from 'components/profile/NotificationSettingsSection';
 import ChangePasswordSection from './ChangePasswordSection';
+import useAppLanguage from 'hooks/common/useAppLanguage';
 import useConfirm from 'hooks/feedback/useConfirm';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { SettingKey, settingToggled } from 'store/slices/settingsSlice';
@@ -27,22 +30,24 @@ import type { ThemeColors } from 'theme';
 const PREFERENCES: { key: SettingKey; label: string; hint: string }[] = [
   {
     key: 'notificationsEnabled',
-    label: 'In-app messages',
-    hint: 'Show toast messages for route and favourite changes.',
+    label: 'settings.inAppMessages',
+    hint: 'settings.inAppMessagesHint',
   },
   {
     key: 'autoFitRoute',
-    label: 'Auto-fit route',
-    hint: 'Frame the whole route when a map opens.',
+    label: 'settings.autoFitRoute',
+    hint: 'settings.autoFitRouteHint',
   },
 ];
 
 const SettingsScreen = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { isChosen } = useAppLanguage();
 
   const settings = useAppSelector((state) => state.settings);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -73,29 +78,43 @@ const SettingsScreen = () => {
 
   const handleDiscard = useCallback(async () => {
     const confirmed = await confirm({
-      title: 'Discard local routes',
-      message: `${transferable.length} route${
-        transferable.length === 1 ? '' : 's'
-      } will be deleted from this device. This cannot be undone.`,
-      confirmLabel: 'Discard',
+      title: t('settings.discardTitle'),
+      message: t('settings.discardMessage', { count: transferable.length }),
+      confirmLabel: t('settings.discardConfirm'),
       icon: 'trash-outline',
       tone: 'danger',
     });
     if (confirmed) dispatch(discardLocalRoutes());
-  }, [confirm, dispatch, transferable.length]);
+  }, [confirm, dispatch, t, transferable.length]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.group}>
         <View style={styles.sectionHeader}>
           <Ionicons name='contrast-outline' size={18} color={colors.primary} />
-          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionTitle}>{t('settings.appearance')}</Text>
         </View>
 
         <View style={styles.sectionBody}>
           <ThemeModeSelector />
           <Text style={styles.rowHint}>
-            Automatic follows your phone&apos;s light or dark setting.
+            {t('settings.automaticFollowsPhone')}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.group}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name='language-outline' size={18} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+        </View>
+
+        <View style={styles.sectionBody}>
+          <LanguageSelector />
+          <Text style={styles.rowHint}>
+            {isChosen
+              ? t('settings.languageHint')
+              : `${t('settings.languageFollowsPhone')} · ${t('settings.languageHint')}`}
           </Text>
         </View>
       </View>
@@ -107,8 +126,8 @@ const SettingsScreen = () => {
             style={[styles.row, index > 0 && styles.rowDivided]}
           >
             <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>{preference.label}</Text>
-              <Text style={styles.rowHint}>{preference.hint}</Text>
+              <Text style={styles.rowLabel}>{t(preference.label)}</Text>
+              <Text style={styles.rowHint}>{t(preference.hint)}</Text>
             </View>
             <Switch
               value={settings[preference.key]}
@@ -116,7 +135,7 @@ const SettingsScreen = () => {
               trackColor={{ true: colors.primary, false: colors.borderStrong }}
               thumbColor={colors.surface}
               ios_backgroundColor={colors.borderStrong}
-              accessibilityLabel={preference.label}
+              accessibilityLabel={t(preference.label)}
             />
           </View>
         ))}
@@ -138,20 +157,23 @@ const SettingsScreen = () => {
               size={18}
               color={colors.primary}
             />
-            <Text style={styles.sectionTitle}>Routes on this device</Text>
+            <Text style={styles.sectionTitle}>
+              {t('settings.routesOnThisDevice')}
+            </Text>
           </View>
 
           <View style={styles.sectionBody}>
             <Text style={styles.rowHint}>
-              {transferable.length} route
-              {transferable.length === 1 ? '' : 's'} with {stopCount} stop
-              {stopCount === 1 ? '' : 's'} {isLoggedIn ? 'can be' : 'will be'}{' '}
-              saved to your account
-              {isLoggedIn ? '.' : ' once you sign in.'}
+              {t(isLoggedIn ? 'settings.routesReady' : 'settings.routesPending', {
+                count: transferable.length,
+                stops: t('settings.stopCount', { count: stopCount }),
+              })}
             </Text>
 
             <PrimaryButton
-              label={isUploading ? 'Saving…' : 'Save to my account'}
+              label={
+                isUploading ? t('settings.saving') : t('settings.saveToMyAccount')
+              }
               onPress={handleUpload}
               isLoading={isUploading}
               disabled={!isLoggedIn}
@@ -159,12 +181,12 @@ const SettingsScreen = () => {
 
             {!isLoggedIn ? (
               <Text style={styles.rowHint}>
-                Sign in from the Profile tab to enable this.
+                {t('settings.signInToEnable')}
               </Text>
             ) : null}
 
             <PrimaryButton
-              label='Discard local routes'
+              label={t('settings.discardLocalRoutes')}
               variant='secondary'
               onPress={handleDiscard}
               disabled={isUploading}
@@ -174,7 +196,7 @@ const SettingsScreen = () => {
       ) : null}
 
       <Text style={styles.footnote}>
-        Preferences apply to this device only.
+        {t('settings.preferencesApplyToDevice')}
       </Text>
     </ScrollView>
   );

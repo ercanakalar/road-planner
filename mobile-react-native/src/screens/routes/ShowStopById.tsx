@@ -17,25 +17,27 @@ import {
 import type { ThemeColors } from 'theme';
 import { addressLocality, addressName } from 'utils/address';
 import useMapStyle from 'hooks/map/useMapStyle';
+import { useTranslation } from 'react-i18next';
 
 const ShowStopByIdScreen = () => {
   const { colors } = useTheme();
   const { mapStyle, isDark, mapKey } = useMapStyle();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const { mapRef, data, isLoading, isError, initialRegion } =
     useStopLogic();
 
   if (isLoading) {
-    return <ScreenState variant='loading' title='Loading stop…' />;
+    return <ScreenState variant='loading' title={t('states.loadingStop')} />;
   }
 
   if (isError || !data) {
     return (
       <ScreenState
         variant='error'
-        title='Stop not found'
-        message='It may have been removed from the route.'
+        title={t('routes.stopNotFoundTitle')}
+        message={t('routes.stopNotFoundMessage')}
       />
     );
   }
@@ -65,7 +67,7 @@ const ShowStopByIdScreen = () => {
 
       <View style={styles.infoCard}>
         <Text style={styles.title} numberOfLines={2}>
-          {addressName(data.address) || 'Saved place'}
+          {addressName(data.address) || t('defaults.savedPlace')}
         </Text>
         <Text style={styles.subtitle}>
           {locality ||

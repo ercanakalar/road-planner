@@ -28,6 +28,7 @@ import {
   useThemedTextInputProps,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 350;
@@ -75,6 +76,7 @@ PredictionRow.displayName = 'PredictionRow';
 const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const [input, setInput] = useState('');
@@ -157,7 +159,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
         <Ionicons name='search' size={18} color={colors.textMuted} />
         <TextInput
           ref={inputRef}
-          placeholder='Search for a place'
+          placeholder={t('mapUi.searchPlace')}
           value={input}
           onChangeText={setInput}
           style={styles.input}
@@ -173,7 +175,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
             onPress={clearInput}
             hitSlop={8}
             accessibilityRole='button'
-            accessibilityLabel='Clear search'
+            accessibilityLabel={t('actions.clearSearch')}
           >
             <Ionicons name='close-circle' size={18} color={colors.textSubtle} />
           </Pressable>

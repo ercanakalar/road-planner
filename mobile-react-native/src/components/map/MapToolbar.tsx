@@ -11,6 +11,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   /** Distance from the top of the screen, already past the safe area. */
@@ -43,6 +44,7 @@ const MapToolbar = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.toolbar, { top }]}>
@@ -50,7 +52,11 @@ const MapToolbar = ({
         style={styles.routeChip}
         onPress={canSwitch ? onSwitch : onEditDetails}
         accessibilityRole='button'
-        accessibilityLabel={canSwitch ? 'Switch route' : 'Edit route details'}
+        accessibilityLabel={
+          canSwitch
+            ? t('actions.switchRoute')
+            : t('mapUi.editRouteDetailsAccessibility')
+        }
       >
         <Ionicons name='git-branch-outline' size={15} color={colors.primary} />
         <Text style={styles.routeChipText} numberOfLines={1}>
@@ -65,7 +71,7 @@ const MapToolbar = ({
         style={styles.iconChip}
         onPress={onNewRoute}
         accessibilityRole='button'
-        accessibilityLabel='Start a new route'
+        accessibilityLabel={t('mapUi.newRouteAccessibility')}
       >
         <Ionicons name='add' size={18} color={colors.primary} />
       </Pressable>
@@ -74,7 +80,7 @@ const MapToolbar = ({
         style={styles.iconChip}
         onPress={onImportFromGoogleMaps}
         accessibilityRole='button'
-        accessibilityLabel='Import a route from a Google Maps link'
+        accessibilityLabel={t('mapUi.importAccessibility')}
       >
         <Ionicons name='link' size={16} color={colors.primary} />
       </Pressable>
@@ -85,7 +91,7 @@ const MapToolbar = ({
             style={styles.iconChip}
             onPress={onEditDetails}
             accessibilityRole='button'
-            accessibilityLabel='Edit route name and description'
+            accessibilityLabel={t('mapUi.editDetailsAccessibility')}
           >
             <Ionicons name='create-outline' size={16} color={colors.primary} />
           </Pressable>
@@ -94,7 +100,7 @@ const MapToolbar = ({
             style={styles.iconChip}
             onPress={onDeleteRoute}
             accessibilityRole='button'
-            accessibilityLabel='Delete this route'
+            accessibilityLabel={t('mapUi.deleteRouteAccessibility')}
           >
             <Ionicons name='trash-outline' size={16} color={colors.danger} />
           </Pressable>

@@ -23,7 +23,7 @@ export class RoadOwnerGuard implements CanActivate {
     const userId = (req.user as { userId?: string } | undefined)?.userId;
 
     if (!userId) {
-      throw new UnauthorizedException('Not authenticated');
+      throw new UnauthorizedException('error.notAuthenticated');
     }
 
     const params = (req.params ?? {}) as Record<string, string | undefined>;
@@ -35,11 +35,11 @@ export class RoadOwnerGuard implements CanActivate {
     });
 
     if (!road) {
-      throw new NotFoundException('Route not found');
+      throw new NotFoundException('error.routeNotFound');
     }
 
     if (!road.userId || road.userId !== userId) {
-      throw new ForbiddenException('You do not own this route');
+      throw new ForbiddenException('error.notYourRoute');
     }
 
     return true;
@@ -57,7 +57,7 @@ export class RoadOwnerGuard implements CanActivate {
       });
 
       if (!stop?.roadId) {
-        throw new NotFoundException('Stop not found');
+        throw new NotFoundException('error.stopNotFound');
       }
 
       return stop.roadId;
@@ -68,8 +68,6 @@ export class RoadOwnerGuard implements CanActivate {
       if (value) return value;
     }
 
-    throw new ForbiddenException(
-      'Request is missing a route or stop identifier',
-    );
+    throw new ForbiddenException('error.missingIdentifier');
   }
 }

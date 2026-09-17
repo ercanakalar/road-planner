@@ -17,6 +17,7 @@ import { showNotification } from 'services/notificationService';
 import { spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 const MIN_PASSWORD_LENGTH = 8;
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/;
@@ -28,6 +29,7 @@ type Props = {
 
 const ResetPasswordScreen = ({ navigation, route }: Props) => {
     const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
     const { token } = route.params;
 
@@ -38,14 +40,14 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
     const [resetPassword, { isLoading }] = useResetPasswordMutation();
 
     const validationError = useMemo(() => {
-        if (!password || !confirmPassword) return 'Both fields are required.';
+        if (!password || !confirmPassword) return t('forms.bothFieldsRequired');
         if (password.length < MIN_PASSWORD_LENGTH) {
             return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
         }
         if (!PASSWORD_PATTERN.test(password)) {
-            return 'Include at least one letter and one number.';
+            return t('forms.passwordNeedsLetterAndNumber');
         }
-        if (password !== confirmPassword) return 'Passwords do not match.';
+        if (password !== confirmPassword) return t('forms.passwordsDoNotMatch');
         return '';
     }, [confirmPassword, password]);
 
@@ -59,13 +61,13 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
             await resetPassword({ token, password, confirmPassword }).unwrap();
             showNotification({
                 type: 'success',
-                header: 'Password changed',
-                message: 'Sign in with your new password.',
+                header: t('resetPassword.changedHeader'),
+                message: t('resetPassword.changedMessage'),
             });
             navigation.reset({ index: 0, routes: [{ name: 'SignInScreen' }] });
         } catch {
             setError(
-                'That reset link is no longer valid. Request a new code and try again.',
+                t('forms.resetLinkInvalid'),
             );
         }
     }, [
@@ -88,17 +90,19 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
             >
                 <View style={styles.container}>
                     <View style={styles.heading}>
-                        <Text style={styles.title}>Choose a new password</Text>
+                        <Text style={styles.title}>
+                            {t('resetPassword.chooseNewTitle')}
+                        </Text>
                         <Text style={styles.subtitle}>
-                            At least {MIN_PASSWORD_LENGTH} characters, with a
-                            letter and a number. Signing in again will be
-                            required on every device.
+                            {t('resetPassword.chooseNewSubtitle', {
+                                length: MIN_PASSWORD_LENGTH,
+                            })}
                         </Text>
                     </View>
 
                     <FormField
-                        label='New password'
-                        placeholder='New password'
+                        label={t('fields.newPassword')}
+                        placeholder={t('fields.newPassword')}
                         value={password}
                         onChangeText={(value) => {
                             setPassword(value);
@@ -109,8 +113,8 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
                     />
 
                     <FormField
-                        label='Confirm password'
-                        placeholder='Repeat your new password'
+                        label={t('fields.confirmPassword')}
+                        placeholder={t('resetPassword.newPasswordPlaceholder')}
                         value={confirmPassword}
                         onChangeText={(value) => {
                             setConfirmPassword(value);
@@ -122,7 +126,7 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
                     />
 
                     <PrimaryButton
-                        label='Change password'
+                        label={t('actions.changePassword')}
                         onPress={handleSubmit}
                         isLoading={isLoading}
                     />

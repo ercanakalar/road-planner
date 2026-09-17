@@ -1,12 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { I18nService } from 'nestjs-i18n';
 
 import { ok } from 'src/common/http/api-response';
 import { OptionalAccessGuard } from 'src/common/guards/optional-access/optional-access.guard';
 import { FollowService } from './follow.service';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { testI18n } from 'src/testing/i18n';
 
 const USER_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 const CALLER_ID = 'c2f0d0b3-2a4e-4d9b-8e3c-1b2c3d4e5f60';
@@ -35,6 +37,7 @@ describe('UserController routing', () => {
       providers: [
         { provide: UserService, useValue: userService },
         { provide: FollowService, useValue: followService },
+        { provide: I18nService, useValue: testI18n() },
       ],
     })
       // The routes under test are about which handler a path reaches, not

@@ -4,8 +4,7 @@ export const PASSWORD_MIN_LENGTH = 8;
 
 export const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 
-export const PASSWORD_PATTERN_MESSAGE =
-  'password must contain at least one letter and one digit';
+export const PASSWORD_PATTERN_MESSAGE = 'validation.passwordPattern';
 
 export const EMAIL_MAX_LENGTH = 254;
 

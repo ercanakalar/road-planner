@@ -8,10 +8,10 @@ import {
 } from 'class-validator';
 
 export class AssignPermitDto {
-  @IsUUID('4', { message: 'userId must be a UUID' })
+  @IsUUID('4')
   userId!: string;
 
-  @IsUUID('4', { message: 'permitId must be a UUID' })
+  @IsUUID('4')
   permitId!: string;
 }
 
@@ -23,7 +23,7 @@ export class UpdatePermitDto {
 
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true, message: 'each permissionId must be a UUID' })
+  @IsUUID('4', { each: true })
   @IsOptional()
   permissionIds?: string[];
 }

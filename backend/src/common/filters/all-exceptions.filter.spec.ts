@@ -13,6 +13,7 @@ import { Prisma } from '../../generated/prisma/client';
 
 import { ToastType } from 'src/common/type/status.type';
 import { AllExceptionsFilter } from './all-exceptions.filter';
+import { testI18n } from 'src/testing/i18n';
 
 const CLIENT_VERSION = '6.9.0';
 
@@ -27,20 +28,23 @@ describe('AllExceptionsFilter', () => {
   let json: jest.Mock;
   let status: jest.Mock;
   let host: ArgumentsHost;
+  let request: { url: string; method: string; headers: Record<string, string> };
 
   beforeEach(() => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
     jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();
 
-    filter = new AllExceptionsFilter();
+    filter = new AllExceptionsFilter(testI18n());
     json = jest.fn();
     status = jest.fn(() => ({ json }));
+
+    request = { url: '/api/road/abc', method: 'GET', headers: {} };
 
     host = {
       switchToHttp: () => ({
         getResponse: () => ({ status }),
-        getRequest: () => ({ url: '/api/road/abc', method: 'GET' }),
+        getRequest: () => request,
       }),
     } as unknown as ArgumentsHost;
   });
@@ -61,10 +65,18 @@ describe('AllExceptionsFilter', () => {
       expect(body()).toMatchObject({ status: ToastType.Error, header });
     });
 
-    it('keeps the exception message', () => {
-      filter.catch(new NotFoundException('Route not found'), host);
+    it('says what the exception said, in words', () => {
+      filter.catch(new NotFoundException('error.routeNotFound'), host);
 
       expect(body().message).toBe('Route not found');
+    });
+
+    it('says it in the language the request asked for', () => {
+      request.headers = { 'accept-language': 'tr' };
+
+      filter.catch(new NotFoundException('error.routeNotFound'), host);
+
+      expect(body().message).toBe('Rota bulunamadı');
     });
 
     it('preserves a validation message array', () => {

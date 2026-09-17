@@ -18,10 +18,12 @@ import { RoutePlace } from 'services/mapsService';
 import { radius, shadows, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
+import { useTranslation } from 'react-i18next';
 
 const ShowRouteByIdScreen = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const {
@@ -90,7 +92,7 @@ const ShowRouteByIdScreen = () => {
   );
 
   if (isLoading && stops.length === 0) {
-    return <ScreenState variant='loading' title='Loading route…' />;
+    return <ScreenState variant='loading' title={t('states.loadingRoute')} />;
   }
 
   const sheetGesturesEnabled = !draggingStopId && !isReordering;
@@ -120,7 +122,7 @@ const ShowRouteByIdScreen = () => {
             style={[styles.onTheWay, { top: insets.top + 64 }]}
             onPress={openRouteSearch}
             accessibilityRole='button'
-            accessibilityLabel='Search for places along this route'
+            accessibilityLabel={t('routes.searchAlong')}
           >
             <Ionicons
               name='restaurant-outline'
@@ -130,7 +132,7 @@ const ShowRouteByIdScreen = () => {
             <Text style={styles.onTheWayText}>
               {routeSearch.places.length > 0
                 ? `${routeSearch.places.length} on the way`
-                : 'On the way'}
+                : t('map.onTheWay')}
             </Text>
           </Pressable>
         ) : null}

@@ -51,14 +51,14 @@ describe('UserExistsGuard', () => {
     });
   });
 
-  it('rejects in English', async () => {
+  it('rejects with a key the boundary can translate', async () => {
     prisma.manuelAuth.findUnique.mockResolvedValue({ id: 'auth-1' });
     const { context } = createExecutionContext({
       body: { email: 'taken@example.com' },
     });
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      'An account with this email already exists',
+      'error.emailTaken',
     );
   });
 

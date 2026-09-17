@@ -6,6 +6,7 @@ import { routeLengthFilters, routeSearchOrders } from 'constants/routeSearch';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RouteSearchOrder } from 'types/store/services/searchService-type';
+import { useTranslation } from 'react-i18next';
 
 const Chip = memo(
   ({
@@ -62,6 +63,8 @@ const OrderChip = memo(
     isSelected: boolean;
     onSelect: (order: RouteSearchOrder) => void;
   }) => {
+    const { t } = useTranslation();
+
     const handlePress = useCallback(
       () => onSelect(option.key),
       [onSelect, option.key],
@@ -69,7 +72,7 @@ const OrderChip = memo(
 
     return (
       <Chip
-        label={option.label}
+        label={t(option.label)}
         icon={option.icon}
         isSelected={isSelected}
         onPress={handlePress}
@@ -90,13 +93,15 @@ const LengthChip = memo(
     isSelected: boolean;
     onSelect: (key: string) => void;
   }) => {
+    const { t } = useTranslation();
+
     const handlePress = useCallback(
       () => onSelect(option.key),
       [onSelect, option.key],
     );
 
     return (
-      <Chip label={option.label} isSelected={isSelected} onPress={handlePress} />
+      <Chip label={t(option.label)} isSelected={isSelected} onPress={handlePress} />
     );
   },
 );
@@ -169,13 +174,14 @@ const SearchFilterBar = ({
   isSummaryStale,
 }: Props) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const hasAuthor = !!authorName && !!onClearAuthor;
 
   return (
     <View style={styles.container}>
       <View style={styles.line}>
-        <Text style={styles.lineLabel}>Order</Text>
+        <Text style={styles.lineLabel}>{t('actions.order')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -194,7 +200,7 @@ const SearchFilterBar = ({
       </View>
 
       <View style={styles.line}>
-        <Text style={styles.lineLabel}>Filter</Text>
+        <Text style={styles.lineLabel}>{t('actions.filter')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

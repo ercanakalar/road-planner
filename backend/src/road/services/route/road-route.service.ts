@@ -9,7 +9,7 @@ import { LatLng, TransportMode } from 'src/maps/types/maps.types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RoadVisibility } from '../visibility/road-visibility';
 
-const TOO_SHORT = 'A route needs at least two stops';
+const TOO_SHORT = 'route.tooShort';
 
 @Injectable()
 export class RoadRouteService {
@@ -23,14 +23,14 @@ export class RoadRouteService {
     const request = toRouteRequest(await this.stopsOf(roadId, userId), mode);
 
     if (!request) {
-      return ok({ header: 'Route', message: TOO_SHORT, data: null });
+      return ok({ header: 'route.header', message: TOO_SHORT, data: null });
     }
 
     const route = await this.directions.route(request);
 
     return ok({
-      header: 'Route',
-      message: route ? 'Route calculated' : 'No route between those points',
+      header: 'route.header',
+      message: route ? 'route.calculated' : 'route.none',
       data: route,
     });
   }
@@ -43,12 +43,16 @@ export class RoadRouteService {
     const request = toRouteRequest(await this.stopsOf(roadId, userId));
 
     if (!request) {
-      return ok({ header: 'Durations', message: TOO_SHORT, data: {} });
+      return ok({
+        header: 'route.durationsHeader',
+        message: TOO_SHORT,
+        data: {},
+      });
     }
 
     return ok({
-      header: 'Durations',
-      message: 'Travel times calculated',
+      header: 'route.durationsHeader',
+      message: 'route.durationsCalculated',
       data: await this.directions.durations(request, modes),
     });
   }
@@ -68,7 +72,7 @@ export class RoadRouteService {
     });
 
     if (!road) {
-      throw new NotFoundException('Route not found');
+      throw new NotFoundException('error.routeNotFound');
     }
 
     return road.stops;

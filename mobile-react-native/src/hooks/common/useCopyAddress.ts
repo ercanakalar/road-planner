@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 
 import { showNotification } from 'services/notificationService';
@@ -9,33 +10,38 @@ import { fullAddress } from 'utils/address';
  * can carry, and says so — a copy with no feedback reads as a dead button.
  */
 export function useCopyAddress() {
-  return useCallback(async (address: string | undefined | null) => {
-    const text = fullAddress(address);
+  const { t } = useTranslation();
 
-    if (!text) {
-      showNotification({
-        type: 'info',
-        header: 'Nothing to copy',
-        message: 'This stop has no address yet.',
-      });
-      return;
-    }
+  return useCallback(
+    async (address: string | undefined | null) => {
+      const text = fullAddress(address);
 
-    try {
-      await Clipboard.setStringAsync(text);
-      showNotification({
-        type: 'success',
-        header: 'Address copied',
-        message: text,
-      });
-    } catch {
-      showNotification({
-        type: 'error',
-        header: 'Error',
-        message: 'Could not copy that address.',
-      });
-    }
-  }, []);
+      if (!text) {
+        showNotification({
+          type: 'info',
+          header: t('toast.nothingToCopy'),
+          message: t('toast.noAddressYet'),
+        });
+        return;
+      }
+
+      try {
+        await Clipboard.setStringAsync(text);
+        showNotification({
+          type: 'success',
+          header: t('toast.addressCopied'),
+          message: text,
+        });
+      } catch {
+        showNotification({
+          type: 'error',
+          header: t('toast.error'),
+          message: t('toast.couldNotCopy'),
+        });
+      }
+    },
+    [t],
+  );
 }
 
 export default useCopyAddress;
