@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import {
   useGetNotificationSettingsQuery,
@@ -23,13 +24,13 @@ const CHANNELS: {
 }[] = [
   {
     key: 'inApp',
-    label: 'In the app',
-    hint: 'New routes from people you follow appear in Notifications.',
+    label: 'notificationSettings.inApp',
+    hint: 'notificationSettings.inAppHint',
   },
   {
     key: 'email',
-    label: 'By email',
-    hint: 'And a message to your inbox when they publish one.',
+    label: 'notificationSettings.email',
+    hint: 'notificationSettings.emailHint',
   },
 ];
 
@@ -44,6 +45,7 @@ const CHANNELS: {
 const NotificationSettingsSection = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const { data, isLoading, isError } = useGetNotificationSettingsQuery();
   const [updateSettings] = useUpdateNotificationSettingsMutation();
@@ -63,7 +65,9 @@ const NotificationSettingsSection = () => {
           size={18}
           color={colors.primary}
         />
-        <Text style={styles.sectionTitle}>Notifications</Text>
+        <Text style={styles.sectionTitle}>
+          {t('notificationSettings.title')}
+        </Text>
       </View>
 
       {isLoading ? (
@@ -73,7 +77,7 @@ const NotificationSettingsSection = () => {
       ) : isError ? (
         <View style={styles.sectionBody}>
           <Text style={styles.hint}>
-            Your notification settings could not be loaded. They are unchanged.
+            {t('notificationSettings.couldNotLoad')}
           </Text>
         </View>
       ) : (
@@ -83,8 +87,8 @@ const NotificationSettingsSection = () => {
             style={[styles.row, index > 0 && styles.rowDivided]}
           >
             <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>{channel.label}</Text>
-              <Text style={styles.hint}>{channel.hint}</Text>
+              <Text style={styles.rowLabel}>{t(channel.label)}</Text>
+              <Text style={styles.hint}>{t(channel.hint)}</Text>
             </View>
             <Switch
               value={data?.[channel.key] ?? true}
@@ -92,7 +96,7 @@ const NotificationSettingsSection = () => {
               trackColor={{ true: colors.primary, false: colors.borderStrong }}
               thumbColor={colors.surface}
               ios_backgroundColor={colors.borderStrong}
-              accessibilityLabel={channel.label}
+              accessibilityLabel={t(channel.label)}
             />
           </View>
         ))

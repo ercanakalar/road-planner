@@ -16,6 +16,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 const MIN_PASSWORD_LENGTH = 8;
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/;
@@ -25,6 +26,7 @@ const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' };
 const ChangePasswordSection = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -41,18 +43,18 @@ const ChangePasswordSection = () => {
   );
 
   const validationError = useMemo(() => {
-    if (!form.currentPassword) return 'Enter your current password.';
+    if (!form.currentPassword) return t('forms.enterCurrentPassword');
     if (form.newPassword.length < MIN_PASSWORD_LENGTH) {
       return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
     }
     if (!PASSWORD_PATTERN.test(form.newPassword)) {
-      return 'Include at least one letter and one number.';
+      return t('forms.passwordNeedsLetterAndNumber');
     }
     if (form.newPassword === form.currentPassword) {
-      return 'Choose a password you have not used here before.';
+      return t('forms.passwordReused');
     }
     if (form.newPassword !== form.confirmPassword) {
-      return 'Passwords do not match.';
+      return t('forms.passwordsDoNotMatch');
     }
     return '';
   }, [form]);
@@ -77,13 +79,13 @@ const ChangePasswordSection = () => {
       const status = (caught as { status?: number } | undefined)?.status;
       setError(
         status === 401
-          ? 'That is not your current password.'
-          : 'Could not change your password. Please try again.',
+          ? t('forms.wrongCurrentPassword')
+          : t('forms.couldNotChangePassword'),
       );
       showNotification({
         type: 'error',
-        header: 'Password not changed',
-        message: 'Check your current password and try again.',
+        header: t('toast.passwordNotChanged'),
+        message: t('toast.passwordCheckCurrent'),
       });
     }
   }, [changePassword, form, validationError]);
@@ -101,10 +103,8 @@ const ChangePasswordSection = () => {
       >
         <Ionicons name='key-outline' size={18} color={colors.primary} />
         <View style={styles.headerText}>
-          <Text style={styles.title}>Change password</Text>
-          <Text style={styles.hint}>
-            Enter your current password to set a new one.
-          </Text>
+          <Text style={styles.title}>{t('resetPassword.changeTitle')}</Text>
+          <Text style={styles.hint}>{t('resetPassword.changeHint')}</Text>
         </View>
         <Ionicons
           name={isOpen ? 'chevron-up' : 'chevron-down'}
@@ -116,8 +116,8 @@ const ChangePasswordSection = () => {
       {isOpen ? (
         <View style={styles.body}>
           <FormField
-            label='Current password'
-            placeholder='Your current password'
+            label={t('fields.currentPassword')}
+            placeholder={t('fields.currentPasswordPlaceholder')}
             value={form.currentPassword}
             onChangeText={handleChange('currentPassword')}
             autoComplete='current-password'
@@ -125,7 +125,7 @@ const ChangePasswordSection = () => {
           />
 
           <FormField
-            label='New password'
+            label={t('fields.newPassword')}
             placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
             value={form.newPassword}
             onChangeText={handleChange('newPassword')}
@@ -134,8 +134,8 @@ const ChangePasswordSection = () => {
           />
 
           <FormField
-            label='Confirm new password'
-            placeholder='Repeat the new password'
+            label={t('fields.confirmNewPassword')}
+            placeholder={t('fields.repeatNewPassword')}
             value={form.confirmPassword}
             onChangeText={handleChange('confirmPassword')}
             autoComplete='new-password'
@@ -144,7 +144,7 @@ const ChangePasswordSection = () => {
           />
 
           <PrimaryButton
-            label='Update password'
+            label={t('actions.updatePassword')}
             onPress={handleSubmit}
             isLoading={isLoading}
           />

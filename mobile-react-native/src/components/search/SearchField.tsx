@@ -17,6 +17,7 @@ import {
   useThemedTextInputProps,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   value: string;
@@ -31,12 +32,14 @@ const SearchField = ({
   value,
   onChange,
   onClear,
-  placeholder = 'Search routes and people',
+  placeholder,
+
   isBusy,
   autoFocus,
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const handleClear = useCallback(() => onClear(), [onClear]);
@@ -50,12 +53,12 @@ const SearchField = ({
         style={styles.input}
         value={value}
         onChangeText={onChange}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('defaults.searchRoutesAndPeople')}
         autoCorrect={false}
         autoCapitalize='none'
         autoFocus={autoFocus}
         returnKeyType='search'
-        accessibilityLabel={placeholder}
+        accessibilityLabel={placeholder ?? t('defaults.searchRoutesAndPeople')}
       />
 
       {isBusy ? (
@@ -67,7 +70,7 @@ const SearchField = ({
           onPress={handleClear}
           hitSlop={8}
           accessibilityRole='button'
-          accessibilityLabel='Clear search'
+          accessibilityLabel={t('actions.clearSearch')}
         >
           <Ionicons name='close-circle' size={18} color={colors.textSubtle} />
         </Pressable>

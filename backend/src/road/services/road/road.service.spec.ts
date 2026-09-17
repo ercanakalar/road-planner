@@ -227,7 +227,7 @@ describe('RoadService', () => {
 
       await expect(
         service.createRoad({ title: 'T', description: 'D' }, 'user-1'),
-      ).resolves.toMatchObject({ header: 'Route Created' });
+      ).resolves.toMatchObject({ header: 'road.createdHeader' });
       expect(prisma.stop.create).not.toHaveBeenCalled();
     });
 

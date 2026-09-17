@@ -70,12 +70,12 @@ export class CoordinateDto {
 }
 
 class RouteEndpointsDto {
-  @IsDefined({ message: 'origin is required' })
+  @IsDefined()
   @ValidateNested()
   @Type(() => CoordinateDto)
   origin!: CoordinateDto;
 
-  @IsDefined({ message: 'destination is required' })
+  @IsDefined()
   @ValidateNested()
   @Type(() => CoordinateDto)
   destination!: CoordinateDto;

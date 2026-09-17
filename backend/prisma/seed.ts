@@ -8,8 +8,18 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 const USER_COUNT = 500;
-const ROUTE_COUNT = 3000;
-const STOPS_PER_ROUTE = 6;
+const ROUTE_COUNT = 500000;
+
+/**
+ * How many stops a route gets, dealt one per route in turn.
+ *
+ * A spread rather than a single number so the stop-count filters have
+ * something to bite on: a one-stop route and a thirteen-stop route both exist.
+ */
+const STOPS_PER_ROUTE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+const stopsForRoute = (routeNumber: number): number =>
+  STOPS_PER_ROUTE[(routeNumber - 1) % STOPS_PER_ROUTE.length];
 
 const PASSWORD =
   'scrypt$N=32768,r=8,p=1$0ec907d1c25a7f02b83a91642aa46ecd$31bd9436cee82d891d02fc1b9f06ad53b0a47f9234d8c08042d567b5eaa5654d3b07e0d63abca85eed2b4b54bc296ca8898155756f18eab6b063270c289155e9';
@@ -321,6 +331,11 @@ async function createRoutes(
 
     const user = users[userIndex];
 
+    // Which of this owner's routes this is. Routes are dealt round-robin, so
+    // anything keyed on `i` alone modulo a number that divides the account
+    // count is constant per account rather than spread across accounts.
+    const slot = Math.floor((i - 1) / users.length);
+
     const city = CITIES[(i - 1) % CITIES.length];
 
     const title = `Test Route ${i}`;
@@ -346,8 +361,13 @@ async function createRoutes(
         description: `Demo route around ${city.name}`,
         isPublic: i % 3 !== 0,
 
+        // Mixed with the slot for exactly that reason: `i % 50` with 500
+        // accounts archived every route of ten of them, leaving those
+        // accounts with nothing live — unsearchable, and unfollowable, which
+        // is the one thing the notification flow needs. This archives the
+        // same 100 routes, but at most one per account.
         archivedAt:
-          i % 50 === 0
+          (userIndex + slot) % 50 === 0
             ? new Date(Date.now() - (i % 90) * 24 * 60 * 60 * 1000)
             : null,
 
@@ -403,10 +423,17 @@ async function createStops(
     elevation: number;
   }> = [];
 
+  let created = 0;
+
   for (const route of routes) {
     const city = CITIES[(route.routeNumber - 1) % CITIES.length];
 
-    for (let order = 1; order <= STOPS_PER_ROUTE; order++) {
+    // One count for this route, so its orders run 1..n exactly once. Walking
+    // the whole table per route instead writes order 1 thirteen times over and
+    // breaks Stop_roadId_order_key on the first batch.
+    const stopCount = stopsForRoute(route.routeNumber);
+
+    for (let order = 1; order <= stopCount; order++) {
       const key = `${route.id}:${order}`;
 
       if (existingKeys.has(key)) {
@@ -426,7 +453,7 @@ async function createStops(
       const address =
         order === 1
           ? 'Start point'
-          : order === STOPS_PER_ROUTE
+          : order === stopCount
             ? 'Destination'
             : `Stop ${order}`;
 
@@ -440,22 +467,32 @@ async function createStops(
       });
 
       if (batch.length >= batchSize) {
-        await prisma.stop.createMany({
+        // No `skipDuplicates`: Stop_roadId_order_key is DEFERRABLE INITIALLY
+        // DEFERRED so a route can be reordered inside one transaction, and
+        // Postgres will not take a deferrable constraint as an ON CONFLICT
+        // arbiter. Nothing collides anyway — `existingKeys` covers rows an
+        // earlier run wrote, and one count per route covers this one.
+        const { count } = await prisma.stop.createMany({
           data: batch,
         });
 
+        created += count;
         batch = [];
       }
     }
   }
 
   if (batch.length > 0) {
-    await prisma.stop.createMany({
+    const { count } = await prisma.stop.createMany({
       data: batch,
     });
+
+    created += count;
   }
 
-  console.log(`Stops created: ${routes.length * STOPS_PER_ROUTE}`);
+  // What was written, not what was planned: on a second run most of this is
+  // already there and the honest number is zero.
+  console.log(`Stops created: ${created}`);
 }
 
 async function createFavorites(
@@ -646,7 +683,12 @@ async function main(): Promise<void> {
   // Stops
   // ============================================================
 
-  console.log(`Creating ${ROUTE_COUNT * STOPS_PER_ROUTE} stops...`);
+  const plannedStops = routes.reduce(
+    (total, route) => total + stopsForRoute(route.routeNumber),
+    0,
+  );
+
+  console.log(`Creating up to ${plannedStops} stops...`);
 
   await createStops(routes);
 

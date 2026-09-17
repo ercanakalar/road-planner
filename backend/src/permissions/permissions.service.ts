@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
-import { ok } from 'src/common/http/api-response';
+import { ok, phrase } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignPermitDto, UpdatePermitDto } from './dto/permissions.dto';
 
@@ -32,8 +32,11 @@ export class PermissionsService {
     });
 
     return ok({
-      header: 'Permit Assigned',
-      message: `${user.firstName} now holds the ${user.permit?.name} permit`,
+      header: 'permit.assignedHeader',
+      message: phrase('permit.assigned', {
+        name: user.firstName,
+        permit: user.permit?.name,
+      }),
       data: user,
     });
   }
@@ -65,7 +68,7 @@ export class PermissionsService {
     const { description, permissionIds } = updatePermit;
 
     if (description === undefined && permissionIds === undefined) {
-      throw new BadRequestException('No updatable fields were supplied');
+      throw new BadRequestException('error.nothingToUpdate');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -75,9 +78,7 @@ export class PermissionsService {
         });
 
         if (found !== permissionIds.length) {
-          throw new BadRequestException(
-            'One or more permissionIds do not exist',
-          );
+          throw new BadRequestException('error.permissionIdsUnknown');
         }
       }
 
@@ -93,8 +94,8 @@ export class PermissionsService {
       });
 
       return ok({
-        header: 'Permit Updated',
-        message: `The ${permit.name} permit was updated`,
+        header: 'permit.updatedHeader',
+        message: phrase('permit.updated', { permit: permit.name }),
         data: permit,
       });
     });

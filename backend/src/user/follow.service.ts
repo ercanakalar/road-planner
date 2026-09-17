@@ -34,7 +34,7 @@ export class FollowService {
     });
 
     if (!author) {
-      throw new NotFoundException('That person has not published a route');
+      throw new NotFoundException('error.personNotFound');
     }
   }
 
@@ -81,7 +81,7 @@ export class FollowService {
    */
   async setFollowing(authorId: string, followerId: string, follow: boolean) {
     if (authorId === followerId) {
-      throw new BadRequestException('You already hear about your own routes');
+      throw new BadRequestException('error.cannotFollowSelf');
     }
 
     await this.requirePublishedAuthor(authorId);

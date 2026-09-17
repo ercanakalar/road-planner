@@ -56,17 +56,15 @@ export async function writeAvatar(
   buffer: Buffer,
 ): Promise<string> {
   if (!buffer?.length) {
-    throw new BadRequestException('An image file is required');
+    throw new BadRequestException('error.imageRequired');
   }
   if (buffer.length > AVATAR_MAX_BYTES) {
-    throw new BadRequestException('Images must be 5 MB or smaller');
+    throw new BadRequestException('error.imageTooLarge');
   }
 
   const type = sniff(buffer);
   if (!type) {
-    throw new BadRequestException(
-      'Only JPEG, PNG and WebP images are accepted',
-    );
+    throw new BadRequestException('error.imageWrongType');
   }
 
   const directory = avatarDirectory(uploadDir);
@@ -88,9 +86,7 @@ export async function writeAvatar(
       error instanceof Error ? error.stack : String(error),
     );
 
-    throw new ServiceUnavailableException(
-      'Photos cannot be saved at the moment. Please try again later.',
-    );
+    throw new ServiceUnavailableException('error.photoStoreUnavailable');
   }
 
   return filename;

@@ -123,7 +123,7 @@ describe('UserService', () => {
 
         await expect(
           service.updateUser({ nickName: 'mine' }, USER_ID),
-        ).resolves.toMatchObject({ header: 'User Updated' });
+        ).resolves.toMatchObject({ header: 'user.updatedHeader' });
       });
 
       it('excludes the caller from the uniqueness lookup', async () => {

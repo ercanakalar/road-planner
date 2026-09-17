@@ -33,8 +33,8 @@ export class FavoritesService {
           await tx.favoriteStop.delete({ where: { id: existing.id } });
 
           return ok({
-            header: 'Removed Favorite',
-            message: 'Favorite stop removed successfully',
+            header: 'favorite.removedHeader',
+            message: 'favorite.stopRemoved',
           });
         }
 
@@ -50,12 +50,12 @@ export class FavoritesService {
         });
 
         if (!stop) {
-          throw new NotFoundException('Stop not found');
+          throw new NotFoundException('error.stopNotFound');
         }
 
         return ok({
-          header: 'Favorite Added',
-          message: 'Favorite stop added successfully',
+          header: 'favorite.addedHeader',
+          message: 'favorite.stopAdded',
           data: await tx.favoriteStop.create({
             data: { userId, stopId: stop.id },
           }),
@@ -64,8 +64,8 @@ export class FavoritesService {
     } catch (error) {
       if (isDuplicate(error)) {
         return ok({
-          header: 'Already Favorited',
-          message: 'This stop is already in your favorites',
+          header: 'favorite.alreadyHeader',
+          message: 'favorite.stopAlready',
         });
       }
 
@@ -85,8 +85,8 @@ export class FavoritesService {
           await tx.favoriteRoad.delete({ where: { id: existing.id } });
 
           return ok({
-            header: 'Removed Favorite',
-            message: 'Favorite route removed successfully',
+            header: 'favorite.removedHeader',
+            message: 'favorite.routeRemoved',
           });
         }
 
@@ -100,12 +100,12 @@ export class FavoritesService {
         });
 
         if (!road) {
-          throw new NotFoundException('Route not found');
+          throw new NotFoundException('error.routeNotFound');
         }
 
         return ok({
-          header: 'Favorite Added',
-          message: 'Favorite route added successfully',
+          header: 'favorite.addedHeader',
+          message: 'favorite.routeAdded',
           data: await tx.favoriteRoad.create({
             data: { userId, roadId: road.id },
           }),
@@ -114,8 +114,8 @@ export class FavoritesService {
     } catch (error) {
       if (isDuplicate(error)) {
         return ok({
-          header: 'Already Favorited',
-          message: 'This route is already in your favorites',
+          header: 'favorite.alreadyHeader',
+          message: 'favorite.routeAlready',
         });
       }
 
@@ -198,8 +198,8 @@ export class FavoritesService {
       .map(stripRoad);
 
     return ok({
-      header: 'All Favorites',
-      message: 'Favorites retrieved successfully',
+      header: 'favorite.allHeader',
+      message: 'favorite.retrieved',
       data: { ownRoads, ownStops, othersRoads, othersStops },
       meta: {
         roads: pageMeta(roadTotal, pagination),
@@ -219,7 +219,7 @@ export class FavoritesService {
     });
 
     if (!favorite) {
-      throw new NotFoundException('Favorite route not found');
+      throw new NotFoundException('error.favoriteRouteNotFound');
     }
 
     const updated = await this.prisma.favoriteRoad.update({
@@ -229,8 +229,8 @@ export class FavoritesService {
     });
 
     return ok({
-      header: 'Favorite updated',
-      message: 'Your changes were saved',
+      header: 'favorite.updatedHeader',
+      message: 'favorite.changesSaved',
       data: updated,
     });
   }
@@ -246,7 +246,7 @@ export class FavoritesService {
     });
 
     if (!favorite) {
-      throw new NotFoundException('Favorite stop not found');
+      throw new NotFoundException('error.favoriteStopNotFound');
     }
 
     const updated = await this.prisma.favoriteStop.update({
@@ -256,8 +256,8 @@ export class FavoritesService {
     });
 
     return ok({
-      header: 'Favorite updated',
-      message: 'Your changes were saved',
+      header: 'favorite.updatedHeader',
+      message: 'favorite.changesSaved',
       data: updated,
     });
   }

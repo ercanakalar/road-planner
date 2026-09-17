@@ -17,6 +17,8 @@ import { formatWait } from 'utils/formatDuration';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
+import { RESET_CODE_LENGTH } from 'types/store/services/authenticationService-type';
 
 type Props = {
   navigation: NavigationProp<RootStackParamList>;
@@ -26,6 +28,7 @@ type Props = {
 const ForgotPasswordScreen = ({ navigation, route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const {
     values,
@@ -48,10 +51,13 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
       >
         <View style={styles.container}>
           <View style={styles.heading}>
-            <Text style={styles.title}>Reset your password</Text>
+            <Text style={styles.title}>
+              {t('resetPassword.forgotTitle')}
+            </Text>
             <Text style={styles.subtitle}>
-              We will email you a 5-digit code. It expires shortly after it
-              arrives.
+              {t('resetPassword.forgotSubtitle', {
+                length: RESET_CODE_LENGTH,
+              })}
             </Text>
           </View>
 
@@ -70,8 +76,8 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
           ) : null}
 
           <FormField
-            label='Email'
-            placeholder='you@example.com'
+            label={t('fields.email')}
+            placeholder={t('fields.emailPlaceholder')}
             value={values.email}
             onChangeText={handleChange('email')}
             autoCapitalize='none'
@@ -81,7 +87,7 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
           />
 
           <PrimaryButton
-            label='Send code'
+            label={t('actions.sendCode')}
             onPress={handleSubmit}
             isLoading={isPending}
             disabled={isLocked}

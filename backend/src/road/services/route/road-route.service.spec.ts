@@ -95,7 +95,7 @@ describe('RoadRouteService', () => {
 
       await expect(service.getRoute(ROAD_ID, USER_ID)).resolves.toMatchObject({
         data: null,
-        message: 'No route between those points',
+        message: 'route.none',
       });
     });
 
@@ -105,7 +105,7 @@ describe('RoadRouteService', () => {
         givenRoad(stops);
 
         await expect(service.getRoute(ROAD_ID, USER_ID)).resolves.toMatchObject(
-          { data: null, message: 'A route needs at least two stops' },
+          { data: null, message: 'route.tooShort' },
         );
         expect(directions.route).not.toHaveBeenCalled();
       },
@@ -163,7 +163,7 @@ describe('RoadRouteService', () => {
         service.getDurations(ROAD_ID, USER_ID, ['driving']),
       ).resolves.toMatchObject({
         data: {},
-        message: 'A route needs at least two stops',
+        message: 'route.tooShort',
       });
       expect(directions.durations).not.toHaveBeenCalled();
     });

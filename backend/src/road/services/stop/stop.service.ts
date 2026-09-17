@@ -33,12 +33,12 @@ export class StopService {
     });
 
     if (!stop) {
-      throw new NotFoundException('Stop not found');
+      throw new NotFoundException('error.stopNotFound');
     }
 
     return ok({
-      header: 'Stop Found',
-      message: 'Stop found successfully',
+      header: 'stop.foundHeader',
+      message: 'stop.foundMessage',
       data: { ...stop, ...(await this.metricsFor(stop)) },
     });
   }
@@ -99,8 +99,8 @@ export class StopService {
     });
 
     return ok({
-      header: 'Add Stop',
-      message: 'Stop added successfully',
+      header: 'stop.addHeader',
+      message: 'stop.addMessage',
       data: { ...stop, ...(await this.metricsFor(stop)) },
     });
   }
@@ -116,8 +116,8 @@ export class StopService {
     });
 
     return ok({
-      header: 'Delete Stop',
-      message: 'Stop deleted and order updated successfully',
+      header: 'stop.deleteHeader',
+      message: 'stop.deleteMessage',
     });
   }
 
@@ -125,7 +125,7 @@ export class StopService {
     const { latitude, longitude } = body;
 
     if (!stopId) {
-      throw new BadRequestException('stopId is required');
+      throw new BadRequestException('error.stopIdRequired');
     }
 
     const stop = await this.prisma.stop.findUnique({
@@ -134,7 +134,7 @@ export class StopService {
     });
 
     if (!stop) {
-      throw new NotFoundException('Stop not found');
+      throw new NotFoundException('error.stopNotFound');
     }
 
     const moved = stop.latitude !== latitude || stop.longitude !== longitude;
@@ -154,8 +154,8 @@ export class StopService {
     });
 
     return ok({
-      header: 'Update Stop',
-      message: 'Stop updated successfully',
+      header: 'stop.updateHeader',
+      message: 'stop.updateMessage',
       data: { ...updatedStop, ...(await this.metricsFor(updatedStop)) },
     });
   }
@@ -163,9 +163,7 @@ export class StopService {
     const { from, to } = body;
 
     if (body.roadId !== undefined && body.roadId !== roadId) {
-      throw new BadRequestException(
-        'roadId in the body does not match the roadId in the path',
-      );
+      throw new BadRequestException('error.roadIdMismatch');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -175,7 +173,7 @@ export class StopService {
       });
 
       if (!road) {
-        throw new NotFoundException('Route not found');
+        throw new NotFoundException('error.routeNotFound');
       }
 
       const stops = await tx.stop.findMany({
@@ -207,8 +205,8 @@ export class StopService {
     });
 
     return ok({
-      header: 'Reordered',
-      message: 'Stop order updated successfully',
+      header: 'stop.reorderHeader',
+      message: 'stop.reorderMessage',
     });
   }
 }

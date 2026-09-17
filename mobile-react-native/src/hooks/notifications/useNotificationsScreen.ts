@@ -13,6 +13,7 @@ import {
 } from 'store/services/notificationService';
 import { AppNotification } from 'types/store/services/notificationService-type';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Whether opening the screen should mark the inbox read yet.
@@ -120,18 +121,19 @@ export function useNotificationsScreen() {
   }, [offset, refetch, resetPage]);
 
   const confirm = useConfirm();
+  const { t } = useTranslation();
 
   const handleClear = useCallback(async () => {
     const confirmed = await confirm({
-      title: 'Clear notifications',
-      message: 'This removes every notification. It cannot be undone.',
-      confirmLabel: 'Clear',
+      title: t('notifications.clearTitle'),
+      message: t('notifications.clearMessage'),
+      confirmLabel: t('notifications.clearConfirm'),
       icon: 'trash-outline',
       tone: 'danger',
     });
 
     if (confirmed) clearAll();
-  }, [clearAll, confirm]);
+  }, [clearAll, confirm, t]);
 
   const goToSettings = useCallback(
     () => navigation.navigate('SettingsScreen'),

@@ -5,11 +5,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { FavoriteSectionHeaderProps } from 'types/screens/mapScreenType';
+import { useTranslation } from 'react-i18next';
 
 export const FavoriteSection = memo(
   ({ section, isExpanded, onToggle }: FavoriteSectionHeaderProps) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
     const handleToggle = useCallback(
       () => onToggle(section.key),
@@ -27,11 +29,14 @@ export const FavoriteSection = memo(
         onPress={handleToggle}
         accessibilityRole='button'
         accessibilityState={{ expanded: isExpanded }}
-        accessibilityLabel={`${section.title}, ${section.count} items`}
+        accessibilityLabel={t('favorites.sectionAccessibility', {
+          title: t(section.title),
+          count: section.count,
+        })}
       >
         <View style={styles.titleContainer}>
           <MaterialIcons name={section.icon} size={20} color={colors.primary} />
-          <Text style={styles.title}>{section.title}</Text>
+          <Text style={styles.title}>{t(section.title)}</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{section.count}</Text>
           </View>

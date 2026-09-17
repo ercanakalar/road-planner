@@ -118,8 +118,8 @@ export class RoadService {
     });
 
     return ok({
-      header: 'Route Created',
-      message: 'Route created successfully',
+      header: 'road.createdHeader',
+      message: 'road.createdMessage',
       data: withRoadStopMetrics(road),
     });
   }
@@ -143,12 +143,12 @@ export class RoadService {
     });
 
     if (!road) {
-      throw new NotFoundException('Route not found');
+      throw new NotFoundException('error.routeNotFound');
     }
 
     return ok({
-      header: 'Route Found',
-      message: 'Route found successfully',
+      header: 'road.foundHeader',
+      message: 'road.foundMessage',
       data: {
         ...road,
         favoriteRoads: road.favoriteRoads ?? [],
@@ -171,6 +171,8 @@ export class RoadService {
     // every stop the user had ever saved, so the count is asked for instead.
     // The two reads are independent, so they run side by side rather than
     // queued behind one another inside a transaction.
+    console.log(userId);
+    
     const [roads, total] = await Promise.all([
       this.prisma.road.findMany({
         where,
@@ -202,8 +204,8 @@ export class RoadService {
     }));
 
     return ok({
-      header: 'Own Routes',
-      message: 'Own routes retrieved successfully',
+      header: 'road.ownHeader',
+      message: 'road.ownMessage',
       data: shaped,
       meta: pageMeta(total, pagination),
     });
@@ -257,8 +259,8 @@ export class RoadService {
 
     if (!rows.length) {
       return ok({
-        header: 'Discover Routes',
-        message: 'No published routes yet',
+        header: 'road.discoverHeader',
+        message: 'road.discoverEmpty',
         data: [],
       });
     }
@@ -299,8 +301,8 @@ export class RoadService {
       }));
 
     return ok({
-      header: 'Discover Routes',
-      message: 'Published routes retrieved successfully',
+      header: 'road.discoverHeader',
+      message: 'road.discoverMessage',
       data: shaped,
     });
   }
@@ -325,7 +327,7 @@ export class RoadService {
     });
 
     if (!source) {
-      throw new NotFoundException('Route not found');
+      throw new NotFoundException('error.routeNotFound');
     }
 
     const clone = await this.prisma.$transaction(async (tx) => {
@@ -362,8 +364,8 @@ export class RoadService {
     });
 
     return ok({
-      header: 'Route Copied',
-      message: 'The route is now yours to edit',
+      header: 'road.copiedHeader',
+      message: 'road.copiedMessage',
       data: withRoadStopMetrics(clone),
     });
   }
@@ -484,8 +486,8 @@ export class RoadService {
     }
 
     return ok({
-      header: 'Route Updated',
-      message: 'Route updated successfully',
+      header: 'road.updatedHeader',
+      message: 'road.updatedMessage',
       data: withRoadStopMetrics(updated),
     });
   }
@@ -497,7 +499,7 @@ export class RoadService {
     });
 
     if (!road) {
-      throw new NotFoundException('Route not found');
+      throw new NotFoundException('error.routeNotFound');
     }
 
     await this.prisma.road.update({
@@ -506,8 +508,8 @@ export class RoadService {
     });
 
     return ok({
-      header: 'Route Removed',
-      message: 'Route removed from your list',
+      header: 'road.removedHeader',
+      message: 'road.removedMessage',
     });
   }
 }

@@ -7,6 +7,7 @@ import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { ContextMenuOption } from 'types/components/contextMenu';
 import { FavoriteItemProps } from 'types/screens/mapScreenType';
+import { useTranslation } from 'react-i18next';
 
 export const FavoriteItem = memo(
   ({
@@ -19,6 +20,7 @@ export const FavoriteItem = memo(
   }: FavoriteItemProps) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const isRoute = item.kind === 'route';
@@ -30,7 +32,7 @@ export const FavoriteItem = memo(
     const options = useMemo(() => {
       const rows: ContextMenuOption[] = [
         {
-          label: isRoute ? 'Open route' : 'Open place',
+          label: isRoute ? t('defaults.openRoute') : t('defaults.openPlace'),
           icon: isRoute ? 'map-outline' : 'location-outline',
           action: () => onPress(item),
         },
@@ -44,14 +46,14 @@ export const FavoriteItem = memo(
       // Only a place has an address, and only one Google could name.
       if (item.address) {
         rows.push({
-          label: 'Copy address',
+          label: t('mapUi.copyAddress'),
           icon: 'copy-outline',
           action: () => onCopyAddress(item),
         });
       }
 
       rows.push({
-        label: 'Remove from favourites',
+        label: t('mapUi.removeFromFavourites'),
         icon: 'heart-dislike-outline',
         tone: 'danger',
         action: () => onRemove(item),
@@ -96,7 +98,7 @@ export const FavoriteItem = memo(
                   color={colors.textSubtle}
                 />
                 <Text style={styles.withdrawnText}>
-                  Removed by its owner · your copy still works
+                  {t('favorites.removedByOwner')}
                 </Text>
               </View>
             ) : null}

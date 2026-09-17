@@ -21,7 +21,7 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
 
   validate(payload: JwtPayload): JwtPayload {
     if (!payload?.userId) {
-      throw new UnauthorizedException('Token is missing a subject');
+      throw new UnauthorizedException('error.tokenNoSubject');
     }
 
     return payload;

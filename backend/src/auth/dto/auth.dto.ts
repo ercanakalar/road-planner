@@ -25,7 +25,7 @@ import {
 
 export class SignUpDto {
   @Transform(normalizeEmail)
-  @IsEmail({}, { message: 'email must be a valid email address' })
+  @IsEmail()
   @MaxLength(EMAIL_MAX_LENGTH)
   email!: string;
 
@@ -43,7 +43,7 @@ export class SignUpDto {
 
 export class SignInDto {
   @Transform(trim)
-  @IsEmail({}, { message: 'email must be a valid email address' })
+  @IsEmail()
   @MaxLength(EMAIL_MAX_LENGTH)
   email!: string;
 
@@ -54,21 +54,21 @@ export class SignInDto {
 
 export class ForgotPasswordDto {
   @Transform(trim)
-  @IsEmail({}, { message: 'email must be a valid email address' })
+  @IsEmail()
   @MaxLength(EMAIL_MAX_LENGTH)
   email!: string;
 }
 
 export class VerifyResetCodeDto {
   @Transform(trim)
-  @IsEmail({}, { message: 'email must be a valid email address' })
+  @IsEmail()
   @MaxLength(EMAIL_MAX_LENGTH)
   email!: string;
 
   @Transform(trim)
   @IsString()
   @Matches(RESET_CODE_PATTERN, {
-    message: `code must be ${RESET_CODE_LENGTH} digits`,
+    message: `validation.resetCodeLength ${RESET_CODE_LENGTH}`,
   })
   code!: string;
 }
@@ -103,7 +103,7 @@ export class ResetPasswordDto {
 
 export class RefreshTokenDto {
   @IsString()
-  @IsJWT({ message: 'refreshToken must be a JWT' })
+  @IsJWT()
   refreshToken!: string;
 }
 

@@ -1,3 +1,5 @@
+import i18n from 'i18n';
+
 import baseQuery from './baseQuery';
 import tokenStorage from 'services/tokenStorage';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
@@ -52,6 +54,37 @@ describe('authorization', () => {
 
     const request = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+});
+
+describe('language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  it('asks for the answer in the language on screen', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(200, envelope({ ok: true })),
+    );
+    await i18n.changeLanguage('tr');
+
+    await runQuery('/road/discover').result;
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(request.headers.get('Accept-Language')).toBe('tr');
+  });
+
+  it('sends it on requests that show no message of their own', async () => {
+    // Everything the API says back is worded from this header, including the
+    // errors a screen shows without having asked for a toast.
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(200, envelope({ ok: true })),
+    );
+
+    await runQuery('/user/search').result;
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(request.headers.get('Accept-Language')).toBe('en');
   });
 });
 

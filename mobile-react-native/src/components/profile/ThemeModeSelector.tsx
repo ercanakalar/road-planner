@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { themeModeSet } from 'store/slices/settingsSlice';
@@ -13,9 +14,13 @@ const OPTIONS: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { mode: 'light', label: 'Light', icon: 'sunny-outline' },
-  { mode: 'dark', label: 'Dark', icon: 'moon-outline' },
-  { mode: 'system', label: 'Automatic', icon: 'phone-portrait-outline' },
+  { mode: 'light', label: 'settings.themeLight', icon: 'sunny-outline' },
+  { mode: 'dark', label: 'settings.themeDark', icon: 'moon-outline' },
+  {
+    mode: 'system',
+    label: 'settings.themeAutomatic',
+    icon: 'phone-portrait-outline',
+  },
 ];
 
 const ThemeModeOption = memo(
@@ -30,6 +35,7 @@ const ThemeModeOption = memo(
   }) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
 
     const handlePress = useCallback(
       () => onSelect(option.mode),
@@ -41,7 +47,7 @@ const ThemeModeOption = memo(
         onPress={handlePress}
         accessibilityRole='radio'
         accessibilityState={{ selected: isSelected }}
-        accessibilityLabel={option.label}
+        accessibilityLabel={t(option.label)}
         style={({ pressed }) => [
           styles.option,
           isSelected && styles.optionSelected,
@@ -56,7 +62,7 @@ const ThemeModeOption = memo(
         <Text
           style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}
         >
-          {option.label}
+          {t(option.label)}
         </Text>
       </Pressable>
     );

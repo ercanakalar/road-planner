@@ -31,12 +31,14 @@ import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
 import { RouteSearchHit } from 'types/store/services/searchService-type';
 import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
+import { useTranslation } from 'react-i18next';
 
 type Props = { route: RouteProp<RootStackParamList, 'AuthorScreen'> };
 
 const AuthorScreen = ({ route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const refreshColors = useRefreshControlColors();
 
   const { authorId, displayName } = route.params;
@@ -98,7 +100,7 @@ const AuthorScreen = ({ route }: Props) => {
           ? `${author.publicRouteCount} published route${
               author.publicRouteCount === 1 ? '' : 's'
             }`
-          : 'Published routes'}
+          : t('defaults.publishedRoutes')}
       </Text>
 
       {/*
@@ -122,7 +124,7 @@ const AuthorScreen = ({ route }: Props) => {
             ? `Stop being notified when ${name} publishes a route`
             : `Notify me when ${name} publishes a route`
         }
-        accessibilityHint='We will email you when they publish a new route.'
+        accessibilityHint={t('searchScreen.notifyHint')}
       >
         <Ionicons
           name={isFollowed ? 'notifications' : 'notifications-outline'}
@@ -130,7 +132,9 @@ const AuthorScreen = ({ route }: Props) => {
           color={isFollowed ? colors.textInverse : colors.primary}
         />
         <Text style={[styles.followText, isFollowed && styles.followTextOn]}>
-          {isFollowed ? 'Notifying you' : 'Notify me'}
+          {isFollowed
+            ? t('searchScreen.notifyingYou')
+            : t('defaults.notifyMe')}
         </Text>
       </Pressable>
     </View>
@@ -165,13 +169,13 @@ const AuthorScreen = ({ route }: Props) => {
         />
 
         {isLoading ? (
-          <ScreenState variant='loading' title='Loading routes…' />
+          <ScreenState variant='loading' title={t('states.loadingRoutes')} />
         ) : isError ? (
           <ScreenState
             variant='error'
-            title='Could not load these routes'
-            message='Check your connection and try again.'
-            actionLabel='Retry'
+            title={t('searchScreen.authorErrorTitle')}
+            message={t('states.checkConnection')}
+            actionLabel={t('common.retry')}
             onAction={refetch}
           />
         ) : (
@@ -195,11 +199,11 @@ const AuthorScreen = ({ route }: Props) => {
               <ScreenState
                 variant='empty'
                 icon='map-outline'
-                title='Nothing here'
+                title={t('searchScreen.authorEmptyTitle')}
                 message={
                   length === 'any'
-                    ? `${name} has no public routes right now.`
-                    : `${name} has no routes of that length.`
+                    ? t('searchScreen.authorNoPublic', { name })
+                    : t('searchScreen.authorNoneOfLength', { name })
                 }
               />
             }

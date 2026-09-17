@@ -14,6 +14,7 @@ import {
 import type { ThemeColors } from 'theme';
 import { RouteCoordinate } from 'types/map-screen-type';
 import { TransportMode } from 'types/transport-type';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   /** The stops in travelling order, exactly as the list shows them. */
@@ -24,6 +25,7 @@ interface Props {
 const OpenInGoogleMapsButton = ({ stops, mode }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const openInGoogleMaps = useOpenInGoogleMaps();
 
   const handlePress = useCallback(
@@ -38,18 +40,18 @@ const OpenInGoogleMapsButton = ({ stops, mode }: Props) => {
       onPress={handlePress}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
       accessibilityRole='button'
-      accessibilityLabel='Continue this route in Google Maps'
+      accessibilityLabel={t('mapUi.continueInGoogleMapsAccessibility')}
     >
       <View style={styles.icon}>
         <Ionicons name='navigate' size={15} color={colors.primary} />
       </View>
 
       <View style={styles.copy}>
-        <Text style={styles.label}>Continue in Google Maps</Text>
+        <Text style={styles.label}>{t('mapUi.continueInGoogleMaps')}</Text>
         <Text style={styles.hint}>
           {stops.length === 1
-            ? 'Navigate to this stop'
-            : `Navigate all ${stops.length} stops`}
+            ? t('mapUi.navigateToStop')
+            : t('mapUi.navigateAllStops', { count: stops.length })}
         </Text>
       </View>
 

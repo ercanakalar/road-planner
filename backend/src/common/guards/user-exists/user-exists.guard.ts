@@ -26,7 +26,7 @@ export class UserExistsGuard implements CanActivate {
     });
 
     if (userExists) {
-      throw new ConflictException('An account with this email already exists');
+      throw new ConflictException('error.emailTaken');
     }
 
     return true;

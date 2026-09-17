@@ -1,4 +1,5 @@
 import reducer, {
+  languageSet,
   settingsInitialState,
   settingSet,
   settingsRestored,
@@ -7,11 +8,13 @@ import reducer, {
 } from './settingsSlice';
 
 describe('settingsSlice', () => {
-  it('defaults both preferences on and the theme to automatic', () => {
+  it('defaults both preferences on, the theme automatic, the language unset', () => {
     expect(reducer(undefined, { type: '@@init' })).toEqual({
       notificationsEnabled: true,
       autoFitRoute: true,
       themeMode: 'system',
+      // Null rather than 'en': nothing has been chosen, so the phone decides.
+      language: null,
     });
   });
 
@@ -39,6 +42,7 @@ describe('settingsSlice', () => {
       notificationsEnabled: false,
       autoFitRoute: true,
       themeMode: 'system',
+      language: null,
     });
   });
 
@@ -63,5 +67,19 @@ describe('settingsSlice', () => {
     );
 
     expect(state.themeMode).toBe('light');
+  });
+
+  it.each(['en', 'tr'] as const)('sets the language to %s', (language) => {
+    expect(reducer(undefined, languageSet(language)).language).toBe(language);
+  });
+
+  it('keeps a chosen language across a restore that does not mention one', () => {
+    // A restore carries whatever was on disk. Letting a missing key reset the
+    // language would put somebody back on the phone's every time they reopened
+    // the app, which is the opposite of having chosen.
+    const chosen = reducer(settingsInitialState, languageSet('tr'));
+    const state = reducer(chosen, settingsRestored({ themeMode: 'dark' }));
+
+    expect(state.language).toBe('tr');
   });
 });

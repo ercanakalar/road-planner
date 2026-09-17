@@ -34,7 +34,7 @@ export class PermissionsGuard implements CanActivate {
     const userId = (request.user as { userId?: string } | undefined)?.userId;
 
     if (!userId) {
-      throw new UnauthorizedException('Not authenticated');
+      throw new UnauthorizedException('error.notAuthenticated');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -49,7 +49,7 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasPermission) {
-      throw new ForbiddenException('You do not have access to this resource');
+      throw new ForbiddenException('error.noAccess');
     }
 
     return true;

@@ -1,9 +1,15 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import compression from 'compression';
 import helmet from 'helmet';
+import { I18nService } from 'nestjs-i18n';
 
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
 import { ResponseEnvelopeInterceptor } from 'src/common/interceptors/response-envelope.interceptor';
+import { validationPhrases } from 'src/common/validation/validation-phrases';
 
 export const API_PREFIX = 'api';
 
@@ -46,11 +52,20 @@ export function configureApp(
       transformOptions: {
         enableImplicitConversion: false,
       },
+      // class-validator writes its own English. Handing the failures over as
+      // phrases puts them through the same dictionary as everything else the
+      // API says, so a rejected form reads in the caller's language too.
+      exceptionFactory: (errors) =>
+        new BadRequestException({ message: validationPhrases(errors) }),
     }),
   );
 
-  app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // Both are constructed rather than injected, so the translator is fetched
+  // from the container once and handed to them.
+  const i18n = app.get(I18nService);
+
+  app.useGlobalInterceptors(new ResponseEnvelopeInterceptor(i18n));
+  app.useGlobalFilters(new AllExceptionsFilter(i18n));
 
   app.enableShutdownHooks();
 

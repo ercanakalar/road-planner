@@ -8,6 +8,7 @@ import type { ThemeColors } from 'theme';
 import { StopWithAddress } from 'types/map-screen-type';
 import { StopOption } from 'types/transport-type';
 import { addressLocality, addressName } from 'utils/address';
+import { useTranslation } from 'react-i18next';
 
 type StopCardProps = {
   item: StopWithAddress;
@@ -31,6 +32,7 @@ const StopCard = ({
   onOptionSelect,
 }: StopCardProps) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const handlePress = useCallback(
     () => onToggleSelection(item.id),
@@ -57,7 +59,7 @@ const StopCard = ({
       onPress={handlePress}
       accessibilityRole='button'
       accessibilityState={{ selected: isSelected }}
-      accessibilityHint='Tap to compare, long press to reorder'
+      accessibilityHint={t('mapUi.stopHint')}
     >
       <View style={styles.row}>
         <View style={[styles.badge, isSelected && styles.badgeSelected]}>
@@ -70,7 +72,7 @@ const StopCard = ({
 
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={1}>
-            {addressName(item.address) || 'Unnamed stop'}
+            {addressName(item.address) || t('mapUi.unnamedStop')}
           </Text>
           {locality ? (
             <Text style={styles.subtitle} numberOfLines={1}>

@@ -34,6 +34,7 @@ import { withAlpha } from 'utils/color';
 import { splitRouteAtLocation } from 'utils/geo';
 import { metersToDistance } from 'utils/secondsToHour';
 import useMapStyle from 'hooks/map/useMapStyle';
+import { useTranslation } from 'react-i18next';
 
 const EMPTY_SELECTION: readonly string[] = [];
 
@@ -81,6 +82,7 @@ const StopMarker = memo(
   }: MarkerProps) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
     const isSelected = selectionIndex >= 0;
 
     // A marker drawn from child views renders blank if it is told never to
@@ -117,7 +119,9 @@ const StopMarker = memo(
         pinColor={isSelected ? colors.selection : pinColor(colors, index, total)}
         title={`${label}${addressName(stop.address) || 'Stop'}`}
         description={
-          isDraggable ? 'Drag to reposition' : addressLocality(stop.address)
+          isDraggable
+            ? t('defaults.dragToReposition')
+            : addressLocality(stop.address)
         }
         opacity={isDraggable ? 0.85 : 1}
         anchor={isSelected ? { x: 0.5, y: 0.5 } : undefined}
@@ -210,16 +214,17 @@ const RouteLine = memo(
 
 RouteLine.displayName = 'RouteLine';
 
+/** Keys rather than sentences: the words are chosen when one is shown. */
 const FOLLOW_UNAVAILABLE_NOTICE = {
   denied: {
-    header: 'Location permission needed',
-    message: 'Allow location access to follow your progress along the route.',
+    header: 'toast.locationPermissionNeeded',
+    message: 'toast.followPermissionMessage',
   },
   unavailable: {
-    header: 'Location unavailable',
-    message: 'Your position could not be read, so following was switched off.',
+    header: 'toast.locationUnavailable',
+    message: 'toast.followUnavailableMessage',
   },
-};
+} as const;
 
 const MapSectionComponent = ({
   stops,
@@ -238,6 +243,7 @@ const MapSectionComponent = ({
   const { colors } = useTheme();
   const { mapStyle, isDark, mapKey } = useMapStyle();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const hasFittedRef = useRef(false);
   const hasCentredOnUserRef = useRef(false);
@@ -313,12 +319,15 @@ const MapSectionComponent = ({
   useEffect(() => {
     if (followStatus !== 'denied' && followStatus !== 'unavailable') return;
 
+    const notice = FOLLOW_UNAVAILABLE_NOTICE[followStatus];
+
     setIsFollowing(false);
     showNotification({
       type: 'info',
-      ...FOLLOW_UNAVAILABLE_NOTICE[followStatus],
+      header: t(notice.header),
+      message: t(notice.message),
     });
-  }, [followStatus]);
+  }, [followStatus, t]);
 
   useEffect(() => {
     if (!hasRoute) setIsFollowing(false);
@@ -434,8 +443,8 @@ const MapSectionComponent = ({
           accessibilityRole='button'
           accessibilityLabel={
             isFollowing
-              ? 'Stop following my position along the route'
-              : 'Follow my position along the route'
+              ? t('defaults.stopFollowingMyPosition')
+              : t('defaults.followMyPosition')
           }
           accessibilityState={{ selected: isFollowing }}
           style={({ pressed }) => [

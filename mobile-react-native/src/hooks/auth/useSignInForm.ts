@@ -6,14 +6,15 @@ import useSignedIn from 'hooks/auth/useSignedIn';
 import { useSignInMutation } from 'store/services/authenticationService';
 import { SignInRequest } from 'types/libs/auth';
 import { RootStackParamList } from 'types/screens/screens';
+import i18n from 'i18n';
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPTY_FORM: SignInRequest = { email: '', password: '' };
 
 const validate = ({ email, password }: SignInRequest) => {
-  if (!email || !password) return 'Both fields are required.';
-  if (!EMAIL_PATTERN.test(email)) return 'Enter a valid email address.';
+  if (!email || !password) return i18n.t('forms.bothFieldsRequired');
+  if (!EMAIL_PATTERN.test(email)) return i18n.t('forms.validEmail');
   return '';
 };
 

@@ -6,11 +6,12 @@ import usePasswordResetLockout from 'hooks/auth/usePasswordResetLockout';
 import { EMAIL_PATTERN } from 'hooks/auth/useSignInForm';
 import { useRequestPasswordResetCodeMutation } from 'store/services/authenticationService';
 import { RootStackParamList } from 'types/screens/screens';
+import i18n from 'i18n';
 
 type ForgotPasswordValues = { email: string };
 
 const validate = ({ email }: ForgotPasswordValues) =>
-  EMAIL_PATTERN.test(email.trim()) ? '' : 'Enter a valid email address.';
+  EMAIL_PATTERN.test(email.trim()) ? '' : i18n.t('forms.validEmail');
 
 /**
  * Asking for a reset code: one address, and the lockout that too many wrong
@@ -35,7 +36,7 @@ export function useForgotPasswordForm(
     initialValues: { email: initialEmail },
     validate,
     submit,
-    failureMessage: 'Could not send the code. Please try again.',
+    failureMessage: i18n.t('forms.couldNotSendCode'),
   });
 
   const trimmedEmail = form.values.email.trim();

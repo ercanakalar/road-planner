@@ -16,7 +16,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 
-import { Public, RequirePermission } from 'src/common/decorators';
+import { Language, Public, RequirePermission } from 'src/common/decorators';
 import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
 import { UserExistsGuard } from 'src/common/guards/user-exists/user-exists.guard';
 import { AUTH_THROTTLE } from 'src/config/throttle';
@@ -33,6 +33,8 @@ import {
 } from './dto/auth.dto';
 import { AuthService } from './service/auth/auth.service';
 import { GoogleService } from './service/google/google.service';
+import { ok } from 'src/common/http/api-response';
+import { AppLanguage } from 'src/i18n/languages';
 
 @Controller('auth')
 export class AuthController {
@@ -46,16 +48,22 @@ export class AuthController {
   @Post('sign-up')
   @UseGuards(UserExistsGuard)
   @HttpCode(HttpStatus.CREATED)
-  async signUp(@Body() signUpData: SignUpDto) {
-    return this.authService.signUp(signUpData);
+  async signUp(
+    @Body() signUpData: SignUpDto,
+    @Language() language: AppLanguage,
+  ) {
+    return this.authService.signUp(signUpData, language);
   }
 
   @Public()
   @Throttle(AUTH_THROTTLE.signIn)
   @Post('sign-in')
   @HttpCode(HttpStatus.CREATED)
-  async signIn(@Body() signInData: SignInDto) {
-    return this.authService.signIn(signInData);
+  async signIn(
+    @Body() signInData: SignInDto,
+    @Language() language: AppLanguage,
+  ) {
+    return this.authService.signIn(signInData, language);
   }
 
   @Post('sign-out')
@@ -64,7 +72,7 @@ export class AuthController {
     const userId = (req.user as { userId?: string } | undefined)?.userId;
 
     if (!userId) {
-      throw new UnauthorizedException('User not authenticated');
+      throw new UnauthorizedException('error.notAuthenticated');
     }
 
     return this.authService.signOut(userId);
@@ -82,16 +90,22 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE.forgotPassword)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() body: ForgotPasswordDto) {
-    return this.authService.forgotPassword(body.email);
+  async forgotPassword(
+    @Body() body: ForgotPasswordDto,
+    @Language() language: AppLanguage,
+  ) {
+    return this.authService.forgotPassword(body.email, language);
   }
 
   @Public()
   @Throttle(AUTH_THROTTLE.forgotPassword)
   @Post('forgot-password/code')
   @HttpCode(HttpStatus.OK)
-  async requestPasswordResetCode(@Body() body: ForgotPasswordDto) {
-    return this.authService.requestPasswordResetCode(body.email);
+  async requestPasswordResetCode(
+    @Body() body: ForgotPasswordDto,
+    @Language() language: AppLanguage,
+  ) {
+    return this.authService.requestPasswordResetCode(body.email, language);
   }
 
   @Throttle(AUTH_THROTTLE.resetPassword)
@@ -138,30 +152,34 @@ export class AuthController {
   async googleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
+    @Language() language: AppLanguage,
   ) {
     this.googleService.verifyState(state);
 
     const profile = await this.googleService.getAuthClientData(code);
 
-    return this.authService.signInWithGoogle(profile);
+    return this.authService.signInWithGoogle(profile, language);
   }
 
   @Public()
   @Throttle(AUTH_THROTTLE.signIn)
   @Post('google/token')
   @HttpCode(HttpStatus.OK)
-  async signInWithGoogleIdToken(@Body() body: GoogleIdTokenDto) {
+  async signInWithGoogleIdToken(
+    @Body() body: GoogleIdTokenDto,
+    @Language() language: AppLanguage,
+  ) {
     const profile = await this.googleService.getProfileFromIdToken(
       body.idToken,
     );
 
-    return this.authService.signInWithGoogle(profile);
+    return this.authService.signInWithGoogle(profile, language);
   }
 
   @UseGuards(PermissionsGuard)
   @RequirePermission('ACCESS_DASHBOARD')
   @Get('dashboard')
   getDashboard() {
-    return { message: 'Welcome to the admin dashboard' };
+    return ok({ message: 'user.dashboardWelcome' });
   }
 }

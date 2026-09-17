@@ -16,6 +16,7 @@ import { isPhotoTooLarge, PickedPhoto } from 'utils/photoUpload';
 import { resolvePhotoUrl } from 'utils/resolvePhotoUrl';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   photo?: string | null;
@@ -26,6 +27,7 @@ interface Props {
 const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const handlePress = useCallback(async () => {
     try {
@@ -35,8 +37,8 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       if (!permission.granted) {
         showNotification({
           type: 'info',
-          header: 'Photo access needed',
-          message: 'Allow photo access to choose a profile picture.',
+          header: t('toast.photoAccessNeeded'),
+          message: t('toast.photoAccessMessage'),
         });
         return;
       }
@@ -59,8 +61,8 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       if (isPhotoTooLarge(asset.fileSize)) {
         showNotification({
           type: 'error',
-          header: 'That photo is too large',
-          message: `Profile pictures must be under ${AVATAR_MAX_LABEL}.`,
+          header: t('toast.photoTooLarge'),
+          message: t('toast.photoTooLargeMessage', { limit: AVATAR_MAX_LABEL }),
         });
         return;
       }
@@ -72,8 +74,8 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       // nothing at all and there is no way to tell it apart from a dead button.
       showNotification({
         type: 'error',
-        header: 'Could not open your photos',
-        message: 'The photo picker did not open. Please try again.',
+        header: t('toast.couldNotOpenPhotos'),
+        message: t('toast.photoPickerFailed'),
       });
     }
   }, [onPicked]);
@@ -86,7 +88,7 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
         onPress={handlePress}
         disabled={isUploading}
         accessibilityRole='button'
-        accessibilityLabel='Change profile photo'
+        accessibilityLabel={t('mapUi.changeProfilePhoto')}
         accessibilityState={{ busy: !!isUploading }}
         style={({ pressed }) => [styles.avatarWrap, pressed && styles.pressed]}
       >
@@ -108,7 +110,7 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       </Pressable>
 
       <Text style={styles.hint}>
-        {isUploading ? 'Uploading…' : 'Tap to change your photo'}
+        {isUploading ? t('defaults.uploading') : t('defaults.tapToChangePhoto')}
       </Text>
     </View>
   );

@@ -4,6 +4,7 @@ import { authenticationService } from '../services/authenticationService';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 
 import { IAuthState, authInitialState } from 'types/store/auth-type';
+import i18n from 'i18n';
 
 type SessionPayload = {
   accessToken: string;
@@ -80,7 +81,7 @@ export const authSlice = createSlice({
       )
       .addMatcher(signIn.matchRejected, (state, action) => {
         state.errors =
-          (action.payload?.data as unknown) ?? 'Unable to sign in right now.';
+          (action.payload?.data as unknown) ?? i18n.t('forms.unableToSignIn');
         state.isLoggedIn = false;
         state.state = 'error';
       })

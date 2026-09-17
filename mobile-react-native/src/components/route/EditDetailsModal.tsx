@@ -23,6 +23,7 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
+import { useTranslation } from 'react-i18next';
 
 export const TITLE_MAX_LENGTH = 255;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -44,11 +45,11 @@ interface Props {
 
 const EditDetailsModal = ({
   visible,
-  heading = 'Edit details',
+  heading,
   hint,
   initialTitle,
   initialDescription,
-  titleLabel = 'Title',
+  titleLabel,
   isSaving,
   requireTitle = true,
   showPublishToggle = false,
@@ -58,6 +59,7 @@ const EditDetailsModal = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState(initialTitle ?? '');
   const [description, setDescription] = useState(initialDescription ?? '');
@@ -115,23 +117,25 @@ const EditDetailsModal = ({
               keyboardShouldPersistTaps='handled'
               contentContainerStyle={styles.content}
             >
-              <Text style={styles.heading}>{heading}</Text>
+              <Text style={styles.heading}>
+                {heading ?? t('defaults.editDetails')}
+              </Text>
               {hint ? <Text style={styles.hint}>{hint}</Text> : null}
 
               <FormField
-                label={titleLabel}
+                label={titleLabel ?? t('fields.title')}
                 value={title}
                 onChangeText={setTitle}
-                placeholder='Give it a name'
+                placeholder={t('editDetails.namePlaceholder')}
                 maxLength={TITLE_MAX_LENGTH}
                 autoCapitalize='sentences'
               />
 
               <FormField
-                label='Description'
+                label={t('fields.description')}
                 value={description}
                 onChangeText={setDescription}
-                placeholder='Optional notes'
+                placeholder={t('editDetails.notesPlaceholder')}
                 maxLength={DESCRIPTION_MAX_LENGTH}
                 multiline
                 error={error}
@@ -141,11 +145,10 @@ const EditDetailsModal = ({
                 <View style={styles.publishRow}>
                   <View style={styles.publishText}>
                     <Text style={styles.publishLabel}>
-                      Share with the community
+                      {t('editDetails.shareWithCommunity')}
                     </Text>
                     <Text style={styles.publishHint}>
-                      Your name and this route&apos;s stops become visible to
-                      everyone on the Home screen.
+                      {t('editDetails.shareHint')}
                     </Text>
                   </View>
                   <Switch
@@ -157,21 +160,21 @@ const EditDetailsModal = ({
                     }}
                     thumbColor={colors.surface}
                     ios_backgroundColor={colors.borderStrong}
-                    accessibilityLabel='Share this route with the community'
+                    accessibilityLabel={t('editDetails.shareAccessibility')}
                   />
                 </View>
               ) : null}
 
               <View style={styles.actions}>
                 <PrimaryButton
-                  label='Cancel'
+                  label={t('common.cancel')}
                   variant='secondary'
                   onPress={onCancel}
                   disabled={isSaving}
                   style={styles.action}
                 />
                 <PrimaryButton
-                  label='Save'
+                  label={t('common.save')}
                   onPress={handleSave}
                   isLoading={isSaving}
                   style={styles.action}

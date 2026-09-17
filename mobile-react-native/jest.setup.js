@@ -36,6 +36,12 @@ jest.mock('expo-file-system', () => {
   return { File };
 });
 
+// The device's language list. A test that cares drives it with
+// `getLocales.mockReturnValue([...])`; everything else gets English.
+jest.mock('expo-localization', () => ({
+  getLocales: jest.fn(() => [{ languageCode: 'en', languageTag: 'en-GB' }]),
+}));
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

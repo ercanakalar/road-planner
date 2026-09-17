@@ -26,17 +26,19 @@ import {
   useThemedTextInputProps,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
 }
 
-const DEFAULT_TITLE = 'Imported route';
+
 
 const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   const {
@@ -51,14 +53,18 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
     reset,
   } = useGoogleMapsImport();
 
-  const [title, setTitle] = useState(DEFAULT_TITLE);
+  // Resolved rather than held as a key: this becomes the route's own title,
+  // and a route named `defaults.importedRoute` would keep that name forever.
+  const defaultTitle = t('defaults.importedRoute');
+
+  const [title, setTitle] = useState(defaultTitle);
 
   useEffect(() => {
     if (!visible) {
       reset();
-      setTitle(DEFAULT_TITLE);
+      setTitle(defaultTitle);
     }
-  }, [reset, visible]);
+  }, [defaultTitle, reset, visible]);
 
   const handleAdd = useCallback(() => {
     if (confirm(title)) onClose();
@@ -79,17 +85,15 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.heading}>Import from Google Maps</Text>
-              <Text style={styles.subheading}>
-                Share a route from Google Maps, then paste the link here.
-              </Text>
+              <Text style={styles.heading}>{t('importModal.title')}</Text>
+              <Text style={styles.subheading}>{t('importModal.intro')}</Text>
             </View>
 
             <Pressable
               onPress={onClose}
               hitSlop={8}
               accessibilityRole='button'
-              accessibilityLabel='Close import'
+              accessibilityLabel={t('importModal.closeAccessibility')}
             >
               <Ionicons name='close' size={22} color={colors.textMuted} />
             </Pressable>
@@ -98,7 +102,7 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
           <View style={styles.inputWrapper}>
             <Ionicons name='link' size={18} color={colors.textMuted} />
             <TextInput
-              placeholder='https://maps.app.goo.gl/…'
+              placeholder={t('importModal.linkPlaceholder')}
               value={link}
               onChangeText={handleLinkChange}
               style={styles.input}
@@ -106,13 +110,13 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
               autoCapitalize='none'
               autoCorrect={false}
               multiline
-              accessibilityLabel='Google Maps link'
+              accessibilityLabel={t('importModal.linkAccessibility')}
             />
             <Pressable
               onPress={pasteFromClipboard}
               hitSlop={8}
               accessibilityRole='button'
-              accessibilityLabel='Paste from clipboard'
+              accessibilityLabel={t('importModal.pasteAccessibility')}
             >
               <Ionicons
                 name='clipboard-outline'
@@ -166,15 +170,19 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
                 onChangeText={setTitle}
                 style={styles.titleInput}
                 {...inputTheme}
-                placeholder='Route name'
-                accessibilityLabel='Route name'
+                placeholder={t('importModal.namePlaceholder')}
+                accessibilityLabel={t('importModal.nameAccessibility')}
               />
 
-              <PrimaryButton label='Add to my routes' onPress={handleAdd} />
+              <PrimaryButton label={t('importModal.add')} onPress={handleAdd} />
             </>
           ) : (
             <PrimaryButton
-              label={isReading ? 'Reading the link…' : 'Read the link'}
+              label={
+                isReading
+                  ? t('defaults.readingTheLink')
+                  : t('defaults.readTheLink')
+              }
               onPress={read}
               isLoading={isReading}
               disabled={!link.trim()}
@@ -185,9 +193,7 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
             <ActivityIndicator size='small' color={colors.textMuted} />
           ) : null}
 
-          <Text style={styles.footnote}>
-            Stops are matched through Google, so check them before adding.
-          </Text>
+          <Text style={styles.footnote}>{t('importModal.caveat')}</Text>
         </View>
       </KeyboardAvoidingView>
     </Modal>

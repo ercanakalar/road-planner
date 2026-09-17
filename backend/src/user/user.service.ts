@@ -71,8 +71,8 @@ export class UserService {
     await removeAvatar(this.uploadDir, existing?.photo ?? null);
 
     return ok({
-      header: 'Photo Updated',
-      message: 'Profile photo updated successfully',
+      header: 'user.photoHeader',
+      message: 'user.photoMessage',
       data: updated,
     });
   }
@@ -88,9 +88,10 @@ export class UserService {
     if (body.lastName !== undefined) data.lastName = body.lastName;
     if (body.photo !== undefined) data.photo = body.photo;
     if (body.nickName !== undefined) data.nickName = body.nickName;
+    if (body.language !== undefined) data.language = body.language;
 
     if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No updatable fields were supplied');
+      throw new BadRequestException('error.nothingToUpdate');
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -104,7 +105,7 @@ export class UserService {
         });
 
         if (taken) {
-          throw new ConflictException('This nickname is already in use');
+          throw new ConflictException('error.nicknameTaken');
         }
       }
 
@@ -116,8 +117,8 @@ export class UserService {
     });
 
     return ok({
-      header: 'User Updated',
-      message: 'User updated successfully',
+      header: 'user.updatedHeader',
+      message: 'user.updatedMessage',
       data: updated,
     });
   }
@@ -184,8 +185,8 @@ export class UserService {
     }));
 
     return ok({
-      header: 'People',
-      message: shaped.length ? 'People found' : 'Nobody matches that search',
+      header: 'user.peopleHeader',
+      message: shaped.length ? 'user.peopleFound' : 'user.peopleNone',
       data: shaped,
       meta: pageMeta(total, query),
     });
@@ -204,14 +205,14 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('That person has not published a route');
+      throw new NotFoundException('error.personNotFound');
     }
 
     const { _count, nickName, firstName, ...rest } = user;
 
     return ok({
-      header: 'Author',
-      message: 'Author fetched successfully',
+      header: 'user.authorHeader',
+      message: 'user.authorMessage',
       data: {
         ...rest,
         displayName: nickName ?? firstName ?? 'A traveller',
@@ -223,7 +224,7 @@ export class UserService {
 
   async getUserById(id: string, requesterId: string) {
     if (id !== requesterId) {
-      throw new ForbiddenException('You may only read your own profile');
+      throw new ForbiddenException('error.ownProfileOnly');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -232,8 +233,8 @@ export class UserService {
     });
 
     return ok({
-      header: 'User Fetched',
-      message: 'User fetched successfully',
+      header: 'user.fetchedHeader',
+      message: 'user.fetchedMessage',
       data: user,
     });
   }

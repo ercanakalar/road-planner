@@ -1,11 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 
 import { NotificationKind } from '../../generated/prisma/client';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationService } from '../inbox/notification.service';
+import {
+  AppLanguage,
+  FALLBACK_LANGUAGE,
+  isAppLanguage,
+} from 'src/i18n/languages';
 
 /**
  * How many followers one publish will write to. A route going public is a
@@ -42,6 +48,7 @@ export class RoutePublishNotifier {
     private readonly email: EmailService,
     private readonly inbox: NotificationService,
     private readonly config: ConfigService<EnvironmentVariables, true>,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -74,7 +81,12 @@ export class RoutePublishNotifier {
       where: { authorId: road.userId },
       select: {
         follower: {
-          select: { id: true, email: true, notifyByEmail: true },
+          select: {
+            id: true,
+            email: true,
+            notifyByEmail: true,
+            language: true,
+          },
         },
       },
       take: MAX_RECIPIENTS + 1,
@@ -103,9 +115,18 @@ export class RoutePublishNotifier {
 
     // Email is the second copy, and the one people switch off first.
     const recipients = followers
-      .filter((follower) => follower.notifyByEmail)
-      .map((follower) => follower.email)
-      .filter((email): email is string => !!email);
+      .filter(
+        (follower): follower is typeof follower & { email: string } =>
+          follower.notifyByEmail && !!follower.email,
+      )
+      .map((follower) => ({
+        to: follower.email,
+        // Nobody is asking for this email, so there is no Accept-Language to
+        // read. What the account was last seen in is all there is to go on.
+        language: isAppLanguage(follower.language)
+          ? follower.language
+          : FALLBACK_LANGUAGE,
+      }));
 
     if (recipients.length === 0) return 0;
 
@@ -113,7 +134,9 @@ export class RoutePublishNotifier {
     const link = this.linkTo(road.id);
 
     const results = await Promise.allSettled(
-      recipients.map((to) => this.send(to, author, road.title, link)),
+      recipients.map(({ to, language }) =>
+        this.send(to, author, road.title, link, language),
+      ),
     );
 
     const sent = results.filter((r) => r.status === 'fulfilled').length;
@@ -149,25 +172,33 @@ export class RoutePublishNotifier {
     author: string,
     title: string,
     link: string | null,
+    language: AppLanguage,
   ): Promise<void> {
-    const safeAuthor = escapeHtml(author);
-    const safeTitle = escapeHtml(title);
+    const say = (key: string, args: Record<string, unknown> = {}) =>
+      this.i18n.translate(key, { lang: language, args }) as string;
+
+    // The sentence is the same in both; only what it is wrapped in differs, so
+    // the bold is applied to the escaped value rather than written into the
+    // translation, where it would have to be repeated in every language.
+    const bold = (value: string) => `<strong>${escapeHtml(value)}</strong>`;
+
+    const opened = link
+      ? say('email.publishOpenHere', { link })
+      : say('email.publishOpenApp');
 
     const tail = link
-      ? `<p><a href="${escapeHtml(link)}">Open the route</a></p>`
+      ? `<p><a href="${escapeHtml(link)}">${escapeHtml(say('email.publishAction'))}</a></p>`
       : '';
 
     await this.email.sendEmail({
       to,
-      subject: `${author} published a new route`,
-      text: link
-        ? `${author} has just published "${title}". Open it here: ${link}`
-        : `${author} has just published "${title}". Open Route Planner to see it.`,
+      subject: say('email.publishSubject', { author }),
+      text: `${say('email.publishBody', { author, title })} ${opened}`,
       html:
-        `<p><strong>${safeAuthor}</strong> has just published ` +
-        `<strong>${safeTitle}</strong>.</p>${tail}` +
-        '<p>You are getting this because you asked to hear about their routes. ' +
-        'Turn it off from their profile in the app.</p>',
+        `<p>${say('email.publishBody', {
+          author: bold(author),
+          title: bold(title),
+        })}</p>${tail}` + `<p>${escapeHtml(say('email.publishFooter'))}</p>`,
     });
   }
 }

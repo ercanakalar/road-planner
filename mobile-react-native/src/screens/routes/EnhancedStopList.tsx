@@ -15,6 +15,7 @@ import { showNotification } from 'services/notificationService';
 
 import { StopWithAddress } from 'types/map-screen-type';
 import { TransportMode, StopOption } from 'types/transport-type';
+import { useTranslation } from 'react-i18next';
 
 const EMPTY_STOPS: never[] = [];
 
@@ -71,6 +72,8 @@ const EnhancedStopList = ({
     });
   }, [stops, terrain]);
 
+  const { t } = useTranslation();
+
   const [deleteStopById] = useDeleteStopByIdMutation();
   const [reOrderStops] = useReOrderStopsMutation();
   const [toggleFavoriteStop] = useToggleFavoriteStopMutation();
@@ -86,12 +89,12 @@ const EnhancedStopList = ({
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Could not delete that stop.',
+          header: t('toast.error'),
+          message: t('toast.couldNotDeleteStop'),
         });
       }
     },
-    [deleteStopById, onForgetSelection, routeId],
+    [deleteStopById, onForgetSelection, routeId, t],
   );
 
   const toggleFavorite = useCallback(
@@ -104,12 +107,12 @@ const EnhancedStopList = ({
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Could not update favourites.',
+          header: t('toast.error'),
+          message: t('toast.couldNotUpdateFavourites'),
         });
       }
     },
-    [routeId, toggleFavoriteStop],
+    [routeId, t, toggleFavoriteStop],
   );
 
   const handleOptionSelect = useCallback(

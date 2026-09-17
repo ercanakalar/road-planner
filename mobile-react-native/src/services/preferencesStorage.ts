@@ -1,5 +1,6 @@
 import localStorageService from './localStorageService';
 import { SettingsState } from 'store/slices/settingsSlice';
+import { isAppLanguage } from 'types/i18n';
 import { isThemeMode } from 'types/theme';
 
 const STORAGE_KEY = 'preferences_v1';
@@ -13,7 +14,7 @@ export const preferencesStorage = {
       const parsed: unknown = JSON.parse(raw);
       if (typeof parsed !== 'object' || parsed === null) return {};
 
-      const { notificationsEnabled, autoFitRoute, themeMode } =
+      const { notificationsEnabled, autoFitRoute, themeMode, language } =
         parsed as Partial<SettingsState>;
       const restored: Partial<SettingsState> = {};
       if (typeof notificationsEnabled === 'boolean') {
@@ -24,6 +25,12 @@ export const preferencesStorage = {
       }
       if (isThemeMode(themeMode)) {
         restored.themeMode = themeMode;
+      }
+      // Checked rather than trusted: a language we have since stopped shipping
+      // would otherwise leave the app showing keys. Failing the check restores
+      // nothing, which puts them back on the phone's language.
+      if (isAppLanguage(language)) {
+        restored.language = language;
       }
       return restored;
     } catch {

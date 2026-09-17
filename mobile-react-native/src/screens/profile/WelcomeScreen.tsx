@@ -17,6 +17,7 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 type Props = { navigation: NavigationProp<RootStackParamList> };
 
@@ -27,18 +28,18 @@ const SELLING_POINTS: {
 }[] = [
   {
     icon: 'git-branch-outline',
-    title: 'Plan',
-    body: 'Drop stops, put them in order.',
+    title: 'welcome.planTitle',
+    body: 'welcome.planBody',
   },
   {
     icon: 'compass-outline',
-    title: 'Explore',
-    body: 'Find food and fuel on the way.',
+    title: 'welcome.exploreTitle',
+    body: 'welcome.exploreBody',
   },
   {
     icon: 'heart-outline',
-    title: 'Keep',
-    body: 'Saved to every device you use.',
+    title: 'welcome.keepTitle',
+    body: 'welcome.keepBody',
   },
 ];
 
@@ -59,6 +60,7 @@ const SELLING_POINTS: {
 const WelcomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const goToSignUp = useCallback(
     () => navigation.navigate('SignUpScreen'),
@@ -81,9 +83,7 @@ const WelcomeScreen = ({ navigation }: Props) => {
         <View style={styles.hero}>
           <BrandMark size={52} onPrimary />
           <Text style={styles.heroTitle}>{APP_NAME}</Text>
-          <Text style={styles.heroBody}>
-            Plan your journey, every step of the way.
-          </Text>
+          <Text style={styles.heroBody}>{t('welcome.tagline')}</Text>
         </View>
 
         <View style={styles.points}>
@@ -93,17 +93,17 @@ const WelcomeScreen = ({ navigation }: Props) => {
                 <Ionicons name={point.icon} size={18} color={colors.primary} />
               </View>
               <View style={styles.pointText}>
-                <Text style={styles.pointTitle}>{point.title}</Text>
-                <Text style={styles.pointBody}>{point.body}</Text>
+                <Text style={styles.pointTitle}>{t(point.title)}</Text>
+                <Text style={styles.pointBody}>{t(point.body)}</Text>
               </View>
             </View>
           ))}
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label='Get started' onPress={goToSignUp} />
+          <PrimaryButton label={t('actions.getStarted')} onPress={goToSignUp} />
           <PrimaryButton
-            label='Sign in'
+            label={t('common.signIn')}
             variant='secondary'
             onPress={goToSignIn}
           />

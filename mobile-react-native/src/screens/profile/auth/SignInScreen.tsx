@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 import AuthScreenLayout from 'components/auth/AuthScreenLayout';
 import FormField from 'components/ui/FormField';
@@ -15,6 +16,7 @@ type Props = { navigation: NavigationProp<RootStackParamList> };
 
 const SignInScreen = ({ navigation }: Props) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const {
     values,
@@ -30,15 +32,15 @@ const SignInScreen = ({ navigation }: Props) => {
 
   return (
     <AuthScreenLayout
-      title='Welcome back'
-      subtitle='Sign in to pick up where you left off.'
-      footerText="Don't have an account?"
-      footerActionLabel='Sign up'
+      title={t('auth.welcomeBack')}
+      subtitle={t('auth.welcomeBackSubtitle')}
+      footerText={t('auth.noAccount')}
+      footerActionLabel={t('auth.signUp')}
       onFooterAction={goToSignUp}
     >
       <FormField
-        label='Email'
-        placeholder='you@example.com'
+        label={t('auth.email')}
+        placeholder={t('auth.emailPlaceholder')}
         value={values.email}
         onChangeText={handleChange('email')}
         autoCapitalize='none'
@@ -47,8 +49,8 @@ const SignInScreen = ({ navigation }: Props) => {
       />
 
       <FormField
-        label='Password'
-        placeholder='Your password'
+        label={t('auth.password')}
+        placeholder={t('auth.passwordPlaceholder')}
         value={values.password}
         onChangeText={handleChange('password')}
         autoComplete='current-password'
@@ -62,11 +64,11 @@ const SignInScreen = ({ navigation }: Props) => {
         style={styles.forgot}
         accessibilityRole='button'
       >
-        <Text style={styles.forgotText}>Forgot password?</Text>
+        <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
       </Pressable>
 
       <PrimaryButton
-        label='Sign in'
+        label={t('common.signIn')}
         onPress={handleSubmit}
         isLoading={isPending}
       />
@@ -84,7 +86,7 @@ const SignInScreen = ({ navigation }: Props) => {
         style={styles.kvkk}
         accessibilityRole='button'
       >
-        <Text style={styles.kvkkText}>KVKK consent</Text>
+        <Text style={styles.kvkkText}>{t('profile.kvkkConsent')}</Text>
       </Pressable>
     </AuthScreenLayout>
   );

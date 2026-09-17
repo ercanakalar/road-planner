@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 
 import KvkkConsentWall from './KvkkConsentWall';
+import i18n from 'i18n';
 import ScreenState from 'components/ui/ScreenState';
 import { useAppSelector } from 'store/hook';
 import {
@@ -20,7 +21,7 @@ const KvkkGate = ({ children }: { children: ReactNode }) => {
   const consent = useAppSelector(selectKvkkConsent);
 
   if (!isHydrated) {
-    return <ScreenState variant='loading' title='Getting things ready…' />;
+    return <ScreenState variant='loading' title={i18n.t('common.gettingReady')} />;
   }
 
   if (isConsentRequired) {

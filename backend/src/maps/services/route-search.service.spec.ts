@@ -336,7 +336,7 @@ describe('RouteSearchService', () => {
 
     it('fails rather than claiming there is nothing to eat for miles', async () => {
       places.nearby.mockRejectedValue(
-        new ServiceUnavailableException('Map service is busy, try again'),
+        new ServiceUnavailableException('error.mapsBusy'),
       );
 
       await expect(service.search(request())).rejects.toBeInstanceOf(

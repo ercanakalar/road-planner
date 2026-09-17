@@ -32,6 +32,7 @@ import {
   FavoriteSectionKey,
 } from 'types/store/services/favoriteService-type';
 import { HomeTabParamList, RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 /** How long a favourite arrived at from elsewhere stays highlighted. */
 const HIGHLIGHT_MS = 4000;
@@ -54,6 +55,7 @@ export function useFavoritesScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<HomeTabParamList, 'Favourites'>>();
   const confirm = useConfirm();
+  const { t } = useTranslation();
   const copyAddress = useCopyAddress();
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -163,20 +165,20 @@ export function useFavoritesScreen() {
       } catch {
         showNotification({
           type: 'error',
-          header: 'Could not save',
-          message: 'Your changes were not applied.',
+          header: t('toast.couldNotSave'),
+          message: t('toast.changesNotApplied'),
         });
       }
     },
-    [editing, updateAnnotation],
+    [editing, t, updateAnnotation],
   );
 
   const handleRemove = useCallback(
     async (item: FavoriteEntry) => {
       const confirmed = await confirm({
-        title: 'Remove favourite',
-        message: `“${item.title}” will be removed from your favourites.`,
-        confirmLabel: 'Remove',
+        title: t('dialogs.removeFavouriteTitle'),
+        message: t('dialogs.removeFavouriteMessage', { title: item.title }),
+        confirmLabel: t('actions.remove'),
         icon: 'heart-dislike-outline',
         tone: 'danger',
       });
@@ -193,12 +195,12 @@ export function useFavoritesScreen() {
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Could not remove that favourite.',
+          header: t('toast.error'),
+          message: t('toast.couldNotRemoveFavourite'),
         });
       }
     },
-    [confirm, toggleFavoriteRoute, toggleFavoriteStop],
+    [confirm, t, toggleFavoriteRoute, toggleFavoriteStop],
   );
 
   const handleItemPress = useCallback(

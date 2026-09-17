@@ -11,6 +11,7 @@ import {
   useThemedTextInputProps,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   value: string;
@@ -20,6 +21,7 @@ interface Props {
 const FavoritesSearch = ({ value, onChange }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const inputTheme = useThemedTextInputProps();
 
   return (
@@ -31,11 +33,11 @@ const FavoritesSearch = ({ value, onChange }: Props) => {
         style={styles.input}
         value={value}
         onChangeText={onChange}
-        placeholder='Search favourites'
+        placeholder={t('favorites.searchPlaceholder')}
         autoCorrect={false}
         autoCapitalize='none'
         returnKeyType='search'
-        accessibilityLabel='Search favourites'
+        accessibilityLabel={t('favorites.searchPlaceholder')}
       />
 
       {value ? (
@@ -43,7 +45,7 @@ const FavoritesSearch = ({ value, onChange }: Props) => {
           onPress={() => onChange('')}
           hitSlop={8}
           accessibilityRole='button'
-          accessibilityLabel='Clear search'
+          accessibilityLabel={t('actions.clearSearch')}
         >
           <Ionicons name='close-circle' size={18} color={colors.textSubtle} />
         </Pressable>

@@ -71,19 +71,19 @@ export class GoogleMapsClient {
       });
     } catch (error) {
       this.logger.error(`Google Maps ${path} unreachable: ${String(error)}`);
-      throw new ServiceUnavailableException('Map service is unavailable');
+      throw new ServiceUnavailableException('error.mapsUnavailable');
     }
 
     if (!response.ok) {
       this.logger.error(`Google Maps ${path} answered ${response.status}`);
-      throw new BadGatewayException('Map service returned an error');
+      throw new BadGatewayException('error.mapsFailed');
     }
 
     try {
       return (await response.json()) as T;
     } catch (error) {
       this.logger.error(`Google Maps ${path} sent no JSON: ${String(error)}`);
-      throw new BadGatewayException('Map service returned an error');
+      throw new BadGatewayException('error.mapsFailed');
     }
   }
 
@@ -96,9 +96,9 @@ export class GoogleMapsClient {
     this.logger.error(`Google Maps ${path} status ${body.status}${detail}`);
 
     if (RETRYABLE_STATUSES.has(body.status)) {
-      throw new ServiceUnavailableException('Map service is busy, try again');
+      throw new ServiceUnavailableException('error.mapsBusy');
     }
 
-    throw new BadGatewayException('Map service returned an error');
+    throw new BadGatewayException('error.mapsFailed');
   }
 }

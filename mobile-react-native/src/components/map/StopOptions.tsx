@@ -9,6 +9,7 @@ import { ContextMenuOption } from 'types/components/contextMenu';
 import { StopWithAddress } from 'types/map-screen-type';
 import { StopOption } from 'types/transport-type';
 import { addressName, fullAddress } from 'utils/address';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   item: StopWithAddress;
@@ -23,6 +24,7 @@ const StopOptions = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const isFavorite = item.favoriteStops.length > 0;
@@ -36,7 +38,9 @@ const StopOptions = ({
 
     if (showFavoriteAction) {
       rows.push({
-        label: isFavorite ? 'Remove from favourites' : 'Add to favourites',
+        label: isFavorite
+          ? t('mapUi.removeFromFavourites')
+          : t('mapUi.addToFavourites'),
         icon: isFavorite ? 'heart' : 'heart-outline',
         action: () => onOptionSelect('favorite'),
       });
@@ -46,21 +50,21 @@ const StopOptions = ({
     // row is left out rather than offered and then doing nothing.
     if (hasAddress) {
       rows.push({
-        label: 'Copy address',
+        label: t('mapUi.copyAddress'),
         icon: 'copy-outline',
         action: () => onOptionSelect('copy'),
       });
     }
 
     rows.push({
-      label: 'Delete stop',
+      label: t('mapUi.deleteStop'),
       icon: 'trash-outline',
       tone: 'danger',
       action: () => onOptionSelect('delete'),
     });
 
     return rows;
-  }, [hasAddress, isFavorite, onOptionSelect, showFavoriteAction]);
+  }, [hasAddress, isFavorite, onOptionSelect, showFavoriteAction, t]);
 
   return (
     <View>

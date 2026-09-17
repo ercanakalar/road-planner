@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 
@@ -79,6 +80,8 @@ const useLocalMapLogic = () => {
 
   const mapRef = useRef<MapView>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const { t } = useTranslation();
 
   const [transportMode, setTransportMode] = useState<TransportMode>('driving');
   const [isSavingPin, setIsSavingPin] = useState(false);
@@ -165,13 +168,13 @@ const useLocalMapLogic = () => {
     } catch {
       showNotification({
         type: 'error',
-        header: 'Error',
-        message: 'Could not look up that place.',
+        header: t('toast.error'),
+        message: t('toast.couldNotLookUpPlace'),
       });
     } finally {
       setIsSavingPin(false);
     }
-  }, [clickedLocation, dispatch]);
+  }, [clickedLocation, dispatch, t]);
 
   const handleDeleteStop = useCallback(() => {
     if (!contextMenuStopId) return;
@@ -194,12 +197,12 @@ const useLocalMapLogic = () => {
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Could not look up that place.',
+          header: t('toast.error'),
+          message: t('toast.couldNotLookUpPlace'),
         });
       }
     },
-    [dispatch, draggingStopId],
+    [dispatch, draggingStopId, t],
   );
 
   const handleNavigateToStop = useCallback(() => {
@@ -207,10 +210,10 @@ const useLocalMapLogic = () => {
     dispatch(startDraggingStop(contextMenuStopId));
     showNotification({
       type: 'info',
-      header: 'Drag to move',
-      message: 'Drag the highlighted pin to its new position.',
+      header: t('toast.dragToMove'),
+      message: t('toast.dragHint'),
     });
-  }, [contextMenuStopId, dispatch]);
+  }, [contextMenuStopId, dispatch, t]);
 
   const handleCloseContextMenu = useCallback(
     () => dispatch(closeContextMenu()),
@@ -290,14 +293,14 @@ const useLocalMapLogic = () => {
 
         showNotification({
           type: 'success',
-          header: 'Added to your route',
-          message: `${place.name} is now a stop on this route.`,
+          header: t('toast.addedToRoute'),
+          message: t('toast.placeIsNowAStop', { name: place.name }),
         });
       } finally {
         setIsSavingPin(false);
       }
     },
-    [dispatch],
+    [dispatch, t],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
@@ -305,12 +308,12 @@ const useLocalMapLogic = () => {
       contextMenuStop
         ? [
             {
-              label: 'Move stop',
+              label: t('mapUi.moveStop'),
               icon: 'navigate-outline',
               action: handleNavigateToStop,
             },
             {
-              label: 'Delete stop',
+              label: t('mapUi.deleteStop'),
               icon: 'trash-outline',
               tone: 'danger',
               action: handleDeleteStop,
@@ -318,7 +321,7 @@ const useLocalMapLogic = () => {
           ]
         : [
             {
-              label: 'Add stop here',
+              label: t('mapUi.addStopHere'),
               icon: 'add-circle-outline',
               action: handleAddStop,
             },
@@ -335,8 +338,8 @@ const useLocalMapLogic = () => {
     () => ({
       visible: isContextMenuVisible,
       title: contextMenuStop
-        ? addressName(contextMenuStop.address) || 'Dropped pin'
-        : 'Dropped pin',
+        ? addressName(contextMenuStop.address) || t('defaults.droppedPin')
+        : t('defaults.droppedPin'),
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,
     }),

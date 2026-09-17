@@ -2,6 +2,7 @@ import { routeService } from 'store/services/routeService';
 import { StopWithAddress } from 'types/map-screen-type';
 import { StopInput } from 'types/store/services/routeService-type';
 import type { AppDispatch } from 'store';
+import i18n from 'i18n';
 
 class RouteDetailsUpdateError extends Error {}
 
@@ -35,7 +36,7 @@ export const updateRouteDetails =
 
     if (!route) {
       throw new RouteDetailsUpdateError(
-        'Could not load the route to update it.',
+        i18n.t('errors.couldNotLoadRouteToUpdate'),
       );
     }
 

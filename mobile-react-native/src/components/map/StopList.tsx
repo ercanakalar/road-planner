@@ -14,6 +14,7 @@ import { spacing, typography, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { StopWithAddress } from 'types/map-screen-type';
 import { TransportMode, StopOption } from 'types/transport-type';
+import { useTranslation } from 'react-i18next';
 
 interface StopListProps {
   stops: StopWithAddress[];
@@ -41,6 +42,7 @@ const StopList = ({
   onReorderingChange,
 }: StopListProps) => {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const handleDragBegin = useCallback(
     () => onReorderingChange?.(true),
@@ -84,12 +86,12 @@ const StopList = ({
     () => (
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {selectedPair.length === 2 ? 'Selected leg' : 'Whole route'}
+          {selectedPair.length === 2 ? t('mapUi.selectedLeg') : t('mapUi.wholeRoute')}
         </Text>
         <Text style={styles.headerHint}>
           {selectedPair.length === 2
-            ? 'Tap the highlighted stops again to clear'
-            : 'Tap two stops to compare a single leg'}
+            ? t('mapUi.tapToClear')
+            : t('mapUi.tapTwoStops')}
         </Text>
         <TransportSelector
           selected={transportMode}
@@ -113,13 +115,11 @@ const StopList = ({
   const empty = useMemo(
     () => (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No stops yet</Text>
-        <Text style={styles.emptyHint}>
-          Long press anywhere on the map to add the first one.
-        </Text>
+        <Text style={styles.emptyTitle}>{t('mapUi.noStopsTitle')}</Text>
+        <Text style={styles.emptyHint}>{t('mapUi.noStopsMessage')}</Text>
       </View>
     ),
-    [styles],
+    [styles, t],
   );
 
   return (

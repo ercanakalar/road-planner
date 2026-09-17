@@ -12,6 +12,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import appConfig from 'constants/appConfig';
 import { useSignInWithGoogleMutation } from 'store/services/authenticationService';
+import i18n from 'i18n';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -111,6 +112,9 @@ type AuthOutcome =
  * What actually came back from the browser. Backing out is not a failure and is
  * not reported as one; everything else has to say something, because a response
  * that is neither acted on nor explained is the state this screen was stuck in.
+ *
+ * A plain function rather than a hook — it is called from an event handler and
+ * tested on its own — so the translator is reached through the instance.
  */
 export const describeAuthResponse = (
   response: AuthSessionResult,
@@ -127,7 +131,7 @@ export const describeAuthResponse = (
   if (response.type === 'locked') {
     return {
       status: 'failed',
-      message: 'Another sign-in is already open. Finish or close it first.',
+      message: i18n.t('toast.signInAlreadyOpen'),
     };
   }
 
@@ -138,14 +142,17 @@ export const describeAuthResponse = (
         response.error?.message ||
         response.params?.error_description ||
         response.params?.error ||
-        'Google refused the sign-in request.',
+        i18n.t('toast.googleRefused'),
     };
   }
 
   // Every other shape is handled above; this narrows the union to the one that
   // carries params.
   if (response.type !== 'success') {
-    return { status: 'failed', message: 'Google sign-in did not complete.' };
+    return {
+      status: 'failed',
+      message: i18n.t('toast.googleSignInIncomplete'),
+    };
   }
 
   const code = response.params?.code;
@@ -157,7 +164,7 @@ export const describeAuthResponse = (
     status: 'failed',
     message:
       response.params?.error_description ||
-      'Google returned no authorization code.',
+      i18n.t('errors.googleNoCode'),
   };
 };
 
@@ -176,6 +183,10 @@ const apiMessage = (data: unknown): string | null => {
  * Turns whatever the exchange or the API rejected with into one line someone
  * can act on. The generic "sign-in failed" is the last resort, not the default:
  * every one of these failures used to arrive as silence.
+ *
+ * The lines left in English below describe a build or a server nobody
+ * configured — a missing client id, Expo Go — and are read by whoever is
+ * setting this up rather than by anybody using the app.
  */
 export const describeSignInError = (error: unknown): string => {
   if (typeof error === 'object' && error !== null && 'status' in error) {
@@ -183,10 +194,10 @@ export const describeSignInError = (error: unknown): string => {
     const message = apiMessage(data);
 
     if (status === 'FETCH_ERROR') {
-      return 'Could not reach the server. Check that the app points at an address this device can open.';
+      return i18n.t('errors.googleUnreachable');
     }
     if (status === 'TIMEOUT_ERROR') {
-      return 'The server took too long to answer. Try again.';
+      return i18n.t('errors.googleTimedOut');
     }
     if (status === 503) {
       return message ?? 'Google sign-in is not configured on the server.';
@@ -198,13 +209,13 @@ export const describeSignInError = (error: unknown): string => {
       );
     }
     if (typeof status === 'number') {
-      return message ?? `The server answered ${status}.`;
+      return message ?? i18n.t('errors.serverAnswered', { status });
     }
   }
 
   if (error instanceof Error && error.message) return error.message;
 
-  return 'Google sign-in failed.';
+  return i18n.t('errors.googleFailed');
 };
 
 const withTimeout = <T>(work: Promise<T>, message: string): Promise<T> =>
@@ -313,7 +324,7 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
           },
           Google.discovery,
         ),
-        'Google took too long to answer. Check the connection and try again.',
+        i18n.t('errors.googleSlow'),
       );
 
       if (!tokens.idToken) {
@@ -353,7 +364,7 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
     }
 
     if (!request) {
-      fail('Google sign-in is still starting up. Try again in a moment.');
+      fail(i18n.t('errors.googleStillStarting'));
       return;
     }
 

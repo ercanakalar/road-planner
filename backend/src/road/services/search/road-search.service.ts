@@ -129,10 +129,8 @@ export class RoadSearchService {
     );
 
     return ok({
-      header: 'Route Search',
-      message: shaped.length
-        ? 'Routes found'
-        : 'No routes match that search yet',
+      header: 'search.header',
+      message: shaped.length ? 'search.found' : 'search.none',
       data: shaped,
       meta: pageMeta(total, query),
     });

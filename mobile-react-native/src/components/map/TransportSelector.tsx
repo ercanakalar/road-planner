@@ -7,6 +7,7 @@ import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { secondsToHour } from 'utils/secondsToHour';
 import { TransportMode, TransportSelectorProps } from 'types/transport-type';
+import { useTranslation } from 'react-i18next';
 
 type OptionProps = {
   mode: (typeof transportModes)[number];
@@ -19,6 +20,7 @@ const TransportOption = memo(
   ({ mode, isSelected, durationSeconds, onChange }: OptionProps) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
     const handlePress = useCallback(
       () => onChange(mode.key),
@@ -35,7 +37,7 @@ const TransportOption = memo(
         onPress={handlePress}
         accessibilityRole='radio'
         accessibilityState={{ selected: isSelected }}
-        accessibilityLabel={`${mode.label}, ${secondsToHour(durationSeconds)}`}
+        accessibilityLabel={`${t(mode.label)}, ${secondsToHour(durationSeconds)}`}
       >
         <Ionicons
           name={mode.icon}
@@ -52,7 +54,7 @@ const TransportOption = memo(
           style={[styles.label, isSelected && styles.textSelected]}
           numberOfLines={1}
         >
-          {mode.label}
+          {t(mode.label)}
         </Text>
       </Pressable>
     );

@@ -79,7 +79,7 @@ describe('avatar storage', () => {
       // turned into PayloadTooLarge("File too large") before any of our code
       // runs, and that does not tell anyone what to do about it.
       await expect(writeAvatar('up', jpeg(AVATAR_MAX_BYTES))).rejects.toThrow(
-        /5 MB/,
+        'error.imageTooLarge',
       );
     });
 

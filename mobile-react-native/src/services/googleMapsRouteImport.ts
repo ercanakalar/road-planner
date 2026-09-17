@@ -10,6 +10,7 @@ import {
   parseGoogleMapsRoute,
   ParsedGoogleMapsRoute,
 } from 'utils/googleMapsRoute';
+import i18n from 'i18n';
 
 /** Long enough for a redirect, short enough that a dead link gives up. */
 const EXPAND_TIMEOUT_MS = 8000;
@@ -64,7 +65,7 @@ const describe = (stop: ParsedStop): string =>
   stop.query ??
   (stop.latitude !== undefined && stop.longitude !== undefined
     ? `${stop.latitude.toFixed(5)}, ${stop.longitude.toFixed(5)}`
-    : 'Unnamed stop');
+    : i18n.t('mapUi.unnamedStop'));
 
 /**
  * Turns one stop from a link into a point on the map.

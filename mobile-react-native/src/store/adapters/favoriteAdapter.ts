@@ -11,6 +11,7 @@ import {
   NormalizedFavorites,
   RawFavorites,
 } from 'types/store/services/favoriteService-type';
+import i18n from 'i18n';
 
 /** The four buckets the API splits favourites into, in the order they show. */
 export const FAVORITE_SECTION_KEYS: readonly FavoriteSectionKey[] = [
@@ -30,7 +31,7 @@ export const EMPTY_FAVORITES: NormalizedFavorites = {
 const toRouteEntry =
   (isOwn: boolean) =>
   (row: FavoriteRouteRow): FavoriteEntry => {
-    const defaultTitle = row.road?.title ?? 'Untitled route';
+    const defaultTitle = row.road?.title ?? i18n.t('defaults.untitledRoute');
     return {
       favoriteId: row.id,
       targetId: row.road?.id ?? row.id,
@@ -55,7 +56,8 @@ const toStopEntry =
 
     // A pin dropped away from any address arrives with nothing usable — a Plus
     // Code, or an empty string — and coordinates are then the only honest label.
-    const defaultTitle = addressName(address) || coordinates || 'Saved place';
+    const defaultTitle =
+      addressName(address) || coordinates || i18n.t('defaults.savedPlace');
 
     return {
       favoriteId: row.id,

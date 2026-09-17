@@ -15,10 +15,12 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 const LocalRouteMigrationPrompt = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -71,17 +73,13 @@ const LocalRouteMigrationPrompt = () => {
             />
           </View>
 
-          <Text style={styles.title}>Keep your routes?</Text>
+          <Text style={styles.title}>{t('localRoutes.keepTitle')}</Text>
           <Text style={styles.body}>
-            You have {transferableCount} route
-            {transferableCount === 1 ? '' : 's'} saved on this device. Save
-            {transferableCount === 1 ? ' it' : ' them'} to your account so
-            {transferableCount === 1 ? ' it is' : ' they are'} available
-            everywhere you sign in.
+            {t('localRoutes.keepBody', { count: transferableCount })}
           </Text>
 
           <PrimaryButton
-            label='Go to Settings'
+            label={t('actions.goToSettings')}
             onPress={goToSettings}
             style={styles.action}
           />
@@ -91,7 +89,7 @@ const LocalRouteMigrationPrompt = () => {
             style={styles.later}
             accessibilityRole='button'
           >
-            <Text style={styles.laterText}>Not now</Text>
+            <Text style={styles.laterText}>{t('actions.notNow')}</Text>
           </Pressable>
         </View>
       </View>

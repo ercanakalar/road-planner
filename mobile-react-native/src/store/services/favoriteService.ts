@@ -5,6 +5,11 @@ import {
   transformApiResponseWithToast,
 } from 'store/bases/transformApiResponse';
 import { routeService } from 'store/services/routeService';
+import { searchService } from 'store/services/searchService';
+// Type-only, so it is erased at compile time and adds no import cycle back to
+// the store: `getState` here is typed to this slice alone and does not know
+// the other slices exist.
+import type { RootState } from 'store';
 import {
   applyFavoriteAnnotation,
   normalizeFavorites,
@@ -56,7 +61,7 @@ export const favoriteService = createApi({
       transformResponse: (res: ApiResponse<ToggleFavoriteResponse>) =>
         transformApiResponseWithToast(res),
       invalidatesTags: [{ type: 'Favorite', id: 'LIST' }],
-      async onQueryStarted({ routeId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ routeId }, { dispatch, getState, queryFulfilled }) {
         const favoritesPatch = dispatch(
           favoriteService.util.updateQueryData(
             'getFavorites',
@@ -65,17 +70,54 @@ export const favoriteService = createApi({
           ),
         );
 
-        const patch = dispatch(
-          routeService.util.updateQueryData(
-            'getOwnRoutes',
-            undefined,
-            (draft) => {
-              const target = draft.find((route) => route.id === routeId);
-              if (!target) return;
-              target.isFavorite = !target.isFavorite;
-            },
+        const patches = [
+          favoritesPatch,
+
+          dispatch(
+            routeService.util.updateQueryData(
+              'getOwnRoutes',
+              undefined,
+              (draft) => {
+                const target = draft.find((route) => route.id === routeId);
+                if (!target) return;
+                target.isFavorite = !target.isFavorite;
+              },
+            ),
           ),
-        );
+
+          /*
+            Search results live in their own API slice with their own tags, so
+            invalidating a Route tag never reached them and the heart on a
+            search row — or on a person's page, which is the same query with an
+            authorId — stayed as it was until the entry expired.
+
+            Patched rather than invalidated for the reason the follow button
+            gives: these are paged, one cache entry per set of filters holding
+            every page merged together, so a re-fetch answers at whatever page
+            the reader had scrolled to and leaves the rows above it stale. The
+            same route can also be in several of those entries at once.
+          */
+          ...searchService.util
+            .selectCachedArgsForQuery(getState() as RootState, 'searchRoutes')
+            .map((args) =>
+              dispatch(
+                searchService.util.updateQueryData(
+                  'searchRoutes',
+                  args,
+                  (draft) => {
+                    const row = draft.items.find((item) => item.id === routeId);
+                    if (!row) return;
+
+                    row.isFavorite = !row.isFavorite;
+                    row.favoriteCount = Math.max(
+                      0,
+                      row.favoriteCount + (row.isFavorite ? 1 : -1),
+                    );
+                  },
+                ),
+              ),
+            ),
+        ];
 
         try {
           await queryFulfilled;
@@ -83,8 +125,7 @@ export const favoriteService = createApi({
             routeService.util.invalidateTags([{ type: 'Route', id: 'LIST' }]),
           );
         } catch {
-          patch.undo();
-          favoritesPatch.undo();
+          patches.forEach((patch) => patch.undo());
         }
       },
     }),

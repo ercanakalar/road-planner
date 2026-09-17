@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { createLocalId } from 'services/localRouteStorage';
 import { LocalRoute, LocalRouteState, LocalStop } from 'types/local-route';
+import i18n from 'i18n';
 
 const initialState: LocalRouteState = {
   routes: [],
@@ -93,7 +94,7 @@ export const localRouteSlice = createSlice({
     ) {
       let route = findActive(state);
       if (!route) {
-        route = makeLocalRoute('My route');
+        route = makeLocalRoute(i18n.t('defaults.myRoute'));
         state.routes.unshift(route);
         state.activeRouteId = route.id;
       }

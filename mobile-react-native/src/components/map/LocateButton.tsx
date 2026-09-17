@@ -7,17 +7,19 @@ import { showNotification } from 'services/notificationService';
 import { radius, shadows, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 import { LocateButtonProps } from 'types/components/locateButton';
+import { useTranslation } from 'react-i18next';
 
+/** Keys rather than sentences: the words are chosen when one is shown. */
 const UNRESOLVED_NOTICE = {
   denied: {
-    header: 'Location permission needed',
-    message: 'Allow location access to centre the map on your position.',
+    header: 'toast.locationPermissionNeeded',
+    message: 'toast.locationPermissionMessage',
   },
   unavailable: {
-    header: 'Location unavailable',
-    message: 'Your position could not be read. Try again in a moment.',
+    header: 'toast.locationUnavailable',
+    message: 'toast.locationUnavailableMessage',
   },
-};
+} as const;
 
 const LocateButton = ({
   mapRef,
@@ -27,6 +29,7 @@ const LocateButton = ({
 }: LocateButtonProps) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const [isLocating, setIsLocating] = useState(false);
 
@@ -38,11 +41,15 @@ const LocateButton = ({
       const { region, status } = await resolveRegion();
 
       if (status !== 'granted') {
+        const notice =
+          status === 'denied'
+            ? UNRESOLVED_NOTICE.denied
+            : UNRESOLVED_NOTICE.unavailable;
+
         showNotification({
           type: 'info',
-          ...(status === 'denied'
-            ? UNRESOLVED_NOTICE.denied
-            : UNRESOLVED_NOTICE.unavailable),
+          header: t(notice.header),
+          message: t(notice.message),
         });
         return;
       }
@@ -56,7 +63,7 @@ const LocateButton = ({
     } finally {
       setIsLocating(false);
     }
-  }, [animationDuration, isLocating, mapRef, zoomDelta]);
+  }, [animationDuration, isLocating, mapRef, t, zoomDelta]);
 
   return (
     <Pressable
@@ -64,7 +71,7 @@ const LocateButton = ({
       disabled={isLocating}
       hitSlop={8}
       accessibilityRole='button'
-      accessibilityLabel='Centre the map on my location'
+      accessibilityLabel={t('mapUi.centreOnMe')}
       accessibilityState={{ busy: isLocating, disabled: isLocating }}
       style={({ pressed }) => [styles.button, pressed && styles.pressed, style]}
     >

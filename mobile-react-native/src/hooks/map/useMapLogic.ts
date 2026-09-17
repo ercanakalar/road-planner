@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRoute } from '@react-navigation/native';
 import MapView from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
@@ -64,6 +65,8 @@ const useMapLogic = () => {
     },
   );
 
+  const { t } = useTranslation();
+
   const [addStop] = useAddStopMutation();
   const [deleteStop] = useDeleteStopByIdMutation();
   const [updateStop] = useUpdateStopByIdMutation();
@@ -121,11 +124,11 @@ const useMapLogic = () => {
     } catch {
       showNotification({
         type: 'error',
-        header: 'Error',
-        message: 'Failed to add stop.',
+        header: t('toast.error'),
+        message: t('toast.failedToAddStop'),
       });
     }
-  }, [addStop, clickedLocation, dispatch, routeId]);
+  }, [addStop, clickedLocation, dispatch, routeId, t]);
 
   const handleDeleteStop = useCallback(async () => {
     if (!contextMenuStopId) return;
@@ -139,11 +142,11 @@ const useMapLogic = () => {
     } catch {
       showNotification({
         type: 'error',
-        header: 'Error',
-        message: 'Failed to delete stop.',
+        header: t('toast.error'),
+        message: t('toast.failedToDeleteStop'),
       });
     }
-  }, [contextMenuStopId, deleteStop, dispatch, routeId]);
+  }, [contextMenuStopId, deleteStop, dispatch, routeId, t]);
 
   const handleMarkerDragEnd = useCallback(
     async (event: MarkerDragEndEvent, stopId: string): Promise<void> => {
@@ -161,8 +164,8 @@ const useMapLogic = () => {
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Failed to update stop location.',
+          header: t('toast.error'),
+          message: t('toast.failedToMoveStop'),
         });
       }
     },
@@ -174,10 +177,10 @@ const useMapLogic = () => {
     dispatch(startDraggingStop(contextMenuStopId));
     showNotification({
       type: 'info',
-      header: 'Drag to move',
-      message: 'Drag the highlighted pin to its new position.',
+      header: t('toast.dragToMove'),
+      message: t('toast.dragHint'),
     });
-  }, [contextMenuStopId, dispatch]);
+  }, [contextMenuStopId, dispatch, t]);
 
   const handleCloseContextMenu = useCallback(
     () => dispatch(closeContextMenu()),
@@ -235,18 +238,18 @@ const useMapLogic = () => {
 
         showNotification({
           type: 'success',
-          header: 'Added to your route',
-          message: `${place.name} is now a stop on this route.`,
+          header: t('toast.addedToRoute'),
+          message: t('toast.placeIsNowAStop', { name: place.name }),
         });
       } catch {
         showNotification({
           type: 'error',
-          header: 'Error',
-          message: 'Failed to add stop.',
+          header: t('toast.error'),
+          message: t('toast.failedToAddStop'),
         });
       }
     },
-    [addStop, routeId],
+    [addStop, routeId, t],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOption[]>(
@@ -254,12 +257,12 @@ const useMapLogic = () => {
       contextMenuStop
         ? [
             {
-              label: 'Move stop',
+              label: t('mapUi.moveStop'),
               icon: 'navigate-outline',
               action: handleNavigateToStop,
             },
             {
-              label: 'Delete stop',
+              label: t('mapUi.deleteStop'),
               icon: 'trash-outline',
               tone: 'danger',
               action: handleDeleteStop,
@@ -267,7 +270,7 @@ const useMapLogic = () => {
           ]
         : [
             {
-              label: 'Add stop here',
+              label: t('mapUi.addStopHere'),
               icon: 'add-circle-outline',
               action: handleAddStop,
             },
@@ -284,8 +287,8 @@ const useMapLogic = () => {
     () => ({
       visible: isContextMenuVisible,
       title: contextMenuStop
-        ? addressName(contextMenuStop.address) || 'Dropped pin'
-        : 'Dropped pin',
+        ? addressName(contextMenuStop.address) || t('defaults.droppedPin')
+        : t('defaults.droppedPin'),
       options: contextMenuOptions,
       onClose: handleCloseContextMenu,
     }),

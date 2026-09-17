@@ -103,7 +103,9 @@ describe('buildSections', () => {
   it('names each section and gives it an icon', () => {
     const [routes] = buildSections(favorites, allExpanded, 'route');
 
-    expect(routes.title).toBe('My routes');
+    // A key, not a sentence: the section header is one of the few places the
+    // words are chosen by the component rather than here.
+    expect(routes.title).toBe('favorites.ownRoutes');
     expect(routes.icon).toBe('directions-car');
   });
 

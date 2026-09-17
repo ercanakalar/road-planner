@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
+import { phrase } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createPrismaMock, PrismaMock } from 'src/testing/mocks';
 import { PermissionsService } from './permissions.service';
@@ -112,7 +113,7 @@ describe('PermissionsService', () => {
 
     it('rejects a request that changes nothing', async () => {
       await expect(service.updatePermitById(PERMIT_ID, {})).rejects.toThrow(
-        'No updatable fields were supplied',
+        'error.nothingToUpdate',
       );
       expect(prisma.permit.update).not.toHaveBeenCalled();
     });
@@ -149,7 +150,7 @@ describe('PermissionsService', () => {
       await expect(
         service.givePermit({ userId: 'user-1', permitId: PERMIT_ID }),
       ).resolves.toMatchObject({
-        message: 'Ada now holds the ADMIN permit',
+        message: phrase('permit.assigned', { name: 'Ada', permit: 'ADMIN' }),
       });
     });
 

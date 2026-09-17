@@ -1,3 +1,4 @@
+import { phrase } from 'src/common/http/api-response';
 import { MapsController } from './maps.controller';
 import { DirectionsService } from './services/directions.service';
 import { GeocodingService } from './services/geocoding.service';
@@ -52,7 +53,7 @@ describe('MapsController', () => {
         controller.getDirections({ origin: ISTANBUL, destination: ANKARA }),
       ).resolves.toMatchObject({
         data: null,
-        message: 'No route between those points',
+        message: 'route.none',
       });
     });
   });
@@ -157,7 +158,7 @@ describe('MapsController', () => {
 
       await expect(controller.getPlace('place-id', {})).resolves.toMatchObject({
         data: null,
-        message: 'That place has no location',
+        message: 'maps.placeNoLocation',
       });
     });
   });
@@ -196,7 +197,7 @@ describe('MapsController', () => {
       ).resolves.toMatchObject({
         status: 'success',
         data: found,
-        message: '1 place along your route',
+        message: phrase('maps.alongFound', { count: 1 }),
       });
     });
 
@@ -255,7 +256,7 @@ describe('MapsController', () => {
       await expect(
         controller.searchAlongRoute({ ...search, category: 'restaurant' }),
       ).resolves.toMatchObject({
-        message: '1 place along your route, from part of it',
+        message: phrase('maps.alongPartial', { count: 1 }),
       });
     });
 
@@ -266,7 +267,7 @@ describe('MapsController', () => {
         controller.searchAlongRoute({ ...search, category: 'restaurant' }),
       ).resolves.toMatchObject({
         data: { places: [] },
-        message: 'Nothing matching along this route',
+        message: 'maps.alongNothing',
       });
     });
 
@@ -277,7 +278,7 @@ describe('MapsController', () => {
         controller.searchAlongRoute({ ...search, category: 'restaurant' }),
       ).resolves.toMatchObject({
         data: null,
-        message: 'No route between those points',
+        message: 'route.none',
       });
     });
   });

@@ -9,13 +9,15 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { I18nService } from 'nestjs-i18n';
 
 import { Public } from 'src/common/decorators';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
@@ -26,12 +28,15 @@ import { UserSearchQueryDto } from './dto/user-search.dto';
 import { FollowService } from './follow.service';
 import { UserService } from './user.service';
 import { AVATAR_UPLOAD_CEILING_BYTES } from './avatar.storage';
+import { translatePhrase } from 'src/common/interceptors/response-envelope.interceptor';
+import { resolveAcceptLanguage } from 'src/i18n/languages';
 
 @Controller('user')
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly followService: FollowService,
+    private readonly i18n: I18nService,
   ) {}
 
   @Post('/update')
@@ -64,14 +69,23 @@ export class UserController {
   @Get('/photo/:filename')
   async getPhoto(
     @Param('filename') filename: string,
+    @Req() request: Request,
     @Res() res: Response,
   ): Promise<void> {
     const path = this.userService.resolveAvatarPath(filename);
-    if (!path) throw new NotFoundException('Photo not found');
+    if (!path) throw new NotFoundException('user.photoNotFound');
 
     res.sendFile(path, (error) => {
       if (error && !res.headersSent) {
-        res.status(HttpStatus.NOT_FOUND).json({ message: 'Photo not found' });
+        // Written straight to the socket, so this is past the interceptor that
+        // would otherwise turn the key into words.
+        res.status(HttpStatus.NOT_FOUND).json({
+          message: translatePhrase(
+            'user.photoNotFound',
+            resolveAcceptLanguage(request.headers['accept-language']),
+            this.i18n,
+          ),
+        });
       }
     });
   }

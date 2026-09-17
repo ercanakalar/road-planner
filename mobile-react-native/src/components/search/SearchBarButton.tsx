@@ -11,6 +11,7 @@ import {
   useThemedStyles,
 } from 'theme';
 import type { ThemeColors } from 'theme';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onPress: () => void;
@@ -27,21 +28,22 @@ interface Props {
  */
 const SearchBarButton = ({
   onPress,
-  placeholder = 'Search routes and people',
+  placeholder,
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.bar, pressed && styles.barPressed]}
       accessibilityRole='search'
-      accessibilityLabel={placeholder}
+      accessibilityLabel={placeholder ?? t('defaults.searchRoutesAndPeople')}
     >
       <Ionicons name='search' size={19} color={colors.textSubtle} />
       <Text style={styles.placeholder} numberOfLines={1}>
-        {placeholder}
+        {placeholder ?? t('defaults.searchRoutesAndPeople')}
       </Text>
     </Pressable>
   );

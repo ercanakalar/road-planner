@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   RefreshControl,
   SectionList,
@@ -28,18 +28,28 @@ import {
   FavoriteKind,
 } from 'types/store/services/favoriteService-type';
 import { FavoriteSectionDescriptor } from 'types/screens/mapScreenType';
+import { useTranslation } from 'react-i18next';
 
 // The design splits favourites in two before anything else: routes on one
 // side, the places on them on the other. Yours and other people's stay as
 // sections inside whichever is showing.
-const TABS: readonly Segment<FavoriteKind>[] = [
-  { value: 'route', label: 'Routes' },
-  { value: 'stop', label: 'Places' },
-] as const;
+const TAB_LABELS = {
+  route: 'favorites.tabRoutes',
+  stop: 'favorites.tabPlaces',
+} as const;
 
 const FavoritesScreen = () => {
   const styles = useThemedStyles(createStyles);
   const refreshColors = useRefreshControlColors();
+  const { t } = useTranslation();
+
+  const tabs = useMemo<readonly Segment<FavoriteKind>[]>(
+    () => [
+      { value: 'route', label: t(TAB_LABELS.route) },
+      { value: 'stop', label: t(TAB_LABELS.stop) },
+    ],
+    [t],
+  );
 
   const {
     isLoggedIn,
@@ -122,8 +132,8 @@ const FavoritesScreen = () => {
         <ScreenState
           variant='empty'
           icon='lock-closed-outline'
-          title='Sign in to keep favourites'
-          message='Save a route or a stop and it will be waiting here on any device.'
+          title={t('favorites.signedOutTitle')}
+          message={t('favorites.signedOutMessage')}
         />
       </Container>
     );
@@ -131,31 +141,32 @@ const FavoritesScreen = () => {
 
   const body =
     isLoading || isUninitialized ? (
-      <ScreenState variant='loading' title='Loading favourites…' />
+      <ScreenState variant='loading' title={t('states.loadingFavourites')} />
     ) : isError && totalCount === 0 ? (
       <ScreenState
         variant='error'
-        title='Could not load favourites'
-        message='Check your connection and try again.'
-        actionLabel='Retry'
+        title={t('favorites.errorTitle')}
+        message={t('states.checkConnection')}
+        actionLabel={t('common.retry')}
         onAction={refetch}
       />
     ) : totalCount === 0 ? (
       <ScreenState
         variant='empty'
         icon='heart-outline'
-        title='Nothing saved yet'
-        message='Save a route or a place and it will show up here.'
+        title={t('favorites.emptyTitle')}
+        message={t('favorites.emptyMessage')}
       />
     ) : isSearching && matchCount === 0 ? (
       <ScreenState
         variant='empty'
         icon='search-outline'
-        title='No matches'
-        message={`Nothing under ${
-          tab === 'route' ? 'Routes' : 'Places'
-        } matches “${searchTerm}”.`}
-        actionLabel='Clear search'
+        title={t('favorites.noMatchesTitle')}
+        message={t('favorites.noMatchesMessage', {
+          tab: t(TAB_LABELS[tab]),
+          term: searchTerm,
+        })}
+        actionLabel={t('actions.clearSearch')}
         onAction={clearSearch}
       />
     ) : matchCount === 0 ? (
@@ -163,12 +174,14 @@ const FavoritesScreen = () => {
         variant='empty'
         icon={tab === 'route' ? 'map-outline' : 'location-outline'}
         title={
-          tab === 'route' ? 'No saved routes yet' : 'No saved places yet'
+          tab === 'route'
+            ? t('favorites.noRoutesTitle')
+            : t('favorites.noPlacesTitle')
         }
         message={
           tab === 'route'
-            ? 'The heart on a route saves it here.'
-            : 'The heart on a stop saves the place here.'
+            ? t('favorites.noRoutesMessage')
+            : t('favorites.noPlacesMessage')
         }
       />
     ) : (
@@ -202,29 +215,32 @@ const FavoritesScreen = () => {
     <Container>
       <View style={styles.container}>
         <ScreenHeader
-          title='Favourites'
+          title={t('favorites.title')}
           // With nothing saved, the empty state below already says so — and
           // says it better than a subtitle can.
           subtitle={
             isSearching
-              ? `${matchCount} of ${tabCounts[tab]} shown`
+              ? t('favorites.shownOfTotal', {
+                  shown: matchCount,
+                  total: tabCounts[tab],
+                })
               : totalCount === 0
                 ? undefined
-                : `${tabCounts.route} route${
-                    tabCounts.route === 1 ? '' : 's'
-                  } · ${tabCounts.stop} place${
-                    tabCounts.stop === 1 ? '' : 's'
-                  }`
+                : `${t('favorites.routeCount', {
+                    count: tabCounts.route,
+                  })} · ${t('favorites.placeCount', {
+                    count: tabCounts.stop,
+                  })}`
           }
         />
 
         {totalCount > 0 ? (
           <View style={styles.tabs}>
             <SegmentedControl
-              segments={TABS}
+              segments={tabs}
               value={tab}
               onChange={setTab}
-              accessibilityLabel='Show'
+              accessibilityLabel={t('actions.show')}
             />
           </View>
         ) : null}
@@ -238,13 +254,17 @@ const FavoritesScreen = () => {
 
       <EditDetailsModal
         visible={editing !== null}
-        heading={editing?.kind === 'route' ? 'Rename route' : 'Rename place'}
+        heading={
+          editing?.kind === 'route'
+            ? t('defaults.renameRoute')
+            : t('defaults.renamePlace')
+        }
         hint={`Only you see this label. The original is “${
           editing?.defaultTitle ?? ''
         }”. Clear the field to go back to it.`}
         initialTitle={editing?.annotationTitle}
         initialDescription={editing?.annotationDescription}
-        titleLabel='Your label'
+        titleLabel={t('defaults.yourLabel')}
         requireTitle={false}
         isSaving={isSavingAnnotation}
         onSave={handleSaveAnnotation}

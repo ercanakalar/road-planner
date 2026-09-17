@@ -20,6 +20,7 @@ import {
 import type { ThemeColors } from 'theme';
 import { ContextMenuOption } from 'types/components/contextMenu';
 import { OwnRouteSummary } from 'types/map-screen-type';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   item: OwnRouteSummary;
@@ -48,6 +49,7 @@ const RouteCard = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleView = useCallback(() => onView(item.id), [item.id, onView]);
@@ -68,22 +70,22 @@ const RouteCard = ({
   const options = useMemo<ContextMenuOption[]>(
     () => [
       {
-        label: 'Continue in Google Maps',
+        label: t('mapUi.continueInGoogleMaps'),
         icon: 'navigate-outline',
         action: () => onOpenInGoogleMaps(item),
       },
       {
-        label: 'Share a link',
+        label: t('defaults.shareALink'),
         icon: 'share-social-outline',
         action: () => onShare(item),
       },
       {
-        label: 'Edit details',
+        label: t('defaults.editDetails'),
         icon: 'create-outline',
         action: () => onEdit(item),
       },
       {
-        label: 'Delete route',
+        label: t('defaults.deleteRoute'),
         icon: 'trash-outline',
         tone: 'danger',
         action: () => onDelete(item),
@@ -126,7 +128,9 @@ const RouteCard = ({
           ]}
           accessibilityRole='button'
           accessibilityLabel={
-            item.isFavorite ? 'Remove from favourites' : 'Add to favourites'
+            item.isFavorite
+              ? t('mapUi.removeFromFavourites')
+              : t('mapUi.addToFavourites')
           }
         >
           <Ionicons

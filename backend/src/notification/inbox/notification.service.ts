@@ -96,8 +96,8 @@ export class NotificationService {
     ]);
 
     return ok({
-      header: 'Notifications',
-      message: rows.length ? 'Notifications fetched' : 'Nothing new',
+      header: 'notification.header',
+      message: rows.length ? 'notification.fetched' : 'notification.nothingNew',
       data: rows.map(shape),
       meta: { ...pageMeta(total, query), unread },
     });
@@ -109,7 +109,7 @@ export class NotificationService {
       where: { userId, readAt: null },
     });
 
-    return ok({ header: 'Notifications', data: { unread } });
+    return ok({ header: 'notification.header', data: { unread } });
   }
 
   /**
@@ -130,8 +130,8 @@ export class NotificationService {
     });
 
     return ok({
-      header: 'Notifications',
-      message: count ? 'Marked as read' : 'Nothing was unread',
+      header: 'notification.header',
+      message: count ? 'notification.markedRead' : 'notification.nothingUnread',
       data: { read: count },
     });
   }
@@ -142,8 +142,8 @@ export class NotificationService {
     });
 
     return ok({
-      header: 'Notifications',
-      message: count ? 'Notifications cleared' : 'Nothing to clear',
+      header: 'notification.header',
+      message: count ? 'notification.cleared' : 'notification.nothingToClear',
       data: { cleared: count },
     });
   }
@@ -155,7 +155,7 @@ export class NotificationService {
     });
 
     return ok({
-      header: 'Notification settings',
+      header: 'notification.settingsHeader',
       data: {
         inApp: user?.notifyInApp ?? true,
         email: user?.notifyByEmail ?? true,
@@ -174,8 +174,8 @@ export class NotificationService {
     });
 
     return ok({
-      header: 'Notification settings',
-      message: 'Saved',
+      header: 'notification.settingsHeader',
+      message: 'notification.saved',
       data: { inApp: updated.notifyInApp, email: updated.notifyByEmail },
     });
   }

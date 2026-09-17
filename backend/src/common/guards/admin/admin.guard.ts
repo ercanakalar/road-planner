@@ -20,7 +20,7 @@ export class AdminGuard implements CanActivate {
     const userId = (req.user as { userId?: string } | undefined)?.userId;
 
     if (!userId) {
-      throw new UnauthorizedException('Not authenticated');
+      throw new UnauthorizedException('error.notAuthenticated');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -29,7 +29,7 @@ export class AdminGuard implements CanActivate {
     });
 
     if (user?.permit?.name !== ADMIN_PERMIT) {
-      throw new ForbiddenException('Access denied: Admins only');
+      throw new ForbiddenException('error.adminsOnly');
     }
 
     return true;

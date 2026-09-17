@@ -9,6 +9,7 @@ import { useGetUnreadCountQuery } from 'store/services/notificationService';
 import { logout } from 'store/slices/authSlice';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { RootStackParamList } from 'types/screens/screens';
+import { useTranslation } from 'react-i18next';
 
 /**
  * The signed-in profile: who you are, where the sub-screens are, and signing
@@ -19,6 +20,7 @@ export function useProfileScreen(
 ) {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { t } = useTranslation();
   const userId = useAppSelector((state) => state.auth.userId);
 
   const [logoutTrigger, { isLoading: isLoggingOut }] = useLogoutMutation();
@@ -53,14 +55,14 @@ export function useProfileScreen(
 
   const handleLogout = useCallback(async () => {
     const confirmed = await confirm({
-      title: 'Sign out',
-      message: 'You will need to sign in again to continue.',
-      confirmLabel: 'Sign out',
+      title: t('dialogs.signOutTitle'),
+      message: t('dialogs.signOutMessage'),
+      confirmLabel: t('dialogs.signOutTitle'),
       icon: 'log-out-outline',
       tone: 'danger',
     });
     if (confirmed) await confirmLogout();
-  }, [confirm, confirmLogout]);
+  }, [confirm, confirmLogout, t]);
 
   const goToProfile = useCallback(() => {
     if (userId) navigation.navigate('ProfileDetailScreen', { userId });
@@ -84,7 +86,7 @@ export function useProfileScreen(
   const displayName =
     [data?.firstName, data?.lastName].filter(Boolean).join(' ') ||
     data?.nickName ||
-    'Your profile';
+    t('defaults.yourProfile');
 
   return {
     user: data,
