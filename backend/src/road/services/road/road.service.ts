@@ -171,8 +171,6 @@ export class RoadService {
     // every stop the user had ever saved, so the count is asked for instead.
     // The two reads are independent, so they run side by side rather than
     // queued behind one another inside a transaction.
-    console.log(userId);
-    
     const [roads, total] = await Promise.all([
       this.prisma.road.findMany({
         where,
