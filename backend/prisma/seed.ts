@@ -7,8 +7,8 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
-const USER_COUNT = 500;
-const ROUTE_COUNT = 500000;
+const USER_COUNT = 20;
+const ROUTE_COUNT = 2000;
 
 /**
  * How many stops a route gets, dealt one per route in turn.
