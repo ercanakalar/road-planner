@@ -111,7 +111,9 @@ export type OwnRouteSummary = {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  stopCount: number;
+  _count: {
+    stops: number
+  };
   isFavorite: boolean;
   isPublic?: boolean;
 };

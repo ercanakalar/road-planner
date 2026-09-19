@@ -1,8 +1,8 @@
 import {
-  OwnRouteSummary,
-  StopShape,
-  StopWithAddress,
-  StopWithAddressAndId,
+    OwnRouteSummary,
+    StopShape,
+    StopWithAddress,
+    StopWithAddressAndId,
 } from 'types/map-screen-type';
 
 /**
@@ -11,138 +11,136 @@ import {
  * rather than what the app wishes it were called.
  */
 export interface Route {
-  id: string;
-  userId: string;
-  title: string;
-  description: string;
-  roadId: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+    id: string;
+    userId: string;
+    title: string;
+    description: string;
+    roadId: string;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
 }
-
 
 /** A stop as the API returns it; `roadId` is the server's key, kept verbatim. */
 export interface Stop {
-  id: string;
-  latitude: number;
-  longitude: number;
-  order: number;
-  roadId: string;
-  address: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+    id: string;
+    latitude: number;
+    longitude: number;
+    order: number;
+    roadId: string;
+    address: string;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
 }
 
-
 export interface StopInput {
-  id?: string;
-  latitude: number;
-  longitude: number;
-  order?: number;
-  description?: string;
-  address?: string;
+    id?: string;
+    latitude: number;
+    longitude: number;
+    order?: number;
+    description?: string;
+    address?: string;
 }
 
 export type GetOwnRoutesArgs = void;
 export type GetOwnRoutesResponse = OwnRouteSummary[];
 
 export interface DiscoverRoute {
-  id: string;
-  title: string;
-  description: string;
-  createdAt: string;
-  author: string;
-  stopCount: number;
-  isFavorite: boolean;
-  stops: StopWithAddress[];
+    id: string;
+    title: string;
+    description: string;
+    createdAt: string;
+    author: string;
+    stopCount: number;
+    isFavorite: boolean;
+    stops: StopWithAddress[];
 }
 
 export interface ShareRouteArgs {
-  routeId: string;
+    routeId: string;
 }
 
 export interface ShareRouteResponse {
-  url: string;
-  token: string;
+    url: string;
+    token: string;
 }
 
 export interface GetSharedRouteArgs {
-  token: string;
+    token: string;
 }
 
 export type GetSharedRouteResponse = StopWithAddressAndId & {
-  author: string;
-  isFavorite: boolean;
+    author: string;
+    isFavorite: boolean;
 };
 
 export interface CloneRouteArgs {
-  routeId: string;
+    routeId: string;
 }
 
 export interface CloneRouteResponse {
-  id: string;
-  title: string;
+    id: string;
+    title: string;
 }
 
 export type GetDiscoverRoutesArgs = void;
 export type GetDiscoverRoutesResponse = DiscoverRoute[];
 
 export interface GetRouteByIdArgs {
-  routeId: string;
+    routeId: string;
 }
 export type GetRouteByIdResponse = StopWithAddressAndId;
 
 export interface GetStopByIdArgs {
-  stopId: string;
+    stopId: string;
 }
 export type GetStopByIdResponse = StopWithAddress;
 
 export interface DeleteRouteByIdArgs {
-  routeId: string;
+    routeId: string;
 }
 export type DeleteRouteByIdResponse = null;
 
 export interface CreateRouteArgs {
-  title: string;
-  description?: string;
-  stops?: StopInput[];
+    title: string;
+    description?: string;
+    stops?: StopInput[];
 }
 export type CreateRouteResponse = StopWithAddressAndId;
 
 export interface UpdateRouteByIdArgs {
-  routeId: string;
-  title: string;
-  description?: string;
-  isPublic?: boolean;
-  stops?: StopInput[];
+    routeId: string;
+    title: string;
+    description?: string;
+    isPublic?: boolean;
+    stops?: StopInput[];
 }
 export type UpdateRouteByIdResponse = StopWithAddressAndId;
 
 export interface AddStopArgs {
-  routeId: string;
-  stop: StopInput;
+    routeId: string;
+    stop: StopInput;
 }
 export type AddStopResponse = Stop;
 
 export interface DeleteStopByRouteIdArgs {
-  routeId: string;
-  stopId: string;
+    routeId: string;
+    stopId: string;
 }
 export type DeleteStopByRouteIdResponse = null;
 
 export interface UpdateStopByStopIdArgs {
-  routeId: string;
-  stopId: string;
-  stop: StopInput;
+    routeId: string;
+    stopId: string;
+    stop: StopInput;
 }
 export type UpdateStopByStopIdResponse = Stop;
 
 export interface ReorderStopsArgs {
-  routeId: string;
-  from: number;
-  to: number;
+    routeId: string;
+    from: number;
+    to: number;
 }
 export type ReorderStopsResponse = Stop[];
 
@@ -152,9 +150,9 @@ export type ReorderStopsResponse = Stop[];
  * already carries, so a card can take whichever it has.
  */
 export type StopTerrain = {
-  stopId: string;
-  /** Null for the first stop: nothing leads to it. */
-  shape: StopShape | null;
+    stopId: string;
+    /** Null for the first stop: nothing leads to it. */
+    shape: StopShape | null;
 };
 
 export type GetRouteTerrainArgs = { routeId: string };

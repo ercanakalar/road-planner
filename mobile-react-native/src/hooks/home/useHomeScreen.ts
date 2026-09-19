@@ -86,7 +86,7 @@ export function useHomeScreen() {
     const own = routes ?? [];
     return {
       routes: own.length,
-      stops: own.reduce((total, route) => total + (route.stopCount ?? 0), 0),
+      stops: own.reduce((total, route) => total + (route._count.stops ?? 0), 0),
       favorites: own.filter((route) => route.isFavorite).length,
     };
   }, [routes]);
