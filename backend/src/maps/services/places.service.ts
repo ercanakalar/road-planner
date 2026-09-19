@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 
 import { GoogleMapsClient } from './google-maps.client';
 import {
+  MapArea,
   NearbyPlace,
   NearbySearchRequest,
-  PlaceDetails,
   PlacePrediction,
 } from '../types/maps.types';
+import { areaBounds, areaKind, GoogleGeometry } from '../utils/area';
 import { formatCoordinate } from '../utils/coordinates';
 import { createTtlCache } from '../utils/ttl-cache';
 
@@ -16,7 +17,10 @@ const DETAILS_CACHE = { ttlMs: 24 * 60 * 60 * 1000, maxEntries: 500 };
 
 const NEARBY_CACHE = { ttlMs: 5 * 60 * 1000, maxEntries: 800 };
 
-const DETAIL_FIELDS = 'geometry/location,formatted_address,name';
+// `geometry` carries the viewport as well as the point, and `type` says
+// whether that viewport is a country or a corner shop. Both are Basic fields,
+// so the richer answer is billed at the same rate as the point alone.
+const DETAIL_FIELDS = 'geometry,formatted_address,name,place_id,type';
 
 const UNNAMED_PLACE = 'Selected place';
 
@@ -28,9 +32,11 @@ interface AutocompleteResponse {
 interface PlaceDetailsResponse {
   status: string;
   result?: {
-    geometry?: { location?: { lat?: number; lng?: number } };
+    place_id?: string;
+    geometry?: GoogleGeometry;
     formatted_address?: string;
     name?: string;
+    types?: string[];
   };
 }
 
@@ -94,7 +100,7 @@ export class PlacesService {
   private readonly predictions =
     createTtlCache<PlacePrediction[]>(PREDICTION_CACHE);
 
-  private readonly details = createTtlCache<PlaceDetails | null>(DETAILS_CACHE);
+  private readonly details = createTtlCache<MapArea | null>(DETAILS_CACHE);
 
   private readonly nearbyPlaces = createTtlCache<NearbyPlace[]>(NEARBY_CACHE);
 
@@ -125,10 +131,15 @@ export class PlacesService {
     });
   }
 
+  /**
+   * One place, with the extent Google frames it with. The extent is what lets
+   * a client shade a city in rather than only drop a pin in the middle of it,
+   * and it costs nothing extra to ask for.
+   */
   async placeDetails(
     placeId: string,
     sessionToken?: string,
-  ): Promise<PlaceDetails | null> {
+  ): Promise<MapArea | null> {
     return this.details.resolve(placeId, async () => {
       const body = await this.client.get<PlaceDetailsResponse>(
         '/place/details/json',
@@ -139,16 +150,21 @@ export class PlacesService {
         },
       );
 
-      const location = body.result?.geometry?.location;
+      const result = body.result;
+      const location = result?.geometry?.location;
       if (location?.lat === undefined || location.lng === undefined) {
         return null;
       }
 
+      const coordinate = { latitude: location.lat, longitude: location.lng };
+
       return {
-        latitude: location.lat,
-        longitude: location.lng,
-        address:
-          body.result?.formatted_address ?? body.result?.name ?? UNNAMED_PLACE,
+        ...coordinate,
+        placeId: result?.place_id ?? placeId,
+        name: result?.name ?? result?.formatted_address ?? UNNAMED_PLACE,
+        address: result?.formatted_address ?? result?.name ?? UNNAMED_PLACE,
+        kind: areaKind(result?.types),
+        bounds: areaBounds(result?.geometry, coordinate),
       };
     });
   }

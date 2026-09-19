@@ -18,14 +18,14 @@ const ROUTE = {
 
 describe('MapsController', () => {
   let directions: { route: jest.Mock; durations: jest.Mock };
-  let geocoding: { reverseGeocode: jest.Mock };
+  let geocoding: { reverseGeocode: jest.Mock; areasAt: jest.Mock };
   let places: { autocomplete: jest.Mock; placeDetails: jest.Mock };
   let routeSearch: { search: jest.Mock };
   let controller: MapsController;
 
   beforeEach(() => {
     directions = { route: jest.fn(), durations: jest.fn() };
-    geocoding = { reverseGeocode: jest.fn() };
+    geocoding = { reverseGeocode: jest.fn(), areasAt: jest.fn() };
     places = { autocomplete: jest.fn(), placeDetails: jest.fn() };
     routeSearch = { search: jest.fn() };
 
@@ -120,6 +120,45 @@ describe('MapsController', () => {
         data: address,
       });
       expect(geocoding.reverseGeocode).toHaveBeenCalledWith(ISTANBUL);
+    });
+  });
+
+  describe('areasAt', () => {
+    const IZMIR = {
+      placeId: 'izmir',
+      name: 'İzmir',
+      address: 'İzmir, Türkiye',
+      kind: 'city' as const,
+      latitude: 38.42,
+      longitude: 27.14,
+      bounds: { north: 38.6, south: 38.2, east: 27.4, west: 26.9 },
+    };
+
+    it('answers with the places covering the coordinates', async () => {
+      geocoding.areasAt.mockResolvedValue([IZMIR]);
+
+      await expect(controller.areasAt(ISTANBUL)).resolves.toMatchObject({
+        data: [IZMIR],
+        message: phrase('maps.areasFound', { count: 1 }),
+      });
+      expect(geocoding.areasAt).toHaveBeenCalledWith(ISTANBUL);
+    });
+
+    it('hands the count over rather than writing it into the message', async () => {
+      geocoding.areasAt.mockResolvedValue([IZMIR, { ...IZMIR, placeId: 'tr' }]);
+
+      await expect(controller.areasAt(ISTANBUL)).resolves.toMatchObject({
+        message: phrase('maps.areasFound', { count: 2 }),
+      });
+    });
+
+    it('says so when the point is somewhere nothing is mapped', async () => {
+      geocoding.areasAt.mockResolvedValue([]);
+
+      await expect(controller.areasAt(ISTANBUL)).resolves.toMatchObject({
+        data: [],
+        message: 'maps.areasNone',
+      });
     });
   });
 

@@ -82,6 +82,23 @@ export class MapsController {
     });
   }
 
+  @Throttle(MAPS_THROTTLE.geocode)
+  @Get('/geocode/areas')
+  @HttpCode(HttpStatus.OK)
+  async areasAt(@Query() query: ReverseGeocodeQueryDto) {
+    const areas = await this.geocoding.areasAt(query);
+
+    return ok({
+      header: 'maps.areasHeader',
+      // The count is handed over rather than written in: how it reads at one
+      // and at many is the translation's business, not this method's.
+      message: areas.length
+        ? phrase('maps.areasFound', { count: areas.length })
+        : 'maps.areasNone',
+      data: areas,
+    });
+  }
+
   @Throttle(MAPS_THROTTLE.places)
   @Get('/places/search')
   @HttpCode(HttpStatus.OK)

@@ -35,9 +35,17 @@ const nearbyBody = {
 const detailsBody = {
   status: 'OK',
   result: {
-    geometry: { location: { lat: 40.9903, lng: 29.0275 } },
+    place_id: PLACE_ID,
+    geometry: {
+      location: { lat: 40.9903, lng: 29.0275 },
+      viewport: {
+        northeast: { lat: 41.03, lng: 29.12 },
+        southwest: { lat: 40.94, lng: 28.98 },
+      },
+    },
     formatted_address: 'Kadıköy, İstanbul',
     name: 'Kadıköy',
+    types: ['administrative_area_level_2', 'political'],
   },
 };
 
@@ -118,13 +126,17 @@ describe('PlacesService', () => {
   });
 
   describe('placeDetails', () => {
-    it('returns where the place is and what it is called', async () => {
+    it('returns where the place is, what it is called and how big it is', async () => {
       client.get.mockResolvedValue(detailsBody);
 
       await expect(service.placeDetails(PLACE_ID)).resolves.toEqual({
+        placeId: PLACE_ID,
         latitude: 40.9903,
         longitude: 29.0275,
+        name: 'Kadıköy',
         address: 'Kadıköy, İstanbul',
+        kind: 'district',
+        bounds: { north: 41.03, south: 40.94, east: 29.12, west: 28.98 },
       });
     });
 
@@ -135,8 +147,38 @@ describe('PlacesService', () => {
 
       expect(client.get).toHaveBeenCalledWith('/place/details/json', {
         place_id: PLACE_ID,
-        fields: 'geometry/location,formatted_address,name',
+        fields: 'geometry,formatted_address,name,place_id,type',
         sessiontoken: SESSION,
+      });
+    });
+
+    it('boxes a place Google frames with nothing, so it still has an extent', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        result: {
+          geometry: { location: { lat: 1, lng: 2 } },
+          name: 'Somewhere',
+        },
+      });
+
+      const place = await service.placeDetails(PLACE_ID);
+
+      expect(place?.bounds.north).toBeGreaterThan(1);
+      expect(place?.bounds.south).toBeLessThan(1);
+      expect(place?.kind).toBe('place');
+    });
+
+    it('keeps the id it was asked about when Google echoes none back', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        result: {
+          geometry: { location: { lat: 1, lng: 2 } },
+          name: 'Somewhere',
+        },
+      });
+
+      await expect(service.placeDetails(PLACE_ID)).resolves.toMatchObject({
+        placeId: PLACE_ID,
       });
     });
 

@@ -124,6 +124,132 @@ describe('GeocodingService', () => {
     });
   });
 
+  describe('areasAt', () => {
+    const box = (north: number, south: number, east: number, west: number) => ({
+      northeast: { lat: north, lng: east },
+      southwest: { lat: south, lng: west },
+    });
+
+    const area = (
+      place_id: string,
+      formatted_address: string,
+      types: string[],
+      outlined = true,
+      components = [component(formatted_address.split(',')[0], ...types)],
+    ) => ({
+      place_id,
+      formatted_address,
+      types,
+      address_components: components,
+      geometry: {
+        location: { lat: 40.99, lng: 29.02 },
+        viewport: box(41.1, 40.9, 29.2, 28.9),
+        ...(outlined ? { bounds: box(41.2, 40.8, 29.3, 28.8) } : {}),
+      },
+    });
+
+    const STACK = {
+      status: 'OK',
+      results: [
+        area('district', 'Kadıköy, İstanbul', ['administrative_area_level_2']),
+        area('city', 'İstanbul, Türkiye', ['locality']),
+        area('country', 'Türkiye', ['country']),
+      ],
+    };
+
+    it('answers a tap with every place covering it, narrowest first', async () => {
+      client.get.mockResolvedValue(STACK);
+
+      const areas = await service.areasAt(KADIKOY);
+
+      expect(
+        areas.map(({ placeId, name, kind }) => ({ placeId, name, kind })),
+      ).toEqual([
+        { placeId: 'district', name: 'Kadıköy', kind: 'district' },
+        { placeId: 'city', name: 'İstanbul', kind: 'city' },
+        { placeId: 'country', name: 'Türkiye', kind: 'country' },
+      ]);
+    });
+
+    it('shades a place with its own outline rather than the camera box', async () => {
+      client.get.mockResolvedValue(STACK);
+
+      const [first] = await service.areasAt(KADIKOY);
+
+      expect(first.bounds).toEqual({
+        north: 41.2,
+        south: 40.8,
+        east: 29.3,
+        west: 28.8,
+      });
+    });
+
+    it('leaves out the results that are only an address', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        results: [
+          area('street', 'Bağdat Cd. 1', ['street_address'], false),
+          ...STACK.results,
+        ],
+      });
+
+      const areas = await service.areasAt(KADIKOY);
+
+      expect(areas.map(({ placeId }) => placeId)).toEqual([
+        'district',
+        'city',
+        'country',
+      ]);
+    });
+
+    it('offers the nearest address where nothing around has an outline', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        results: [area('street', 'Bağdat Cd. 1', ['street_address'], false)],
+      });
+
+      // Better one box the size of a street than a tap that answers nothing.
+      await expect(service.areasAt(KADIKOY)).resolves.toMatchObject([
+        { placeId: 'street', name: 'Bağdat Cd. 1', kind: 'place' },
+      ]);
+    });
+
+    it('drops a postcode, which is a sorting office and not a place', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        results: [area('post', '34710', ['postal_code']), ...STACK.results],
+      });
+
+      await expect(service.areasAt(KADIKOY)).resolves.not.toContainEqual(
+        expect.objectContaining({ placeId: 'post' }),
+      );
+    });
+
+    it('says the same place once, however often Google repeats it', async () => {
+      client.get.mockResolvedValue({
+        status: 'OK',
+        results: [STACK.results[1], STACK.results[1], STACK.results[2]],
+      });
+
+      await expect(service.areasAt(KADIKOY)).resolves.toHaveLength(2);
+    });
+
+    it('answers a tap on nothing with nothing', async () => {
+      client.get.mockResolvedValue({ status: 'ZERO_RESULTS', results: [] });
+
+      await expect(service.areasAt(KADIKOY)).resolves.toEqual([]);
+    });
+
+    it('asks once for the same point tapped twice', async () => {
+      client.get.mockResolvedValue(STACK);
+
+      await service.areasAt(KADIKOY);
+      await service.areasAt({ ...KADIKOY });
+
+      expect(client.get).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('resolveAddress', () => {
     it('keeps an address the caller supplied, without asking Google', async () => {
       const supplied = 'Home';
