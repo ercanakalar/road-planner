@@ -94,7 +94,7 @@ const RouteCard = ({
         [item, onDelete, onEdit, onOpenInGoogleMaps, onShare],
     );
 
-    const stopCount = item.stopCount ?? 0;
+    const stopCount = item._count.stops ?? 0;
     const isBusy = !!isSharing || !!isOpeningInMaps;
     const initial = item.title.trim().charAt(0).toUpperCase() || '?';
 

@@ -171,40 +171,29 @@ export class RoadService {
     // every stop the user had ever saved, so the count is asked for instead.
     // The two reads are independent, so they run side by side rather than
     // queued behind one another inside a transaction.
-    const [roads, total] = await Promise.all([
-      this.prisma.road.findMany({
-        where,
-        select: {
-          id: true,
-          userId: true,
-          title: true,
-          description: true,
-          isPublic: true,
-          createdAt: true,
-          updatedAt: true,
+    const roads = await this.prisma.road.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        isPublic: true,
+        _count: {
+          select: {
+            stops: true,
+          },
         },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: pagination.limit,
-        skip: pagination.offset,
-      }),
-      this.prisma.road.count({ where }),
-    ]);
-
-    const { stopCounts, favorited } = await this.decorate(
-      roads.map(({ id }) => id),
-      userId,
-    );
-
-    const shaped = roads.map((road) => ({
-      ...road,
-      stopCount: stopCounts.get(road.id) ?? 0,
-      isFavorite: favorited.has(road.id),
-    }));
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pagination.limit,
+      skip: pagination.offset,
+    });
+    const total = await this.prisma.road.count({ where });
 
     return ok({
       header: 'road.ownHeader',
       message: 'road.ownMessage',
-      data: shaped,
+      data: roads,
       meta: pageMeta(total, pagination),
     });
   }
@@ -219,31 +208,31 @@ export class RoadService {
    * of with the page. Keyed by id, both reads ride the indexes the page
    * already used, and they are independent of each other, so they go together.
    */
-  private async decorate(roadIds: string[], userId: string) {
-    if (roadIds.length === 0) {
-      return {
-        stopCounts: new Map<string, number>(),
-        favorited: new Set<string>(),
-      };
-    }
+  //   private async decorate(roadIds: string[], userId: string) {
+  //     if (roadIds.length === 0) {
+  //       return {
+  //         stopCounts: new Map<string, number>(),
+  //         favorited: new Set<string>(),
+  //       };
+  //     }
 
-    const [counts, favorites] = await Promise.all([
-      this.prisma.stop.groupBy({
-        by: ['roadId'],
-        where: { roadId: { in: roadIds } },
-        _count: { _all: true },
-      }),
-      this.prisma.favoriteRoad.findMany({
-        where: { userId, roadId: { in: roadIds } },
-        select: { roadId: true },
-      }),
-    ]);
+  //     const [counts, favorites] = await Promise.all([
+  //       this.prisma.stop.groupBy({
+  //         by: ['roadId'],
+  //         where: { roadId: { in: roadIds } },
+  //         _count: { _all: true },
+  //       }),
+  //       this.prisma.favoriteRoad.findMany({
+  //         where: { userId, roadId: { in: roadIds } },
+  //         select: { roadId: true },
+  //       }),
+  //     ]);
 
-    return {
-      stopCounts: new Map(counts.map((row) => [row.roadId, row._count._all])),
-      favorited: new Set(favorites.map(({ roadId }) => roadId)),
-    };
-  }
+  //     return {
+  //       stopCounts: new Map(counts.map((row) => [row.roadId, row._count._all])),
+  //       favorited: new Set(favorites.map(({ roadId }) => roadId)),
+  //     };
+  //   }
 
   async getDiscoverRoads(userId: string | null, limit: number) {
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`

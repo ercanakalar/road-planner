@@ -45,7 +45,7 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
 
   const stopCount = useMemo(
-    () => routes.reduce((total, route) => total + (route.stopCount ?? 0), 0),
+    () => routes.reduce((total, route) => total + (route._count.stops ?? 0), 0),
     [routes],
   );
 
