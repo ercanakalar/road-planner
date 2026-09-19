@@ -203,18 +203,68 @@ const tr: Translations = {
         routes: 'Rota',
         stops: 'Durak',
         favourites: 'Favori',
-        readyForNext: 'Yeni bir yolculuğa hazır mısınız?',
         signInToStart: 'Başlamak için giriş yapın',
-        syncHint:
-            'Rotalarınız, duraklarınız ve favorileriniz hesabınızla eşitlenir.',
+        syncHint: 'Rotalarınız ve favorileriniz, her cihazda.',
         discover: 'Keşfet',
-        discoverHint: 'Her baktığınızda başka bir avuç dolusu.',
         shuffle: 'Başka rotalar göster',
         greeting: 'Merhaba {{name}} 👋',
         traveller: 'yolcu',
         lookingForRoutes: 'Yayınlanmış rotalar aranıyor…',
         noneYet:
             'Henüz kimse rota yayınlamamış. Kendi rotalarınızdan birini düzenleme ekranından yayınlayın; burada herkese görünsün.',
+    },
+
+    travelMap: {
+        opening: 'Seyahat haritanız açılıyor…',
+        searchPlace: 'Ülke, şehir ya da yer arayın',
+        lookingUpPlace: 'Bu yer aranıyor…',
+
+        title: 'Seyahat haritası',
+        invitation: 'Gittiğiniz ülkeleri ve şehirleri boyayın',
+        colouredIn: '{{summary}} boyandı',
+
+        markIt: 'Boya',
+        unmarkIt: 'Haritamdan çıkar',
+        dismiss: 'Kapat',
+        alsoHere: '{{name}}, {{kind}}',
+
+        nothingMarked: 'Henüz hiçbir yer işaretlenmedi',
+        markSomething: 'Bir yeri boyamak için haritaya dokunun ya da arayın',
+        onYourMap: 'Seyahat haritanızda',
+        marked_one: '{{count}} yer işaretlendi',
+        marked_other: '{{count}} yer işaretlendi',
+        showList: '{{places}} işaretli. Listeyi göster.',
+        hideList: '{{places}} işaretli. Listeyi gizle.',
+        showOnMap: '{{name}} yerini haritada göster',
+        removeFromMap: '{{name}} yerini seyahat haritamdan çıkar',
+        clearMap: 'Haritayı temizle',
+
+        countries_one: '{{count}} ülke',
+        countries_other: '{{count}} ülke',
+        cities_one: '{{count}} şehir',
+        cities_other: '{{count}} şehir',
+        places_one: '{{count}} yer',
+        places_other: '{{count}} yer',
+
+        kindCountry: 'Ülke',
+        kindRegion: 'Bölge',
+        kindCity: 'Şehir',
+        kindDistrict: 'İlçe',
+        kindPlace: 'Yer',
+
+        clearTitle: 'Seyahat haritasını temizle',
+        clearConfirm: 'Temizle',
+        clearMessage_one:
+            'İşaretlenen {{count}} yer bu cihazdan silinecek. Bu geri alınamaz.',
+        clearMessage_other:
+            'İşaretlenen {{count}} yer bu cihazdan silinecek. Bu geri alınamaz.',
+
+        marked: '{{name}} işaretlendi',
+        markedMessage: 'Artık seyahat haritanızda.',
+        nothingHere: 'Burada haritalanmış bir yer yok',
+        nothingHereMessage: 'Biraz karaya doğru deneyin ya da yeri arayın.',
+        lookupFailed: 'Burası aranamadı',
+        lookupFailedMessage: 'Harita servisi yanıt vermedi. Birazdan tekrar deneyin.',
     },
 
     favorites: {
@@ -488,6 +538,7 @@ const tr: Translations = {
 
     nav: {
         communityRoute: 'Topluluk rotası',
+        travelMap: 'Seyahat haritası',
         sharedRoute: 'Paylaşılan rota',
         createAccount: 'Hesap oluştur',
         signIn: 'Giriş yap',

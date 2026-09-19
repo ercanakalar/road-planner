@@ -5,10 +5,12 @@ import tokenStorage from 'services/tokenStorage';
 import kvkkStorage from 'services/kvkkStorage';
 import preferencesStorage from 'services/preferencesStorage';
 import localRouteStorage from 'services/localRouteStorage';
+import travelMapStorage from 'services/travelMapStorage';
 import { useAppDispatch } from 'store/hook';
 import { sessionRestored } from 'store/slices/authSlice';
 import { settingsRestored } from 'store/slices/settingsSlice';
 import { localRoutesHydrated } from 'store/slices/localRouteSlice';
+import { travelAreasHydrated } from 'store/slices/travelMapSlice';
 import { kvkkHydrated } from 'store/slices/kvkkSlice';
 import { JwtPayload } from 'types/services/jwt-service-type';
 
@@ -22,15 +24,18 @@ export function useSessionBootstrap(): boolean {
 
     const restore = async () => {
       try {
-        const [preferences, localRoutes, kvkkConsent] = await Promise.all([
-          preferencesStorage.load(),
-          localRouteStorage.load(),
-          kvkkStorage.load(),
-        ]);
+        const [preferences, localRoutes, travelAreas, kvkkConsent] =
+          await Promise.all([
+            preferencesStorage.load(),
+            localRouteStorage.load(),
+            travelMapStorage.load(),
+            kvkkStorage.load(),
+          ]);
         if (cancelled) return;
 
         dispatch(settingsRestored(preferences));
         dispatch(localRoutesHydrated(localRoutes));
+        dispatch(travelAreasHydrated(travelAreas));
         dispatch(kvkkHydrated(kvkkConsent));
         consentHydrated = true;
 

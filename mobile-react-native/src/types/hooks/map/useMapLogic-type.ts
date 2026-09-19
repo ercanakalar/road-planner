@@ -1,12 +1,9 @@
 import type { LongPressEvent, MarkerDragStartEndEvent } from 'react-native-maps';
 
-export interface Location {
-  lat: number;
-  lng: number;
-}
+import type { MapArea } from 'types/travel-map';
 
 export interface OnPlaceSelected {
-  (location: Location, address: string): void;
+  (place: MapArea): void;
 }
 
 export type MarkerDragEndEvent = MarkerDragStartEndEvent;

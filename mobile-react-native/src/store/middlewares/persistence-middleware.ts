@@ -3,8 +3,14 @@ import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import kvkkStorage from 'services/kvkkStorage';
 import localRouteStorage from 'services/localRouteStorage';
 import preferencesStorage from 'services/preferencesStorage';
+import travelMapStorage from 'services/travelMapStorage';
 import { setNotificationsEnabled } from 'services/notificationService';
 import { localRouteSlice } from 'store/slices/localRouteSlice';
+import {
+  areaMarked,
+  areaUnmarked,
+  travelMapCleared,
+} from 'store/slices/travelMapSlice';
 import { kvkkAccepted, kvkkWithdrawn } from 'store/slices/kvkkSlice';
 import {
   languageSet,
@@ -42,6 +48,14 @@ persistenceMiddleware.startListening({
   effect: async (_action, listenerApi) => {
     const { localRoute } = listenerApi.getState() as RootState;
     await localRouteStorage.save(localRoute.routes);
+  },
+});
+
+persistenceMiddleware.startListening({
+  matcher: isAnyOf(areaMarked, areaUnmarked, travelMapCleared),
+  effect: async (_action, listenerApi) => {
+    const { travelMap } = listenerApi.getState() as RootState;
+    await travelMapStorage.save(travelMap.areas);
   },
 });
 

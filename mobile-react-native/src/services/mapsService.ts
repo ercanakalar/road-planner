@@ -2,6 +2,7 @@ import { API_BASE_URL } from 'constants/apiUrl';
 import tokenStorage from 'services/tokenStorage';
 import { createAsyncCache } from 'utils/asyncCache';
 import { RouteCoordinate, StopShape } from 'types/map-screen-type';
+import { MapArea } from 'types/travel-map';
 import { TransportMode } from 'types/transport-type';
 
 const REQUEST_TIMEOUT_MS = 12000;
@@ -267,18 +268,52 @@ export async function fetchPlacePredictions(
     }
 }
 
+/**
+ * One place, with the extent Google frames it with — metres across for a
+ * street corner, continental for a country. The extent is what lets the travel
+ * map shade a place in rather than only pin it.
+ */
 export async function fetchPlaceDetails(
     placeId: string,
     sessionToken: string,
     signal?: AbortSignal,
-): Promise<(LatLng & { address: string }) | null> {
+): Promise<MapArea | null> {
     try {
-        return await request<(LatLng & { address: string }) | null>(
+        return await request<MapArea | null>(
             `/maps/places/${encodeURIComponent(placeId)}`,
             { params: { sessionToken }, signal },
         );
     } catch (error) {
         if (isAbort(error)) return null;
+        throw error;
+    }
+}
+
+const areasCache = createAsyncCache<MapArea[]>(60);
+
+/**
+ * Every place that covers one point, narrowest first: the neighbourhood, the
+ * city around it, the province, the country. A tap on the map is ambiguous by
+ * nature, so the answer is the whole stack and the caller picks.
+ */
+export async function fetchAreasAt(
+    coordinate: LatLng,
+    signal?: AbortSignal,
+): Promise<MapArea[]> {
+    try {
+        return await areasCache.resolve(
+            coordKey(coordinate),
+            async () =>
+                (await request<MapArea[]>('/maps/geocode/areas', {
+                    params: {
+                        latitude: String(coordinate.latitude),
+                        longitude: String(coordinate.longitude),
+                    },
+                    signal,
+                })) ?? [],
+        );
+    } catch (error) {
+        if (isAbort(error)) return [];
         throw error;
     }
 }
