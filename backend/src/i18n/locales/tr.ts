@@ -246,6 +246,12 @@ const tr: Translations = {
   maps: {
     addressHeader: 'Adres Bulundu',
     addressMessage: 'Adres çözümlendi',
+    areasHeader: 'Buradaki yerler',
+    areasNone: 'Burada haritalanmış bir yer yok',
+    areasFound: {
+      one: 'Bu noktayı {{count}} yer kapsıyor',
+      other: 'Bu noktayı {{count}} yer kapsıyor',
+    },
     placesHeader: 'Yerler',
     placesMessage: 'Yer önerileri getirildi',
     placeHeader: 'Yer',

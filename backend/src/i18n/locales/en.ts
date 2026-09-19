@@ -244,6 +244,12 @@ const en = {
   maps: {
     addressHeader: 'Address Found',
     addressMessage: 'Address resolved successfully',
+    areasHeader: 'Places here',
+    areasNone: 'Nothing is mapped here',
+    areasFound: {
+      one: '{{count}} place covers this point',
+      other: '{{count}} places cover this point',
+    },
     placesHeader: 'Places',
     placesMessage: 'Place suggestions retrieved',
     placeHeader: 'Place',
