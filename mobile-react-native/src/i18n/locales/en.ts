@@ -196,17 +196,73 @@ const en = {
         routes: 'Routes',
         stops: 'Stops',
         favourites: 'Favourites',
-        readyForNext: 'Ready for your next adventure?',
         signInToStart: 'Sign in to get started',
-        syncHint: 'Your routes, stops and favourites sync with your account.',
+        syncHint: 'Your routes and favourites, on every device.',
         discover: 'Discover',
-        discoverHint: 'A different handful every time you look.',
         shuffle: 'Show different routes',
         greeting: 'Hello, {{name}} 👋',
         traveller: 'traveller',
         lookingForRoutes: 'Looking for published routes…',
         noneYet:
             'Nobody has published a route yet. Publish one of yours from its edit screen and it will show up here for everyone.',
+    },
+
+    travelMap: {
+        opening: 'Opening your travel map…',
+        searchPlace: 'Search a country, city or place',
+        lookingUpPlace: 'Looking up that place…',
+
+        // The card on the home screen.
+        title: 'Travel map',
+        invitation: 'Colour in the countries and cities you have been to',
+        colouredIn: '{{summary}} coloured in',
+
+        // The card a tap or a search puts up.
+        markIt: 'Colour it in',
+        unmarkIt: 'Remove from my map',
+        dismiss: 'Dismiss',
+        alsoHere: '{{name}}, {{kind}}',
+
+        // The list under the map.
+        nothingMarked: 'Nothing marked yet',
+        markSomething: 'Tap the map or search to colour somewhere in',
+        onYourMap: 'On your travel map',
+        marked_one: '{{count}} place marked',
+        marked_other: '{{count}} places marked',
+        showList: '{{places}} marked. Show the list.',
+        hideList: '{{places}} marked. Hide the list.',
+        showOnMap: 'Show {{name}} on the map',
+        removeFromMap: 'Remove {{name}} from my travel map',
+        clearMap: 'Clear the map',
+
+        countries_one: '{{count}} country',
+        countries_other: '{{count}} countries',
+        cities_one: '{{count}} city',
+        cities_other: '{{count}} cities',
+        places_one: '{{count}} place',
+        places_other: '{{count}} places',
+
+        kindCountry: 'Country',
+        kindRegion: 'Region',
+        kindCity: 'City',
+        kindDistrict: 'District',
+        kindPlace: 'Place',
+
+        clearTitle: 'Clear the travel map',
+        clearConfirm: 'Clear',
+        clearMessage_one:
+            '{{count}} marked place will be removed from this device. This cannot be undone.',
+        clearMessage_other:
+            '{{count}} marked places will be removed from this device. This cannot be undone.',
+
+        marked: '{{name}} marked',
+        markedMessage: 'It is on your travel map now.',
+        nothingHere: 'Nothing is mapped here',
+        nothingHereMessage:
+            'Try a little further inland, or search for the place.',
+        lookupFailed: 'Could not look that up',
+        lookupFailedMessage:
+            'The map service did not answer. Try again in a moment.',
     },
 
     favorites: {
@@ -477,6 +533,7 @@ const en = {
 
     nav: {
         communityRoute: 'Community route',
+        travelMap: 'Travel map',
         sharedRoute: 'Shared route',
         createAccount: 'Create account',
         signIn: 'Sign in',

@@ -61,6 +61,10 @@ export function useHomeScreen() {
   const firstName =
     profile?.nickName?.trim() || profile?.firstName?.trim() || '';
 
+  // Kept on the device rather than the account, so it is there to show before
+  // anybody has signed in.
+  const travelAreas = useAppSelector((state) => state.travelMap.areas);
+
   const {
     data: discoverRoutes,
     isFetching: isDiscovering,
@@ -99,6 +103,11 @@ export function useHomeScreen() {
 
   const goToSearch = useCallback(
     () => navigation.navigate('SearchScreen'),
+    [navigation],
+  );
+
+  const goToTravelMap = useCallback(
+    () => navigation.navigate('TravelMapScreen'),
     [navigation],
   );
 
@@ -149,6 +158,7 @@ export function useHomeScreen() {
     isLoggedIn,
     firstName,
     stats,
+    travelAreas,
     discoverRoutes: optimisticDiscoverRoutes,
     isDiscovering,
     refetchDiscover,
@@ -156,6 +166,7 @@ export function useHomeScreen() {
     goToRoutes,
     goToSignIn,
     goToSearch,
+    goToTravelMap,
     handleOpenCommunityRoute,
     handleToggleCommunityFavorite,
   };

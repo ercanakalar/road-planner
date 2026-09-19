@@ -16,6 +16,7 @@ import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
 import useHomeScreen from 'hooks/home/useHomeScreen';
 import RouteSummaryRow from 'components/route/RouteSummaryRow';
 import SearchBarButton from 'components/search/SearchBarButton';
+import TravelMapCard from 'components/travel/TravelMapCard';
 
 import {
   radius,
@@ -38,12 +39,14 @@ const HomeScreen = () => {
     isLoggedIn,
     firstName,
     stats,
+    travelAreas,
     discoverRoutes,
     isDiscovering,
     refetchDiscover,
     savingRouteId,
     goToSignIn,
     goToSearch,
+    goToTravelMap,
     handleOpenCommunityRoute,
     handleToggleCommunityFavorite,
   } = useHomeScreen();
@@ -66,7 +69,6 @@ const HomeScreen = () => {
           <Text style={styles.greeting}>
             {t('home.greeting', { name: firstName || t('home.traveller') })}
           </Text>
-          <Text style={styles.greetingHint}>{t('home.readyForNext')}</Text>
           <SearchBarButton onPress={goToSearch} />
         </View>
 
@@ -96,12 +98,13 @@ const HomeScreen = () => {
           </View>
         )}
 
+        {/* Above Discover, and outside the signed-in branch: the travel map is
+            kept on the device, so it is there to open before anybody signs in. */}
+        <TravelMapCard areas={travelAreas} onPress={goToTravelMap} />
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeadings}>
-              <Text style={styles.sectionTitle}>{t('home.discover')}</Text>
-              <Text style={styles.sectionHint}>{t('home.discoverHint')}</Text>
-            </View>
+            <Text style={styles.sectionTitle}>{t('home.discover')}</Text>
 
             <Pressable
               onPress={refetchDiscover}
@@ -152,17 +155,12 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     content: {
       padding: spacing.md,
-      gap: spacing.xl,
+      gap: spacing.lg,
     },
-    heading: { gap: spacing.sm, paddingTop: spacing.sm },
+    heading: { gap: spacing.sm, paddingTop: spacing.xs },
     greeting: {
       ...typography.title,
       color: colors.text,
-    },
-    greetingHint: {
-      ...typography.body,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
     },
     statsRow: {
       flexDirection: 'row',
@@ -175,16 +173,12 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       gap: spacing.md,
     },
-    sectionHeadings: { flex: 1, gap: spacing.xxs },
     sectionTitle: {
+      flex: 1,
       ...typography.heading,
       fontSize: 19,
       lineHeight: 25,
       color: colors.text,
-    },
-    sectionHint: {
-      ...typography.caption,
-      color: colors.textMuted,
     },
     shuffle: {
       width: 38,
@@ -196,8 +190,8 @@ const createStyles = (colors: ThemeColors) =>
     },
     pressed: { opacity: 0.7 },
     card: {
-      gap: spacing.md,
-      padding: spacing.lg,
+      gap: spacing.sm,
+      padding: spacing.md,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       ...shadows.sm,

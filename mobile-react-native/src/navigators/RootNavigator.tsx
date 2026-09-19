@@ -15,6 +15,7 @@ import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScr
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
 import KvkkScreen from 'screens/profile/legal/KvkkScreen';
 import SearchScreen from 'screens/search/SearchScreen';
+import TravelMapScreen from 'screens/travel/TravelMapScreen';
 import NotificationsScreen from 'screens/notifications/NotificationsScreen';
 import AuthorScreen from 'screens/search/AuthorScreen';
 
@@ -53,6 +54,11 @@ const RootNavigator = () => {
         name='SearchScreen'
         component={SearchScreen}
         options={{ title: 'Search' }}
+      />
+      <Stack.Screen
+        name='TravelMapScreen'
+        component={TravelMapScreen}
+        options={{ title: t('nav.travelMap') }}
       />
       <Stack.Screen
         name='AuthorScreen'

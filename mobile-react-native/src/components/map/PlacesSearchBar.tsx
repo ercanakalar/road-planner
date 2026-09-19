@@ -18,6 +18,7 @@ import {
   fetchPlacePredictions,
 } from 'services/mapsService';
 import useDebouncedValue from 'hooks/common/useDebouncedValue';
+import { OnPlaceSelected } from 'types/hooks/map/useMapLogic-type';
 import {
   radius,
   shadows,
@@ -36,10 +37,13 @@ const MAX_VISIBLE_RESULTS = 5;
 const ROW_HEIGHT = 48;
 
 type Props = {
-  onPlaceSelected: (
-    location: { lat: number; lng: number },
-    address: string,
-  ) => void;
+  /**
+   * Handed the whole place — where it is, what it is called, and the extent
+   * Google frames it with. The map screen only wants the coordinates; the
+   * travel map shades the extent in.
+   */
+  onPlaceSelected: OnPlaceSelected;
+  placeholder?: string;
 };
 
 const PredictionRow = memo(
@@ -73,7 +77,7 @@ const PredictionRow = memo(
 
 PredictionRow.displayName = 'PredictionRow';
 
-const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
+const PlacesSearchBar = ({ onPlaceSelected, placeholder }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const { t } = useTranslation();
@@ -130,10 +134,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
       sessionTokenRef.current = createSessionToken();
       if (!details) return;
 
-      onPlaceSelected(
-        { lat: details.latitude, lng: details.longitude },
-        details.address,
-      );
+      onPlaceSelected(details);
     },
     [onPlaceSelected],
   );
@@ -159,7 +160,7 @@ const PlacesSearchBar = ({ onPlaceSelected }: Props) => {
         <Ionicons name='search' size={18} color={colors.textMuted} />
         <TextInput
           ref={inputRef}
-          placeholder={t('mapUi.searchPlace')}
+          placeholder={placeholder ?? t('mapUi.searchPlace')}
           value={input}
           onChangeText={setInput}
           style={styles.input}

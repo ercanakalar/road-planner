@@ -241,22 +241,17 @@ const useLocalMapLogic = () => {
   );
 
   const onPlaceSelected = useCallback<OnPlaceSelected>(
-    (location) => {
+    ({ latitude, longitude }) => {
       mapRef.current?.animateToRegion(
         {
-          latitude: location.lat,
-          longitude: location.lng,
+          latitude,
+          longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         },
         600,
       );
-      dispatch(
-        openContextMenuForLocation({
-          latitude: location.lat,
-          longitude: location.lng,
-        }),
-      );
+      dispatch(openContextMenuForLocation({ latitude, longitude }));
     },
     [dispatch],
   );

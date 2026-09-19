@@ -18,16 +18,26 @@ interface Props {
   label: string;
 }
 
-/** One figure in a row of counts — routes, stops, favourites. */
+/**
+ * One figure in a row of counts — routes, stops, favourites.
+ *
+ * The icon sits beside the figure rather than above it: this row shares the
+ * first screenful with the greeting, the search bar and the way in to the
+ * travel map, and a third line here costs more than it says.
+ */
 const StatTile = ({ icon, value, label }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.stat}>
-      <Ionicons name={icon} size={20} color={colors.primary} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.figure}>
+        <Ionicons name={icon} size={16} color={colors.primary} />
+        <Text style={styles.statValue}>{value}</Text>
+      </View>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 };
@@ -37,16 +47,21 @@ const createStyles = (colors: ThemeColors) =>
     stat: {
       flex: 1,
       alignItems: 'center',
-      gap: spacing.xs,
-      paddingVertical: spacing.md,
+      gap: spacing.xxs,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       ...shadows.sm,
     },
+    figure: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
     statValue: {
       ...typography.title,
-      fontSize: 20,
-      lineHeight: 25,
+      fontSize: 19,
+      lineHeight: 24,
       color: colors.text,
     },
     statLabel: {
