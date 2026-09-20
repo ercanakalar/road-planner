@@ -104,14 +104,6 @@ export class RoadController {
     return this.stopService.getStopById(id, userId);
   }
 
-  /**
-   * The same reading as `GET /:id/terrain`, for a route still being built.
-   *
-   * The map lets you drop stops before anything is saved, and that route has
-   * no id to look up — so the points come in the body. Public for the same
-   * reason the map is: a signed-out visitor can plan a route, and measuring
-   * one reveals nothing about anybody's saved roads.
-   */
   @Public()
   @Throttle(MAPS_THROTTLE.directions)
   @Post('/terrain')

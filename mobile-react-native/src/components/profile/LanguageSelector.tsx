@@ -30,8 +30,6 @@ const LanguageOption = memo(
         onPress={handlePress}
         accessibilityRole='radio'
         accessibilityState={{ selected: isSelected }}
-        // Named in its own language, so this row is readable to the person
-        // looking for it even from a language they cannot read.
         accessibilityLabel={LANGUAGE_NAMES[language]}
         style={({ pressed }) => [
           styles.option,
@@ -55,7 +53,6 @@ const LanguageOption = memo(
 
 LanguageOption.displayName = 'LanguageOption';
 
-/** The language list, named in each language rather than in the current one. */
 const LanguageSelector = () => {
   const styles = useThemedStyles(createStyles);
   const { language, setLanguage } = useAppLanguage();

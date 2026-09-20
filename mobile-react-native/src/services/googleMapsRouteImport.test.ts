@@ -60,7 +60,6 @@ describe('importGoogleMapsRoute', () => {
     );
 
     expect(details).toHaveBeenCalledWith('given', 'token');
-    // Only the destination had to be searched for.
     expect(predictions).toHaveBeenCalledTimes(1);
   });
 
@@ -87,7 +86,6 @@ describe('importGoogleMapsRoute', () => {
       `${DIR}&origin=41.0082,28.9784&destination=Uskudar`,
     );
 
-    // The point is what makes the stop; the name is decoration.
     expect(result?.resolved[0]).toMatchObject({
       latitude: 41.0082,
       address: '',
@@ -155,7 +153,6 @@ describe('importGoogleMapsRoute', () => {
   it('shares one session token across the whole import', async () => {
     await importGoogleMapsRoute(`${DIR}&origin=A&destination=B&waypoints=C`);
 
-    // Google bills autocomplete per session, so one link is one session.
     expect(createSessionToken).toHaveBeenCalledTimes(1);
   });
 });
@@ -183,7 +180,6 @@ describe('short links', () => {
       .fn()
       .mockRejectedValue(new Error('offline')) as unknown as typeof fetch;
 
-    // The short link itself names no stops, so there is nothing to import.
     await expect(
       importGoogleMapsRoute('https://maps.app.goo.gl/abc'),
     ).resolves.toBeNull();

@@ -23,12 +23,6 @@ export class GoogleService implements OnModuleInit {
 
   constructor(private config: ConfigService<EnvironmentVariables, true>) {}
 
-  /**
-   * Both halves of Google sign-in are optional, and each fails in its own way
-   * when half configured — a 503 from the browser flow, a 401 the phone cannot
-   * explain. Saying at boot which halves are live turns either into something
-   * that can be checked against the logs before the phone is even opened.
-   */
   onModuleInit(): void {
     const audiences = this.acceptedAudiences();
 
@@ -67,17 +61,6 @@ export class GoogleService implements OnModuleInit {
       .filter(Boolean);
   }
 
-  /**
-   * Every client id belonging to this Google project, native and web alike.
-   *
-   * Which one ends up in a token's `aud` depends on how the app asked for it:
-   * an Expo auth-session request signs in with the platform's own client, while
-   * a native sign-in SDK asks for a token addressed to the web client instead.
-   * Both are this project, and refusing the second one is the misconfiguration
-   * behind most "the account picker worked and then nothing happened" reports.
-   * A client id from *another* project is still rejected, which is the part
-   * that matters.
-   */
   acceptedAudiences(): string[] {
     const webClientId = this.config.get('GOOGLE_CLIENT_ID', { infer: true });
 
@@ -129,12 +112,6 @@ export class GoogleService implements OnModuleInit {
     return this.toProfile({ ...payload, email: payload.email }, payload.sub);
   }
 
-  /**
-   * A verification failure says only that the token was refused, and the reason
-   * that costs the most time to find is an audience the server was never told
-   * about. The token is not trusted here — the claim is read purely to name the
-   * mismatch in the log — and only client ids are ever written out.
-   */
   private audienceHint(idToken: string, accepted: string[]): string {
     const claims = this.readUnverifiedClaims(idToken);
     if (!claims?.aud || accepted.includes(claims.aud)) return '';
@@ -278,10 +255,6 @@ export class GoogleService implements OnModuleInit {
     return verified === true || verified === 'true';
   }
 
-  /**
-   * Both Google responses carry the same profile fields under the same names,
-   * so one mapper serves the browser callback and the native id token alike.
-   */
   private toProfile(
     source: Pick<
       GoogleAuthClient,
@@ -300,13 +273,6 @@ export class GoogleService implements OnModuleInit {
   }
 }
 
-/**
- * `given_name` and `family_name` are what Google returns for an account with a
- * structured name, and are preferred because they need no guessing. A single
- * `name` is all that comes back for the rest, and splitting it on the first
- * space is the ordinary convention — wrong for some names, but a first name the
- * user can correct beats an empty profile.
- */
 export const splitName = (source: {
   name?: string;
   given_name?: string;
@@ -331,10 +297,5 @@ export const splitName = (source: {
   };
 };
 
-/**
- * The avatar is handed straight to the phone's image loader, so only an https
- * URL is stored — anything else would either fail to load or, worse, be a
- * scheme the client was never meant to follow.
- */
 export const isUsablePhoto = (picture?: string): picture is string =>
   typeof picture === 'string' && /^https:\/\//i.test(picture.trim());

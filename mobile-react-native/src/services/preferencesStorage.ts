@@ -26,9 +26,6 @@ export const preferencesStorage = {
       if (isThemeMode(themeMode)) {
         restored.themeMode = themeMode;
       }
-      // Checked rather than trusted: a language we have since stopped shipping
-      // would otherwise leave the app showing keys. Failing the check restores
-      // nothing, which puts them back on the phone's language.
       if (isAppLanguage(language)) {
         restored.language = language;
       }

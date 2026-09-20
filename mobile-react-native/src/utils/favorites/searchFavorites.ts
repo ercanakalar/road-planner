@@ -7,10 +7,6 @@ import {
   NormalizedFavorites,
 } from 'types/store/services/favoriteService-type';
 
-/**
- * Everything about an entry a person might type to find it again: the label
- * they gave it, the name it came with, and where it is.
- */
 const haystack = (entry: FavoriteEntry): string =>
   foldForSearch(
     [entry.title, entry.subtitle, entry.defaultTitle, entry.address]
@@ -18,14 +14,6 @@ const haystack = (entry: FavoriteEntry): string =>
       .join(' '),
   );
 
-/**
- * Narrows the favourites to those matching what was typed.
- *
- * Every word has to appear somewhere in the entry, in any order — "coast
- * sunday" finds "Sunday drive" saved from "Coast run". Folding both sides
- * means "kadikoy" finds "Kadıköy", which an English keyboard otherwise could
- * not type.
- */
 export const searchFavorites = (
   favorites: NormalizedFavorites,
   query: string,
@@ -45,10 +33,6 @@ export const searchFavorites = (
   return result;
 };
 
-/**
- * How many favourites there are: in all four sections, or — given a kind — in
- * the two behind one tab.
- */
 export const countFavorites = (
   favorites: NormalizedFavorites,
   kind?: FavoriteKind,

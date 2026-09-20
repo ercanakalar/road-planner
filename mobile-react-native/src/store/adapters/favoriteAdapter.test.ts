@@ -85,8 +85,6 @@ describe('normalizeFavorites', () => {
       targetId: 'wp-7',
       kind: 'stop',
       title: 'Sultanahmet Sq',
-      // The country is the same for every stop on a domestic route, so the
-      // subtitle drops it — but `address`, which is what gets copied, keeps it.
       subtitle: 'Fatih, İstanbul',
       address: 'Sultanahmet Sq, Fatih, İstanbul, Türkiye',
       annotationTitle: undefined,
@@ -105,8 +103,6 @@ describe('normalizeFavorites', () => {
   });
 
   it('titles a stop by coordinates when its address is only noise', () => {
-    // Google answers a pin dropped off any road with a Plus Code, which says
-    // no more than the coordinates do and reads like a serial number.
     const plusCode = {
       ...raw,
       othersStops: [

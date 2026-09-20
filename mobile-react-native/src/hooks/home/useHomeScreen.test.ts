@@ -28,8 +28,6 @@ describe('withFavoriteToggled', () => {
   });
 
   it('leaves the cached routes untouched', () => {
-    // The optimistic copy is handed straight to the list, so aliasing the
-    // cached objects would edit RTK Query's cache from the screen.
     const routes = [route('a', false)];
 
     const next = withFavoriteToggled(routes, 'a');

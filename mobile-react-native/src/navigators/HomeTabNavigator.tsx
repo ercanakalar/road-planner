@@ -33,8 +33,6 @@ const ACTIVE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Profile: 'person',
 };
 
-// Built once, out here: `tabBarButton` is called on every render of the bar,
-// and a function built inside one would remount the button each time.
 const FavouritesTabButton = centreTabButton('heart', 'Favourites');
 
 const HomeTabNavigator = () => {
@@ -82,12 +80,6 @@ const HomeTabNavigator = () => {
     <Tab.Navigator initialRouteName='Map' screenOptions={screenOptions}>
       <Tab.Screen name='Home' component={HomeScreen} />
       <Tab.Screen name='Map' component={MapScreen} />
-      {/*
-        Favourites takes the middle, drawn as the raised circle rather than as
-        a third flat tab. Every screen name here is unchanged, so
-        `navigate('Favourites')` from the community and shared-route screens —
-        highlight param and all — still lands where it did.
-      */}
       <Tab.Screen
         name='Favourites'
         component={FavoritesScreen}

@@ -20,12 +20,6 @@ type PositionedStop = StopInputDto & { order: number };
 
 type StopWithElevation = PositionedStop & { elevation: number | null };
 
-/**
- * Two pins are the same place if they agree to six decimals — about 10cm, and
- * the precision coordinates are stored and sent at. Anything finer is a float
- * rounding difference rather than a stop that moved, and re-reading the ground
- * height for it would spend an API call to learn what is already known.
- */
 const samePlace = (
   a: { latitude: number; longitude: number },
   b: { latitude: number; longitude: number },
@@ -48,11 +42,6 @@ function buildNewStopRows(
   }));
 }
 
-/**
- * A road on its way out, with slope and bend worked out for each of its stops.
- * Tolerates the null Prisma hands back from a findUnique so the write paths can
- * pipe their result straight through.
- */
 function withRoadStopMetrics<
   T extends {
     stops: { latitude: number; longitude: number; elevation: number | null }[];
@@ -72,13 +61,6 @@ export class RoadService {
     private publishNotifier: RoutePublishNotifier,
   ) {}
 
-  /**
-   * The stops with the ground height under each attached.
-   *
-   * Called before the transaction opens, never inside one: this reaches out to
-   * Google, and a database transaction held open across a network call is a
-   * lock held for as long as someone else's server takes to answer.
-   */
   private async withElevations(
     stops: readonly PositionedStop[],
   ): Promise<StopWithElevation[]> {
@@ -166,73 +148,40 @@ export class RoadService {
   async getOwnRoads(userId: string, pagination: PaginationQueryDto) {
     const where: Prisma.RoadWhereInput = this.visibility.ownedBy(userId);
 
-    // The list draws a title, a star and a stop count — never the stops
-    // themselves. Selecting the stop rows here made the payload grow with
-    // every stop the user had ever saved, so the count is asked for instead.
-    // The two reads are independent, so they run side by side rather than
-    // queued behind one another inside a transaction.
-    const roads = await this.prisma.road.findMany({
-      where,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isPublic: true,
-        _count: {
-          select: {
-            stops: true,
+    const [roads, total] = await Promise.all([
+      this.prisma.road.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          isPublic: true,
+          _count: {
+            select: {
+              stops: true,
+            },
           },
+          favoriteRoads: { where: { userId }, select: { id: true } },
         },
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pagination.limit,
-      skip: pagination.offset,
-    });
-    const total = await this.prisma.road.count({ where });
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pagination.limit,
+        skip: pagination.offset,
+      }),
+      this.prisma.road.count({ where }),
+    ]);
+
+    const shaped = roads.map(({ favoriteRoads, ...road }) => ({
+      ...road,
+      isFavorite: !!favoriteRoads?.length,
+    }));
 
     return ok({
       header: 'road.ownHeader',
       message: 'road.ownMessage',
-      data: roads,
+      data: shaped,
       meta: pageMeta(total, pagination),
     });
   }
-
-  /**
-   * The stop count and the star for one page of roads.
-   *
-   * Both are asked for by road id rather than left to a nested `select`.
-   * Prisma answers a relation `_count` with a join onto an aggregate of the
-   * *whole* child table — every stop of every road in the database, grouped,
-   * to decorate the fifty on screen — so its cost grew with the table instead
-   * of with the page. Keyed by id, both reads ride the indexes the page
-   * already used, and they are independent of each other, so they go together.
-   */
-  //   private async decorate(roadIds: string[], userId: string) {
-  //     if (roadIds.length === 0) {
-  //       return {
-  //         stopCounts: new Map<string, number>(),
-  //         favorited: new Set<string>(),
-  //       };
-  //     }
-
-  //     const [counts, favorites] = await Promise.all([
-  //       this.prisma.stop.groupBy({
-  //         by: ['roadId'],
-  //         where: { roadId: { in: roadIds } },
-  //         _count: { _all: true },
-  //       }),
-  //       this.prisma.favoriteRoad.findMany({
-  //         where: { userId, roadId: { in: roadIds } },
-  //         select: { roadId: true },
-  //       }),
-  //     ]);
-
-  //     return {
-  //       stopCounts: new Map(counts.map((row) => [row.roadId, row._count._all])),
-  //       favorited: new Set(favorites.map(({ roadId }) => roadId)),
-  //     };
-  //   }
 
   async getDiscoverRoads(userId: string | null, limit: number) {
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`
@@ -328,8 +277,6 @@ export class RoadService {
         select: { id: true },
       });
 
-      // The copy stands on the same ground as the original, so its heights come
-      // across with it rather than being looked up again.
       const stops = source.stops.map((stop, index) => ({
         id: randomUUID(),
         latitude: stop.latitude,
@@ -361,10 +308,6 @@ export class RoadService {
     const { title, description, isPublic } = data;
     const stops = positionByRank(data.stops ?? []);
 
-    // Read what is stored before the transaction opens, so the Elevation
-    // lookups below can be narrowed to the stops that actually moved. The
-    // transaction re-reads the ids it needs; this copy is only used to decide
-    // which heights are still good.
     const stored = await this.prisma.stop.findMany({
       where: { roadId: id },
       select: {
@@ -377,9 +320,6 @@ export class RoadService {
 
     const storedById = new Map(stored.map((stop) => [stop.id, stop]));
 
-    // A stop keeps its height unless it was dragged somewhere else, or never
-    // had one — a route with forty stops that had one renamed should not cost
-    // forty Elevation lookups.
     const needsElevation = stops.filter((stop) => {
       const before = stop.id ? storedById.get(stop.id) : undefined;
       return !before || before.elevation === null || !samePlace(before, stop);
@@ -392,10 +332,6 @@ export class RoadService {
 
     const { road: updated, wasPublic } = await this.prisma.$transaction(
       async (tx) => {
-        // Read the visibility from inside the transaction, so "was it already
-        // public?" is answered by the same snapshot the update writes over.
-        // Two saves racing each other would otherwise both look like the one
-        // that published it, and both would tell the followers so.
         const before = await tx.road.findUnique({
           where: { id },
           select: { isPublic: true },
@@ -465,9 +401,6 @@ export class RoadService {
       },
     );
 
-    // Only the save that turns a private route public writes to anybody. Saving
-    // a route that is already public again — a title fix, a stop moved — is not
-    // news, and the notifier is told nothing.
     if (isPublic === true && !wasPublic) {
       this.publishNotifier.notifyInBackground(id);
     }

@@ -40,13 +40,6 @@ export const profileService = createApi({
         transformApiResponse(res),
     }),
 
-    /**
-     * The file itself, as multipart rather than as JSON.
-     *
-     * See `toUploadPart`: the part has to be a Blob-like object Expo's own
-     * fetch can encode, not React Native's `{ uri, name, type }` file — that
-     * one never leaves the device.
-     */
     updatePhoto: builder.mutation<UserResponse, PickedPhoto>({
       query: (photo) => {
         const body = new FormData();
@@ -57,16 +50,10 @@ export const profileService = createApi({
           url: '/user/photo',
           method: 'POST',
           body,
-          // Deleted again in prepareHeaders once the boundary can be generated
-          // — this only says "do not default me to JSON".
           headers: { 'Content-Type': MULTIPART },
           timeout: UPLOAD_TIMEOUT_MS,
         };
       },
-      // Sending the file again is not free the way replaying a GET is: a retry
-      // re-uploads every byte, so two of them turn one slow minute into three
-      // before anything is said. An upload reports its failure and lets the
-      // person decide whether to try again.
       extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<UserResponse>) =>
         transformApiResponseWithToast(res),
@@ -95,16 +82,6 @@ export const profileService = createApi({
         transformApiResponseWithToast(res),
     }),
 
-    /**
-     * Tells the account which language to write to this person in.
-     *
-     * Everything the API answers is worded from the request's own
-     * Accept-Language. An email is not answering anything — it goes out because
-     * somebody else published a route — so a deliberate choice has to be
-     * recorded against the account for it to reach one.
-     *
-     * Silent: nobody tapping a language expects a toast about their profile.
-     */
     setLanguage: builder.mutation<UserResponse, AppLanguage>({
       query: (language) => ({
         url: '/user/update',

@@ -28,14 +28,6 @@ const EMPTY_ROUTES: Page<RouteSearchHit> = {
   hasMore: false,
 };
 
-/**
- * One author's public shelf.
- *
- * The routes come from the same search endpoint the search screen uses, narrowed
- * to this person — there is nothing different about "their routes" beyond the
- * filter, so it would only be a second way to ask the same question. The order
- * and length controls are the same ones for the same reason.
- */
 export function useAuthorScreen(authorId: string) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -88,11 +80,6 @@ export function useAuthorScreen(authorId: string) {
     [isLoggedIn, navigation, toggleFavoriteRoute],
   );
 
-  /**
-   * Turns the notification on or off. Signed out there is nowhere to send the
-   * email and nobody to remember the choice for, so the sign-in screen comes
-   * first — the same door favouriting a route goes through.
-   */
   const handleToggleFollow = useCallback(() => {
     if (!isLoggedIn) {
       navigation.navigate('SignInScreen');
@@ -116,11 +103,6 @@ export function useAuthorScreen(authorId: string) {
     if (page.hasMore && !isFetching) loadNextPage();
   }, [isFetching, loadNextPage, page.hasMore]);
 
-  /**
-   * Pulling the list down asks for the shelf as it is now, not for the page
-   * the reader happens to have scrolled to — so it goes back to the first one.
-   * Re-fetching further in would only re-merge rows already on screen.
-   */
   const refresh = useCallback(() => {
     if (offset > 0) {
       resetPage();
@@ -133,7 +115,6 @@ export function useAuthorScreen(authorId: string) {
     author,
     isLoadingAuthor,
     routes: page.items,
-    /** How many they have published that match these filters. */
     total: page.total,
     hasMore: page.hasMore,
     loadMore,

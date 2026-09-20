@@ -6,7 +6,6 @@ describe('fold', () => {
   });
 
   it('folds both Turkish i spellings onto the same letter', () => {
-    // "KADIKÖY" lowercases to "kadıköy" in Turkish, not "kadiköy".
     expect(fold('KADIKÖY')).toBe(fold('Kadıköy'));
     expect(fold('İSTANBUL')).toBe(fold('İstanbul'));
   });

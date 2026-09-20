@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 
-/** What a confirmation asks, and how strongly it asks it. */
 export interface ConfirmOptions {
   title?: string;
   message?: string;

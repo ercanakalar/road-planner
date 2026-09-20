@@ -29,9 +29,6 @@ authMiddleware.startListening({
     const { accessToken, refreshToken } = action.payload;
     if (!accessToken || !refreshToken) return;
 
-    // Signing in lands on My Routes, and favourites is one tab away. Asking
-    // for both now means the request is already in flight while the screen
-    // mounts, instead of starting once it has.
     const dispatch = listenerApi.dispatch as AppDispatch;
     dispatch(routeService.util.prefetch('getOwnRoutes', undefined, { force: true }));
     dispatch(

@@ -10,7 +10,6 @@ const page = (ids: string[], overrides: Partial<Page<{ id: string }>> = {}) => (
 
 const ids = (result: Page<{ id: string }>) => result.items.map((i) => i.id);
 
-/** The shape of a paged query's arguments, as far as the key cares. */
 type SearchArgs = { q?: string; sort?: string; offset?: number };
 
 const keyOf = (queryArgs: SearchArgs, endpointName = 'searchRoutes') =>
@@ -24,8 +23,6 @@ describe('pagedCacheKey', () => {
   });
 
   it('gives a different question a key of its own', () => {
-    // Changing the order is a different list, not more of this one — merging
-    // the two would interleave rows from two orderings.
     expect(keyOf({ q: 'coast', sort: 'recent' })).not.toBe(
       keyOf({ q: 'coast', sort: 'popular' }),
     );
@@ -50,7 +47,6 @@ describe('appendPage', () => {
   });
 
   it('replaces rather than appends at the first page', () => {
-    // Re-reading page one is the list starting over, not more of it.
     const merged = appendPage(page(['a', 'b']), page(['c']), 0);
 
     expect(ids(merged)).toEqual(['c']);
@@ -61,9 +57,6 @@ describe('appendPage', () => {
   });
 
   it('drops a row that arrives twice', () => {
-    // Rows are ordered by things that keep changing, so one route published
-    // between two requests shifts the rest by one and the same row comes back
-    // under the next offset. Rendering it twice would duplicate a React key.
     const merged = appendPage(page(['a', 'b']), page(['b', 'c']), 30);
 
     expect(ids(merged)).toEqual(['a', 'b', 'c']);

@@ -8,13 +8,6 @@ const asBoolean = ({ value }: { value: unknown }): unknown => {
   return value;
 };
 
-/**
- * Which way the follow switch was moved.
- *
- * Stated rather than toggled server-side: the button knows what it is showing,
- * and a toggle would flip the wrong way whenever the row on screen is a moment
- * behind the row in the database.
- */
 export class FollowAuthorDto {
   @Transform(asBoolean)
   @IsBoolean()

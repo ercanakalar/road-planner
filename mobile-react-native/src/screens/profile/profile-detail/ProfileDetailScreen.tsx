@@ -84,20 +84,11 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
   const [updatePhoto, { isLoading: isUploadingPhoto }] =
     useUpdatePhotoMutation();
 
-  /**
-   * The upload is awaited rather than fired and forgotten: a rejected mutation
-   * only lands in RTK Query's own state, so without this the spinner stops,
-   * the avatar stays as it was, and nothing on screen says whether the file
-   * was the wrong sort, too large, or never left the phone.
-   */
   const handlePickPhoto = useCallback(
     async (photo: PickedPhoto) => {
       try {
         await updatePhoto(photo).unwrap();
       } catch (error) {
-        // The toast is written for the person holding the phone; the raw
-        // failure is what someone reading the logs needs, and the two are
-        // rarely the same sentence.
         if (__DEV__) console.warn('Avatar upload failed', error);
 
         showNotification({
@@ -181,11 +172,6 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
           />
         </View>
 
-        {/*
-          One card for the fields that can change, so the read-only address
-          below it reads as a different kind of thing rather than as a box
-          somebody forgot to make editable.
-        */}
         <View style={styles.card}>
           {FIELDS.map(({ key, label, hint, autoCapitalize }, index) => (
             <View

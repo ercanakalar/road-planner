@@ -33,7 +33,6 @@ describe('sectionKeysFor', () => {
 
 describe('buildSections', () => {
   it('leaves out a section with nothing in it', () => {
-    // Two headers, one of them reading "0", is chrome standing in for content.
     expect(buildSections(favorites, allExpanded, 'route').map((s) => s.key)).toEqual(
       ['ownRoutes'],
     );
@@ -78,8 +77,6 @@ describe('buildSections', () => {
   });
 
   it('draws no rows for a collapsed section but still counts them', () => {
-    // The badge is how you know what you collapsed, so it reports the real
-    // size rather than the zero rows currently drawn.
     const [routes] = buildSections(favorites, allCollapsed, 'route');
 
     expect(routes.data).toEqual([]);
@@ -103,8 +100,6 @@ describe('buildSections', () => {
   it('names each section and gives it an icon', () => {
     const [routes] = buildSections(favorites, allExpanded, 'route');
 
-    // A key, not a sentence: the section header is one of the few places the
-    // words are chosen by the component rather than here.
     expect(routes.title).toBe('favorites.ownRoutes');
     expect(routes.icon).toBe('directions-car');
   });

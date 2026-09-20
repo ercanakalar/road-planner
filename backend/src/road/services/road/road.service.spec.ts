@@ -26,7 +26,6 @@ describe('RoadService', () => {
     elevation = createElevationMock();
     publishNotifier = { notifyInBackground: jest.fn() };
 
-    // Prisma answers a findMany with an array or not at all.
     prisma.stop.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -322,7 +321,6 @@ describe('RoadService', () => {
     });
 
     it('stores a stop with no address as an empty string, not null', async () => {
-      // The column is NOT NULL, so an unnamed pin has to save as ''.
       prisma.road.create.mockResolvedValue({ id: ROAD_ID });
       prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, stops: [] });
 
@@ -353,11 +351,6 @@ describe('RoadService', () => {
   });
 
   describe('updateRoadById', () => {
-    /**
-     * Stored stops as the two reads see them: the diff inside the transaction
-     * only wants ids, the elevation check before it also wants where each stop
-     * is and how high it was measured at.
-     */
     const existing = (ids: string[]) =>
       ids.map((id, index) => ({
         id,
@@ -366,7 +359,6 @@ describe('RoadService', () => {
         elevation: 100 + index,
       }));
 
-    /** The values bound into the surviving-stop UPDATE. */
     const updateValues = () => prisma.$executeRaw.mock.calls[0][0].values;
 
     it('updates surviving stops in one statement rather than one each', async () => {
@@ -412,15 +404,11 @@ describe('RoadService', () => {
         stops: [{ id: 'wp-1', latitude: 1, longitude: 1, order: 1 }],
       });
 
-      // Deleting the row takes its address with it, so there is nothing else
-      // to look up and nothing left orphaned.
       expect(prisma.stop.findMany).toHaveBeenCalledWith({
         where: { roadId: ROAD_ID },
         select: { id: true },
       });
 
-      // The read before the transaction is a different question — which stops
-      // moved, and so which need their height looked up again.
       expect(prisma.stop.findMany).toHaveBeenCalledWith({
         where: { roadId: ROAD_ID },
         select: {
@@ -483,8 +471,6 @@ describe('RoadService', () => {
         ],
       });
 
-      // Position and address travel together, so one statement does both
-      // where it used to take an UPDATE each plus a link.
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
       expect(updateValues()).toContain('New St');
     });
@@ -499,8 +485,6 @@ describe('RoadService', () => {
         stops: [{ id: 'wp-1', latitude: 1, longitude: 1, order: 1 }],
       });
 
-      // A null in the address column is what COALESCE reads as "keep it", so
-      // reordering a route cannot blank the names of its stops.
       expect(updateValues()).toContain(null);
     });
 
@@ -611,19 +595,16 @@ describe('RoadService', () => {
       prisma.road.findMany.mockResolvedValue([
         {
           id: ROAD_ID,
-          userId: 'user-1',
           title: 'T',
           description: 'D',
           isPublic: false,
           createdAt: new Date(),
           updatedAt: new Date(),
+          _count: { stops: 12 },
+          favoriteRoads: [{ id: 'fav-1' }],
         },
       ]);
       prisma.road.count.mockResolvedValue(1);
-      prisma.stop.groupBy.mockResolvedValue([
-        { roadId: ROAD_ID, _count: { _all: 12 } },
-      ]);
-      prisma.favoriteRoad.findMany.mockResolvedValue([{ roadId: ROAD_ID }]);
 
       const result = await service.getOwnRoads('user-1', {
         limit: 10,
@@ -632,7 +613,7 @@ describe('RoadService', () => {
 
       expect(result.data[0]).toMatchObject({
         id: ROAD_ID,
-        stopCount: 12,
+        _count: { stops: 12 },
         isFavorite: true,
       });
       expect(result.data[0]).not.toHaveProperty('stops');
@@ -641,61 +622,46 @@ describe('RoadService', () => {
       ).toBeUndefined();
     });
 
-    // A relation `_count` is answered with a join onto an aggregate of the
-    // whole child table — every stop of every road in the database — so the
-    // list of one user's roads got slower as other people saved theirs.
-    it('counts only the stops of the page it is drawing', async () => {
-      prisma.road.findMany.mockResolvedValue([
-        { id: ROAD_ID, userId: 'user-1', title: 'T', description: 'D' },
-        { id: OTHER_ROAD_ID, userId: 'user-1', title: 'U', description: 'E' },
-      ]);
-      prisma.road.count.mockResolvedValue(2);
-      prisma.stop.groupBy.mockResolvedValue([]);
-      prisma.favoriteRoad.findMany.mockResolvedValue([]);
-
-      await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
-
-      expect(prisma.stop.groupBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          by: ['roadId'],
-          where: { roadId: { in: [ROAD_ID, OTHER_ROAD_ID] } },
-        }),
-      );
-      expect(prisma.favoriteRoad.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'user-1', roadId: { in: [ROAD_ID, OTHER_ROAD_ID] } },
-        }),
-      );
-    });
-
-    it('asks the database nothing more when the page is empty', async () => {
+    it('asks for the star as the caller’s own favourite row only', async () => {
       prisma.road.findMany.mockResolvedValue([]);
       prisma.road.count.mockResolvedValue(0);
 
-      const result = await service.getOwnRoads('user-1', {
-        limit: 10,
-        offset: 0,
-      });
+      await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
 
-      expect(result.data).toEqual([]);
-      expect(prisma.stop.groupBy).not.toHaveBeenCalled();
-      expect(prisma.favoriteRoad.findMany).not.toHaveBeenCalled();
+      expect(prisma.road.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            favoriteRoads: {
+              where: { userId: 'user-1' },
+              select: { id: true },
+            },
+          }),
+        }),
+      );
     });
 
-    it('reports no stops for a road that has none', async () => {
+    it('does not leak the favourite rows themselves', async () => {
       prisma.road.findMany.mockResolvedValue([
-        { id: ROAD_ID, userId: 'user-1', title: 'T', description: 'D' },
+        {
+          id: ROAD_ID,
+          title: 'T',
+          description: 'D',
+          _count: { stops: 0 },
+          favoriteRoads: [],
+        },
       ]);
       prisma.road.count.mockResolvedValue(1);
-      prisma.stop.groupBy.mockResolvedValue([]);
-      prisma.favoriteRoad.findMany.mockResolvedValue([]);
 
       const result = await service.getOwnRoads('user-1', {
         limit: 10,
         offset: 0,
       });
 
-      expect(result.data[0]).toMatchObject({ stopCount: 0, isFavorite: false });
+      expect(result.data[0]).toMatchObject({
+        _count: { stops: 0 },
+        isFavorite: false,
+      });
+      expect(result.data[0]).not.toHaveProperty('favoriteRoads');
     });
 
     it('keeps archived roads out of the discover feed', async () => {
@@ -847,8 +813,6 @@ describe('RoadService', () => {
 
       const stops = prisma.stop.createMany.mock.calls[0][0].data;
 
-      // The copy carries its own addresses. Nothing is shared with the
-      // original, so editing one route cannot rename a stop in the other.
       expect(stops.map((w: { address: string }) => w.address)).toEqual([
         'A',
         '',
@@ -873,10 +837,6 @@ describe('RoadService', () => {
     });
   });
   describe('updateRoadById — telling followers', () => {
-    /**
-     * `road.findUnique` is called twice inside the transaction: once to read
-     * the visibility being written over, once to read the finished road back.
-     */
     const storedVisibility = (isPublic: boolean) => {
       prisma.stop.findMany.mockResolvedValue([]);
       prisma.road.findUnique
@@ -901,7 +861,6 @@ describe('RoadService', () => {
     });
 
     it('says nothing when an already public route is saved again', async () => {
-      // A title fix on a route everyone can already see is not news.
       storedVisibility(true);
 
       await save(true);

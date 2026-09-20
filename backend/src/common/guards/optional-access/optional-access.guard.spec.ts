@@ -72,9 +72,6 @@ describe('OptionalAccessGuard', () => {
     expect(res.body.userId).toBe(USER_ID);
   });
 
-  // The app refreshes its session on a 401 and on nothing else. Answering an
-  // expired token as though the caller were a stranger would hide their own
-  // private roads behind a 404 until they restarted the app.
   it('turns away an expired token instead of demoting it to anonymous', async () => {
     const res = await get(sign({ userId: USER_ID }, -1));
 

@@ -36,8 +36,6 @@ describe('searchTerm', () => {
   it.each([[undefined], [''], ['   '], ['a']])(
     'treats %p as no term at all',
     (value) => {
-      // One character matches nearly every route, so it is the feed with extra
-      // steps — and a table scan to produce it.
       expect(searchTerm(value)).toBeUndefined();
     },
   );
@@ -123,9 +121,6 @@ describe('RoadSearchService', () => {
     });
 
     it('reads a minimum stop count off the rank of the last stop', async () => {
-      // order is a dense 1-based rank, so "has a stop ranked 5 or higher" is
-      // the same question as "has at least 5 stops" — and unlike a count, it
-      // is one the database can answer inside the same query.
       await service.searchRoads(query({ minStops: 5 }), null);
 
       expect(whereOf(prisma).AND).toContainEqual({

@@ -108,13 +108,6 @@ const LengthChip = memo(
 
 LengthChip.displayName = 'SearchLengthChip';
 
-/**
- * The person the list is narrowed to, with the way out of it.
- *
- * It sits with the filters rather than in the header because that is what it
- * is — picking somebody in the People tab is a filter on the same list, not a
- * different screen.
- */
 const AuthorChip = memo(
   ({ name, onClear }: { name: string; onClear: () => void }) => {
     const { colors } = useTheme();
@@ -149,20 +142,12 @@ interface Props {
   onOrderChange: (order: RouteSearchOrder) => void;
   length: string;
   onLengthChange: (key: string) => void;
-  /** Set while the list is narrowed to one person. */
   authorName?: string | null;
   onClearAuthor?: () => void;
-  /** How many matched in total — "312 routes" — not how many are on screen. */
   summary?: string | null;
-  /** True while that number belongs to the previous question. */
   isSummaryStale?: boolean;
 }
 
-/**
- * Order on one line, filters on the next, directly under the search field —
- * both are about the list below them, so they sit between the two. The count
- * closes the pair off: it is the answer to what the two lines above just asked.
- */
 const SearchFilterBar = ({
   order,
   onOrderChange,
@@ -293,8 +278,6 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 11,
       color: colors.textSubtle,
     },
-    // Dimmed rather than blanked: a count that disappears on every keystroke
-    // moves the list under the reader's thumb.
     summaryStale: { opacity: 0.45 },
   });
 

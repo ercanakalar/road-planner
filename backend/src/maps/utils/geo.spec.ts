@@ -209,7 +209,6 @@ describe('turnDegrees', () => {
   });
 
   it('takes the shorter way round rather than the long one', () => {
-    // 350 to 10 is 20 degrees to the right, not 340 to the left.
     expect(turnDegrees(350, 10)).toBe(20);
     expect(turnDegrees(10, 350)).toBe(-20);
   });

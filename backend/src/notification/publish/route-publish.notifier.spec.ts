@@ -40,7 +40,6 @@ describe('RoutePublishNotifier', () => {
       },
     }));
 
-  /** A follower who has been seen in a particular language. */
   const followerReading = (language: string | null) => ({
     follower: {
       id: `follower-${language ?? 'unknown'}`,
@@ -50,7 +49,6 @@ describe('RoutePublishNotifier', () => {
     },
   });
 
-  /** Somebody who wants the inbox line but not the email. */
   const quietFollower = (id: string) => ({
     follower: {
       id,
@@ -125,8 +123,6 @@ describe('RoutePublishNotifier', () => {
   });
 
   it('writes to each follower in the language they were last seen in', async () => {
-    // Nobody asked for this email, so there is no request to read a language
-    // off: what the account was last seen in is the whole of what is known.
     prisma.authorFollow.findMany.mockResolvedValue([
       followerReading('tr'),
       followerReading('en'),
@@ -158,8 +154,6 @@ describe('RoutePublishNotifier', () => {
   });
 
   it('says nothing to anyone about a route that is no longer public', async () => {
-    // The road may have been unpublished, or deleted, between the write and
-    // this running — which is not a failure, just nothing left to announce.
     prisma.road.findFirst.mockResolvedValue(null);
 
     await expect(notifier.notifyFollowers(ROAD_ID)).resolves.toBe(0);
@@ -179,9 +173,6 @@ describe('RoutePublishNotifier', () => {
   it('never lets a mail failure reach the caller', async () => {
     prisma.authorFollow.findMany.mockRejectedValue(new Error('database gone'));
 
-    // The route is already saved by the time this runs, so a notifier that
-    // threw would turn a successful publish into an error on the owner's
-    // screen.
     expect(() => notifier.notifyInBackground(ROAD_ID)).not.toThrow();
 
     await new Promise((resolve) => setImmediate(resolve));
@@ -201,8 +192,6 @@ describe('RoutePublishNotifier', () => {
   });
 
   it('still files the inbox line for somebody who turned email off', async () => {
-    // The two are separate switches. Turning off the mail must not take the
-    // notification they actually see with it.
     prisma.authorFollow.findMany.mockResolvedValue([quietFollower('quiet')]);
 
     await expect(notifier.notifyFollowers(ROAD_ID)).resolves.toBe(0);
@@ -228,8 +217,6 @@ describe('RoutePublishNotifier', () => {
   });
 
   it('writes the inbox before the mail goes out', async () => {
-    // The inbox is the copy people see and costs one statement; it must not be
-    // lost because a mail server was slow or down.
     prisma.authorFollow.findMany.mockResolvedValue(
       followers('one@example.com'),
     );

@@ -194,15 +194,6 @@ export const localRouteSlice = createSlice({
       if (!findActive(state)) state.activeRouteId = state.routes[0]?.id;
     },
 
-    /**
-     * Lands a whole route at once, which is what an import is: the stops are
-     * already in order and already have their addresses, so they arrive as one
-     * route rather than as a run of `localStopAdded` calls that would each
-     * re-rank the list and each mark the route as touched.
-     *
-     * The new route becomes the active one, because the point of importing is to
-     * look at it.
-     */
     localRouteImported: {
       reducer(state, action: PayloadAction<LocalRoute>) {
         state.routes.unshift(action.payload);

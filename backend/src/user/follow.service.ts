@@ -7,23 +7,10 @@ import {
 import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-/**
- * Following an author, so their next public route is worth hearing about.
- *
- * A follow is a private subscription held by the follower: they create it, they
- * remove it, and nobody else can read who is on the list. An author is told how
- * many people follow them nowhere in the API, because a count nobody asked for
- * is the beginning of a public audience.
- */
 @Injectable()
 export class FollowService {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Only someone who has published can be followed, which is the same door
-   * search opens: following somebody who has shared nothing would be a way to
-   * confirm an account exists from the outside.
-   */
   private async requirePublishedAuthor(authorId: string): Promise<void> {
     const author = await this.prisma.user.findFirst({
       where: {
@@ -38,7 +25,6 @@ export class FollowService {
     }
   }
 
-  /** Whether this caller already follows the author. Null callers follow nobody. */
   async isFollowing(
     authorId: string,
     followerId: string | null,
@@ -53,10 +39,6 @@ export class FollowService {
     return !!row;
   }
 
-  /**
-   * Reads the follow state for a page of authors in one query rather than one
-   * per row, so a list of thirty people costs the same as a list of one.
-   */
   async followedAmong(
     authorIds: readonly string[],
     followerId: string | null,
@@ -71,14 +53,6 @@ export class FollowService {
     return new Set(rows.map((row) => row.authorId));
   }
 
-  /**
-   * Turns following this author on or off.
-   *
-   * The write is idempotent on purpose: `follow` on somebody already followed
-   * and `unfollow` on somebody who is not both succeed and report the state the
-   * caller asked for. A button that has to be pressed twice because the first
-   * tap raced the list refresh is worse than a no-op.
-   */
   async setFollowing(authorId: string, followerId: string, follow: boolean) {
     if (authorId === followerId) {
       throw new BadRequestException('error.cannotFollowSelf');

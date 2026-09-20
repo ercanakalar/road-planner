@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-// Draws every launcher and store image the app ships from one vector source, so
-// a palette change means editing `brand` below and re-running, rather than
-// hand-editing nine PNGs that then drift apart.
-//
-//   node scripts/generate-icons.mjs
-//
-// Rendering goes through the Chromium that Playwright installs (or any
-// CHROME_BIN you point at); nothing else is needed.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,16 +10,6 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const assets = join(root, 'assets');
 const store = join(root, 'store-assets');
 
-// Kept in step with the active family in src/theme/palettes.ts — the launcher
-// icon is the first piece of the app anyone sees, so it is the same blue as
-// the UI. Change `ACTIVE_PALETTE` and these five follow it by hand; there is
-// no import here because this runs outside the bundler.
-//
-// The mark is two-tone wherever it sits on the blue: a white route running up
-// to a red destination node, the same red the destination pin uses. On a
-// light background both go to `blue` instead, and the open start node against
-// the solid destination still tells the two ends apart — red on off-white next
-// to a blue route reads as two unrelated marks rather than one.
 const brand = {
   blue: '#1967D2',
   blueLight: '#4285F4',
@@ -36,10 +18,6 @@ const brand = {
   white: '#FFFFFF',
 };
 
-// The mark is drawn in a 512x512 box: a route curving from an open start node up
-// to a solid destination node, which is the app's own start/stops/destination
-// model in one shape. Artwork reaches to 38..474 of that box, so a caller
-// scaling the box to N pixels gets a mark 0.85N across.
 const MARK_SPAN = 512;
 
 const mark = (stroke, node) => `
@@ -49,7 +27,6 @@ const mark = (stroke, node) => `
   <circle cx="88" cy="424" r="36" fill="none" stroke="${stroke}" stroke-width="28"/>
   <circle cx="424" cy="88" r="50" fill="${node}"/>`;
 
-// Places the 512-box mark, scaled to `inner` pixels, in the middle of a canvas.
 const centred = (canvasW, canvasH, inner, body) =>
   `<g transform="translate(${(canvasW - inner) / 2} ${(canvasH - inner) / 2})
       scale(${inner / MARK_SPAN})">${body}</g>`;
@@ -68,8 +45,6 @@ const svg = (w, h, body, defs = '') =>
 
 const images = [
   {
-    // iOS and the Play Console listing both want a full-bleed square with no
-    // alpha: each applies its own mask, and iOS renders transparency black.
     file: join(assets, 'icon.png'),
     w: 1024,
     h: 1024,
@@ -83,9 +58,6 @@ const images = [
       ),
   },
   {
-    // Android masks the foreground to a circle 66/108 of the canvas across, so
-    // the mark is scaled to sit inside that circle whatever shape a launcher
-    // crops to.
     file: join(assets, 'adaptive-icon.png'),
     w: 1024,
     h: 1024,
@@ -100,8 +72,6 @@ const images = [
     svg: () => svg(1024, 1024, `<rect width="1024" height="1024" fill="url(#bg)"/>`, gradient('bg')),
   },
   {
-    // Android 13 themed icons tint whatever is opaque here, so the mark is one
-    // flat colour and the start node stays a real hole rather than a fill.
     file: join(assets, 'monochrome-icon.png'),
     w: 1024,
     h: 1024,
@@ -110,8 +80,6 @@ const images = [
     svg: () => svg(1024, 1024, centred(1024, 1024, 530, mark(brand.white, brand.white))),
   },
   {
-    // Expo centres these on the splash `backgroundColor`, one per scheme, so
-    // they stay transparent and carry no backdrop of their own.
     file: join(assets, 'splash-icon.png'),
     w: 1024,
     h: 1024,
@@ -140,7 +108,6 @@ const images = [
       ),
   },
   {
-    // Play Console store icon: 512x512, 32-bit PNG.
     file: join(store, 'play-store-icon.png'),
     w: 512,
     h: 512,
@@ -155,7 +122,6 @@ const images = [
       ),
   },
   {
-    // Play Console feature graphic: 1024x500, shown at the top of the listing.
     file: join(store, 'feature-graphic.png'),
     w: 1024,
     h: 500,
@@ -177,8 +143,6 @@ const images = [
       ),
   },
 ];
-
-/* ---------- PNG helpers: Chromium pads short viewports, so crop exactly ---- */
 
 const crcTable = (() => {
   const table = new Int32Array(256);
@@ -302,9 +266,6 @@ const encodePng = (img, { w, h, alpha }) => {
   ]);
 };
 
-// Android crops an adaptive icon to a launcher-chosen shape and only promises
-// to show the centred circle 66dp of the 108dp canvas across. Anything drawn
-// past it can be cut off, so measure rather than trust the numbers above.
 const assertInsideSafeZone = (img, w, h) => {
   const cx = w / 2;
   const cy = h / 2;
@@ -327,8 +288,6 @@ const assertInsideSafeZone = (img, w, h) => {
 
   return safe - furthest;
 };
-
-/* ---------- rendering ------------------------------------------------------ */
 
 const findChrome = () => {
   if (process.env.CHROME_BIN) return process.env.CHROME_BIN;
@@ -390,9 +349,6 @@ const shoot = (markup, w, h, transparent) => {
   return decodePng(shot);
 };
 
-// Chromium's screenshot is the window size, but it lays the page out in a
-// slightly shorter viewport and fills the rest with the default background.
-// Measure that gap once instead of assuming a version-specific number.
 const calibrate = () => {
   const probe = 400;
   const img = shoot(
@@ -421,8 +377,6 @@ mkdirSync(store, { recursive: true });
 
 for (const image of images) {
   const { w, h, alpha = false } = image;
-  // Ask for a window `gap` taller so the page lays out at the full height, then
-  // crop the padding Chromium adds below it.
   const shot = shoot(image.svg(), w, h + gap, alpha);
 
   if (shot.w !== w || shot.h < h) {

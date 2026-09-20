@@ -18,11 +18,6 @@ const at = (dictionary: unknown, path: string): unknown =>
       dictionary,
     );
 
-/**
- * The sentence at a path, choosing a plural branch the way `nestjs-i18n` does:
- * `zero` when there is one and the count is nought, otherwise whatever
- * `Intl.PluralRules` selects for the language.
- */
 const lookup = (
   dictionary: unknown,
   path: string,
@@ -48,18 +43,7 @@ const lookup = (
   return typeof chosen === 'string' ? chosen : undefined;
 };
 
-/**
- * A translator over the real locale files, for tests.
- *
- * Standing in a stub that echoes its key would let a missing or mistyped
- * translation pass, which is the only thing these tests are watching for. This
- * resolves keys the way the running app does — dot path, fall back to English,
- * then to the key itself — so the assertions are about the dictionaries.
- */
 export const testI18n = (): Pick<I18nService, 'translate'> => ({
-  // `I18nService.translate` is generic over what a key resolves to; every key
-  // here resolves to a sentence, and the cast keeps that one difference in one
-  // place rather than at each call site.
   translate: ((
     key: string,
     options?: {

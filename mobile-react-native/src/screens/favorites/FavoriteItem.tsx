@@ -43,7 +43,6 @@ export const FavoriteItem = memo(
         },
       ];
 
-      // Only a place has an address, and only one Google could name.
       if (item.address) {
         rows.push({
           label: t('mapUi.copyAddress'),
@@ -145,8 +144,6 @@ const createStyles = (colors: ThemeColors) =>
     itemHighlighted: {
       backgroundColor: colors.primarySoft,
     },
-    // The row and its menu button highlight separately, so a press lands where
-    // it looks like it landed.
     main: {
       flex: 1,
       flexDirection: 'row',

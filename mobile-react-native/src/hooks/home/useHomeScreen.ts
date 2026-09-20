@@ -21,48 +21,26 @@ import i18n from 'i18n';
 
 const EMPTY_DISCOVER: DiscoverRoute[] = [];
 
-/**
- * Flips one route's heart. The list is replaced rather than mutated so the
- * optimistic copy never aliases the cached one.
- */
 export const withFavoriteToggled = (routes: DiscoverRoute[], routeId: string) =>
   routes.map((route) =>
     route.id === routeId ? { ...route, isFavorite: !route.isFavorite } : route,
   );
 
-/**
- * The home screen's data: a count of what you have saved, and the rotating
- * sample of published routes.
- *
- * Hearting a community route round-trips to the server and then refetches the
- * whole sample, which is far too long to leave a tapped heart unlit. The heart is
- * flipped optimistically for the length of that action instead, and falls back
- * to whatever the refetch says — including on failure, where the flip simply
- * disappears when the action ends.
- */
 export function useHomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   const { data: routes } = useGetOwnRoutesQuery(undefined, { skip: !isLoggedIn });
 
-  // Asked for here rather than read off the user slice, which only fills in
-  // once the Profile tab has been opened — this is the first screen after
-  // signing in, and it would greet you by name only if you had been to
-  // Profile first. RTK Query serves the two from one request.
   const userId = useAppSelector((state) => state.auth.userId);
   const { data: profile } = useGetUserQuery(
     { userId: userId ?? '' },
     { skip: !userId },
   );
 
-  // The greeting wants something short enough to sit next to "Hello,", so a
-  // nickname beats a first name, and either beats a full one.
   const firstName =
     profile?.nickName?.trim() || profile?.firstName?.trim() || '';
 
-  // Kept on the device rather than the account, so it is there to show before
-  // anybody has signed in.
   const travelAreas = useAppSelector((state) => state.travelMap.areas);
 
   const {
@@ -138,8 +116,6 @@ export function useHomeScreen() {
           await toggleFavoriteRoute({ routeId }).unwrap();
           await refetchDiscover();
         } catch {
-          // The mutation surfaces its own error, and ending the action drops
-          // the optimistic heart back to the server's answer.
         } finally {
           setSavingRouteId(null);
         }

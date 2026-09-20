@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RouteSearchOrder } from 'types/store/services/searchService-type';
 
-/** The orders search offers, in the order they are offered. */
 export const routeSearchOrders: {
   key: RouteSearchOrder;
   label: string;
@@ -17,10 +16,6 @@ export const routeSearchOrders: {
 
 export const DEFAULT_ROUTE_SEARCH_ORDER: RouteSearchOrder = 'recent';
 
-/**
- * Length filters, as bands rather than a number picker: nobody wants a route
- * with "at least seven stops", they want a short one or a long one.
- */
 export const routeLengthFilters: {
   key: string;
   label: string;

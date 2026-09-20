@@ -57,7 +57,6 @@ export class StopInputDto {
   address?: string;
 }
 
-/** A point on a route that has not been saved, so has no id to look up. */
 export class TerrainPointDto {
   @IsNumber()
   @Min(LATITUDE_MIN)
@@ -70,14 +69,6 @@ export class TerrainPointDto {
   longitude!: number;
 }
 
-/**
- * Measure the road running through these points, in the order given.
- *
- * The saved-route reading is `GET /road/:id/terrain`; this is the same reading
- * for a route still being built on the map, which has no id yet. Capped at the
- * same number of stops a road may hold, since it costs the same one directions
- * call and one elevation call.
- */
 export class TerrainStopsDto {
   @IsArray()
   @ArrayMaxSize(STOPS_MAX)

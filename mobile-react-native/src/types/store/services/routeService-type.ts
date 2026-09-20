@@ -5,11 +5,6 @@ import {
     StopWithAddressAndId,
 } from 'types/map-screen-type';
 
-/**
- * A route exactly as the API returns it. The `roadId` key is the server's own
- * name for the field, kept verbatim so this type still describes the payload
- * rather than what the app wishes it were called.
- */
 export interface Route {
     id: string;
     userId: string;
@@ -21,7 +16,6 @@ export interface Route {
     deletedAt: string | null;
 }
 
-/** A stop as the API returns it; `roadId` is the server's key, kept verbatim. */
 export interface Stop {
     id: string;
     latitude: number;
@@ -144,14 +138,8 @@ export interface ReorderStopsArgs {
 }
 export type ReorderStopsResponse = Stop[];
 
-/**
- * The road's own shape at one stop, measured along the route Google draws
- * rather than the straight line between pins. Same fields as the shape a stop
- * already carries, so a card can take whichever it has.
- */
 export type StopTerrain = {
     stopId: string;
-    /** Null for the first stop: nothing leads to it. */
     shape: StopShape | null;
 };
 

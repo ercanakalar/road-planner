@@ -17,11 +17,6 @@ import {
   UnreadCount,
 } from 'types/store/services/notificationService-type';
 
-/**
- * The inbox goes stale the moment somebody publishes, and there is no way for
- * the phone to be told — so it is re-read on focus and on reconnect rather than
- * held.
- */
 const CACHE_SECONDS = 60;
 
 const EMPTY: NotificationPage = {
@@ -31,10 +26,6 @@ const EMPTY: NotificationPage = {
   unread: 0,
 };
 
-/**
- * The envelope's `meta` carries the paging *and* the unread count, so the badge
- * and the list are one answer. Asking twice would let them disagree on screen.
- */
 const toNotificationPage = (
   res: ApiResponse<AppNotification[]>,
 ): NotificationPage => {
@@ -69,15 +60,12 @@ export const notificationService = createApi({
       serializeQueryArgs: pagedCacheKey,
       merge: (current, incoming, { arg }) => ({
         ...appendPage(current, incoming, arg.offset),
-        // Always the newest answer: the count is about the whole inbox, not
-        // about the page that happened to arrive.
         unread: incoming.unread,
       }),
       forceRefetch: refetchOnNewPage,
       providesTags: [{ type: 'Notification' as const, id: 'LIST' }],
     }),
 
-    /** Just the number, for the badge on a screen that is not the inbox. */
     getUnreadCount: builder.query<number, void>({
       query: () => ({ url: '/notifications/unread-count', method: 'GET' }),
       transformResponse: (res: ApiResponse<UnreadCount>) =>
@@ -85,13 +73,6 @@ export const notificationService = createApi({
       providesTags: [{ type: 'Notification' as const, id: 'UNREAD' }],
     }),
 
-    /**
-     * Marks one line read, or the whole inbox when no id is given.
-     *
-     * The rows on screen are corrected immediately rather than re-fetched: the
-     * list is paged, and invalidating it would answer at whatever page the
-     * reader had scrolled to and leave everything above it looking unread.
-     */
     markNotificationsRead: builder.mutation<unknown, { id?: string } | void>({
       query: (args) => ({
         url: args?.id
@@ -132,7 +113,6 @@ export const notificationService = createApi({
           patches.forEach((patch) => patch.undo());
         }
       },
-      // The badge is a number with nowhere to drift to, so it is re-read.
       invalidatesTags: [{ type: 'Notification' as const, id: 'UNREAD' }],
     }),
 
@@ -162,8 +142,6 @@ export const notificationService = createApi({
       }),
       transformResponse: (res: ApiResponse<NotificationSettings>) =>
         transformApiResponse(res),
-      // A switch that waits for a round trip to move feels broken, and putting
-      // it back is the honest thing to do when the write does not land.
       async onQueryStarted(patch, { dispatch, queryFulfilled }) {
         const undo = dispatch(
           notificationService.util.updateQueryData(

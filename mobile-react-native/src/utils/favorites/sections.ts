@@ -32,23 +32,9 @@ const LABELS: Record<
   },
 };
 
-/** Which of the four buckets belong to each tab. */
 export const sectionKeysFor = (kind: FavoriteKind): FavoriteSectionKey[] =>
   FAVORITE_SECTION_KEYS.filter((key) => LABELS[key].kind === kind);
 
-/**
- * Turns the four buckets into the sections the list draws.
- *
- * A section with nothing in it is left out rather than shown as a header with
- * a zero beside it — four rows of chrome saying "nothing here" is worse than
- * saying nothing. A collapsed section keeps its header, and that header still
- * reports how many it holds, so collapsing does not look like emptying.
- *
- * `kind` is the tab being shown. Yours and other people's stay separate
- * sections inside it: a route you saved from somebody else can be withdrawn
- * by them, and the two are not interchangeable just because they are both
- * routes.
- */
 export const buildSections = (
   favorites: NormalizedFavorites,
   isExpanded: (key: FavoriteSectionKey) => boolean,

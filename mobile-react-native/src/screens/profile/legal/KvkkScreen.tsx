@@ -45,8 +45,6 @@ const KvkkScreen = () => {
     });
     if (!confirmed) return;
 
-    // Consent is what the account session rests on, so the session goes with
-    // it. Routes held on the device are the reader's own and stay put.
     if (isLoggedIn) {
       try {
         await logoutTrigger().unwrap();

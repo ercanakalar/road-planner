@@ -4,7 +4,6 @@ import { KVKK_CONSENT_VERSION } from 'constants/kvkk';
 import { KvkkConsentRecord } from 'types/kvkk';
 
 interface KvkkState {
-  /** False until the stored consent has been read off the device. */
   isHydrated: boolean;
   consent: KvkkConsentRecord | null;
 }
@@ -32,7 +31,6 @@ export const kvkkSlice = createSlice({
   },
 });
 
-/** A consent counts only while it names the notice the app would show today. */
 export const isKvkkConsentCurrent = (
   consent: KvkkConsentRecord | null,
   version: string = KVKK_CONSENT_VERSION,

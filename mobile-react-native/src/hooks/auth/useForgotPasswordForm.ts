@@ -13,10 +13,6 @@ type ForgotPasswordValues = { email: string };
 const validate = ({ email }: ForgotPasswordValues) =>
   EMAIL_PATTERN.test(email.trim()) ? '' : i18n.t('forms.validEmail');
 
-/**
- * Asking for a reset code: one address, and the lockout that too many wrong
- * codes for that address leaves behind.
- */
 export function useForgotPasswordForm(
   navigation: NavigationProp<RootStackParamList>,
   initialEmail = '',

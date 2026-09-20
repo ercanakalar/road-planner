@@ -18,7 +18,6 @@ interface Props {
   icon?: keyof typeof Ionicons.glyphMap;
 }
 
-/** A centred, transient note over the map — "saving", "stored locally". */
 const MapStatusPill = ({ top, label, icon }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

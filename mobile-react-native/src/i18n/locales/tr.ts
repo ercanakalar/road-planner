@@ -1,16 +1,5 @@
 import type { Translations } from './en';
 
-/**
- * Turkish.
- *
- * Typed against the English file's shape, so a key removed or renamed there
- * stops the build here rather than silently falling back mid-screen.
- *
- * Note that Turkish does not pluralise a noun after a numeral — "3 rota", not
- * "3 rotalar" — so several `_one` and `_other` forms are deliberately
- * identical. They are kept apart because i18next selects on the count and
- * collapsing them would make the next language that does inflect harder to add.
- */
 const tr: Translations = {
     common: {
         cancel: 'Vazgeç',

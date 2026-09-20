@@ -39,7 +39,6 @@ describe('ElevationService', () => {
     await service.elevations([KADIKOY]);
     await service.elevations([KADIKOY]);
 
-    // Ground height does not move, so paying Google twice for it is waste.
     expect(client.get).toHaveBeenCalledTimes(1);
   });
 
@@ -77,14 +76,10 @@ describe('ElevationService', () => {
   it('leaves a stop unmeasured rather than failing the save', async () => {
     client.get.mockRejectedValue(new Error('Google is down'));
 
-    // A route is worth storing without its heights; a Maps outage taking
-    // saving a stop down with it is not a trade anyone would make.
     await expect(service.elevations([KADIKOY])).resolves.toEqual([null]);
   });
 
   it('drops a batch Google answered short rather than shifting the heights', async () => {
-    // Two points, one height. Which stop it belongs to is unknowable, and
-    // guessing puts a measured number on the wrong pin.
     client.get.mockResolvedValue(heights(30));
 
     await expect(service.elevations([KADIKOY, ULUDAG])).resolves.toEqual([

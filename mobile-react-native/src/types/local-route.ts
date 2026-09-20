@@ -3,7 +3,6 @@ export interface LocalStop {
   latitude: number;
   longitude: number;
   order: number;
-  /** Google's formatted address, or '' for a bare dropped pin. */
   address: string;
   isFavorite?: boolean;
 }

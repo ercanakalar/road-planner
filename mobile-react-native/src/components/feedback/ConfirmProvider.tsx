@@ -4,10 +4,6 @@ import { ConfirmContext, ConfirmFn } from 'hooks/feedback/useConfirm';
 import ConfirmModal from './ConfirmModal';
 import type { ConfirmOptions } from 'types/components/confirmModal';
 
-/**
- * Holds the one confirmation dialog the app shows, and hands every screen and
- * hook below it a promise-shaped way to raise it.
- */
 export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);

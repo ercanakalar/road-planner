@@ -19,11 +19,6 @@ import { UserSearchQueryDto } from './dto/user-search.dto';
 import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
 import { FollowService } from './follow.service';
 
-/**
- * What search may reveal about someone. Deliberately narrower than
- * USER_PUBLIC_SELECT: no email, and no last name — only the name the Discover
- * feed already puts under a route, plus the avatar next to it.
- */
 const AUTHOR_SELECT = {
   id: true,
   nickName: true,
@@ -123,14 +118,6 @@ export class UserService {
     });
   }
 
-  /**
-   * Finds people by the name their routes are published under.
-   *
-   * Search reaches authors, not accounts: only someone with at least one live
-   * public route can be found, and only by a name they have already attached to
-   * it. Someone who has published nothing cannot be discovered this way, which
-   * is why this is safe to leave open to signed-out callers.
-   */
   async searchAuthors(query: UserSearchQueryDto, viewerId: string | null) {
     const term = searchTerm(query.q);
 
@@ -192,7 +179,6 @@ export class UserService {
     });
   }
 
-  /** The public face of one author: their name, and how much they have shared. */
   async getAuthorById(id: string, viewerId: string | null) {
     const user = await this.prisma.user.findFirst({
       where: { id, roads: { some: { isPublic: true, archivedAt: null } } },

@@ -6,7 +6,6 @@ describe('nextPair', () => {
   });
 
   it('picks the second stop as B, after A', () => {
-    // Order carries the labels, so this is not a set.
     expect(nextPair(['a'], 'b')).toEqual(['a', 'b']);
   });
 
@@ -16,7 +15,6 @@ describe('nextPair', () => {
   });
 
   it('drops the oldest when a third is picked', () => {
-    // The alternative is ignoring the tap, which reads as the list being stuck.
     expect(nextPair(['a', 'b'], 'c')).toEqual(['b', 'c']);
   });
 

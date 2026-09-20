@@ -11,10 +11,6 @@ import { updateUserProfile } from 'store/slices/userSlice';
 import { RootStackParamList } from 'types/screens/screens';
 import { useTranslation } from 'react-i18next';
 
-/**
- * The signed-in profile: who you are, where the sub-screens are, and signing
- * out — which clears the session locally whether or not the server answers.
- */
 export function useProfileScreen(
   navigation: NavigationProp<RootStackParamList>,
 ) {
@@ -30,8 +26,6 @@ export function useProfileScreen(
     { skip: !userId },
   );
 
-  // Its own request, and a small one: the badge has to be right every time this
-  // screen is looked at, and the profile is cached for five minutes.
   const { data: unreadCount = 0 } = useGetUnreadCountQuery(undefined, {
     skip: !userId,
   });
@@ -45,8 +39,6 @@ export function useProfileScreen(
     try {
       await logoutTrigger().unwrap();
     } catch {
-      // A server that will not take the sign-out back does not get to keep the
-      // session on this device.
     } finally {
       dispatch(logout());
       navigation.reset({ index: 0, routes: [{ name: 'HomeTabNavigator' }] });

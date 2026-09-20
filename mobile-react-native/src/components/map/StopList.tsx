@@ -98,7 +98,6 @@ const StopList = ({
           onChange={onTransportModeChange}
           durations={durations}
         />
-        {/* Planning happens here; the driving itself is handed to Google. */}
         <OpenInGoogleMapsButton stops={stops} mode={transportMode} />
       </View>
     ),

@@ -16,13 +16,6 @@ import {
 } from 'src/common/http/api-response';
 import { AppLanguage, resolveAcceptLanguage } from 'src/i18n/languages';
 
-/**
- * Turns a phrase into words in the language the request asked for.
- *
- * A key with no entry resolves to itself, which is what keeps a corner of the
- * API that still emits English sentences working while the rest is moved over:
- * the sentence is its own fallback.
- */
 const isPhraseObject = (value: unknown): value is { key: string } =>
   typeof value === 'object' &&
   value !== null &&
@@ -36,8 +29,6 @@ export const translatePhrase = (
   if (phrase === undefined) return undefined;
 
   const key = typeof phrase === 'string' ? phrase : phrase.key;
-  // An argument may itself be a phrase — a field name inside a validation
-  // message, say — so those are resolved first, in the same language.
   const args =
     typeof phrase === 'string'
       ? undefined
@@ -68,8 +59,6 @@ export class ResponseEnvelopeInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiEnvelope> {
-    // Read here rather than deeper in: this is the last point that still has
-    // the request, and the first that has the whole answer.
     const request = context.switchToHttp().getRequest<{
       headers?: Record<string, string | string[] | undefined>;
     }>();

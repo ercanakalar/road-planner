@@ -1,11 +1,5 @@
 import { KvkkCopy, KvkkLanguage } from 'types/kvkk';
 
-/**
- * The date the notice below last changed, and the version stored with a
- * consent. Bump it whenever the wording changes: a stored consent that names an
- * older version stops counting, so everyone is asked again for the new text.
- * Consent given to a text nobody showed them is not consent.
- */
 export const KVKK_CONSENT_VERSION = '2026-09-03';
 
 export const KVKK_CONTACT_EMAIL = 'kvkk@travelroutes.net';
@@ -166,10 +160,6 @@ export const KVKK_COPY: Record<KvkkLanguage, KvkkCopy> = { tr: TR, en: EN };
 
 export const KVKK_LANGUAGES: KvkkLanguage[] = ['tr', 'en'];
 
-/**
- * Turkish phones read the Turkish text, everyone else the translation. The
- * toggle is right above the notice either way, so a wrong guess costs one tap.
- */
 export const kvkkLanguageForLocale = (locale?: string | null): KvkkLanguage =>
   locale?.toLowerCase().startsWith('tr') ? 'tr' : 'en';
 

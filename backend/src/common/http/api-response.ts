@@ -1,26 +1,8 @@
 import { ToastType } from 'src/common/type/status.type';
 
-/**
- * Something to say to a person, before it is known what language they read in.
- *
- * A bare string is a translation key — or, while a corner of the API is still
- * being moved over, the English sentence itself, which resolves to itself
- * because nothing in the dictionary matches it. The object form carries the
- * values a sentence interpolates.
- *
- * Services build these; the response interceptor and the exception filter are
- * the only places that turn one into words, because they are the only places
- * that know whose request it is.
- */
 export type Phrase =
   string | { key: string; args: Record<string, unknown>; fallback?: string };
 
-/**
- * `fallback` is what a key with no entry reads as. Without one a missing key
- * shows itself, which is the right default for a sentence somebody wrote; it
- * is the wrong one for a key built from a field name at runtime, where there is
- * no dictionary entry to expect and the field name itself is the answer.
- */
 export const phrase = (
   key: string,
   args: Record<string, unknown>,
@@ -35,7 +17,6 @@ export interface ApiEnvelope<T = unknown> {
   meta?: Record<string, unknown>;
 }
 
-/** The same envelope before its words have been chosen. */
 export interface RawEnvelope<T = unknown> {
   status: ToastType;
   header?: Phrase;

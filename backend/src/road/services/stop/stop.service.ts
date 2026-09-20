@@ -43,12 +43,6 @@ export class StopService {
     });
   }
 
-  /**
-   * Slope and bend for a single stop, which are properties of the stops on
-   * either side of it rather than of the stop itself — so its neighbours on the
-   * road are read to work them out. Opened on its own, a stop shows the same
-   * numbers it shows inside its route.
-   */
   private async metricsFor(stop: { id: string; roadId: string }) {
     const siblings = await this.prisma.stop.findMany({
       where: { roadId: stop.roadId },
@@ -65,8 +59,6 @@ export class StopService {
   async addStopToRoad(body: AddStopDto, roadId: string) {
     const insertAt = Math.max(body.order, 1);
 
-    // Two independent lookups against the same coordinates, so they go out
-    // together rather than one behind the other.
     const [address, elevation] = await Promise.all([
       this.geocoding.resolveAddress(body, body.address),
       this.elevation.elevation(body),
@@ -141,8 +133,6 @@ export class StopService {
 
     const [address, elevation] = await Promise.all([
       this.geocoding.resolveAddress(body, body.address),
-      // A stop that has not moved is still standing on the ground it was
-      // measured against, so there is nothing to ask Google about.
       moved || stop.elevation === null
         ? this.elevation.elevation({ latitude, longitude })
         : Promise.resolve(stop.elevation),

@@ -34,23 +34,10 @@ import {
 import { HomeTabParamList, RootStackParamList } from 'types/screens/screens';
 import { useTranslation } from 'react-i18next';
 
-/** How long a favourite arrived at from elsewhere stays highlighted. */
 const HIGHLIGHT_MS = 4000;
 
-/**
- * Below this, everything fits on a screen or two and a search field is one
- * more thing between you and it.
- */
 export const SEARCHABLE_FROM = 8;
 
-/**
- * The favourites screen's state: what is saved, what the search matches, and
- * which row is being renamed or removed.
- *
- * Filtering runs against a deferred copy of the query, so typing stays at the
- * frame rate of the keyboard while re-filtering and re-sectioning a long list
- * happens at a lower priority behind it. `isFiltering` reports the gap.
- */
 export function useFavoritesScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<HomeTabParamList, 'Favourites'>>();
@@ -60,8 +47,6 @@ export function useFavoritesScreen() {
 
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  // Sections start open and are collapsed one at a time, so "My routes" and
-  // "My places" can be read together — the pairing most of this screen is for.
   const [collapsed, setCollapsed] = useState<readonly FavoriteSectionKey[]>([]);
   const [tab, setTab] = useState<FavoriteKind>('route');
   const [query, setQuery] = useState('');
@@ -106,9 +91,6 @@ export function useFavoritesScreen() {
 
   const totalCount = useMemo(() => countFavorites(favorites), [favorites]);
 
-  // Counted per tab as well as overall: an empty Stops tab with a full Routes
-  // tab is a different thing from having saved nothing at all, and the two
-  // deserve different empty states.
   const tabCounts = useMemo(
     () => ({
       route: countFavorites(favorites, 'route'),
@@ -119,8 +101,6 @@ export function useFavoritesScreen() {
   const matchCount = useMemo(() => countFavorites(matches, tab), [matches, tab]);
 
   const isExpanded = useCallback(
-    // A search that hid its own results would look broken, so searching opens
-    // everything it matched.
     (key: FavoriteSectionKey) => isSearching || !collapsed.includes(key),
     [collapsed, isSearching],
   );
@@ -227,8 +207,6 @@ export function useFavoritesScreen() {
     isLoggedIn,
     query,
     setQuery,
-    // What the visible results were filtered by, which lags `query` by a frame
-    // or two while a long list is re-filtered.
     searchTerm: deferredQuery.trim(),
     isSearching,
     isFiltering,

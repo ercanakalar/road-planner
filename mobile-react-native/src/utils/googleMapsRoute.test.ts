@@ -33,13 +33,10 @@ describe('parseStop', () => {
   });
 
   it('survives a stray percent that is not an escape', () => {
-    // Losing the whole stop over one bad character would be worse than
-    // handing the geocoder the literal text.
     expect(parseStop('50%+off+diner')).toEqual({ query: '50% off diner' });
   });
 
   it('rejects a pair that is off the globe', () => {
-    // 'Route 91,200' is a name, not a latitude.
     expect(parseStop('91,200')).toEqual({ query: '91,200' });
   });
 

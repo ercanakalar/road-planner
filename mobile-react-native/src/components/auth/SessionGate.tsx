@@ -9,8 +9,6 @@ const SessionGate = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation();
 
   if (!isReady) {
-    // The one screen that shows before the stored choice has been read, so it
-    // speaks the phone's language — which is what i18next starts in anyway.
     return <ScreenState variant='loading' title={t('common.gettingReady')} />;
   }
 

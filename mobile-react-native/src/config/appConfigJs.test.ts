@@ -21,9 +21,6 @@ const withEnv = (env: Record<string, string | undefined>, run: () => void) => {
 
 describe('app.config.js', () => {
   it('passes the maps key through to both native SDKs', () => {
-    // app.json cannot carry this: the key is a secret that arrives as an
-    // environment variable at build time. Stop injecting it here and the native
-    // map renders as an empty grey grid with no error worth the name.
     withEnv({ EXPO_PUBLIC_MAP_API_KEY: 'a-real-key' }, () => {
       const config = loadConfig();
 
@@ -74,9 +71,6 @@ describe('app.config.js', () => {
   });
 
   it('keeps the application id that scheme has to equal', () => {
-    // useGoogleAuth builds `<application id>:/oauthredirect` from these, and a
-    // native Google client accepts no other redirect. Changing either without
-    // registering a new OAuth client breaks sign-in on that platform.
     const config = loadConfig();
 
     expect(config.android.package).toBe('net.travelroutes.travelroutes');

@@ -20,7 +20,6 @@ module.exports = {
     'jest.config.js',
     'dist',
     'coverage',
-    // Written by `prisma generate`; linting it only reports on Prisma's output.
     'src/generated',
   ],
   rules: {

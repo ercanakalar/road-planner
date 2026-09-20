@@ -21,18 +21,12 @@ const route = (id: string, title: string, stopCount = 2): LocalRoute => ({
   updatedAt: '2026-09-15T00:00:00.000Z',
 });
 
-/**
- * Enough of a store to run the thunk: it only reads `localRoute` and `auth`,
- * and every write it makes is a dispatch we can look at afterwards.
- */
 const harness = (routes: LocalRoute[], isLoggedIn = true) => {
   const dispatched: unknown[] = [];
 
   const dispatch = jest.fn((action: unknown) => {
     dispatched.push(action);
 
-    // Plain slice actions are only recorded. Anything else is the stood-in
-    // createRoute mutation, which the thunk awaits through `unwrap()`.
     const isSliceAction =
       typeof action === 'object' &&
       action !== null &&
@@ -62,8 +56,6 @@ const savedTitles = (dispatched: unknown[]) =>
 beforeEach(() => {
   jest.clearAllMocks();
 
-  // The mutation is what carries the route to the API. Standing in for it
-  // keeps the assertion on *which* routes were sent, not on RTK Query.
   jest
     .spyOn(routeService.endpoints.createRoute, 'initiate')
     .mockImplementation(((body: { title: string }) => body) as never);
@@ -71,7 +63,6 @@ beforeEach(() => {
 
 describe('uploadLocalRoutes', () => {
   it('saves every route on the device when none is named', async () => {
-    // Settings is about the device, so its button still means all of them.
     const { dispatch, dispatched, getState } = harness([
       route('a', 'Coast'),
       route('b', 'Mountains'),
@@ -83,8 +74,6 @@ describe('uploadLocalRoutes', () => {
   });
 
   it('saves only the route it was given', async () => {
-    // The map's button is on a screen showing one route; sweeping up the
-    // others would be a surprise.
     const { dispatch, dispatched, getState } = harness([
       route('a', 'Coast'),
       route('b', 'Mountains'),
@@ -125,7 +114,6 @@ describe('uploadLocalRoutes', () => {
   });
 
   it('skips a named route that has no stops', async () => {
-    // An empty route is what a fresh map looks like; there is nothing to save.
     const { dispatch, getState } = harness([route('a', 'Empty', 0)]);
 
     expect(await uploadLocalRoutes({ routeId: 'a' })(dispatch, getState)).toEqual(

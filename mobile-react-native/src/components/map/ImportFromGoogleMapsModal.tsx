@@ -33,8 +33,6 @@ interface Props {
   onClose: () => void;
 }
 
-
-
 const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -53,8 +51,6 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
     reset,
   } = useGoogleMapsImport();
 
-  // Resolved rather than held as a key: this becomes the route's own title,
-  // and a route named `defaults.importedRoute` would keep that name forever.
   const defaultTitle = t('defaults.importedRoute');
 
   const [title, setTitle] = useState(defaultTitle);

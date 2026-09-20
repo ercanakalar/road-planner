@@ -1,11 +1,3 @@
-/**
- * The source strings. Every other locale is a translation of this file, so a
- * key that is missing elsewhere falls back to the sentence written here rather
- * than to the key itself.
- *
- * Keys are grouped by where they are read, not by what they say: finding the
- * string for a screen should not require knowing how it was worded.
- */
 const en = {
     common: {
         cancel: 'Cancel',
@@ -45,7 +37,6 @@ const en = {
 
         discardTitle: 'Discard local routes',
         discardConfirm: 'Discard',
-        /** `count` routes will be deleted from this device. */
         discardMessage_one:
             '{{count}} route will be deleted from this device. This cannot be undone.',
         discardMessage_other:
@@ -212,18 +203,15 @@ const en = {
         searchPlace: 'Search a country, city or place',
         lookingUpPlace: 'Looking up that place…',
 
-        // The card on the home screen.
         title: 'Travel map',
         invitation: 'Colour in the countries and cities you have been to',
         colouredIn: '{{summary}} coloured in',
 
-        // The card a tap or a search puts up.
         markIt: 'Colour it in',
         unmarkIt: 'Remove from my map',
         dismiss: 'Dismiss',
         alsoHere: '{{name}}, {{kind}}',
 
-        // The list under the map.
         nothingMarked: 'Nothing marked yet',
         markSomething: 'Tap the map or search to colour somewhere in',
         onYourMap: 'On your travel map',
@@ -653,13 +641,6 @@ const en = {
     },
 } as const;
 
-/**
- * What every other locale has to fill in: the same keys, any wording.
- *
- * Derived from this file rather than declared separately, so adding a string
- * here is what makes the translations incomplete — there is no second list to
- * remember to update.
- */
 export type Translations = {
     [Namespace in keyof typeof en]: Record<
         keyof (typeof en)[Namespace],

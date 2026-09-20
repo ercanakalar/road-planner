@@ -55,16 +55,12 @@ type MarkerProps = {
   index: number;
   total: number;
   isDraggable: boolean;
-  /** 0 for A, 1 for B, -1 when this stop is not part of the compared pair. */
   selectionIndex: number;
   onDragEnd: MapSectionProps['handleMarkerDragEnd'];
 };
 
 const SELECTION_LABELS = ['A', 'B'];
 
-// Not `primary`: the app is green all over, and a brand-coloured pin in the
-// middle of a route reads as another start. `route` is the colour of the line
-// joining these stops, which is what they are.
 const pinColor = (colors: ThemeColors, index: number, total: number) => {
   if (index === 0) return colors.success;
   if (index === total - 1) return colors.accent;
@@ -85,10 +81,6 @@ const StopMarker = memo(
     const { t } = useTranslation();
     const isSelected = selectionIndex >= 0;
 
-    // A marker drawn from child views renders blank if it is told never to
-    // redraw before those children have laid out. Track changes until the
-    // badge has painted once, then stop — redrawing every frame is what makes
-    // a map with custom markers stutter.
     const [isBadgePainted, setIsBadgePainted] = useState(false);
 
     useEffect(() => {
@@ -214,7 +206,6 @@ const RouteLine = memo(
 
 RouteLine.displayName = 'RouteLine';
 
-/** Keys rather than sentences: the words are chosen when one is shown. */
 const FOLLOW_UNAVAILABLE_NOTICE = {
   denied: {
     header: 'toast.locationPermissionNeeded',
@@ -249,11 +240,6 @@ const MapSectionComponent = ({
   const hasCentredOnUserRef = useRef(false);
   const insets = useSafeAreaInsets();
 
-  // Changing the theme rebuilds the MapView (see useMapStyle), and a fresh map
-  // gets nothing but `initialRegion`. Remembering where the old one was looking
-  // is what stops a rebuild throwing the user back to the first stop. Both
-  // platforms move the camera to `initialRegion` once per map, so feeding the
-  // remembered region back on later renders costs nothing.
   const lastRegionRef = useRef<Region | null>(null);
   const rememberRegion = useCallback((region: Region) => {
     lastRegionRef.current = region;

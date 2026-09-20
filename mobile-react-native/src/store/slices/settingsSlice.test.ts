@@ -13,7 +13,6 @@ describe('settingsSlice', () => {
       notificationsEnabled: true,
       autoFitRoute: true,
       themeMode: 'system',
-      // Null rather than 'en': nothing has been chosen, so the phone decides.
       language: null,
     });
   });
@@ -74,9 +73,6 @@ describe('settingsSlice', () => {
   });
 
   it('keeps a chosen language across a restore that does not mention one', () => {
-    // A restore carries whatever was on disk. Letting a missing key reset the
-    // language would put somebody back on the phone's every time they reopened
-    // the app, which is the opposite of having chosen.
     const chosen = reducer(settingsInitialState, languageSet('tr'));
     const state = reducer(chosen, settingsRestored({ themeMode: 'dark' }));
 

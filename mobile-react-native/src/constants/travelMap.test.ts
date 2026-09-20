@@ -24,8 +24,6 @@ const marked = (placeId: string, kind: AreaKind): MarkedArea => ({
 
 describe('widestFirst', () => {
   it('draws a country under the city inside it', () => {
-    // Last drawn is on top, so the smallest place has to come last or it is
-    // buried under everything it sits inside.
     const order = widestFirst([
       marked('a-place', 'place'),
       marked('a-country', 'country'),
@@ -60,7 +58,6 @@ describe('area colours', () => {
   );
 
   it('draws the outline more strongly than the fill', () => {
-    // The fill all but disappears over a busy map; the outline carries the shape.
     expect(opacityOf(areaStroke(lightColors, 'city'))).toBeGreaterThan(
       opacityOf(areaFill(lightColors, 'city')),
     );
@@ -104,7 +101,6 @@ describe('summarisedCounts', () => {
   });
 
   it('counts nothing on a map of districts and single places', () => {
-    // The card says "4 places coloured in" instead, which is the true total.
     expect(
       summarisedCounts([marked('a', 'district'), marked('b', 'place')]),
     ).toEqual([]);

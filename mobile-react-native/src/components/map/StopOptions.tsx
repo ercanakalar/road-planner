@@ -46,8 +46,6 @@ const StopOptions = ({
       });
     }
 
-    // A stop that was never named has nothing to put on the clipboard, so the
-    // row is left out rather than offered and then doing nothing.
     if (hasAddress) {
       rows.push({
         label: t('mapUi.copyAddress'),

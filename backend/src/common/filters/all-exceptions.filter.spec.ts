@@ -299,11 +299,6 @@ describe('AllExceptionsFilter', () => {
     });
   });
   describe('Multer', () => {
-    /**
-     * Multer's own error, spelled the way it arrives: it comes in through
-     * `@nestjs/platform-express` rather than as a dependency of ours, so the
-     * filter recognises it by name and code rather than by `instanceof`.
-     */
     const multerError = (code: string, message = 'File too large') => {
       const error = new Error(message);
       error.name = 'MulterError';
@@ -312,8 +307,6 @@ describe('AllExceptionsFilter', () => {
     };
 
     it('turns a file over the limit into 413 rather than a 500', () => {
-      // A photo that is too big is the caller's to fix, and a 500 tells them
-      // the server is broken instead.
       filter.catch(multerError('LIMIT_FILE_SIZE'), host);
 
       expect(status).toHaveBeenCalledWith(HttpStatus.PAYLOAD_TOO_LARGE);

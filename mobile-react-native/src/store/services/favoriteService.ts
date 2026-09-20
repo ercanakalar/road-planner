@@ -6,9 +6,6 @@ import {
 } from 'store/bases/transformApiResponse';
 import { routeService } from 'store/services/routeService';
 import { searchService } from 'store/services/searchService';
-// Type-only, so it is erased at compile time and adds no import cycle back to
-// the store: `getState` here is typed to this slice alone and does not know
-// the other slices exist.
 import type { RootState } from 'store';
 import {
   applyFavoriteAnnotation,
@@ -55,7 +52,6 @@ export const favoriteService = createApi({
       query: ({ routeId }) => ({
         url: '/favorites/toggle-road',
         method: 'POST',
-        // `roadId` is the server's key for it; see the note on routeService.
         body: { roadId: routeId },
       }),
       transformResponse: (res: ApiResponse<ToggleFavoriteResponse>) =>
@@ -85,18 +81,6 @@ export const favoriteService = createApi({
             ),
           ),
 
-          /*
-            Search results live in their own API slice with their own tags, so
-            invalidating a Route tag never reached them and the heart on a
-            search row — or on a person's page, which is the same query with an
-            authorId — stayed as it was until the entry expired.
-
-            Patched rather than invalidated for the reason the follow button
-            gives: these are paged, one cache entry per set of filters holding
-            every page merged together, so a re-fetch answers at whatever page
-            the reader had scrolled to and leaves the rows above it stale. The
-            same route can also be in several of those entries at once.
-          */
           ...searchService.util
             .selectCachedArgsForQuery(getState() as RootState, 'searchRoutes')
             .map((args) =>
@@ -198,7 +182,6 @@ export const favoriteService = createApi({
       UpdateFavoriteAnnotationArgs
     >({
       query: ({ favoriteId, kind, title, description }) => ({
-        // The route segment is still `road` on the server side.
         url: `/favorites/${kind === 'route' ? 'road' : kind}/${favoriteId}`,
         method: 'PATCH',
         body: { title, description },

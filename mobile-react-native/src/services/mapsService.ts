@@ -167,14 +167,6 @@ export async function fetchDirections(
 export const peekDirections = (request_: DirectionsRequest) =>
     directionsCache.peek(directionsKey(request_));
 
-/**
- * The road's shape at each of a route's stops, measured along the polyline
- * Google routes rather than the straight lines between the pins.
- *
- * Saved routes read this from `/road/:id/terrain`; this is the same reading
- * for a route still being drawn on the map, which has no id yet. Cached on the
- * points themselves, since the answer only changes when one of them moves.
- */
 const terrainCache = createAsyncCache<(StopShape | null)[]>(40);
 
 const terrainKey = (stops: LatLng[], mode: TransportMode) =>
@@ -220,11 +212,6 @@ export async function fetchModeDurations(
     );
 }
 
-/**
- * What `/maps/geocode/reverse` answers. The stop itself stores only the
- * formatted `address`; the components are still returned for callers that want
- * to name a place before one is saved.
- */
 export interface ReverseGeocodeResult {
     address: string;
     country: string;
@@ -268,11 +255,6 @@ export async function fetchPlacePredictions(
     }
 }
 
-/**
- * One place, with the extent Google frames it with — metres across for a
- * street corner, continental for a country. The extent is what lets the travel
- * map shade a place in rather than only pin it.
- */
 export async function fetchPlaceDetails(
     placeId: string,
     sessionToken: string,
@@ -291,11 +273,6 @@ export async function fetchPlaceDetails(
 
 const areasCache = createAsyncCache<MapArea[]>(60);
 
-/**
- * Every place that covers one point, narrowest first: the neighbourhood, the
- * city around it, the province, the country. A tap on the map is ambiguous by
- * nature, so the answer is the whole stack and the caller picks.
- */
 export async function fetchAreasAt(
     coordinate: LatLng,
     signal?: AbortSignal,

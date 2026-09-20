@@ -110,8 +110,6 @@ describe('StopInputDto', () => {
   });
 
   it('rejects the address object the old API took', async () => {
-    // The column is a single string now; a client still sending the old
-    // shape should be told, not silently stored as "[object Object]".
     await expect(
       collectDtoErrors(
         StopInputDto,

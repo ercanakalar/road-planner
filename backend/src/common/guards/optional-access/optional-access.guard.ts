@@ -5,16 +5,6 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-/**
- * Lets a route serve signed-in and anonymous callers from the same handler.
- *
- * Passport's guard turns away everyone it cannot identify. This one only
- * insists on an identity when the caller offered one: a request with no
- * Authorization header is anonymous and welcome. A request whose token is
- * expired or forged is not. Quietly demoting it to anonymous would answer the
- * caller's own private roads with "Route not found", and the app would never
- * see the 401 it refreshes its session on.
- */
 @Injectable()
 export class OptionalAccessGuard extends AuthGuard('jwt-access') {
   override handleRequest<TUser>(
@@ -30,7 +20,6 @@ export class OptionalAccessGuard extends AuthGuard('jwt-access') {
   }
 }
 
-/** The token the access strategy would have read, if the caller sent one. */
 function bearerToken(context: ExecutionContext): string | undefined {
   const { headers } = context
     .switchToHttp()

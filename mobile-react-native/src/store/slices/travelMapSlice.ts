@@ -3,7 +3,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { MapArea, MarkedArea } from 'types/travel-map';
 
 export interface TravelMapState {
-  /** Newest first, which is the order the list under the map reads in. */
   areas: MarkedArea[];
   isHydrated: boolean;
 }
@@ -22,11 +21,6 @@ export const travelMapSlice = createSlice({
       state.isHydrated = true;
     },
 
-    /**
-     * Marks a place, or moves one already marked back to the top with the
-     * extent it has now. Marking is how you re-mark, so the same tap can never
-     * leave the map holding the same country twice.
-     */
     areaMarked: {
       reducer(state, action: PayloadAction<MarkedArea>) {
         state.areas = [

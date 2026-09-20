@@ -28,9 +28,6 @@ const createStyles = (colors: ThemeColors) =>
       paddingTop: spacing.lg,
       paddingBottom: spacing.md,
     },
-    // Title and subtitle share an edge. Centring one and not the other read as
-    // a mistake, and a centred display title fights the left-aligned list
-    // under it.
     title: {
       ...typography.display,
       color: colors.text,

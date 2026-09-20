@@ -14,12 +14,6 @@ interface Props {
   onOpenActor: (notification: AppNotification) => void;
 }
 
-/**
- * One line in the inbox: who, what, and how long ago.
- *
- * The sentence is built here rather than stored, so it can be reworded — and
- * one day translated — without rewriting anybody's history.
- */
 const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -46,8 +40,6 @@ const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
         pressed && notification.isOpenable && styles.pressed,
       ]}
       onPress={handleOpen}
-      // A line whose route has gone is still worth reading, and worth saying
-      // so; it just has nowhere to go.
       disabled={!notification.isOpenable}
       accessibilityRole={notification.isOpenable ? 'button' : undefined}
       accessibilityLabel={`${who} published ${what}, ${timeAgo(
@@ -116,8 +108,6 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
     },
-    // Tinted rather than bolded: the whole list is one weight, so the unread
-    // ones separate at a glance without the text jumping when they are read.
     unread: {
       backgroundColor: colors.primarySoft,
       borderColor: colors.primary,

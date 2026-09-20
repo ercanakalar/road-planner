@@ -144,7 +144,6 @@ describe('applyStopValues', () => {
       },
     ]);
 
-    // Coercing this to '' would blank the stop's name on every reorder.
     expect(statements[0].values).toEqual([
       'wp-1',
       1,
@@ -172,8 +171,6 @@ describe('applyStopValues', () => {
       },
     ]);
 
-    // A stop that did not move keeps the height it already had, rather than
-    // losing it to a lookup that was never made.
     expect(textOf(statements[0])).toMatch(
       /elevation = CASE WHEN v\.refresh THEN v\.elevation ELSE wp\.elevation END/,
     );
@@ -194,8 +191,6 @@ describe('applyStopValues', () => {
       },
     ]);
 
-    // refreshElevation says the lookup ran; null says it came back empty. The
-    // pin is somewhere new, so the old height is not an answer for it.
     expect(statements[0].values).toEqual([
       'wp-1',
       1,

@@ -15,8 +15,6 @@ import { KvkkConsentRecord } from 'types/kvkk';
 
 const App = () => <Text>the app</Text>;
 
-// SafeAreaProvider renders nothing until it knows the insets, and off a device
-// it never measures any — so the test hands it a phone's worth.
 const METRICS = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 47, left: 0, right: 0, bottom: 34 },
@@ -47,7 +45,6 @@ const hydrate = (consent: KvkkConsentRecord | null) => {
 const isAppShowing = (tree: renderer.ReactTestRenderer) =>
   tree.root.findAllByType(App).length > 0;
 
-/** The rendered text, so an assertion need not know which language shows. */
 const shows = (tree: renderer.ReactTestRenderer, phrases: string[]) => {
   const rendered = JSON.stringify(tree.toJSON());
   return phrases.some((phrase) => rendered.includes(phrase));
@@ -58,7 +55,6 @@ type Pick = (copy: (typeof KVKK_COPY)['tr']) => string;
 const inEveryLanguage = (pick: Pick) =>
   KVKK_LANGUAGES.map((language) => pick(KVKK_COPY[language]));
 
-/** Presses the button carrying the given label, in whichever language shows. */
 const press = (tree: renderer.ReactTestRenderer, pick: Pick) => {
   const labels = inEveryLanguage(pick);
   const [button] = tree.root.findAll(

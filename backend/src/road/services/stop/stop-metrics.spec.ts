@@ -1,9 +1,5 @@
 import { stopMetrics, withStopMetrics } from './stop-metrics';
 
-/**
- * A degree of latitude is ~111km, so these read as round distances: 0.009 of a
- * degree north is almost exactly a kilometre.
- */
 const KM = 0.008993;
 
 const at = (
@@ -19,7 +15,6 @@ const at = (
 describe('stopMetrics', () => {
   describe('slope', () => {
     it('reports the climb between two stops as a percentage of the ground', () => {
-      // 1km apart, 50m higher: a 5% grade.
       const [, second] = stopMetrics([at(0, 0, 100), at(KM, 0, 150)]);
 
       expect(second.climbMeters).toBe(50);
@@ -74,8 +69,6 @@ describe('stopMetrics', () => {
     });
 
     it('refuses to divide a real climb by a few centimetres of ground', () => {
-      // Two pins on the same corner, one of them measured a metre higher. As a
-      // gradient that is hundreds of percent, and as a road it is nothing.
       const [, second] = stopMetrics([at(0, 0, 100), at(0.000005, 0, 101)]);
 
       expect(second.climbMeters).toBe(1);
@@ -94,7 +87,6 @@ describe('stopMetrics', () => {
     });
 
     it('measures a right-angle turn to the right', () => {
-      // North, then east.
       const [, middle] = stopMetrics([at(0, 0), at(KM, 0), at(KM, KM)]);
 
       expect(middle.bendDegrees).toBeCloseTo(90, 0);
@@ -117,7 +109,6 @@ describe('stopMetrics', () => {
     });
 
     it('bands a turn by how sharp it is', () => {
-      // A tenth of the eastward step turns the route by ~6 degrees.
       const shapeOf = (east: number) =>
         stopMetrics([at(0, 0), at(KM, 0), at(2 * KM, east)])[1].bendShape;
 
@@ -134,9 +125,6 @@ describe('stopMetrics', () => {
     });
 
     it('reports no bend where two stops sit on the same pin', () => {
-      // There is no direction between a point and itself, so there is no angle
-      // to report — rather than the 0 a bearing would answer, which would read
-      // as a hard turn onto whatever comes next.
       const [, middle] = stopMetrics([at(0, 0), at(0, 0), at(KM, KM)]);
 
       expect(middle.bendDegrees).toBeNull();

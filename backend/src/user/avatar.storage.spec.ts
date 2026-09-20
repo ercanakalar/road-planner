@@ -75,25 +75,16 @@ describe('avatar storage', () => {
     });
 
     it('says what the limit is when a photo is over it', async () => {
-      // The sentence matters as much as the status. Multer's own refusal is
-      // turned into PayloadTooLarge("File too large") before any of our code
-      // runs, and that does not tell anyone what to do about it.
       await expect(writeAvatar('up', jpeg(AVATAR_MAX_BYTES))).rejects.toThrow(
         'error.imageTooLarge',
       );
     });
 
     it('leaves Multer a margin, so a realistic overshoot reaches that message', async () => {
-      // A phone photo a megabyte over the line should be refused here, by
-      // name, rather than by the upload ceiling that only guards memory.
       expect(AVATAR_UPLOAD_CEILING_BYTES).toBeGreaterThan(AVATAR_MAX_BYTES);
     });
 
     it('says the server is at fault when the directory cannot be written', async () => {
-      // An UPLOAD_DIR the process cannot create, which is what a container
-      // that drops to an unprivileged user over a root-owned /app looks like
-      // from in here. Nothing is wrong with the caller's upload, and a 400
-      // would send them off editing a photo that was fine.
       const logged = jest
         .spyOn(Logger.prototype, 'error')
         .mockImplementation(() => {});

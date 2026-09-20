@@ -24,8 +24,6 @@ import { UserModule } from './user/user.module';
     ConfigModule,
     I18nModule.forRoot({
       fallbackLanguage: FALLBACK_LANGUAGE,
-      // The strings live in TypeScript, so nothing has to be copied into
-      // `dist` for the container to be able to speak.
       loader: MemoryLoader,
       loaderOptions: {},
       formatter: interpolate,

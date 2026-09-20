@@ -1,10 +1,3 @@
-/**
- * The source strings for everything the API says to a person.
- *
- * Grouped by the part of the app that says it. Every other locale is a
- * translation of this file, and a key missing there falls back to the sentence
- * written here rather than to the key itself.
- */
 const en = {
   common: {
     somethingWentWrong: 'Something went wrong',
@@ -354,24 +347,11 @@ const en = {
   },
 } as const;
 
-/**
- * A sentence that changes with a count.
- *
- * `nestjs-i18n` picks the branch with `Intl.PluralRules` for the language it is
- * resolving in, so a language with more categories than English can add them
- * here without anything in the code changing.
- */
 export interface PluralForms {
   one: string;
   other: string;
 }
 
-/**
- * The shape every other locale fills in: the same keys, any wording.
- *
- * Which keys count and which do not is carried over from the English file, so a
- * translation cannot quietly flatten a plural into one sentence.
- */
 export type Translations = {
   [Namespace in keyof typeof en]: {
     [

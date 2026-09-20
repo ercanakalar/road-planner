@@ -141,8 +141,6 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     badgeSelected: {
-      // Same colour the map gives the A and B pins, so the two views name the
-      // pair the same way.
       backgroundColor: colors.selection,
     },
     badgeText: {

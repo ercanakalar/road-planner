@@ -13,7 +13,6 @@ import {
 import { PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { emptyToUndefined } from 'src/common/dto/transforms';
 
-/** How a page of search results is ordered. */
 export const ROAD_SEARCH_SORTS = [
   'recent',
   'oldest',
@@ -26,15 +25,10 @@ export type RoadSearchSort = (typeof ROAD_SEARCH_SORTS)[number];
 
 export const DEFAULT_ROAD_SEARCH_SORT: RoadSearchSort = 'recent';
 
-/**
- * Two characters is the shortest term worth a table scan; below that every
- * public route matches and the result is just the feed with extra steps.
- */
 export const MIN_SEARCH_TERM_LENGTH = 2;
 
 export const SEARCH_TERM_MAX_LENGTH = 120;
 
-/** Nobody filters for a route with more stops than this. */
 export const STOP_FILTER_MAX = 100;
 
 const asOptionalInteger = ({ value }: { value: unknown }): unknown => {
@@ -48,7 +42,6 @@ const asOptionalInteger = ({ value }: { value: unknown }): unknown => {
 };
 
 export class RoadSearchQueryDto extends PaginationQueryDto {
-  /** Matched against the title, the description and the author's name. */
   @IsOptional()
   @Transform(emptyToUndefined)
   @IsString()
@@ -60,7 +53,6 @@ export class RoadSearchQueryDto extends PaginationQueryDto {
   @IsIn(ROAD_SEARCH_SORTS)
   sort?: RoadSearchSort;
 
-  /** Narrows to one author, which is what tapping a person in search does. */
   @IsOptional()
   @Transform(emptyToUndefined)
   @IsUUID()

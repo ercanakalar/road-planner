@@ -17,15 +17,6 @@ import { boundsToRegion } from 'utils/areaBounds';
 
 const FOCUS_ANIMATION_MS = 600;
 
-/**
- * The travel map: the places already coloured in, and the one being considered.
- *
- * A tap answers with every place covering that point — the district, the city
- * around it, the province, the country — because a point on a map is ambiguous
- * and only the person tapping knows which of them they mean. They are held as
- * `candidates` until one is marked or the card is dismissed; nothing is
- * marked without a second tap.
- */
 export function useTravelMap() {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
@@ -39,8 +30,6 @@ export function useTravelMap() {
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
 
-  // One lookup at a time: tapping twice while the first is in the air would
-  // otherwise race, and the card would show whichever answered last.
   const lookupRef = useRef<AbortController | null>(null);
 
   useEffect(
@@ -107,7 +96,6 @@ export function useTravelMap() {
     }
   }, [t]);
 
-  /** A place picked out of the search results, which is never ambiguous. */
   const handlePlaceSelected = useCallback(
     (area: MapArea) => {
       lookupRef.current?.abort();

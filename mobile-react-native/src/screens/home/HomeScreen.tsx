@@ -64,8 +64,6 @@ const HomeScreen = () => {
         }
       >
         <View style={styles.heading}>
-          {/* Nobody has told us a name before they sign in, and "Hello,
-              undefined" is worse than a friendly stranger. */}
           <Text style={styles.greeting}>
             {t('home.greeting', { name: firstName || t('home.traveller') })}
           </Text>
@@ -98,8 +96,6 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* Above Discover, and outside the signed-in branch: the travel map is
-            kept on the device, so it is there to open before anybody signs in. */}
         <TravelMapCard areas={travelAreas} onPress={goToTravelMap} />
 
         <View style={styles.section}>

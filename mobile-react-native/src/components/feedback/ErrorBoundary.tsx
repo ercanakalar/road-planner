@@ -29,9 +29,6 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <ScreenState
           variant='error'
-          // A class component, because that is what catches a render error —
-          // so the translator is reached through the instance rather than a
-          // hook, which cannot be called from here.
           title={i18n.t('common.somethingWentWrong')}
           message={this.state.error.message}
           actionLabel={i18n.t('actions.tryAgain')}

@@ -17,14 +17,6 @@ type Props = {
   shape: StopShape;
 };
 
-/**
- * How the road runs into and out of one stop: how far and how much it climbs to
- * get here, and how sharply it turns once it does.
- *
- * Draws nothing at all when there is nothing measured — the first and last
- * stops of a route, and every stop on a route saved before the server started
- * reading ground heights. A row of empty dashes would be worse than no row.
- */
 const StopShapeRow = ({ shape }: Props) => {
   const styles = useThemedStyles(createStyles);
 
@@ -86,11 +78,6 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: radius.pill,
       backgroundColor: colors.surfaceAlt,
     },
-    // A steep climb or a hairpin is the reason anyone reads this row, so those
-    // two are drawn at full contrast and the ordinary ones stay quiet. The
-    // difference is weight rather than hue: every colour in the palette is
-    // already spoken for by the pins and the route lines, and a sixth one
-    // would read as one of them.
     chipAlert: { backgroundColor: colors.border },
     icon: { color: colors.textMuted },
     iconAlert: { color: colors.text },

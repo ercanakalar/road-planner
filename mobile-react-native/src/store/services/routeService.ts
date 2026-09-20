@@ -44,14 +44,6 @@ import i18n from 'i18n';
 
 const TEMP_STOP_ID = 'temp-stop-id';
 
-/** Shown on an optimistically added stop until the server names it. */
-/**
- * Shown against a stop whose address has not come back yet.
- *
- * Read through the translator at each use rather than resolved once: this
- * module is imported before i18next has settled on a language, and the value
- * would be fixed at whatever it was then.
- */
 const pendingAddress = () => i18n.t('defaults.locating');
 
 const withSequentialOrder = (
@@ -69,13 +61,6 @@ const moveItem = <T>(items: T[], from: number, to: number): T[] => {
   return next;
 };
 
-/**
- * The app calls these things routes. The API still calls them roads, and its
- * paths and payload keys are a contract this client does not get to rewrite —
- * so `/road/...`, `own-roads` and the `roadId` body key below stay as the
- * server names them, and the translation happens here rather than leaking the
- * older word back into the screens.
- */
 export const routeService = createApi({
   reducerPath: 'routeService',
   baseQuery: baseQuery(),
@@ -166,7 +151,6 @@ export const routeService = createApi({
       }),
       transformResponse: (res: ApiResponse<GetRouteTerrainResponse>) =>
         transformApiResponse(res) ?? [],
-      // Read off the stops' positions, so it is stale the moment one moves.
       providesTags: (_result, _error, { routeId }) => [
         { type: 'Route', id: routeId },
       ],
@@ -275,9 +259,6 @@ export const routeService = createApi({
             { routeId },
             (draft) => {
               draft.stops.push({
-                // The server works slope and bend out from a stop's
-                // neighbours, so the optimistic row shows neither until it
-                // answers rather than guessing at both.
                 ...UNSHAPED_STOP,
                 elevation: null,
                 id: TEMP_STOP_ID,

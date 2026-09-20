@@ -54,8 +54,6 @@ beforeEach(() => {
 
 describe('getNotifications', () => {
   it('keeps the unread count the envelope carries alongside the rows', async () => {
-    // The badge and the list come from one request. Asking twice would let
-    // them disagree on screen.
     global.fetch = jest
       .fn()
       .mockResolvedValue(inbox([line('n1'), line('n2', true)])) as never;
@@ -96,8 +94,6 @@ describe('getNotifications', () => {
 
 describe('markNotificationsRead', () => {
   it('marks every row read on screen without re-reading the list', async () => {
-    // The list is paged: invalidating it would answer at whatever page the
-    // reader had scrolled to and leave everything above it looking unread.
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce(inbox([line('n1'), line('n2')]))

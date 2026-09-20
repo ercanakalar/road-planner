@@ -55,9 +55,6 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
       const asset = result.assets?.[0];
       if (!asset?.uri) return;
 
-      // Checked here rather than discovered from a failed upload: the API
-      // refuses anything larger, and on a phone connection that refusal can be
-      // several megabytes and half a minute away.
       if (isPhotoTooLarge(asset.fileSize)) {
         showNotification({
           type: 'error',
@@ -69,9 +66,6 @@ const AvatarPicker = ({ photo, isUploading, onPicked }: Props) => {
 
       onPicked({ uri: asset.uri });
     } catch {
-      // The picker is another app's activity, and it can fail to open or come
-      // back empty-handed. Unhandled, that rejection is invisible: the tap does
-      // nothing at all and there is no way to tell it apart from a dead button.
       showNotification({
         type: 'error',
         header: t('toast.couldNotOpenPhotos'),

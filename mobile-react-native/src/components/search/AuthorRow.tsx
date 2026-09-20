@@ -10,20 +10,10 @@ import { useTranslation } from 'react-i18next';
 
 interface Props {
   author: AuthorHit;
-  /** Narrows the route list to this person, which is what the row is for. */
   onSelect: (author: AuthorHit) => void;
-  /** Opens their page, from the arrow rather than the row. */
   onOpenProfile: (author: AuthorHit) => void;
 }
 
-/**
- * One person in the results: their name, and how much they have published.
- *
- * Tapping the row filters the routes to theirs — the reason to look someone up
- * from a search screen is almost always to see what they have made, and that
- * list is already open behind this one. The arrow is for the other case, their
- * page, where their routes can be followed.
- */
 const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

@@ -55,7 +55,6 @@ describe('localRouteStorage', () => {
 
       const [loaded] = await localRouteStorage.load();
 
-      // Left alone this renders as "[object Object]" on the card.
       expect(loaded.stops[0].address).toBe('Konak, İzmir');
     });
 

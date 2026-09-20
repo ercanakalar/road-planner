@@ -75,8 +75,6 @@ describe('language', () => {
   });
 
   it('sends it on requests that show no message of their own', async () => {
-    // Everything the API says back is worded from this header, including the
-    // errors a screen shows without having asked for a toast.
     (global.fetch as jest.Mock).mockResolvedValue(
       jsonResponse(200, envelope({ ok: true })),
     );

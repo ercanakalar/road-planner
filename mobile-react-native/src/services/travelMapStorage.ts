@@ -3,14 +3,6 @@ import { isMarkedArea, MarkedArea } from 'types/travel-map';
 
 const STORAGE_KEY = 'travel_map_areas_v1';
 
-/**
- * The places somebody has coloured in, kept on the device.
- *
- * They belong to the phone rather than to an account: the travel map is
- * usable signed out, and nothing on the server knows about it yet. Anything
- * that does not read back as a marked area is dropped rather than drawn — see
- * {@link isMarkedArea}.
- */
 export const travelMapStorage = {
   async load(): Promise<MarkedArea[]> {
     try {
@@ -30,8 +22,6 @@ export const travelMapStorage = {
     try {
       await localStorageService.setItem(STORAGE_KEY, JSON.stringify(areas));
     } catch {
-      // A place that failed to write is still on screen for this run, and
-      // failing the tap that marked it would be worse than losing it.
     }
   },
 

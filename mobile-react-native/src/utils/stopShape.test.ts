@@ -123,8 +123,6 @@ describe('hasShape', () => {
   });
 
   it('is false when only the distance is known', () => {
-    // A leg length on its own is not the shape of the road, and a row holding
-    // nothing but "480 m" is not worth the line it takes.
     expect(hasShape(shape({ distanceFromPreviousMeters: 480 }))).toBe(false);
   });
 });

@@ -7,15 +7,10 @@ import type { ThemeColors } from 'theme';
 import { StopWithAddress } from 'types/map-screen-type';
 import { addressLocality, addressName } from 'utils/address';
 
-/**
- * The little a row needs to know about a route, so the same row can show a
- * Discover pick and a search hit without either screen owning a card.
- */
 export interface RouteSummary {
     id: string;
     title: string;
     author: string;
-    /** Present when the route came from a surface that can open its author. */
     authorId?: string;
     stopCount: number;
     isFavorite: boolean;
@@ -28,7 +23,6 @@ interface Props {
     isSaving?: boolean;
     onOpen: (routeId: string) => void;
     onToggleFavorite: (routeId: string) => void;
-    /** Opens the author, when the surface has somewhere to open them. */
     onOpenAuthor?: (route: RouteSummary) => void;
 }
 
@@ -37,13 +31,6 @@ const placeOf = (stops: StopWithAddress[], index: number) => {
     return addressLocality(stop?.address) || addressName(stop?.address) || null;
 };
 
-/**
- * One route, in one row.
- *
- * Deliberately smaller than a card: with search above it, what a list has to do
- * is let someone skim past the ones they did not mean, and a title, a name and
- * the two ends of the route are what that takes.
- */
 const RouteSummaryRow = ({
     route,
     canFavorite = true,

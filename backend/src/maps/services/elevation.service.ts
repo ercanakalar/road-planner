@@ -5,18 +5,8 @@ import { LatLng } from '../types/maps.types';
 import { formatCoordinate, formatCoordinates } from '../utils/coordinates';
 import { createTtlCache } from '../utils/ttl-cache';
 
-/**
- * Ground height does not change, so a coordinate's elevation is cached for as
- * long as the process lives rather than for a day like an address, which can be
- * renamed underneath us.
- */
 const CACHE = { ttlMs: 30 * 24 * 60 * 60 * 1000, maxEntries: 5000 };
 
-/**
- * The Elevation API takes many locations in one call. Google's documented
- * ceiling is 512 per request; a route is far shorter than that, but a batch is
- * still chunked so one absurd import cannot produce a URL the API rejects.
- */
 const MAX_PER_REQUEST = 250;
 
 interface ElevationResponse {
@@ -42,14 +32,6 @@ export class ElevationService {
 
   constructor(private client: GoogleMapsClient) {}
 
-  /**
-   * Ground height in metres above sea level for each point, in the order given.
-   *
-   * Never throws and never rejects: a stop whose height could not be looked up
-   * gets null and is saved anyway. Elevation decorates a route; it is not a
-   * reason to refuse to store one, and a Maps outage should not take saving a
-   * stop down with it.
-   */
   async elevations(points: readonly LatLng[]): Promise<(number | null)[]> {
     if (points.length === 0) return [];
 
@@ -82,7 +64,6 @@ export class ElevationService {
     });
   }
 
-  /** The height of one point, or null if it could not be looked up. */
   async elevation(point: LatLng): Promise<number | null> {
     const [height] = await this.elevations([point]);
     return height ?? null;
@@ -98,8 +79,6 @@ export class ElevationService {
 
       const results = body.results ?? [];
 
-      // A short results array would silently shift every height onto the wrong
-      // stop, which is worse than having none, so the whole batch is dropped.
       if (results.length !== points.length) {
         this.logger.warn(
           `Elevation returned ${results.length} heights for ${points.length} points`,

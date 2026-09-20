@@ -9,7 +9,6 @@ describe('cleanAddress', () => {
 
   describe('segments that name nothing', () => {
     it('drops a Plus Code', () => {
-      // Google puts one where the street name would be for a pin off a road.
       expect(cleanAddress('7GXR+8C, Kadıköy, İstanbul')).toBe(
         'Kadıköy, İstanbul',
       );
@@ -20,8 +19,6 @@ describe('cleanAddress', () => {
     });
 
     it('drops a Plus Code but keeps the place sharing its segment', () => {
-      // This is the shape Google actually returns for a pin off a named road:
-      // the code and the locality in one segment, no comma between them.
       expect(cleanAddress('7GXR+8C Kadıköy, İstanbul, Türkiye')).toBe(
         'Kadıköy, İstanbul, Türkiye',
       );
@@ -123,7 +120,6 @@ describe('cleanAddress', () => {
 
       expect(result.length).toBeLessThanOrEqual(300);
       expect(result.startsWith('Segment 0, Segment 1')).toBe(true);
-      // Every segment kept is a whole one — nothing is cut through.
       result
         .split(', ')
         .forEach((segment) => expect(segment).toMatch(/^Segment \d+$/));

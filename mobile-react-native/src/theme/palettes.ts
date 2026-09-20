@@ -3,7 +3,6 @@ export interface ThemeColors {
   primaryDark: string;
   primarySoft: string;
 
-  /** The lighter brand tone, for the wordmark and app mark. Large text only. */
   brand: string;
 
   accent: string;
@@ -34,7 +33,6 @@ export interface ThemeColors {
   place: string;
   selection: string;
 
-  /** Lakes and sea on the basemap. Blue, whatever colour the brand is. */
   water: string;
 
   route: string;
@@ -45,48 +43,6 @@ export interface ThemeColors {
   walkingRouteCasing: string;
 }
 
-// A palette family is a light scheme and a dark one that go together. The app
-// wears one of them — `ACTIVE_PALETTE` below — and `lightColors` / `darkColors`
-// are that choice, which is what every other file reads.
-//
-// The constraints below hold for *every* family in this file, not only the one
-// in use: `npm run check:contrast` walks all of them, so a family sitting here
-// unused cannot rot into one that is unreadable the day someone switches to it.
-//
-//   - Stop pins colour by position (MapSection): the start uses `success`,
-//     the destination `accent`, the stops between them `route`, and a place
-//     found along the way `place`. All four are on screen at once, so they
-//     stay far apart in hue. `primary` is deliberately not among them: a
-//     brand-coloured pin reads as the start of the route. `warning` is out for
-//     the same reason on the red side — it sits 33° from `accent` and reads as
-//     a second destination.
-//   - `selection` marks the two stops being compared, on the map and in the
-//     list alike. It temporarily replaces whichever of the four a pin would
-//     otherwise use, so it is a fifth hue kept clear of them all.
-//   - The three route modes are drawn over the same map, and each casing is a
-//     lighter halo of its own hue holding >= 3:1 against the line it outlines.
-//   - `primary` is used for small label text (links, secondary buttons), so it
-//     holds >= 4.5:1 against `surface`, `background`, `surfaceAlt` and
-//     `primarySoft` — the last of those is what secondary buttons are filled
-//     with, and it is the one that constrains how light `primary` may go.
-//   - `text` and `textMuted` clear 4.5:1 on all three backgrounds, and
-//     `textSubtle` — which only ever labels something already shown another
-//     way — clears 3:1. `brand` is display-sized only, so it clears 3:1.
-//   - `water` is the one basemap colour that never follows the brand — a green
-//     or indigo sea reads as land. It stays blue, separated from `background`
-//     so the coast is visible, and far enough from `route` that a line drawn
-//     across a lake still holds 3:1.
-//
-// The map colours — the four pins, `selection`, the three route modes, `water`
-// — are about reading a map, not about the brand, so families share them
-// unless a family has a reason not to.
-
-// Forest: Google's greens on the same cool neutrals — Green 800 for the fills
-// and small label text, Green 600 as the brighter `brand`.
-//
-// It used to be a much darker, blue-cast pine (#155F40) on warm paper, which
-// read as heavy next to everything else on screen. The hue moved from ~157°
-// to ~140°, which is the difference between a pine and a green.
 export const forestLight: ThemeColors = {
   primary: '#146C2E',
   primaryDark: '#0D5122',
@@ -177,21 +133,6 @@ export const forestDark: ThemeColors = {
   walkingRouteCasing: '#17492C',
 };
 
-// Maps: Google's own Material tones — Blue 700 on Google's cool greys, with
-// Blue 600 as the brighter `brand` beside it. This is the family the app
-// wears.
-//
-// `primary` is Blue **700** (#1967D2) rather than the Blue 600 (#1A73E8)
-// Google fills its buttons with, because it also sets small label text on
-// `primarySoft`. Blue 600 reaches 4.51:1 on pure white and nothing above that
-// — any tint at all puts it under 4.5 — so 600 lives in `brand`, which is
-// display-sized only.
-//
-// One honest exception to the pin rule above: `primary` and `route` are the
-// same blue here, so the stops between the ends really are brand-coloured.
-// That is what Google Maps looks like, and the four pin hues still separate
-// by 60°, so it is a deliberate borrow rather than an oversight.
-
 export const mapsLight: ThemeColors = {
   primary: '#1967D2',
   primaryDark: '#174EA6',
@@ -281,16 +222,6 @@ export const mapsDark: ThemeColors = {
   walkingRoute: '#81C995',
   walkingRouteCasing: '#17492C',
 };
-
-// Harbour: a deep indigo on cool paper — the same app after dark, or on a
-// different day. It exists so the design is not welded to one hue: everything
-// outside this file reads `primary`, `brand` and the neutrals, so a family is
-// the whole reskin.
-//
-// Indigo rather than a third green: at ~236° it is far enough from forest's
-// ~140° that the two read as different apps, while still clearing `route`
-// blue (~215°) and `selection` violet (~272°) by enough that neither the map
-// nor the compared pair goes muddy against the chrome.
 
 export const harbourLight: ThemeColors = {
   primary: '#4A50A8',
@@ -390,13 +321,6 @@ export const paletteFamilies = {
 
 export type PaletteName = keyof typeof paletteFamilies;
 
-/**
- * The family the app wears. Changing this one word reskins every screen, the
- * basemap included — nothing outside this file names a family.
- *
- * It is not a user setting: light and dark are, and a second axis of choice on
- * top of those is a lot of surface for something an app usually just decides.
- */
 export const ACTIVE_PALETTE: PaletteName = 'maps';
 
 export const lightColors = paletteFamilies[ACTIVE_PALETTE].light;

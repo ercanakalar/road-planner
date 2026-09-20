@@ -5,18 +5,10 @@ import en from './locales/en';
 import tr from './locales/tr';
 import { SUPPORTED_LANGUAGES } from './languages';
 
-/**
- * The dictionaries are the only thing standing between a service that emits
- * `favorite.addedHeader` and a person reading those two words on their screen.
- * A key with no entry resolves to itself and fails silently, everywhere at
- * once, so what is checked here is that no such key exists.
- */
-
 type Node = Record<string, unknown>;
 
 const DICTIONARIES: Record<string, Node> = { en, tr };
 
-/** Every `a.b` path in a dictionary, plus the arguments its sentence takes. */
 const pathsOf = (node: Node, prefix = ''): Map<string, Set<string>> => {
   const paths = new Map<string, Set<string>>();
 
@@ -29,8 +21,6 @@ const pathsOf = (node: Node, prefix = ''): Map<string, Set<string>> => {
     }
 
     if (isPlural(value)) {
-      // One path, whichever branch a count selects, so the arguments of each
-      // branch are the arguments of the key.
       paths.set(
         path,
         new Set(Object.values(value).flatMap((form) => [...argumentsIn(form)])),
@@ -66,14 +56,6 @@ const sourceFiles = (directory: string): string[] =>
     return [path];
   });
 
-/**
- * Keys as the code writes them: a quoted `namespace.key` whose namespace is one
- * the dictionary actually has.
- *
- * Bounded to the known namespaces because plenty of quoted strings look like a
- * dotted path — `road.title`, a Prisma `orderBy`, an import — and none of them
- * are translation keys.
- */
 const emittedKeys = (): Map<string, string[]> => {
   const namespaces = Object.keys(en).join('|');
   const pattern = new RegExp(
@@ -137,10 +119,6 @@ describe('locales', () => {
   });
 
   it('names every field a validation failure can mention', () => {
-    // A field with no label reads as its property name — `nickName` in the
-    // middle of a Turkish sentence — which the fallback makes safe but not
-    // right. This is the only key the code builds at runtime, so it is the one
-    // the scan above cannot see.
     const properties = new Set(
       sourceFiles('src')
         .filter((path) => path.endsWith('.dto.ts'))
@@ -158,8 +136,6 @@ describe('locales', () => {
   });
 
   it('finds the keys it is meant to be checking', () => {
-    // A regression in the scanner would make the check above pass for the
-    // wrong reason, so this pins that it is reading real keys out of real code.
     const keys = emittedKeys();
 
     expect(keys.size).toBeGreaterThan(100);

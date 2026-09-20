@@ -18,9 +18,6 @@ describe('apiErrorMessage', () => {
     );
   });
 
-  // Three failures that never reach the API look identical to a caller that
-  // answers all of them with its own line, and they need different things
-  // done about them.
   it('says a request never reached the server', () => {
     expect(
       apiErrorMessage(
