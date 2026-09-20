@@ -8,21 +8,13 @@ import type { ThemeColors } from 'theme';
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  /** One line under the label, for a destination whose name is not enough. */
   description?: string;
-  /** 'danger' for a row that undoes something, such as signing out. */
   tone?: 'default' | 'danger';
-  /**
-   * Whether to rule off from the row above. False on the first row of a group,
-   * where a line would sit directly under the card's own edge.
-   */
   divided?: boolean;
-  /** How much is waiting behind this row. Hidden at zero. */
   badge?: number;
   onPress: () => void;
 }
 
-/** One tappable line in a grouped list of destinations. */
 const SettingsRow = ({
   icon,
   label,
@@ -87,8 +79,6 @@ const createStyles = (colors: ThemeColors) =>
       borderTopColor: colors.border,
     },
     rowPressed: { backgroundColor: colors.surfaceAlt },
-    // A tinted disc rather than a bare glyph: at a glance it is what separates
-    // one row from the next down a list of otherwise identical lines.
     glyph: {
       width: 34,
       height: 34,

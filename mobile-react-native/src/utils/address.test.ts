@@ -13,7 +13,6 @@ describe('splitAddress', () => {
   });
 
   it('drops the country from the locality line', () => {
-    // Every stop on a domestic route repeats it, so it earns no room.
     expect(addressLocality(FULL)).toBe('Kadıköy, İstanbul');
   });
 
@@ -50,8 +49,6 @@ describe('splitAddress', () => {
 });
 
 describe('garbage in the stored address', () => {
-  // Rows written before the API cleaned addresses, and routes carried off a
-  // phone, still hold whatever they were saved with.
 
   it('drops a Plus Code standing in for a street name', () => {
     expect(splitAddress('7GXR+8C, Kadıköy, İstanbul')).toEqual({
@@ -61,8 +58,6 @@ describe('garbage in the stored address', () => {
   });
 
   it('drops a Plus Code but keeps the place sharing its segment', () => {
-    // What Google returns for a pin off a named road: the code and the
-    // locality in one segment, no comma between them.
     expect(splitAddress('7GXR+8C Kadıköy, İstanbul, Türkiye')).toEqual({
       primary: 'Kadıköy',
       secondary: 'İstanbul',
@@ -108,7 +103,6 @@ describe('garbage in the stored address', () => {
 
 describe('fullAddress', () => {
   it('keeps the country, which the subtitle drops', () => {
-    // Someone pasting this into a maps app wants the whole thing.
     expect(fullAddress('Bağdat Cd. 1, Kadıköy, İstanbul, Türkiye')).toBe(
       'Bağdat Cd. 1, Kadıköy, İstanbul, Türkiye',
     );

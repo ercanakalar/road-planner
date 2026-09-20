@@ -1,9 +1,6 @@
 import localStorageService from './localStorageService';
 import { LocalRoute } from 'types/local-route';
 
-// Written by every version of this app that came before the rename. Changing
-// either the key or the id prefix would hide routes already on the device, so
-// both keep the older word.
 const STORAGE_KEY = 'local_roads_v1';
 
 export const createLocalId = (prefix: 'road' | 'wp') =>
@@ -21,11 +18,6 @@ const isLocalRoute = (value: unknown): value is LocalRoute => {
   );
 };
 
-/**
- * Routes saved before the address became a plain string hold `{ address, country,
- * … }` under that key. Left alone they would render as "[object Object]", so the
- * shape is corrected on the way in rather than everywhere it is read.
- */
 const withFlatAddresses = (route: LocalRoute): LocalRoute => ({
   ...route,
   stops: route.stops.map((stop) => {

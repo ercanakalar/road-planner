@@ -6,10 +6,6 @@ import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationSettingsDto } from './notification-settings.dto';
 
-/**
- * What a line in the inbox says about the route it points at. Enough to draw
- * the row and open it; the route itself is fetched when it is opened.
- */
 const NOTIFICATION_SELECT = {
   id: true,
   kind: true,
@@ -38,27 +34,10 @@ type NotificationRow = {
   } | null;
 };
 
-/**
- * Somebody's inbox.
- *
- * Every method is scoped to one person by their own id rather than by anything
- * the request carries: a notification is the only record here that is written
- * by one person's action and owned by another's, so "whose is this" is the only
- * question that matters and it is never taken from the caller.
- */
 @Injectable()
 export class NotificationService {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Files one line for each person, skipping anyone who has turned the inbox
-   * off.
-   *
-   * Duplicates are dropped rather than rejected: publishing a route, taking it
-   * private and publishing it again is one piece of news, and the unique
-   * constraint is what lets the publish path write without first asking what is
-   * already there.
-   */
   async notifyMany(
     userIds: readonly string[],
     entry: { kind: NotificationKind; actorId: string; roadId: string },
@@ -103,7 +82,6 @@ export class NotificationService {
     });
   }
 
-  /** Just the number, for the badge that does not want the whole list. */
   async unreadCount(userId: string) {
     const unread = await this.prisma.notification.count({
       where: { userId, readAt: null },
@@ -112,13 +90,6 @@ export class NotificationService {
     return ok({ header: 'notification.header', data: { unread } });
   }
 
-  /**
-   * Marks one line read, or the whole inbox when no line is named.
-   *
-   * `updateMany` rather than `update` so that a row belonging to somebody else
-   * matches nothing instead of being found and refused — the id alone never
-   * decides whose it is.
-   */
   async markRead(userId: string, notificationId?: string) {
     const { count } = await this.prisma.notification.updateMany({
       where: {
@@ -181,12 +152,6 @@ export class NotificationService {
   }
 }
 
-/**
- * A row as the app reads it. The author's name is resolved the same way it is
- * everywhere else, and a route that has since been unpublished or archived is
- * marked rather than hidden — the line is still a true record of what happened,
- * but tapping it would go nowhere.
- */
 function shape(row: NotificationRow) {
   const isOpenable = !!row.road && row.road.isPublic && !row.road.archivedAt;
 

@@ -31,11 +31,6 @@ const TABS: { key: SearchTab; label: string }[] = [
     { key: 'people', label: 'searchScreen.tabPeople' },
 ];
 
-/**
- * How many matched, which is the question the filters just asked. Deliberately
- * the unpaged total rather than the number of rows loaded: "312 routes" does
- * not change as the list is scrolled.
- */
 const countLabel = (
     tab: SearchTab,
     total: number,
@@ -147,8 +142,6 @@ const SearchScreen = () => {
         />
     );
 
-    // Only under a list that has rows: the spinner says "more is coming", and
-    // an empty list says that for itself.
     const footer =
         isLoadingMore || hasMore ? (
             <View style={styles.footer}>
@@ -156,8 +149,6 @@ const SearchScreen = () => {
             </View>
         ) : null;
 
-    // Held back until there is an answer: "0 routes" under a spinner reads as
-    // a result rather than as a question still being asked.
     const hasAnswer = !isTermTooShort && !(isSearching && total === 0);
     const count = hasAnswer ? countLabel(tab, total, t) : null;
 
@@ -202,12 +193,6 @@ const SearchScreen = () => {
 
                 {tab === 'routes' ? (
                     <>
-                        {/*
-                            Order and filter belong to the route list, so they
-                            leave with it. The person chip lives here too:
-                            narrowing to somebody is a filter on this list, set
-                            from the other tab.
-                        */}
                         <SearchFilterBar
                             order={order}
                             onOrderChange={setOrder}

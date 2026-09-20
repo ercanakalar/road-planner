@@ -44,8 +44,6 @@ const toSharedStop = (
   stop: LocalStop,
   routeId: string,
 ): StopWithAddress => ({
-  // A route kept on this device has never been through the server, so nothing
-  // has measured the ground under it or the angle it turns through.
   ...UNSHAPED_STOP,
   elevation: null,
   id: stop.id,
@@ -114,8 +112,6 @@ const useLocalMapLogic = () => {
 
   const routeLine = useRouteLine(stops, transportMode);
 
-  // The list wants the road's own shape at each stop; everything else here
-  // works off `stops`, whose identity the drag and reorder handlers depend on.
   const measuredStops = useRouteTerrain(stops, transportMode);
   const routeSearch = useRouteSearch(stops, transportMode);
 

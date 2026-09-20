@@ -4,10 +4,6 @@ import usePagedOffset from './usePagedOffset';
 
 const PAGE = 30;
 
-/**
- * Drives the hook the way a list does: the screen re-renders with a new
- * question, the list asks for another page.
- */
 const render = (initialQuestion: string) => {
   const seen: number[] = [];
   let loadNextPage!: () => void;
@@ -61,8 +57,6 @@ describe('usePagedOffset', () => {
   });
 
   it('never renders the old offset against the new question', () => {
-    // The reason the reset happens during render rather than in an effect: an
-    // effect would let page three of a search nobody is running go out first.
     const list = render('coast');
     list.next();
     list.next();

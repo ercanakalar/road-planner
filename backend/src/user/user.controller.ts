@@ -77,8 +77,6 @@ export class UserController {
 
     res.sendFile(path, (error) => {
       if (error && !res.headersSent) {
-        // Written straight to the socket, so this is past the interceptor that
-        // would otherwise turn the key into words.
         res.status(HttpStatus.NOT_FOUND).json({
           message: translatePhrase(
             'user.photoNotFound',
@@ -90,12 +88,6 @@ export class UserController {
     });
   }
 
-  // Both of these are declared before '/:id', which would otherwise swallow
-  // '/search' and fail its UUID pipe.
-  //
-  // Open to anonymous callers, and told who is asking when somebody is: the
-  // rows are the same either way, but a signed-in caller also gets back whether
-  // they already follow each person, so the button starts in the right state.
   @Public()
   @UseGuards(OptionalAccessGuard)
   @Get('/search')
@@ -118,7 +110,6 @@ export class UserController {
     return this.userService.getAuthorById(id, user?.userId ?? null);
   }
 
-  /** Ask to be emailed when this person publishes their next route. */
   @Post('/author/:id/follow')
   @HttpCode(HttpStatus.OK)
   async followAuthor(

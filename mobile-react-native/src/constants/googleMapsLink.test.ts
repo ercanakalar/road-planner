@@ -57,7 +57,6 @@ describe('buildGoogleMapsRouteUrl', () => {
   });
 
   describe('a route longer than Google carries', () => {
-    // Thirteen stops: eleven of them between the ends, two more than fit.
     const stops = Array.from({ length: 13 }, (_, index) => stop(41 + index));
     const link = buildGoogleMapsRouteUrl(stops)!;
     const waypoints = paramsOf(link.url).get('waypoints')!.split('|');

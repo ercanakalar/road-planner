@@ -19,20 +19,16 @@ import { boundsCorners, boundsToPolygon } from 'utils/areaBounds';
 
 const LOCATE_BUTTON_TOP = 62;
 
-/** Room for the search bar above and the marked-places panel below. */
 const EDGE_PADDING = { top: 110, right: 60, bottom: 180, left: 60 };
 
-/** Long enough for the map to have laid out before the camera is moved. */
 const FRAME_DELAY_MS = 350;
 
-/** The dashes that say a place is being considered rather than kept. */
 const PREVIEW_DASH = [8, 6];
 const PREVIEW_STROKE_WIDTH = 3;
 
 interface Props {
   mapRef: React.RefObject<MapView | null>;
   areas: readonly MarkedArea[];
-  /** The place a tap or a search turned up, not marked yet. */
   preview?: MapArea;
   onPress: (event: MapPressEvent) => void;
 }
@@ -50,13 +46,6 @@ const AreaShape = memo(
 
 AreaShape.displayName = 'AreaShape';
 
-/**
- * The map with the places somebody has been coloured in.
- *
- * The shading is translucent on purpose: the roads and names underneath have
- * to stay readable, and two places that overlap — a city inside its country —
- * deepen where they meet rather than one hiding the other.
- */
 const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) => {
   const { colors } = useTheme();
   const { mapStyle, isDark, mapKey } = useMapStyle();
@@ -64,17 +53,11 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
 
   const { region: userRegion, isResolving } = useInitialRegion();
 
-  // Rebuilding the map on a theme change hands it nothing but `initialRegion`
-  // (see useMapStyle), so where it was last looking is remembered and fed back
-  // — otherwise changing theme throws the camera back to where it started.
   const lastRegionRef = useRef<Region | null>(null);
   const hasCentredRef = useRef(false);
 
   const shapes = useMemo(() => widestFirst(areas), [areas]);
 
-  // Opening the screen shows the map somebody has already coloured in, framed
-  // so all of it fits. Only an empty map falls through to their own location,
-  // which is the one place a first mark is likely to be.
   useEffect(() => {
     if (hasCentredRef.current || areas.length === 0) return;
 

@@ -14,14 +14,7 @@ import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 
 interface Props {
-  /** Defaults to "Continue with Google" in the current language. */
   label?: string;
-  /**
-   * Where to go once the person is signed in. Required, because the hook's
-   * only report of success is this call: a button rendered without it signs
-   * somebody in and leaves them on the form they started from, which is
-   * indistinguishable from the sign-in having failed.
-   */
   onSuccess: () => void;
 }
 
@@ -33,7 +26,6 @@ const GoogleSignInButton = ({ label, onSuccess }: Props) => {
   const { isAvailable, isBusy, error, unavailableReason, signIn } =
     useGoogleAuth(onSuccess);
 
-  // Nothing configured for this platform: the button would have nowhere to go.
   if (!isAvailable && !unavailableReason) return null;
 
   const isDisabled = isBusy || !isAvailable;
@@ -66,8 +58,6 @@ const GoogleSignInButton = ({ label, onSuccess }: Props) => {
         <Text style={styles.label}>{buttonLabel}</Text>
       </Pressable>
 
-      {/* A sign-in that goes nowhere has to say why. Every failure below used to
-          leave the button spinning with nothing on screen to explain it. */}
       {unavailableReason ? (
         <Text style={styles.note}>{unavailableReason}</Text>
       ) : null}

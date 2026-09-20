@@ -219,9 +219,6 @@ describe('AuthService', () => {
     });
 
     describe('the language to write to them in', () => {
-      // An email is sent because somebody else published a route, so there is
-      // no request behind it to read Accept-Language off. Signing in is the
-      // moment the header is available and the account is known.
       it('notes the one the request arrived in', async () => {
         prisma.user.findUnique.mockResolvedValue(existingUser());
 

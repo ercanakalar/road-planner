@@ -48,8 +48,6 @@ const NotificationsScreen = ({ navigation }: Props) => {
     goToSettings,
   } = useNotificationsScreen();
 
-  // The two things this screen does that are not the list itself live in the
-  // header bar, where they do not take a row from it.
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (

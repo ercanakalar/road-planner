@@ -18,14 +18,6 @@ interface Props {
   placeholder?: string;
 }
 
-/**
- * Looks like the search field it opens, and behaves like a button.
- *
- * A real field here would have to own a query, a keyboard and a results list on
- * a screen that is mostly about something else. Wearing the field's clothes and
- * handing the tap straight to the search screen — where the field is focused on
- * arrival — costs one frame and keeps this screen simple.
- */
 const SearchBarButton = ({
   onPress,
   placeholder,

@@ -34,8 +34,6 @@ const toRequest = (
 ): Omit<DirectionsRequest, 'mode'> & { mode: TransportMode } => ({
   origin: toCoordinate(stops[0]),
   destination: toCoordinate(stops[stops.length - 1]),
-  // Google's own vocabulary: everything between the two ends is a
-  // "waypoint" to the Directions API, whatever this app calls it.
   waypoints: stops.slice(1, -1).map(toCoordinate),
   mode,
 });
@@ -105,17 +103,6 @@ export function useRouteLine(
   };
 }
 
-/**
- * The stops, carrying the road's shape at each of them.
- *
- * A saved route reads this from `/road/:id/terrain`; a route still being drawn
- * on the map has no id, so its points are measured by `/road/terrain` instead.
- * Either way the numbers come off the polyline Google routes along, not the
- * straight lines between the pins.
- *
- * The stops are returned unchanged until the reading arrives, so a card shows
- * the cheap shape it already had rather than flickering through an empty row.
- */
 export function useRouteTerrain(
   stops: StopWithAddress[],
   mode: TransportMode,
@@ -156,9 +143,6 @@ export function useRouteTerrain(
 
     let cancelled = false;
 
-    // Dragged pins settle before anything is asked for: the same debounce the
-    // route line uses, and for the same reason — one directions call and one
-    // elevation call per resting position, not per frame.
     const timer = setTimeout(() => {
       fetchTerrain(points, mode)
         .then((next) => {

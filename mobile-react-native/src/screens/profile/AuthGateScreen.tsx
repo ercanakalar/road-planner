@@ -12,9 +12,6 @@ const AuthGate = ({
 }) => {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  // Signed out, this tab is the app's front door rather than a bare form: the
-  // welcome screen says what an account buys you, and pushes the form when
-  // someone wants one.
   return isLoggedIn ? (
     <ProfileScreen navigation={navigation} />
   ) : (

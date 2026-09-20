@@ -17,10 +17,6 @@ import { useTranslation } from 'react-i18next';
 
 const EMPTY_ROUTES: OwnRouteSummary[] = [];
 
-/**
- * The saved-routes list and everything you can do to a row of it: rename,
- * publish, share, hand over to Google Maps, delete.
- */
 export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();

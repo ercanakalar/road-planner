@@ -7,7 +7,6 @@ import {
 
 const IZMIR = { north: 38.6, south: 38.2, east: 27.4, west: 26.9 };
 
-// East is the smaller number: the place wraps past the 180th meridian.
 const FIJI = { north: -12.4, south: -21.0, east: -178.2, west: 176.8 };
 
 describe('boundsToPolygon', () => {
@@ -35,15 +34,12 @@ describe('boundsToPolygon', () => {
     );
 
     expect(north.length).toBeGreaterThan(2);
-    // Still a straight line at one latitude — the steps only add points.
     expect(new Set(north.map(({ latitude }) => latitude)).size).toBe(1);
   });
 
   it('closes a box that crosses the 180th meridian the short way round', () => {
     const longitudes = boundsToPolygon(FIJI).map(({ longitude }) => longitude);
 
-    // Unwound, Fiji runs from 176.8 east to 181.8 — five degrees wide, not the
-    // 355 that reading -178.2 as the east edge would have drawn.
     expect(Math.min(...longitudes)).toBeCloseTo(176.8);
     expect(Math.max(...longitudes)).toBeCloseTo(181.8);
   });
@@ -60,8 +56,6 @@ describe('boundsCorners', () => {
   });
 
   it('leaves a box across the meridian for the map to close', () => {
-    // Unlike the polygon, these stay inside -180…180: the native bounds
-    // builder is the one that decides which way round the box goes.
     const longitudes = boundsCorners(FIJI).map(({ longitude }) => longitude);
 
     expect(Math.max(...longitudes)).toBeLessThanOrEqual(180);

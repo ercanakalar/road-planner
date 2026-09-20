@@ -44,7 +44,6 @@ describe('travelMapStorage', () => {
   });
 
   it('drops a place with no box to shade, and keeps the rest', async () => {
-    // A polygon with an undefined corner takes the map down with it.
     await AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify([

@@ -130,11 +130,6 @@ export class FavoritesService {
       orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
     };
 
-    // A favourited route is drawn as one row: its name, its note and whether
-    // it has been withdrawn. Its stops were being loaded here and thrown away
-    // by the caller, so they are no longer asked for. The four reads do not
-    // depend on each other, so they go to the database together instead of
-    // one after another inside a transaction.
     const [roads, roadTotal, stops, stopTotal] = await Promise.all([
       this.prisma.favoriteRoad.findMany({
         where: { userId },

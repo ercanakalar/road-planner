@@ -34,7 +34,6 @@ describe.each([
   const style = buildMapStyle(colors);
 
   it('takes every colour from the palette and hardcodes none', () => {
-    // A literal here is how a map drifts away from the app it sits in.
     const palette = new Set(Object.values(colors));
 
     expect(colorsIn(style).filter((color) => !palette.has(color))).toEqual([]);
@@ -45,8 +44,6 @@ describe.each([
   });
 
   it('separates water from land, so the coast reads', () => {
-    // Water has its own token rather than a brand tint: the app is green, and
-    // a green sea reads as land.
     expect(colorOf(style, 'water', 'geometry')).toBe(colors.water);
     expect(colorOf(style, 'water', 'geometry')).not.toBe(colors.background);
   });
@@ -62,8 +59,6 @@ describe.each([
   });
 
   it('leaves the basemap clear of the colours the app draws pins in', () => {
-    // Stop pins, found places and the compared pair are all drawn over
-    // this; a basemap that used one of their colours would camouflage it.
     const pinColors = [
       colors.success,
       colors.accent,

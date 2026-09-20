@@ -40,9 +40,6 @@ describe('UserController routing', () => {
         { provide: I18nService, useValue: testI18n() },
       ],
     })
-      // The routes under test are about which handler a path reaches, not
-      // about who is allowed through, and the real guard wants a JWT strategy
-      // this module does not assemble.
       .overrideGuard(OptionalAccessGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -60,8 +57,6 @@ describe('UserController routing', () => {
   });
 
   it('reaches author search, not the profile lookup, at /user/search', async () => {
-    // '/:id' is declared after this one on purpose: it would otherwise match
-    // '/search' and fail its UUID pipe with a 400 that says nothing useful.
     await get('/user/search?q=erc').expect(200);
 
     expect(userService.getUserById).not.toHaveBeenCalled();

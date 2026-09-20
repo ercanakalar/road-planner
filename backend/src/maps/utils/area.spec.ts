@@ -21,8 +21,6 @@ describe('areaKind', () => {
   });
 
   it('answers the widest type a place carries', () => {
-    // A country is also `political`, and a village is half a dozen of these at
-    // once — the widest match is the one that describes the whole thing.
     expect(areaKind(['country', 'locality', 'political'])).toBe('country');
   });
 
@@ -81,8 +79,6 @@ describe('areaBounds', () => {
   });
 
   it('keeps a box that crosses the 180th meridian as Google gave it', () => {
-    // Fiji's east edge is a smaller number than its west one. Reordering them
-    // here would draw the box the long way round, across the whole world.
     expect(
       areaBounds(
         { bounds: box(-12.4, -21.0, -178.2, 176.8) },

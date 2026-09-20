@@ -23,10 +23,8 @@ import {
 import { Page } from 'types/store/bases';
 import { RootStackParamList } from 'types/screens/screens';
 
-/** Long enough to stop typing, short enough not to feel like waiting. */
 const TYPING_PAUSE_MS = 350;
 
-/** Below this the API treats the term as absent, so asking is pointless. */
 export const MIN_TERM_LENGTH = 2;
 
 export type SearchTab = 'routes' | 'people';
@@ -38,21 +36,11 @@ const EMPTY_ROUTES: Page<RouteSearchHit> = {
 };
 const EMPTY_AUTHORS: Page<AuthorHit> = { items: [], total: 0, hasMore: false };
 
-/** Who the route list is narrowed to, as little of them as a chip needs. */
 export interface AuthorFilter {
   id: string;
   displayName: string;
 }
 
-/**
- * The search screen: one field over two lists, with the order and the filters
- * that apply to the route one.
- *
- * The term takes two steps to reach the network — deferred so typing never
- * waits on a re-render, then debounced so it never waits on a request either.
- * People are only searched while that tab is open; there is no reason to ask
- * for both on every keystroke.
- */
 export function useSearchScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -68,7 +56,6 @@ export function useSearchScreen() {
   const deferredQuery = useDeferredValue(query);
   const term = useDebouncedValue(deferredQuery.trim(), TYPING_PAUSE_MS);
 
-  // True while the results on screen are older than what has been typed.
   const isBehind = query.trim() !== term;
 
   const filters = useMemo(() => {
@@ -76,13 +63,8 @@ export function useSearchScreen() {
     return { minStops: band?.minStops, maxStops: band?.maxStops };
   }, [length]);
 
-  // The API treats a one-character term as no term and answers with the newest
-  // routes instead. Sending it would look like search ignoring what was typed,
-  // so the request is held back until the term means something.
   const isTermTooShort = term.length > 0 && term.length < MIN_TERM_LENGTH;
 
-  // Every part of the question the route list is asking. Change any of them and
-  // the reader is back at the top of a different list.
   const [routeOffset, loadMoreRoutes] = usePagedOffset(
     `${term}|${order}|${length}|${author?.id ?? ''}`,
     SEARCH_PAGE_SIZE,
@@ -115,7 +97,6 @@ export function useSearchScreen() {
     refetch: refetchAuthors,
   } = useSearchAuthorsQuery(
     { q: term, offset: authorOffset },
-    // Nothing on the routes tab shows a person, so nothing there needs them.
     { skip: tab !== 'people' || isTermTooShort },
   );
 
@@ -165,12 +146,6 @@ export function useSearchScreen() {
     [openAuthor],
   );
 
-  /**
-   * Picking somebody in the People tab narrows the routes to theirs and shows
-   * them, rather than leaving the screen: this is a filter the search bar owns,
-   * so it stays where the rest of the filters are and comes off the same way.
-   * Their profile is still one tap away, from the chevron on the row.
-   */
   const filterByAuthor = useCallback((person: AuthorFilter) => {
     setAuthor({ id: person.id, displayName: person.displayName });
     setTab('routes');
@@ -178,11 +153,6 @@ export function useSearchScreen() {
 
   const clearAuthorFilter = useCallback(() => setAuthor(null), []);
 
-  /**
-   * The list asks for more only while it has not got everything and is not
-   * already asking. `onEndReached` fires again on every few pixels of overscroll
-   * and would otherwise queue a page per frame.
-   */
   const loadMore = useCallback(() => {
     if (tab === 'routes') {
       if (routes.hasMore && !isSearchingRoutes) loadMoreRoutes();
@@ -220,11 +190,9 @@ export function useSearchScreen() {
     clearAuthorFilter,
     routes: routes.items,
     authors: authors.items,
-    /** How many matched in total, which is what the filters are about. */
     total: shown.total,
     hasMore: shown.hasMore,
     loadMore,
-    /** True only while a further page is on its way, not the first one. */
     isLoadingMore: isSearching && shown.items.length > 0,
     isSearching,
     isFailed: tab === 'routes' ? routesFailed : authorsFailed,

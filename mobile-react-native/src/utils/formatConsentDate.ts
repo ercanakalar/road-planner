@@ -2,10 +2,6 @@ import { KvkkLanguage } from 'types/kvkk';
 
 const LOCALES: Record<KvkkLanguage, string> = { tr: 'tr-TR', en: 'en-GB' };
 
-/**
- * A consent date is only worth showing if it reads like one, so an unusable
- * value falls back to the plain ISO day rather than to `Invalid Date`.
- */
 export const formatConsentDate = (
   iso: string,
   language: KvkkLanguage,

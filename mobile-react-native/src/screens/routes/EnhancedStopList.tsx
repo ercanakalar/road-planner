@@ -22,7 +22,6 @@ const EMPTY_STOPS: never[] = [];
 interface Props {
   routeId: string;
   transportMode: TransportMode;
-  /** Owned by the screen, because the map has to badge the same two stops. */
   selectedPair: string[];
   onToggleSelection: (stopId: string) => void;
   onForgetSelection: (stopId: string) => void;
@@ -49,13 +48,6 @@ const EnhancedStopList = ({
     },
   );
 
-  // The stops already carry a shape worked out from the straight lines between
-  // them. This asks for the same reading taken along the route Google actually
-  // routes, which is the one worth showing when it arrives: two stops either
-  // side of a valley are not a climb, and the pins alone cannot tell.
-  //
-  // A leg needs two stops. Below that there is nothing to measure, so nothing
-  // is asked for.
   const { data: terrain } = useGetRouteTerrainQuery(
     { routeId },
     { skip: !routeId || stops.length < 2 },

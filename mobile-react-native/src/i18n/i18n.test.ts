@@ -10,16 +10,12 @@ describe('resolveDeviceLanguage', () => {
   });
 
   it('ignores the region', () => {
-    // tr-CY and tr-TR are both Turkish to us; matching the whole tag would
-    // send most of the world to English.
     expect(resolveDeviceLanguage(['tr-CY'])).toBe('tr');
     expect(resolveDeviceLanguage(['en_US'])).toBe('en');
     expect(resolveDeviceLanguage(['TR'])).toBe('tr');
   });
 
   it('walks down the phone’s preference list', () => {
-    // The phone offers an ordered list, so somebody whose first choice we do
-    // not ship gets their second rather than English.
     expect(resolveDeviceLanguage(['de', 'fr', 'tr', 'en'])).toBe('tr');
   });
 
@@ -35,13 +31,10 @@ describe('resolveDeviceLanguage', () => {
 
 describe('resolveLanguage', () => {
   it('follows the phone until somebody chooses', () => {
-    // This is every fresh install: nothing stored, so the phone decides.
     expect(resolveLanguage(null, () => 'tr')).toBe('tr');
   });
 
   it('keeps a choice even when the phone says otherwise', () => {
-    // The point of choosing. A phone set to Turkish does not pull somebody
-    // who picked English back out of it.
     expect(resolveLanguage('en', () => 'tr')).toBe('en');
     expect(resolveLanguage('tr', () => 'en')).toBe('tr');
   });
@@ -55,8 +48,6 @@ describe('locale files', () => {
   });
 
   it('translates the same keys in every language', () => {
-    // A missing key falls back to English silently, which reads as a
-    // half-translated screen rather than as a bug.
     const flatten = (source: object): string[] =>
       Object.entries(source).flatMap(([namespace, strings]) =>
         Object.keys(strings as object).map((key) => `${namespace}.${key}`),
@@ -66,7 +57,6 @@ describe('locale files', () => {
   });
 
   it('carries the same interpolation placeholders through a translation', () => {
-    // `{{count}}` dropped in translation is a sentence with a hole in it.
     const placeholders = (value: string) =>
       (value.match(/{{\s*\w+\s*}}/g) ?? []).sort();
 

@@ -20,13 +20,6 @@ interface Props {
   onPress: () => void;
 }
 
-/**
- * The way in to the travel map, from the home screen.
- *
- * It says what is on the map rather than only naming the screen: a count is
- * the whole reason to open it again, and an empty one has to say what the
- * screen is for instead.
- */
 const TravelMapCard = ({ areas, onPress }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

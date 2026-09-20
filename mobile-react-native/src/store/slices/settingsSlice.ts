@@ -7,13 +7,6 @@ export interface SettingsState {
   notificationsEnabled: boolean;
   autoFitRoute: boolean;
   themeMode: ThemeMode;
-  /**
-   * The language somebody chose, or null for "never chosen".
-   *
-   * Null is what every install starts at, and it means follow the phone. Once
-   * this holds a language it outranks the phone for good — which is the
-   * difference between a default and a decision.
-   */
   language: AppLanguage | null;
 }
 

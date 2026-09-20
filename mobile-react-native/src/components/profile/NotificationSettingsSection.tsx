@@ -34,14 +34,6 @@ const CHANNELS: {
   },
 ];
 
-/**
- * The two switches for the notifications the server sends.
- *
- * Kept apart from the preferences above them, which are this phone's and live
- * in Redux. These belong to the account: they decide whether anything is
- * written or sent at all, so they follow the person to their next device and
- * have to be read from and written to the API.
- */
 const NotificationSettingsSection = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

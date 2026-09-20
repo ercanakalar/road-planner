@@ -32,8 +32,6 @@ export function configureApp(
 ): INestApplication {
   app.use(helmet());
 
-  // List responses are JSON and compress to a fraction of their size. On a
-  // phone that is the difference between one round trip and several.
   app.use(compression());
 
   app.enableCors({
@@ -52,16 +50,11 @@ export function configureApp(
       transformOptions: {
         enableImplicitConversion: false,
       },
-      // class-validator writes its own English. Handing the failures over as
-      // phrases puts them through the same dictionary as everything else the
-      // API says, so a rejected form reads in the caller's language too.
       exceptionFactory: (errors) =>
         new BadRequestException({ message: validationPhrases(errors) }),
     }),
   );
 
-  // Both are constructed rather than injected, so the translator is fetched
-  // from the container once and handed to them.
   const i18n = app.get(I18nService);
 
   app.useGlobalInterceptors(new ResponseEnvelopeInterceptor(i18n));

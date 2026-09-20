@@ -9,7 +9,6 @@ import type { ThemeColors } from 'theme';
 import { LocateButtonProps } from 'types/components/locateButton';
 import { useTranslation } from 'react-i18next';
 
-/** Keys rather than sentences: the words are chosen when one is shown. */
 const UNRESOLVED_NOTICE = {
   denied: {
     header: 'toast.locationPermissionNeeded',

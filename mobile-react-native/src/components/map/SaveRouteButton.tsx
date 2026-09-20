@@ -14,20 +14,11 @@ import {
 import type { ThemeColors } from 'theme';
 
 interface Props {
-  /** Clear of the collapsed sheet, so it is not half-hidden behind the stops. */
   bottom: number;
   isSaving: boolean;
   onPress: () => void;
 }
 
-/**
- * Saves the route being edited, from the screen it is being edited on.
- *
- * The same thing can be done from Settings, which handles every route on the
- * device at once. That is the right home for the bulk version and the wrong
- * place to reach for after dropping a pin: two tabs and a scroll away from the
- * map. This is the one-route version, within a thumb of the work.
- */
 const SaveRouteButton = ({ bottom, isSaving, onPress }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -71,8 +62,6 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      // Tall enough to be a comfortable target, since it sits over a map that
-      // takes a drag on any miss.
       minHeight: 44,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,

@@ -36,7 +36,6 @@ describe('route length filters', () => {
   });
 
   it('covers every stop count from two upwards with no gap', () => {
-    // A gap would make a route unreachable through any filter.
     const bands = routeLengthFilters
       .filter((option) => option.minStops !== undefined)
       .sort((a, b) => (a.minStops ?? 0) - (b.minStops ?? 0));

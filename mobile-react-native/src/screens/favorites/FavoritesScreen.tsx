@@ -30,9 +30,6 @@ import {
 import { FavoriteSectionDescriptor } from 'types/screens/mapScreenType';
 import { useTranslation } from 'react-i18next';
 
-// The design splits favourites in two before anything else: routes on one
-// side, the places on them on the other. Yours and other people's stay as
-// sections inside whichever is showing.
 const TAB_LABELS = {
   route: 'favorites.tabRoutes',
   stop: 'favorites.tabPlaces',
@@ -192,8 +189,6 @@ const FavoritesScreen = () => {
         renderSectionHeader={renderSectionHeader}
         renderSectionFooter={renderSectionFooter}
         stickySectionHeadersEnabled={false}
-        // Dimmed while the list is still catching up with the search field, so
-        // results that are one keystroke behind read as pending, not as wrong.
         style={isFiltering ? styles.stale : undefined}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps='handled'
@@ -216,8 +211,6 @@ const FavoritesScreen = () => {
       <View style={styles.container}>
         <ScreenHeader
           title={t('favorites.title')}
-          // With nothing saved, the empty state below already says so — and
-          // says it better than a subtitle can.
           subtitle={
             isSearching
               ? t('favorites.shownOfTotal', {
@@ -287,8 +280,6 @@ const createStyles = (colors: ThemeColors) =>
       paddingBottom: spacing.xxl,
     },
     stale: { opacity: 0.6 },
-    // Rounds off the last row, so a header and its rows read as one card, and
-    // holds the gap before the next section.
     cardFoot: {
       height: spacing.sm,
       backgroundColor: colors.surface,

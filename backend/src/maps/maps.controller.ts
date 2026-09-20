@@ -90,8 +90,6 @@ export class MapsController {
 
     return ok({
       header: 'maps.areasHeader',
-      // The count is handed over rather than written in: how it reads at one
-      // and at many is the translation's business, not this method's.
       message: areas.length
         ? phrase('maps.areasFound', { count: areas.length })
         : 'maps.areasNone',
@@ -159,8 +157,6 @@ export class MapsController {
 
     if (places.length === 0) return 'maps.alongNothing';
 
-    // The count is handed over rather than written in: how it reads at one and
-    // at many is the translation's business, not this method's.
     return phrase(coversWholeRoute ? 'maps.alongFound' : 'maps.alongPartial', {
       count: places.length,
     });

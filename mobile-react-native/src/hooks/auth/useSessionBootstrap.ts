@@ -59,8 +59,6 @@ export function useSessionBootstrap(): boolean {
         );
       } catch {
         if (cancelled) return;
-        // A stored consent that was already read stands: a failure further
-        // down the restore is no reason to ask for it again.
         if (!consentHydrated) dispatch(kvkkHydrated(null));
         dispatch(sessionRestored(null));
       } finally {

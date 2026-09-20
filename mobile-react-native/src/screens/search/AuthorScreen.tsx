@@ -103,13 +103,6 @@ const AuthorScreen = ({ route }: Props) => {
           : t('defaults.publishedRoutes')}
       </Text>
 
-      {/*
-        Following is an email subscription to this person's next publish, so it
-        belongs next to their name rather than on any one route. It stays
-        pressable while the request is in flight — the row is already showing
-        the new state, and blocking the way back out of it is worse than a
-        second tap that lands.
-      */}
       <Pressable
         onPress={handleToggleFollow}
         style={({ pressed }) => [
@@ -152,11 +145,6 @@ const AuthorScreen = ({ route }: Props) => {
       <View style={styles.container}>
         {header}
 
-        {/*
-          The same order and length controls as search, and they work the same
-          way: somebody with fifty published routes is a list worth narrowing,
-          and a filter row that only redraws itself is worse than none.
-        */}
         <SearchFilterBar
           order={order}
           onOrderChange={setOrder}
@@ -188,8 +176,6 @@ const AuthorScreen = ({ route }: Props) => {
             }
             refreshControl={
               <RefreshControl
-                // Only the pull counts as refreshing. Loading the next page is
-                // the footer's business, and showing both spins two at once.
                 refreshing={isFetching && !isLoadingMore}
                 onRefresh={refresh}
                 {...refreshColors}

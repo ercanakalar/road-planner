@@ -22,7 +22,6 @@ export const FavoriteSection = memo(
       <Pressable
         style={({ pressed }) => [
           styles.header,
-          // Collapsed, the header is the whole card and rounds on all corners.
           !isExpanded && styles.headerCollapsed,
           pressed && styles.headerPressed,
         ]}

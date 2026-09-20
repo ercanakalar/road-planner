@@ -13,15 +13,8 @@ import {
   isAppLanguage,
 } from 'src/i18n/languages';
 
-/**
- * How many followers one publish will write to. A route going public is a
- * background courtesy, not a mailing campaign; past this the rest are left
- * to find it in search, and the cap is logged so it is visible if it is ever
- * reached in practice.
- */
 const MAX_RECIPIENTS = 200;
 
-/** Keeps a title safe to drop into the HTML body of an email. */
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -31,14 +24,6 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Tells an author's followers that they have published something.
- *
- * Every method here is best-effort and swallows its own failures: a mail server
- * that is down must not turn "your route is now public" into an error on the
- * owner's screen, and the route is already saved by the time this runs. What
- * goes wrong is logged, not raised.
- */
 @Injectable()
 export class RoutePublishNotifier {
   private readonly logger = new Logger(RoutePublishNotifier.name);
@@ -51,11 +36,6 @@ export class RoutePublishNotifier {
     private readonly i18n: I18nService,
   ) {}
 
-  /**
-   * Fire-and-forget: returns immediately and lets the sending finish on its
-   * own. The caller is a request handler, and nobody publishing a route should
-   * wait on somebody else's SMTP server.
-   */
   notifyInBackground(roadId: string): void {
     void this.notifyFollowers(roadId).catch((error) => {
       this.logger.error(`Publish notification failed for ${roadId}`, error);
@@ -73,8 +53,6 @@ export class RoutePublishNotifier {
       },
     });
 
-    // Not an error: the road may have been unpublished again, or deleted,
-    // between the write and this running.
     if (!road) return 0;
 
     const follows = await this.prisma.authorFollow.findMany({
@@ -101,9 +79,6 @@ export class RoutePublishNotifier {
 
     const followers = follows.slice(0, MAX_RECIPIENTS).map((f) => f.follower);
 
-    // The inbox first, and on its own transaction: it is the notification
-    // people actually see, it costs one statement, and it must not be lost
-    // because a mail server was slow. Its own preference is applied inside.
     await this.inbox.notifyMany(
       followers.map((follower) => follower.id),
       {
@@ -113,7 +88,6 @@ export class RoutePublishNotifier {
       },
     );
 
-    // Email is the second copy, and the one people switch off first.
     const recipients = followers
       .filter(
         (follower): follower is typeof follower & { email: string } =>
@@ -121,8 +95,6 @@ export class RoutePublishNotifier {
       )
       .map((follower) => ({
         to: follower.email,
-        // Nobody is asking for this email, so there is no Accept-Language to
-        // read. What the account was last seen in is all there is to go on.
         language: isAppLanguage(follower.language)
           ? follower.language
           : FALLBACK_LANGUAGE,
@@ -150,15 +122,6 @@ export class RoutePublishNotifier {
     return sent;
   }
 
-  /**
-   * Where to send someone to read the route.
-   *
-   * The path matches the app's own deep link for a published route — see
-   * ROUTE_PATH in `mobile-react-native/src/constants/shareLinks.ts`, which is
-   * what registers it. It carries the route's id rather than a share token,
-   * because by the time this email goes out the route is public and there is
-   * nothing left for a token to grant.
-   */
   private linkTo(roadId: string): string | null {
     const base =
       this.config.get('SHARE_LINK_BASE_URL', { infer: true }) ??
@@ -177,9 +140,6 @@ export class RoutePublishNotifier {
     const say = (key: string, args: Record<string, unknown> = {}) =>
       this.i18n.translate(key, { lang: language, args }) as string;
 
-    // The sentence is the same in both; only what it is wrapped in differs, so
-    // the bold is applied to the escaped value rather than written into the
-    // translation, where it would have to be repeated in every language.
     const bold = (value: string) => `<strong>${escapeHtml(value)}</strong>`;
 
     const opened = link

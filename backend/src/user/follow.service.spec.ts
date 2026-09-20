@@ -44,8 +44,6 @@ describe('FollowService', () => {
     });
 
     it('leaves an existing follow alone rather than failing on it', async () => {
-      // A second tap that raced the list refresh must not 409; the upsert's
-      // empty update is what makes following idempotent.
       await service.setFollowing(AUTHOR_ID, FOLLOWER_ID, true);
 
       expect(prisma.authorFollow.upsert.mock.calls[0][0].update).toEqual({});
@@ -69,8 +67,6 @@ describe('FollowService', () => {
     });
 
     it('refuses somebody who has published nothing', async () => {
-      // The same door search opens: an account that has shared nothing cannot
-      // be confirmed to exist from the outside, and following would do that.
       prisma.user.findFirst.mockResolvedValue(null);
 
       await expect(

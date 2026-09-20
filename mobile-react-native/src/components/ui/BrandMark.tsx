@@ -11,33 +11,15 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 
-/** The app's own name, as it appears to a reader rather than to a store. */
 export const APP_NAME = 'Travel Routes';
 
 interface Props {
-  /** Diameter of the mark. */
   size?: number;
-  /** Draws the name beside the mark. */
   showName?: boolean;
-  /** One line under the name. Only drawn with `showName`. */
   tagline?: string;
-  /**
-   * The mark is sitting on a `primary` panel rather than on the page, so it
-   * inverts: a `textInverse` disc with a `primary` glyph, and `textInverse`
-   * text. Those two are the pair the palette guarantees against each other,
-   * so this holds in both schemes without a literal colour.
-   */
   onPrimary?: boolean;
 }
 
-/**
- * The green disc and the name beside it — the app introducing itself, on the
- * welcome screen and above every auth form.
- *
- * The name is two-tone: the first word takes the text colour and the rest the
- * lighter brand green, which is the same split the launcher icon draws between
- * its route and its destination node.
- */
 const BrandMark = ({
   size = 64,
   showName = false,
@@ -121,9 +103,6 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    // The second line is quieter than the name it sits under. On the panel
-    // there is no muted ink to reach for, so it borrows the same one at less
-    // than full strength.
     taglineOnPrimary: { opacity: 0.85 },
   });
 

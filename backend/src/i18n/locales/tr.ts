@@ -1,11 +1,5 @@
 import type { Translations } from './en';
 
-/**
- * Turkish.
- *
- * Typed against the English file's shape, so a key renamed there stops the
- * build here rather than falling back mid-sentence.
- */
 const tr: Translations = {
   common: {
     somethingWentWrong: 'Bir şeyler ters gitti',

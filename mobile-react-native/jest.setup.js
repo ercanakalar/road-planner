@@ -1,8 +1,5 @@
 /* eslint-env jest */
 
-// expo-file-system's File is a native object. The stand-in reads the real file
-// from disk and exposes the three members Expo's multipart encoder reads off a
-// part — `bytes()`, `name` and `type` — so a test can encode a body for real.
 jest.mock('expo-file-system', () => {
   const { readFileSync } = require('fs');
   const { basename, extname } = require('path');
@@ -36,8 +33,6 @@ jest.mock('expo-file-system', () => {
   return { File };
 });
 
-// The device's language list. A test that cares drives it with
-// `getLocales.mockReturnValue([...])`; everything else gets English.
 jest.mock('expo-localization', () => ({
   getLocales: jest.fn(() => [{ languageCode: 'en', languageTag: 'en-GB' }]),
 }));

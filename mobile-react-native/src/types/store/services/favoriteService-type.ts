@@ -11,15 +11,9 @@ interface FavoriteStopTarget {
   id: string;
   latitude: number;
   longitude: number;
-  /** The whole formatted address on one line, as Google returned it. */
   address?: string | null;
 }
 
-/**
- * One favourited route, as the API returns it. The nested target arrives under
- * `road` — the server's word — so the key stays even though everything above
- * `normalizeFavorites` calls it a route.
- */
 export interface FavoriteRouteRow {
   id: string;
   title?: string | null;
@@ -34,7 +28,6 @@ export interface FavoriteStopRow {
   stop?: FavoriteStopTarget | null;
 }
 
-/** The four buckets as the API sends them, under the server's own names. */
 export interface RawFavorites {
   ownRoads: FavoriteRouteRow[];
   ownStops: FavoriteStopRow[];
@@ -55,7 +48,6 @@ export interface FavoriteEntry {
   defaultTitle: string;
   isOwn: boolean;
   isWithdrawn?: boolean;
-  /** Places only: the full address, for copying. Absent for a saved route. */
   address?: string;
 }
 

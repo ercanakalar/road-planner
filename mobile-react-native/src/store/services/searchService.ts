@@ -25,11 +25,6 @@ import {
   SearchRoutesResponse,
 } from 'types/store/services/searchService-type';
 
-/**
- * Search results are the one thing here that should not be served from cache
- * for long: they are a snapshot of what everyone has published, and a stale one
- * looks like the app ignoring what was typed.
- */
 const CACHE_SECONDS = 60;
 
 export const searchService = createApi({
@@ -93,14 +88,6 @@ export const searchService = createApi({
       ],
     }),
 
-    /**
-     * Turns "tell me when they publish" on or off.
-     *
-     * The switch says which way it was moved rather than asking the server to
-     * toggle, so a tap that raced a list refresh cannot flip it the wrong way.
-     * The row on screen is corrected immediately and put back if the request
-     * fails — a follow button that waits for a round trip feels broken.
-     */
     followAuthor: builder.mutation<FollowAuthorResponse, FollowAuthorArgs>({
       query: ({ authorId, follow }) => ({
         url: `/user/author/${authorId}/follow`,
@@ -113,11 +100,6 @@ export const searchService = createApi({
         { authorId, follow },
         { dispatch, getState, queryFulfilled },
       ) {
-        // The same person can be on screen twice — their page, and any People
-        // search they turned up in — and every search term is a cache entry of
-        // its own. Invalidating those instead of patching them would re-fetch
-        // each at whatever page it had scrolled to, which updates the last page
-        // of rows and leaves the earlier ones showing the old state.
         const patches = [
           dispatch(
             searchService.util.updateQueryData(
@@ -152,8 +134,6 @@ export const searchService = createApi({
           patches.forEach((patch) => patch.undo());
         }
       },
-      // Their own page is re-read so the server has the last word on it; the
-      // lists above are left with the patch.
       invalidatesTags: (_result, _error, { authorId }) => [
         { type: 'SearchAuthor' as const, id: authorId },
       ],

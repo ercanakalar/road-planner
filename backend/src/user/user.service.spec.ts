@@ -198,8 +198,6 @@ describe('UserService', () => {
     it('only finds people who have published something', async () => {
       await service.searchAuthors(searchQuery(), null);
 
-      // Someone who has published nothing is not discoverable at all, which is
-      // what makes this endpoint safe to leave open.
       expect(whereOf()).toEqual({
         roads: { some: { isPublic: true, archivedAt: null } },
       });
@@ -224,8 +222,6 @@ describe('UserService', () => {
 
       const clauses = JSON.stringify(whereOf());
 
-      // Matching a field that is never returned would turn search into a probe
-      // for it, so email and last name are not searchable.
       expect(clauses).not.toContain('email');
       expect(clauses).not.toContain('lastName');
     });

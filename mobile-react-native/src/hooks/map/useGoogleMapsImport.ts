@@ -13,13 +13,6 @@ import { useTranslation } from 'react-i18next';
 const NOT_A_ROUTE =
   'errors.notARoute';
 
-/**
- * Brings a route in from a Google Maps link.
- *
- * The link is read in two steps on purpose: what comes back is shown first and
- * only added on confirmation, because the stops have been through a geocoder
- * and a name can land somewhere other than where it was meant to.
- */
 export function useGoogleMapsImport() {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -72,7 +65,6 @@ export function useGoogleMapsImport() {
     }
   }, [isReading, link]);
 
-  /** Adds what the preview is showing as a new route on this device. */
   const confirm = useCallback(
     (title: string) => {
       if (!preview || preview.resolved.length === 0) return false;

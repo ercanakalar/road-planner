@@ -21,10 +21,6 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 
-/**
- * The screen that stands in front of the app until the notice is accepted.
- * `isUpdate` marks the case where a consent exists but names an older text.
- */
 const KvkkConsentWall = ({ isUpdate }: { isUpdate: boolean }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

@@ -43,20 +43,6 @@ const SELLING_POINTS: {
   },
 ];
 
-/**
- * What the Profile tab shows before anyone has signed in.
- *
- * Deliberately not a gate in front of the app: the Map tab plans a route
- * without an account, and putting this in the way of that would take away the
- * one thing this app lets you do before committing to it. So it sits where the
- * account would be, says what an account is for, and offers the two doors.
- *
- * It is written to fit one screen, and the copy is short because of it. The
- * scroll view under it never scrolls at ordinary text sizes — `flexGrow` fills
- * the screen and there is nothing past the bottom — but it is a scroll view
- * rather than a plain `View` so that someone running a large system font gets
- * the rest of the buttons by scrolling instead of losing them off the edge.
- */
 const WelcomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -173,8 +159,6 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.caption,
       color: colors.textMuted,
     },
-    // Pinned to the bottom of whatever room is left, so the buttons land in
-    // the same place whether or not the points above fill the screen.
     actions: { gap: spacing.sm, marginTop: 'auto' },
   });
 

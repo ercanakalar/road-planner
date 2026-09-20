@@ -61,12 +61,6 @@ const ProfileScreen = ({ navigation }: Props) => {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/*
-          The card is the one place the brand shows up on a screen that is
-          otherwise a list, and the whole of it opens the editor — the avatar,
-          the name and the address are exactly what that screen changes, so
-          making them the button saves a trip through a row named after them.
-        */}
         <Pressable
           onPress={goToProfile}
           style={({ pressed }) => [styles.header, pressed && styles.pressed]}
@@ -74,12 +68,6 @@ const ProfileScreen = ({ navigation }: Props) => {
           accessibilityLabel={t('profile.editProfileOf', { name: displayName })}
         >
           <View style={styles.avatarWrap}>
-            {/*
-              An avatar nobody has set is drawn as their initial rather than
-              fetched from a stranger's placeholder service: the old fallback
-              put a photograph of an unrelated person on this screen, and told
-              that service who was looking at it.
-            */}
             {photo ? (
               <Image source={{ uri: photo }} style={styles.avatar} />
             ) : (
@@ -221,8 +209,6 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       backgroundColor: colors.textInverse,
     },
-    // Takes the leftover width so a long name truncates instead of pushing the
-    // avatar off the card.
     identity: { flex: 1, gap: spacing.xxs },
     name: {
       ...typography.title,

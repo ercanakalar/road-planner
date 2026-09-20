@@ -73,9 +73,6 @@ describe('RoadController routing', () => {
   });
 
   it('reaches search, not the road lookup, at /road/search', async () => {
-    // '/search' is a literal that '/:id' would happily swallow, and the UUID
-    // pipe on that route would turn the mistake into a 400 rather than
-    // anything that points at the cause.
     await get('/road/search?q=coast').expect(200);
 
     expect(roadService.getRoadById).not.toHaveBeenCalled();
@@ -129,9 +126,6 @@ describe('RoadController routing', () => {
     );
   });
 
-  // `/road/terrain` has to win against nothing — no POST route here takes a
-  // bare `:id` — but the coordinate reading is the one an unsaved route uses,
-  // so a regression that shadowed it would be silent on the map.
   it('reaches the coordinate reading at POST /road/terrain', async () => {
     await request(app.getHttpServer())
       .post('/road/terrain')

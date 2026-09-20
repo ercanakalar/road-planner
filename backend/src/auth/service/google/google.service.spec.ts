@@ -11,11 +11,6 @@ import { OAuth2Client } from 'google-auth-library';
 import { createConfigMock } from 'src/testing/mocks';
 import { GoogleService, isUsablePhoto, splitName } from './google.service';
 
-/**
- * A token shaped like a JWT but signed by nobody: verification is stubbed in
- * these tests, and the payload exists only so the audience can be read back
- * out of it for the log.
- */
 const idTokenWithAudience = (aud: string): string =>
   `header.${Buffer.from(JSON.stringify({ aud })).toString('base64url')}.signature`;
 

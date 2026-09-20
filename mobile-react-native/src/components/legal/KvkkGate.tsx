@@ -9,12 +9,6 @@ import {
   selectKvkkConsent,
 } from 'store/slices/kvkkSlice';
 
-/**
- * Holds the app back until the KVKK notice has been accepted. It renders the
- * wall *instead of* the app rather than over it, so nothing behind it starts
- * asking for a location or talking to the API before consent exists — and so
- * withdrawing consent later puts the wall straight back.
- */
 const KvkkGate = ({ children }: { children: ReactNode }) => {
   const isHydrated = useAppSelector((state) => state.kvkk.isHydrated);
   const isConsentRequired = useAppSelector(selectIsKvkkConsentRequired);

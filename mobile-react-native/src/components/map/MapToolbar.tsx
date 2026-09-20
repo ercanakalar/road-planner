@@ -14,10 +14,8 @@ import type { ThemeColors } from 'theme';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-  /** Distance from the top of the screen, already past the safe area. */
   top: number;
   title: string;
-  /** More than one route on the device, so the name doubles as a picker. */
   canSwitch: boolean;
   hasActiveRoute: boolean;
   onSwitch: () => void;
@@ -27,10 +25,6 @@ interface Props {
   onImportFromGoogleMaps: () => void;
 }
 
-/**
- * The row of chips floating over the map: which route is being edited, and the
- * three things you can do to it.
- */
 const MapToolbar = ({
   top,
   title,

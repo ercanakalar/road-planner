@@ -18,13 +18,6 @@ interface Props {
   label: string;
 }
 
-/**
- * One figure in a row of counts — routes, stops, favourites.
- *
- * The icon sits beside the figure rather than above it: this row shares the
- * first screenful with the greeting, the search bar and the way in to the
- * travel map, and a third line here costs more than it says.
- */
 const StatTile = ({ icon, value, label }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);

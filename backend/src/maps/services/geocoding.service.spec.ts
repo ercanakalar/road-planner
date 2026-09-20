@@ -208,7 +208,6 @@ describe('GeocodingService', () => {
         results: [area('street', 'Bağdat Cd. 1', ['street_address'], false)],
       });
 
-      // Better one box the size of a street than a tap that answers nothing.
       await expect(service.areasAt(KADIKOY)).resolves.toMatchObject([
         { placeId: 'street', name: 'Bağdat Cd. 1', kind: 'place' },
       ]);
@@ -277,7 +276,6 @@ describe('GeocodingService', () => {
     });
 
     it('cleans an address the caller supplied', async () => {
-      // The client's string is user input; it goes through the same door.
       await expect(
         service.resolveAddress(KADIKOY, '7GXR+8C, Kadıköy,  , Kadıköy'),
       ).resolves.toBe('Kadıköy');
@@ -295,7 +293,6 @@ describe('GeocodingService', () => {
     it('costs the user nothing when the lookup fails', async () => {
       client.get.mockRejectedValue(new Error('error.mapsUnavailable'));
 
-      // A stop with no name is worth keeping; a failed save is not.
       await expect(service.resolveAddress(KADIKOY)).resolves.toBe(
         UNNAMED_PLACE.address,
       );

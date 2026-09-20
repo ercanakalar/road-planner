@@ -27,14 +27,6 @@ const toStopInput = (route: LocalRoute): StopInput[] =>
     address: stop.address,
   }));
 
-/**
- * Saves routes held on this device to the account.
- *
- * `routeId` narrows it to one. The map saves the route somebody is looking at
- * — sweeping up the other three they have not opened would be a surprise from
- * a button on a screen showing only this one — while Settings, which is about
- * the device rather than any one route, still saves the lot.
- */
 export const uploadLocalRoutes =
   ({ routeId }: { routeId?: string } = {}) =>
   async (dispatch: AppDispatch, getState: () => RootState): Promise<UploadResult> => {

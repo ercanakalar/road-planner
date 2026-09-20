@@ -32,10 +32,6 @@ export function haversineMeters(from: LatLng, to: LatLng): number {
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(chord)));
 }
 
-/**
- * Compass bearing from one point to the next, 0-360 degrees clockwise from
- * north. Two identical points have no direction between them, so they answer 0.
- */
 export function bearingDegrees(from: LatLng, to: LatLng): number {
   const fromLat = toRadians(from.latitude);
   const toLat = toRadians(to.latitude);
@@ -53,11 +49,6 @@ export function bearingDegrees(from: LatLng, to: LatLng): number {
   return (toDegrees(Math.atan2(y, x)) + 360) % 360;
 }
 
-/**
- * How far a heading turns to become another, signed: negative to the left,
- * positive to the right, always the shorter way round. Going straight on is 0,
- * doubling back is 180.
- */
 export function turnDegrees(from: number, to: number): number {
   return shortestLongitudeDelta(to - from);
 }

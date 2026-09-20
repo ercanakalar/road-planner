@@ -5,21 +5,10 @@ import en from './locales/en';
 import tr from './locales/tr';
 import { SUPPORTED_LANGUAGES } from 'types/i18n';
 
-/**
- * A key with no entry renders as the key itself — `favorites.ownRoutes` in the
- * middle of a screen — and nothing else fails. These check that no such key
- * exists, and that the two dictionaries say the same things.
- */
-
 type Node = Record<string, unknown>;
 
 const DICTIONARIES: Record<string, Node> = { en, tr };
 
-/**
- * i18next selects `_one` or `_other` from the count, so both are one key as far
- * as the code is concerned. Collapsed here, or every plural sentence would look
- * like a key nothing emits.
- */
 const withoutPluralSuffix = (path: string): string =>
   path.replace(/_(zero|one|two|few|many|other)$/, '');
 
@@ -56,11 +45,6 @@ const sourceFiles = (directory: string): string[] =>
     return [path];
   });
 
-/**
- * Keys as the code writes them: a quoted `namespace.key` whose namespace is one
- * the dictionary actually has. Bounded that way because plenty of quoted
- * strings look like a dotted path and are not keys.
- */
 const emittedKeys = (): Map<string, string[]> => {
   const namespaces = Object.keys(en).join('|');
   const pattern = new RegExp(
@@ -127,8 +111,6 @@ describe('locales', () => {
   });
 
   it('finds the keys it is meant to be checking', () => {
-    // A regression in the scanner would make the check above pass for the
-    // wrong reason, so this pins that it is reading real keys out of real code.
     const keys = emittedKeys();
 
     expect(keys.size).toBeGreaterThan(100);

@@ -12,7 +12,6 @@ import { TransportMode, StopOption } from 'types/transport-type';
 interface Props {
   stops: StopWithAddress[];
   transportMode: TransportMode;
-  /** Owned by the screen, because the map has to badge the same two stops. */
   selectedPair: string[];
   onToggleSelection: (stopId: string) => void;
   onForgetSelection: (stopId: string) => void;

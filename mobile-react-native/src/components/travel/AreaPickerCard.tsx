@@ -24,7 +24,6 @@ import { withAlpha } from 'utils/color';
 const CHIP_TINT = 0.14;
 
 interface Props {
-  /** Every place covering the tapped point, narrowest first. */
   candidates: readonly MapArea[];
   selectedIndex: number;
   isMarked: boolean;
@@ -34,13 +33,6 @@ interface Props {
   onDismiss: () => void;
 }
 
-/**
- * What a tap turned up, and what to do about it.
- *
- * A point on a map is several places at once — a district, the city around it,
- * the province, the country — so all of them are offered and the narrowest is
- * picked for you. Nothing is coloured in until the button below is pressed.
- */
 const AreaPickerCard = ({
   candidates,
   selectedIndex,

@@ -19,12 +19,6 @@ interface KvkkSection {
   body: string;
 }
 
-/**
- * Every string the KVKK surfaces render. The notice is the one part of the app
- * that is bilingual: KVKK is Turkish law and the Turkish wording is the one
- * that binds, but the rest of the app speaks English and a wall of text nobody
- * can read is not consent.
- */
 export interface KvkkCopy {
   languageLabel: string;
   title: string;
@@ -49,7 +43,6 @@ export interface KvkkCopy {
   withdrawCancelLabel: string;
 }
 
-/** What is written to the device once the notice is accepted. */
 export interface KvkkConsentRecord {
   version: string;
   acceptedAt: string;

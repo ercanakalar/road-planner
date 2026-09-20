@@ -13,17 +13,8 @@ import useTravelMap from 'hooks/travel/useTravelMap';
 import { spacing, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
 
-/** Just below the floating search bar, which starts 8 in and is 52 tall. */
 const STATUS_PILL_TOP = 68;
 
-/**
- * The travel map: every country, city, village or single place somebody has
- * been, shaded onto one map.
- *
- * Marking is deliberately two taps — one to pick the place out of the several
- * that cover any point, one to colour it in — because "everywhere I have been"
- * is not a list anybody wants to have added a stray tap to.
- */
 const TravelMapScreen = () => {
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
@@ -56,8 +47,6 @@ const TravelMapScreen = () => {
     [],
   );
 
-  // The list and the picker both live along the bottom edge, and two open at
-  // once leaves the map a strip. Picking a place folds the list away.
   useEffect(() => {
     if (selected) setIsListExpanded(false);
   }, [selected]);

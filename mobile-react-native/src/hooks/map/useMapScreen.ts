@@ -17,15 +17,8 @@ import type { DetailsDraft } from 'types/components/editDetailsModal';
 import { metersToDistance, secondsToHour } from 'utils/secondsToHour';
 import { useTranslation } from 'react-i18next';
 
-/** Fractions of the window the bottom sheet rests at. */
 const SNAP_RATIOS = [0.22, 0.45, 0.75];
 
-/**
- * Everything the map screen needs to think about, so the screen itself only has
- * to lay it out: the route data from {@link useLocalMapLogic}, the compared pair
- * of stops, and the four overlays (details editor, route picker, place search,
- * drag/reorder) whose open state is the screen's own.
- */
 export function useMapScreen() {
     const dispatch = useAppDispatch();
     const confirm = useConfirm();
@@ -81,11 +74,6 @@ export function useMapScreen() {
         [handleAddPlaceAsStop],
     );
 
-    /**
-     * Offered only when there is a route with something in it and somebody to
-     * save it for. Signed out there is nowhere to put it, and the pill already
-     * on screen says so — a button that cannot work is worse than no button.
-     */
     const canSaveRoute = isLoggedIn && (activeRoute?.stops.length ?? 0) > 0;
 
     const handleSaveRoute = useCallback(() => {
@@ -163,8 +151,6 @@ export function useMapScreen() {
         canSaveRoute,
         isSavingRoute,
         handleSaveRoute,
-        // The sheet has to let go of the gestures while a row is being dragged,
-        // otherwise the sheet moves instead of the row.
         sheetGesturesEnabled: !map.draggingStopId && !isReordering,
         setIsReordering,
         isEditingDetails,

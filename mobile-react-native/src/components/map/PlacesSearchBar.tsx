@@ -37,11 +37,6 @@ const MAX_VISIBLE_RESULTS = 5;
 const ROW_HEIGHT = 48;
 
 type Props = {
-  /**
-   * Handed the whole place — where it is, what it is called, and the extent
-   * Google frames it with. The map screen only wants the coordinates; the
-   * travel map shades the extent in.
-   */
   onPlaceSelected: OnPlaceSelected;
   placeholder?: string;
 };

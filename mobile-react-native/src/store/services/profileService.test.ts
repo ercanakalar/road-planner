@@ -24,15 +24,12 @@ const jsonResponse = (status: number, body: string) =>
 
 const upload = async (store: ReturnType<typeof makeStore>) => {
   const pending = store.dispatch(
-    // Only the uri: the file itself supplies the name and the MIME type when
-    // Expo encodes the body. See toUploadPart.
     profileService.endpoints.updatePhoto.initiate({
       uri: 'file:///tmp/pick.jpeg',
     }),
   );
 
   const result = await pending;
-  // Otherwise the cache entry outlives the test on RTK's own timer.
   pending.reset();
 
   return result;
@@ -55,13 +52,10 @@ describe('updatePhoto', () => {
     const request = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(request.url).toBe('http://api.test/api/user/photo');
     expect(request.method).toBe('POST');
-    // Never application/json: the boundary has to come from the body.
     expect(request.headers.get('Content-Type')).toMatch(/^multipart\/form-data/);
   });
 
   it('does not send the file again when the upload fails', async () => {
-    // A retry re-uploads every byte. Two of them turn one slow minute into
-    // three before the person is told anything at all.
     global.fetch = jest
       .fn()
       .mockRejectedValue(new TypeError('Network request failed')) as never;

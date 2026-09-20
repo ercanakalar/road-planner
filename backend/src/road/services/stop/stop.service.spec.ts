@@ -45,8 +45,6 @@ describe('StopService', () => {
     geocoding = createGeocodingMock();
     elevation = createElevationMock();
 
-    // Prisma answers a findMany with an array or not at all, and every read of
-    // a stop now also reads its neighbours to work out its slope and bend.
     prisma.stop.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -255,7 +253,6 @@ describe('StopService', () => {
 
       const result = await service.getStopById('wp-1', 'user-1');
 
-      // No `include`: the address is a column on Stop, not a relation.
       expect(prisma.stop.findFirst.mock.calls[0][0].include).toBeUndefined();
       expect(result.data).toMatchObject({ address: 'Main St' });
     });
@@ -410,8 +407,6 @@ describe('StopService', () => {
         'wp-1',
       );
 
-      // The pin has not moved, so the ground under it is the ground it was
-      // already measured against and there is nothing to ask Google.
       expect(elevation.elevation).not.toHaveBeenCalled();
       expect(prisma.stop.update.mock.calls[0][0].data).toMatchObject({
         elevation: 100,
@@ -432,7 +427,6 @@ describe('StopService', () => {
 
       await service.updateStopWithRoadId(moved, 'wp-1');
 
-      // One statement now: there is no address row to create or link first.
       expect(prisma.stop.update).toHaveBeenCalledTimes(1);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -465,7 +459,6 @@ describe('StopService', () => {
         header: 'stop.deleteHeader',
       });
 
-      // The address is a column, so deleting the stop is the whole job.
       expect(prisma.stop.delete.mock.calls[0][0].select).toEqual({
         roadId: true,
       });

@@ -17,11 +17,6 @@ export type OpenInGoogleMaps = (
   mode?: TransportMode,
 ) => Promise<void>;
 
-/**
- * Hands a finished route over to Google Maps for the drive itself. The link is
- * the free Maps URLs scheme, so navigating a route costs the app nothing on top
- * of what planning it already did.
- */
 export function useOpenInGoogleMaps(): OpenInGoogleMaps {
   const { t } = useTranslation();
 
@@ -38,8 +33,6 @@ export function useOpenInGoogleMaps(): OpenInGoogleMaps {
         return;
       }
 
-      // The app is about to go to the background, where a toast would never
-      // be read, so the warning has to land before the handover.
       if (link.omittedCount > 0) {
         showNotification({
           type: 'info',
@@ -68,14 +61,9 @@ export function useOpenInGoogleMaps(): OpenInGoogleMaps {
 
 interface OpenRouteInGoogleMaps {
   openRouteInGoogleMaps: (routeId: string) => Promise<void>;
-  /** The route being fetched, so its row can show it is busy. */
   openingRouteId: string | null;
 }
 
-/**
- * The same handover from a list, where only the route's id is at hand and its
- * stops still have to be fetched.
- */
 export function useOpenRouteInGoogleMaps(): OpenRouteInGoogleMaps {
   const { t } = useTranslation();
   const [fetchRoute] = useLazyGetRouteByIdQuery();

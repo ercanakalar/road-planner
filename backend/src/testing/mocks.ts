@@ -79,10 +79,6 @@ export function createGeocodingMock(fallback: AddressResult = UNNAMED_PLACE): {
   };
 }
 
-/**
- * An Elevation API that answers nothing, which is what an unconfigured server
- * does too. Tests that care about heights hand their own numbers back.
- */
 export function createElevationMock(heights: (number | null)[] = []): {
   elevation: jest.Mock;
   elevations: jest.Mock;

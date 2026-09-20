@@ -11,19 +11,6 @@ const logger = new Logger('AvatarStorage');
 
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
-/**
- * What Multer is allowed to buffer before it gives up, as opposed to what this
- * service will store.
- *
- * Deliberately above AVATAR_MAX_BYTES rather than equal to it. Multer's own
- * refusal is a `MulterError` that Nest turns into `PayloadTooLarge("File too
- * large")` before any of our code sees it, and that sentence does not say what
- * the limit is — so a photo a little over the line got the least useful message
- * of the two. Leaving Multer a margin means the realistic overshoot, a phone
- * photo of six or seven megabytes, is refused by `writeAvatar` below with a
- * sentence that names the limit, while Multer still stops an upload that is
- * only trying to exhaust memory.
- */
 export const AVATAR_UPLOAD_CEILING_BYTES = AVATAR_MAX_BYTES * 2;
 
 const TYPES: { mime: string; extension: string; magic: number[] }[] = [
@@ -70,12 +57,6 @@ export async function writeAvatar(
   const directory = avatarDirectory(uploadDir);
   const filename = `${randomUUID()}.${type.extension}`;
 
-  // An upload directory the process cannot write to is a deployment fault, not
-  // a bad request, and it fails the same way for everybody until someone fixes
-  // it. Saying so — with the path and the underlying errno — is the difference
-  // between one log line and an afternoon: the usual cause is a container that
-  // drops to an unprivileged user over a root-owned directory, and a bare 500
-  // says nothing about which of the two is wrong.
   try {
     await mkdir(directory, { recursive: true });
     await writeFile(join(directory, filename), buffer);

@@ -109,12 +109,6 @@ const RouteCard = ({
             accessibilityLabel={`Open route ${item.title}`}
         >
             <View style={styles.headerRow}>
-                {/*
-          The design leads each card with a photograph. A route has none, so
-          it leads with its initial on the brand green instead — a card that
-          starts with text alone loses the row of thumbnails the list is read
-          by.
-        */}
                 <View style={styles.cover}>
                     <Text style={styles.coverInitial}>{initial}</Text>
                 </View>
@@ -157,9 +151,6 @@ const RouteCard = ({
                     accessibilityState={{ busy: isBusy }}
                     accessibilityLabel={`Options for route ${item.title}`}
                 >
-                    {/* The share sheet and the handover to Google Maps are both started
-              from this menu, so their spinner belongs on the button that
-              opened it. */}
                     {isBusy ? (
                         <ActivityIndicator
                             size='small'

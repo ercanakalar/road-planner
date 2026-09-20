@@ -48,10 +48,6 @@ const USER_AUTH_SELECT = {
   },
 } as const;
 
-/**
- * Google sign-in reads and writes the profile columns the account picker fills
- * in, which password sign-in has no reason to touch.
- */
 const USER_GOOGLE_SELECT = {
   id: true,
   email: true,
@@ -73,11 +69,6 @@ type GoogleUserRow = {
   nickName: string | null;
 };
 
-/**
- * Google serves avatars from rotating URLs on this host. One already on file is
- * therefore refreshed on every sign-in — the previous one stops resolving —
- * while a photo the user uploaded here is left exactly as it is.
- */
 const GOOGLE_PHOTO_HOST = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\//i;
 
 const isBlank = (value: string | null): boolean => !value?.trim();
@@ -88,14 +79,6 @@ const googleProfileFields = (profile: GoogleProfile) => ({
   ...(profile.photo ? { photo: profile.photo } : {}),
 });
 
-/**
- * What of the Google profile to write over an account that already exists.
- *
- * A name or photo the user set here is theirs, and signing in again is not a
- * request to have it replaced — only the empty fields are filled. The one
- * exception is an avatar that came from Google in the first place, which is
- * refreshed because its URL does not stay valid.
- */
 const googleProfilePatch = (
   existing: GoogleUserRow,
   profile: GoogleProfile,
@@ -158,14 +141,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * Notes which language to write to somebody in, when signing in says.
-   *
-   * Every answer the API gives takes its language from the request that asked;
-   * an email has no request behind it, so the last one this account was seen in
-   * is the only thing to go on. Best-effort and swallowed: failing to note a
-   * preference must not fail a sign-in that has already succeeded.
-   */
   private async rememberLanguage(
     userId: string,
     language: AppLanguage | undefined,
@@ -182,13 +157,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * How to word an email to somebody.
-   *
-   * Their stored language wins over the request's: a password reset can be
-   * asked for from a browser set to something else, and what the account
-   * chose is the better guess at what they read.
-   */
   private sayTo(stored: string | null | undefined, asked?: AppLanguage) {
     const lang = isAppLanguage(stored) ? stored : (asked ?? FALLBACK_LANGUAGE);
 

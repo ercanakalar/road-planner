@@ -24,14 +24,11 @@ describe('timeAgo', () => {
   });
 
   it('falls back to a date once the age has stopped meaning anything', () => {
-    // Past a week "38d ago" is arithmetic the reader has to do; a date is not.
     expect(ago(8 * DAY)).not.toMatch(/ago/);
     expect(ago(8 * DAY)).toMatch(/\d/);
   });
 
   it('reads a clock that is slightly ahead as now, not as a negative age', () => {
-    // Phone clocks and server clocks disagree by seconds all the time, and
-    // "in -3 minutes" is never the right answer.
     expect(timeAgo(new Date(NOW + 3 * MINUTE).toISOString(), NOW)).toBe(
       'just now',
     );

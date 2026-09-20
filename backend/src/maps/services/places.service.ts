@@ -17,9 +17,6 @@ const DETAILS_CACHE = { ttlMs: 24 * 60 * 60 * 1000, maxEntries: 500 };
 
 const NEARBY_CACHE = { ttlMs: 5 * 60 * 1000, maxEntries: 800 };
 
-// `geometry` carries the viewport as well as the point, and `type` says
-// whether that viewport is a country or a corner shop. Both are Basic fields,
-// so the richer answer is billed at the same rate as the point alone.
 const DETAIL_FIELDS = 'geometry,formatted_address,name,place_id,type';
 
 const UNNAMED_PLACE = 'Selected place';
@@ -131,11 +128,6 @@ export class PlacesService {
     });
   }
 
-  /**
-   * One place, with the extent Google frames it with. The extent is what lets
-   * a client shade a city in rather than only drop a pin in the middle of it,
-   * and it costs nothing extra to ask for.
-   */
   async placeDetails(
     placeId: string,
     sessionToken?: string,

@@ -8,14 +8,7 @@ export interface StopPosition {
 export interface StopValues extends StopPosition {
   latitude: number;
   longitude: number;
-  /** null leaves the stored address alone; a string replaces it. */
   address: string | null;
-  /**
-   * Whether the stored elevation is being replaced by `elevation`. False leaves
-   * it as it is. The two are separate because null is a real answer here — a
-   * stop that moved somewhere the Elevation API could not read has no height,
-   * and keeping the old one would put a slope on the map that nothing measured.
-   */
   refreshElevation: boolean;
   elevation: number | null;
 }
@@ -60,10 +53,6 @@ export function applyStopValues(
     ),
   );
 
-  // COALESCE is what lets a caller reorder or nudge a stop without having to
-  // resend its address: a null in that column means "leave what is there".
-  // Elevation cannot say the same thing that way, because null is one of its
-  // answers, so it carries its own flag.
   return tx.$executeRaw(Prisma.sql`
     UPDATE "Stop" AS wp
        SET latitude = v.lat,

@@ -17,11 +17,6 @@ import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { NotificationSettingsDto } from './notification-settings.dto';
 import { NotificationService } from './notification.service';
 
-/**
- * Everything here is about the caller's own inbox, and every method takes the
- * id from the token rather than the path. There is no route that reads
- * somebody else's.
- */
 @Controller('notifications')
 export class NotificationController {
   constructor(private readonly notifications: NotificationService) {}
@@ -35,7 +30,6 @@ export class NotificationController {
     return this.notifications.list(userId, pagination);
   }
 
-  // Before '/:id/read', which would otherwise take 'unread-count' as an id.
   @Get('/unread-count')
   @HttpCode(HttpStatus.OK)
   async unreadCount(@GetUser('userId') userId: string) {
@@ -57,7 +51,6 @@ export class NotificationController {
     return this.notifications.updateSettings(userId, body);
   }
 
-  /** Opening the screen marks the lot; opening one line marks that one. */
   @Post('/read')
   @HttpCode(HttpStatus.OK)
   async markAllRead(@GetUser('userId') userId: string) {

@@ -14,12 +14,6 @@ import type { RootState } from 'store';
 
 const TIMEOUT_MS = 15000;
 
-/**
- * What an upload gets instead. 15 seconds is a sensible deadline for a JSON
- * round trip of a few hundred bytes and a poor one for a photo of a few
- * megabytes: on a phone's uplink that is a request killed mid-flight, which
- * surfaces as a failure with nothing to say for itself.
- */
 export const UPLOAD_TIMEOUT_MS = 60000;
 
 const MAX_RETRIES = 2;
@@ -36,9 +30,6 @@ const rawBaseQuery = fetchBaseQuery({
       headers.set('Content-Type', 'application/json');
     }
 
-    // Everything the API says back — a toast, a validation message, an error
-    // — is worded from this header, so it goes on every request rather than
-    // only the ones that happen to show a message.
     headers.set('Accept-Language', i18n.language);
 
     const stateToken = (getState() as RootState).auth.accessToken;

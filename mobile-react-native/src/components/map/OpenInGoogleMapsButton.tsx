@@ -17,7 +17,6 @@ import { TransportMode } from 'types/transport-type';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-  /** The stops in travelling order, exactly as the list shows them. */
   stops: readonly RouteCoordinate[];
   mode: TransportMode;
 }

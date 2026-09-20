@@ -1,7 +1,6 @@
 import { EMPTY_TERRAIN, legTerrain } from './terrain';
 import { LatLng } from '../types/maps.types';
 
-/** A straight line north from Istanbul, one point every `stepMeters`. */
 const northward = (count: number, stepMeters = 100): LatLng[] =>
   Array.from({ length: count }, (_, i) => ({
     latitude: 41 + (i * stepMeters) / 111_320,
@@ -31,7 +30,6 @@ describe('legTerrain', () => {
     });
 
     it('adds up a steady climb and reads its gradient', () => {
-      // Ten points 100m apart, rising 5m each step: 45m over 900m is 5%.
       const path = northward(10);
       const rising = Array.from({ length: 10 }, (_, i) => 100 + i * 5);
 
@@ -61,13 +59,10 @@ describe('legTerrain', () => {
 
       expect(terrain.climbMeters).toBe(60);
       expect(terrain.descentMeters).toBe(60);
-      // Up and back down again nets out flat.
       expect(terrain.averageGradientPercent).toBe(0);
     });
 
     it('ignores wobble smaller than the terrain model can resolve', () => {
-      // Google's elevation has a resolution of tens of metres; ±1m between
-      // adjacent samples is the model, not the road.
       const noisy = [100, 101, 100, 101, 100, 99, 100, 101, 100, 99];
 
       const terrain = legTerrain(northward(10), noisy);
@@ -77,7 +72,6 @@ describe('legTerrain', () => {
     });
 
     it('keeps the steepest pitch rather than averaging it away', () => {
-      // Flat, then one very steep 100m step, then flat again.
       const profile = [100, 100, 100, 130, 130, 130];
 
       const terrain = legTerrain(northward(6), profile);
@@ -89,7 +83,6 @@ describe('legTerrain', () => {
     });
 
     it('crosses a gap Google had no elevation for in one step', () => {
-      // Rather than treating the unknown middle as a cliff down and back up.
       const withGap = [100, null, null, null, 120];
 
       const terrain = legTerrain(northward(5), withGap);
@@ -140,8 +133,6 @@ describe('legTerrain', () => {
     });
 
     it('does not count the drift of a road drawn as many short segments', () => {
-      // Each vertex turns a fraction of a degree — that is how a straight road
-      // is drawn, not a sequence of bends.
       const drifting: LatLng[] = Array.from({ length: 20 }, (_, i) => ({
         latitude: 41 + i * 0.001,
         longitude: 29 + i * 0.00002,

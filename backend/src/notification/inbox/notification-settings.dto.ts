@@ -8,13 +8,6 @@ const asBoolean = ({ value }: { value: unknown }): unknown => {
   return value;
 };
 
-/**
- * Where somebody wants to hear about what they follow.
- *
- * Both optional, and each written only when it is present: the settings screen
- * sends one switch at a time, and a missing field must leave the other alone
- * rather than resetting it to a default.
- */
 export class NotificationSettingsDto {
   @IsOptional()
   @Transform(asBoolean)

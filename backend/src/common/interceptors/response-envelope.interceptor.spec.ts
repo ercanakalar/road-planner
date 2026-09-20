@@ -49,8 +49,6 @@ describe('toEnvelope', () => {
 describe('ResponseEnvelopeInterceptor', () => {
   const interceptor = new ResponseEnvelopeInterceptor(testI18n());
 
-  // The interceptor reads Accept-Language off the request to decide which
-  // words to use, so a context without one is not a context it ever sees.
   const context = {
     switchToHttp: () => ({ getRequest: () => ({ headers: {} }) }),
   } as unknown as ExecutionContext;
@@ -68,8 +66,6 @@ describe('ResponseEnvelopeInterceptor', () => {
   });
 
   it('does not wrap a handler that already envelopes', async () => {
-    // A copy rather than the same object: the envelope now leaves here with
-    // its words chosen, so it cannot be the one the service built.
     const envelope = ok({ header: 'H', message: 'M' });
 
     const result = await firstValueFrom(
@@ -100,8 +96,6 @@ describe('ResponseEnvelopeInterceptor', () => {
   });
 
   it('leaves a sentence it has no translation for as it is', async () => {
-    // What keeps a corner of the API still emitting English working: the
-    // sentence is its own fallback.
     const result = await firstValueFrom(
       interceptor.intercept(
         context,

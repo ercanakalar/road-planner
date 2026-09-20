@@ -51,9 +51,6 @@ describe('useMapStyle', () => {
   });
 
   it('changes the map key when the theme changes', () => {
-    // `userInterfaceStyle` only reaches Google Maps when the map is built, so
-    // a map that outlives a theme change keeps the base it was born with. The
-    // key is what rebuilds it.
     const { latest, setMode } = renderMapStyle();
 
     setMode('dark');
@@ -72,7 +69,6 @@ describe('useMapStyle', () => {
 
     setMode('light');
     expect(latest.current.mapKey).toBe(key);
-    // A new style array on every render would re-style the map every frame.
     expect(latest.current.mapStyle).toBe(style);
   });
 });

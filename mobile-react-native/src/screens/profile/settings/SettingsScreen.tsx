@@ -141,10 +141,6 @@ const SettingsScreen = () => {
         ))}
       </View>
 
-      {/*
-        Only for somebody signed in: these are the account's, not the phone's,
-        and there is nobody to save them against otherwise.
-      */}
       {isLoggedIn ? <NotificationSettingsSection /> : null}
 
       {isLoggedIn ? <ChangePasswordSection /> : null}

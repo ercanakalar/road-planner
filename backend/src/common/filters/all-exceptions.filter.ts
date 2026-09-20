@@ -15,11 +15,6 @@ import { Phrase } from 'src/common/http/api-response';
 import { translatePhrase } from 'src/common/interceptors/response-envelope.interceptor';
 import { resolveAcceptLanguage } from 'src/i18n/languages';
 
-/**
- * Everything below is a translation key rather than a sentence. A message that
- * arrives from a thrown `HttpException` is left as it is and resolves to
- * itself, so a corner of the API still throwing English keeps working.
- */
 const STATUS_HEADERS: Record<number, string> = {
   [HttpStatus.BAD_REQUEST]: 'error.invalidRequest',
   [HttpStatus.UNAUTHORIZED]: 'error.notSignedIn',
@@ -79,15 +74,6 @@ const SQLSTATE_ERRORS: Record<string, { status: HttpStatus; message: string }> =
     },
   };
 
-/**
- * What Multer refuses an upload for, and what the caller should be told.
- *
- * Recognised by shape rather than by `instanceof`: Multer arrives through
- * `@nestjs/platform-express` rather than as a dependency of ours, so importing
- * its error class here would pin a transitive version. Left unmapped these
- * reach the client as a 500, which reads as a broken server rather than as a
- * photo that is too big.
- */
 const MULTER_ERRORS: Record<string, { status: HttpStatus; message: string }> = {
   LIMIT_FILE_SIZE: {
     status: HttpStatus.PAYLOAD_TOO_LARGE,
@@ -147,8 +133,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const say = (phrase: Phrase | undefined) =>
       translatePhrase(phrase, language, this.i18n);
 
-    // Validation errors arrive as an array of sentences; each is translated on
-    // its own so one unrecognised key does not swallow the rest.
     const message = Array.isArray(body.message)
       ? (body.message as Phrase[]).map(say)
       : say(body.message as Phrase | undefined);

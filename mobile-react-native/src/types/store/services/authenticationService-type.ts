@@ -23,7 +23,6 @@ export type SignUpArgsResponse = SessionTokens;
 export type SignInArgsResponse = SessionTokens;
 export type ValidateRefreshTokenResponse = SessionTokens;
 
-/** What Google knew about the account, as the API stored it. */
 interface GoogleUserProfile {
   id: string;
   email: string;
@@ -33,10 +32,6 @@ interface GoogleUserProfile {
   nickName: string | null;
 }
 
-/**
- * Google sign-in answers with the stored profile as well as the session, so the
- * name and avatar it filled in are visible without a second call.
- */
 export type GoogleSignInResponse = SessionTokens & {
   user?: GoogleUserProfile;
 };

@@ -24,7 +24,6 @@ import type { ThemeColors } from 'theme';
 import { MarkedArea } from 'types/travel-map';
 import { withAlpha } from 'utils/color';
 
-/** Tall enough for four rows; past that the list scrolls under the map. */
 const LIST_MAX_HEIGHT = 244;
 
 interface Props {
@@ -90,13 +89,6 @@ const MarkedAreaRow = memo(
 
 MarkedAreaRow.displayName = 'MarkedAreaRow';
 
-/**
- * What has been coloured in so far: a count that is always on screen, and the
- * list itself when it is asked for.
- *
- * It stays collapsed by default because the map is the point — the list is for
- * finding one place again, or taking one back off.
- */
 const MarkedAreasPanel = ({
   areas,
   isExpanded,

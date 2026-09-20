@@ -26,11 +26,6 @@ const SCOPES = ['openid', 'profile', 'email'];
 
 const EXCHANGE_TIMEOUT_MS = 20_000;
 
-/**
- * `expo-auth-session`'s Google provider throws while rendering if the platform's
- * client id is `undefined`. The button is hidden long before `signIn` could be
- * pressed, so this value only has to exist; it is never sent anywhere.
- */
 const UNCONFIGURED_CLIENT_ID = 'google-sign-in-not-configured';
 
 export const selectGoogleClientId = (
@@ -45,27 +40,11 @@ export const selectGoogleClientId = (
 const googleClientId = selectGoogleClientId(Platform.OS, GOOGLE_CLIENT_IDS);
 const isGoogleAuthConfigured = Boolean(googleClientId);
 
-/** One value for both the authorization request and the code exchange: Google
- * rejects an exchange whose client id differs from the one the code was issued
- * to, and there is nothing in the response that would say so. */
 const CLIENT_ID = googleClientId || UNCONFIGURED_CLIENT_ID;
 
-/**
- * Expo Go is one shared app under one shared package name, so Google's redirect
- * to *this* app's scheme never reaches it. No configuration fixes that: Google
- * sign-in needs a development build or the APK. Saying so is the point — left
- * alone the flow opens the account picker, returns to nothing, and reads as a
- * bug in this code rather than as the wrong kind of build.
- */
 const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-/**
- * The application id, which for a native Google client doubles as the only URI
- * scheme Google will redirect to: the Android package name, or the iOS bundle
- * identifier. Read from the app config rather than from `expo-application` so
- * it stays a plain string this module can quote back in an error.
- */
 export const nativeApplicationId = (
     os: string = Platform.OS,
     config: {
@@ -83,12 +62,6 @@ export const nativeApplicationId = (
     return (Array.isArray(scheme) ? scheme[0] : scheme) ?? '';
 };
 
-/**
- * `<application id>:/oauthredirect` — the same URI Expo's provider builds for
- * itself, so an OAuth client already registered against it keeps working. It is
- * spelled out here because the app has to be able to name it: a redirect Google
- * does not recognise is otherwise a blank screen with nothing to go on.
- */
 const googleRedirectUri = (): string => {
     if (Platform.OS === 'web') return makeRedirectUri();
 
@@ -105,14 +78,6 @@ type AuthOutcome =
     | { status: 'pending' }
     | { status: 'failed'; message: string };
 
-/**
- * What actually came back from the browser. Backing out is not a failure and is
- * not reported as one; everything else has to say something, because a response
- * that is neither acted on nor explained is the state this screen was stuck in.
- *
- * A plain function rather than a hook — it is called from an event handler and
- * tested on its own — so the translator is reached through the instance.
- */
 export const describeAuthResponse = (
     response: AuthSessionResult,
 ): AuthOutcome => {
@@ -120,11 +85,8 @@ export const describeAuthResponse = (
         return { status: 'cancelled' };
     }
 
-    // The browser is open and the real result is still to come; on the web that
-    // is the page navigating away and back.
     if (response.type === 'opened') return { status: 'pending' };
 
-    // iOS refuses to open a second authentication session over an open one.
     if (response.type === 'locked') {
         return {
             status: 'failed',
@@ -143,8 +105,6 @@ export const describeAuthResponse = (
         };
     }
 
-    // Every other shape is handled above; this narrows the union to the one that
-    // carries params.
     if (response.type !== 'success') {
         return {
             status: 'failed',
@@ -155,8 +115,6 @@ export const describeAuthResponse = (
     const code = response.params?.code;
     if (code) return { status: 'success', code };
 
-    // Success with no code is Google answering a request it never accepted —
-    // usually a redirect URI or a client id that does not match this platform.
     return {
         status: 'failed',
         message:
@@ -175,15 +133,6 @@ const apiMessage = (data: unknown): string | null => {
     return null;
 };
 
-/**
- * Turns whatever the exchange or the API rejected with into one line someone
- * can act on. The generic "sign-in failed" is the last resort, not the default:
- * every one of these failures used to arrive as silence.
- *
- * The lines left in English below describe a build or a server nobody
- * configured — a missing client id, Expo Go — and are read by whoever is
- * setting this up rather than by anybody using the app.
- */
 export const describeSignInError = (error: unknown): string => {
     if (typeof error === 'object' && error !== null && 'status' in error) {
         const { status, data } = error as { status: unknown; data?: unknown };
@@ -228,7 +177,6 @@ interface GoogleAuthState {
     isAvailable: boolean;
     isBusy: boolean;
     error: Error | null;
-    /** Why the button cannot be used, when that is worth telling the user. */
     unavailableReason: string | null;
     signIn: () => Promise<void>;
 }
@@ -237,20 +185,12 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
     const redirectUri = useMemo(googleRedirectUri, []);
 
     const [request, response, promptAsync] = Google.useAuthRequest({
-        // The platform's id is picked here rather than by the provider, so a
-        // platform with none configured hides the button instead of throwing
-        // mid-render.
         clientId: CLIENT_ID,
         redirectUri,
         scopes: SCOPES,
         responseType: ResponseType.Code,
         usePKCE: true,
-        // The provider's own code exchange has no failure path: when Google refuses
-        // the code it never resolves, the response stays null, and the button spins
-        // for as long as the screen is open. Ours is below, with a timeout.
         shouldAutoExchangeCode: false,
-        // Always offer the account picker. Without it a second sign-in silently
-        // reuses the first account, which cannot then be changed from inside the app.
         selectAccount: true,
     });
     const [signInWithGoogle, { isLoading }] = useSignInWithGoogleMutation();
@@ -258,8 +198,6 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
     const [error, setError] = useState<Error | null>(null);
     const exchanged = useRef<string | null>(null);
 
-    // Held in refs so neither one re-runs the exchange below: a second run would
-    // abandon the first while its code is already spent.
     const requestRef = useRef(request);
     const onSuccessRef = useRef(onSuccess);
     const isMounted = useRef(true);
@@ -291,7 +229,6 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
 
         const outcome = describeAuthResponse(response);
 
-        // Still in the browser: leave the button busy and wait for the real result.
         if (outcome.status === 'pending') return;
 
         if (outcome.status !== 'success') {
@@ -300,7 +237,6 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
             return;
         }
 
-        // A re-render must not spend the same code twice: Google issues it once.
         if (exchanged.current === outcome.code) return;
         exchanged.current = outcome.code;
 
@@ -336,7 +272,6 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
         finish()
             .then(() => onSuccessRef.current?.())
             .catch((cause) => {
-                // Let the user try again rather than leaving a spent code in the way.
                 exchanged.current = null;
                 fail(describeSignInError(cause), cause);
             })
@@ -369,8 +304,6 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
         setIsPrompting(true);
 
         try {
-            // The result is handled by the effect above; only a failure to open the
-            // browser at all is rejected here.
             await promptAsync();
         } catch (cause) {
             if (isMounted.current) setIsPrompting(false);

@@ -19,11 +19,6 @@ const SORTS: Record<RoadSearchSort, Prisma.RoadOrderByWithRelationInput[]> = {
   title: [{ title: 'asc' }, { id: 'asc' }],
 };
 
-/**
- * A term is worth searching only once it is long enough to exclude anything.
- * Anything shorter is treated as no term at all, so the caller gets the newest
- * public routes rather than an arbitrary slice of all of them.
- */
 export function searchTerm(q: string | undefined): string | undefined {
   const trimmed = q?.trim();
   return trimmed && trimmed.length >= MIN_SEARCH_TERM_LENGTH
@@ -35,11 +30,6 @@ export function searchTerm(q: string | undefined): string | undefined {
 export class RoadSearchService {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Public routes only. Search is the front door to other people's routes, so
-   * it never reaches past `isPublic` — a private route stays invisible to
-   * everyone but its owner, who reaches it through their own list.
-   */
   private where(query: RoadSearchQueryDto): Prisma.RoadWhereInput {
     const term = searchTerm(query.q);
 
@@ -60,15 +50,6 @@ export class RoadSearchService {
 
     if (query.authorId) filters.push({ userId: query.authorId });
 
-    // Stop counts are filtered through `order` rather than by counting rows,
-    // because Prisma cannot put a relation count in a `where` and doing it in
-    // application code after paging would return short pages and a wrong total.
-    //
-    // This leans on `order` being a dense 1-based rank per road, which is what
-    // every writer produces — `positionByRank` on create, `index + 1` on
-    // reorder, and `compactStopOrder` after a delete — and what the
-    // `@@unique([roadId, order])` constraint keeps unique. A road therefore has
-    // at least N stops exactly when one of them is ranked N or higher.
     if (query.minStops !== undefined && query.minStops > 0) {
       filters.push({ stops: { some: { order: { gte: query.minStops } } } });
     }

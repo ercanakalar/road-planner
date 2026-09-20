@@ -8,8 +8,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       SharedRouteScreen: `${SHARE_PATH}/:token`,
-      // What the "they published a route" email links to. The screen reads
-      // nothing but the id from these params; the title is its own fallback.
       CommunityRouteScreen: `${ROUTE_PATH}/:routeId`,
     },
   },

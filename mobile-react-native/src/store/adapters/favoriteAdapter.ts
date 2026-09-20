@@ -13,7 +13,6 @@ import {
 } from 'types/store/services/favoriteService-type';
 import i18n from 'i18n';
 
-/** The four buckets the API splits favourites into, in the order they show. */
 export const FAVORITE_SECTION_KEYS: readonly FavoriteSectionKey[] = [
   'ownRoutes',
   'ownStops',
@@ -54,8 +53,6 @@ const toStopEntry =
       ? `${row.stop.latitude.toFixed(4)}, ${row.stop.longitude.toFixed(4)}`
       : undefined;
 
-    // A pin dropped away from any address arrives with nothing usable — a Plus
-    // Code, or an empty string — and coordinates are then the only honest label.
     const defaultTitle =
       addressName(address) || coordinates || i18n.t('defaults.savedPlace');
 
@@ -73,11 +70,6 @@ const toStopEntry =
     };
   };
 
-/**
- * The API's four buckets, renamed to the app's vocabulary on the way in. This
- * is the only place that reads the server's `ownRoads` / `othersRoads` / `road`
- * keys, so nothing downstream has to know they exist.
- */
 export const normalizeFavorites = (raw?: RawFavorites): NormalizedFavorites => {
   if (!raw) return EMPTY_FAVORITES;
   return {

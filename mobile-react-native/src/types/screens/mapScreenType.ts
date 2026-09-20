@@ -29,9 +29,7 @@ export interface FavoriteSectionDescriptor {
   key: FavoriteSectionKey;
   title: string;
   icon: MaterialIconName;
-  /** What the list draws — empty while the section is collapsed. */
   data: FavoriteEntry[];
-  /** How many the section holds, which a collapsed header still reports. */
   count: number;
 }
 
@@ -62,7 +60,6 @@ export interface RoutesListProps {
   onShare: (route: OwnRouteSummary) => void;
   onOpenInGoogleMaps: (route: OwnRouteSummary) => void;
   sharingRouteId?: string | null;
-  /** The route whose stops are being fetched for the handover to Google. */
   openingInMapsRouteId?: string | null;
 }
 
@@ -86,9 +83,5 @@ export interface MapSectionProps {
   mapRef: React.RefObject<MapView | null>;
   foundPlaces?: RoutePlace[];
   onFoundPlacePress?: (place: RoutePlace) => void;
-  /**
-   * The stops being compared, in the order they were picked, so the map can
-   * label them A and B to match the list.
-   */
   selectedStopIds?: readonly string[];
 }

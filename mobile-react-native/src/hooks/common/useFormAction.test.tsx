@@ -103,7 +103,6 @@ describe('useFormAction', () => {
     await submit(latest);
     expect(latest.current.error).toBe('Sign-in failed.');
 
-    // A complaint about a value that has since been retyped is just noise.
     await type(latest, 'someone.else@example.com');
     expect(latest.current.error).toBe('');
   });

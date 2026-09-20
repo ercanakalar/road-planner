@@ -7,8 +7,6 @@ import { darkColors, lightColors } from 'theme';
 const root = join(__dirname, '..', '..');
 const { expo } = appJson;
 
-// SDK 55 dropped the top-level `splash` key; the splash screen is configured
-// through the expo-splash-screen config plugin instead.
 type SplashConfig = {
   image: string;
   backgroundColor: string;
@@ -25,8 +23,6 @@ if (!splashPlugin) {
 
 const splash = splashPlugin[1];
 
-// The first 26 bytes of a PNG are the signature and the IHDR chunk, which is
-// all these checks need — no decoding, no image library.
 const header = (relativePath: string) => {
   const bytes = readFileSync(join(root, relativePath));
 
@@ -38,7 +34,6 @@ const header = (relativePath: string) => {
   return {
     width: bytes.readUInt32BE(16),
     height: bytes.readUInt32BE(20),
-    // 2 is RGB, 6 is RGBA; anything else we do not ship.
     hasAlpha: bytes[25] === 6 || bytes[25] === 4,
   };
 };
@@ -55,8 +50,6 @@ describe('launcher and store images', () => {
   ];
 
   it.each(declared)('%s is a PNG that exists', (_name, path) => {
-    // Expo rasterises these itself and silently ignores an SVG, shipping its
-    // own placeholder icon instead, so the extension is worth asserting.
     expect(path).toMatch(/\.png$/);
     expect(() => header(path)).not.toThrow();
   });
@@ -77,8 +70,6 @@ describe('launcher and store images', () => {
   });
 
   it('keeps the iOS icon opaque', () => {
-    // iOS renders a transparent app icon with black wherever the alpha is, and
-    // the App Store rejects one outright.
     expect(header(expo.icon).hasAlpha).toBe(false);
   });
 
@@ -108,13 +99,11 @@ describe('launcher and store images', () => {
 
 describe('launch colours', () => {
   it('opens on the same background the app then draws', () => {
-    // A splash in a different colour flashes as the first screen mounts.
     expect(splash.backgroundColor.toUpperCase()).toBe(lightColors.background);
     expect(splash.dark.backgroundColor.toUpperCase()).toBe(darkColors.background);
   });
 
   it('falls back to the brand colour behind the adaptive icon', () => {
-    // Only used by launchers that ignore backgroundImage.
     expect(expo.android.adaptiveIcon.backgroundColor.toUpperCase()).toBe(lightColors.primary);
   });
 });

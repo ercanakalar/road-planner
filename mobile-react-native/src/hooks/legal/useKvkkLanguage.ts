@@ -11,14 +11,6 @@ interface KvkkLanguageState {
   setLanguage: (language: KvkkLanguage) => void;
 }
 
-/**
- * Which language the notice opens in: the one a consent was last given in, so
- * the text someone re-reads is the text they agreed to. Failing that, whatever
- * the app is showing — which is the phone's language until somebody picks one.
- *
- * The notice is a legal text with its own toggle above it, so this is only the
- * starting point, and a wrong guess still costs one tap.
- */
 export function useKvkkLanguage(): KvkkLanguageState {
   const acceptedIn = useAppSelector((state) => state.kvkk.consent?.language);
   const { language: appLanguage } = useAppLanguage();

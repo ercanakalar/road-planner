@@ -23,8 +23,6 @@ describe('transformApiPage', () => {
   });
 
   it('keeps the unpaged total, which is what a filter is about', () => {
-    // Two rows are on screen; three hundred and twelve matched. The second
-    // number is the one worth showing next to the filters.
     expect(transformApiPage(envelope).total).toBe(312);
   });
 

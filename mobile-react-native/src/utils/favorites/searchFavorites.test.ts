@@ -50,7 +50,6 @@ describe('searchFavorites', () => {
   });
 
   it('matches on the name the entry came with, not only the label', () => {
-    // Someone who renamed "Coast run" to "Sunday drive" may search for either.
     expect(searchFavorites(favorites, 'coast').ownRoutes).toHaveLength(1);
   });
 
@@ -64,7 +63,6 @@ describe('searchFavorites', () => {
   });
 
   it('finds a Turkish name typed on an English keyboard', () => {
-    // An English keyboard types neither the dotless ı nor the ö.
     expect(searchFavorites(favorites, 'kadikoy').othersStops).toHaveLength(1);
     expect(searchFavorites(favorites, 'İSTANBUL').ownStops).toHaveLength(1);
   });

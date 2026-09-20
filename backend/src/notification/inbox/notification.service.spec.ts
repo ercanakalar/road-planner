@@ -51,8 +51,6 @@ describe('NotificationService', () => {
     });
 
     it('skips anybody who has turned the inbox off', async () => {
-      // The filter is a query rather than a read-then-check: one statement,
-      // and no window where a preference changed in between.
       await service.notifyMany(['a', 'b'], ENTRY);
 
       expect(prisma.user.findMany.mock.calls[0][0].where).toEqual({
@@ -74,9 +72,6 @@ describe('NotificationService', () => {
     });
 
     it('drops a repeat rather than failing on it', async () => {
-      // Publishing a route, taking it private and publishing it again is one
-      // piece of news. skipDuplicates is what lets the publish path write
-      // without first asking what is already there.
       prisma.user.findMany.mockResolvedValue([{ id: 'a' }]);
 
       await service.notifyMany(['a'], ENTRY);
@@ -106,8 +101,6 @@ describe('NotificationService', () => {
     });
 
     it('reports the unread count alongside the page', async () => {
-      // The badge and the list come from one request; asking twice would let
-      // them disagree on screen.
       prisma.notification.count
         .mockResolvedValueOnce(42)
         .mockResolvedValueOnce(7);
@@ -142,8 +135,6 @@ describe('NotificationService', () => {
     });
 
     it('marks a line whose route is no longer public as not openable', async () => {
-      // The line stays: it is a true record of what happened. Tapping it is
-      // what would go nowhere.
       prisma.notification.findMany.mockResolvedValue([
         {
           id: 'n1',
@@ -201,9 +192,6 @@ describe('NotificationService', () => {
     });
 
     it('scopes by owner as well as by id, so somebody else’s line matches nothing', async () => {
-      // updateMany rather than update on purpose: the id alone never decides
-      // whose row it is, and a miss is a no-op rather than a refusal that
-      // confirms the row exists.
       await service.markRead(ME, 'someone-elses-notification');
 
       expect(prisma.notification.updateMany.mock.calls[0][0].where).toEqual(
@@ -236,8 +224,6 @@ describe('NotificationService', () => {
     });
 
     it('writes only the switch that was sent', async () => {
-      // The screen sends one at a time; a missing field must leave the other
-      // alone rather than reset it.
       prisma.user.update.mockResolvedValue({
         notifyInApp: true,
         notifyByEmail: false,

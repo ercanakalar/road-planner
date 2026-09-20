@@ -37,8 +37,6 @@ describe('travelMapSlice', () => {
   });
 
   it('is hydrated even when the device had nothing on it', () => {
-    // The screen tells "still loading" from "nothing marked yet" by this flag
-    // alone, and an empty list is an answer.
     expect(reducer(undefined, travelAreasHydrated([])).isHydrated).toBe(true);
   });
 
