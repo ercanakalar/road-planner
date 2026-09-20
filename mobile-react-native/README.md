@@ -268,6 +268,25 @@ if (await confirm({ title: 'Delete route?', tone: 'danger' })) remove();
 Every field is optional. A second request while one is open resolves the first
 as cancelled, so no caller is left awaiting a promise that never settles.
 
+## Publishing to Google Play
+
+Everything the Play Console asks for — icon, feature graphic, framed
+screenshots in English and Turkish, listing text, a privacy policy page, the
+Data safety answers and the reviewer account — lives in
+[`store-assets/`](store-assets/), with the order of operations in
+[`store-assets/PLAY-CONSOLE-CHECKLIST.md`](store-assets/PLAY-CONSOLE-CHECKLIST.md).
+
+Play takes an app bundle, not an APK:
+
+```bash
+OUTPUT_FORMAT=aab docker compose -f docker-compose.apk.yml run --rm build-apk
+# → apk-output/travel-routes-release.aab
+```
+
+Play re-signs the bundle with its own key, so after the first upload the
+*app signing* certificate's SHA-1 has to go on the Android OAuth client and
+its SHA-256 into `assetlinks.json` — the checklist says where to read them.
+
 ## Google sign-in
 
 Optional. With no client id configured the button is not rendered and
@@ -290,22 +309,19 @@ Three things are checked by Google or by the API, and each rejects a mismatch:
 | The client id compiled into the build | An OAuth client of the **platform being built** (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `..._IOS_...`). A web client id here is refused by Google. |
 | The audience the API accepts | The same client id, listed in the backend's `GOOGLE_NATIVE_CLIENT_IDS` (its `GOOGLE_CLIENT_ID` is always accepted as well). |
 
-An Android OAuth client is keyed by package name **and** signing certificate, so
-a debug build and a release build are two different clients:
+An Android OAuth client is keyed by package name **and** signing certificate.
+Every build path here signs with the one keystore described under
+[Signing](#signing), so a single Android client covers debug, release, Docker
+and EAS builds alike. Its fingerprint:
 
 ```bash
-# release — the APK build prints this fingerprint itself
-docker compose -f docker-compose.apk.yml run --rm build-apk
-
-# debug — the key `expo run:android` signs with
-keytool -list -v -keystore ~/.android/debug.keystore \
-  -alias androiddebugkey -storepass android -keypass android
+keytool -list -v -keystore ~/.keystores/travel-routes.keystore \
+  -alias roadplanner -storepass android | grep -E 'SHA1|SHA256'
 ```
 
-Create one client per fingerprint in **Google Cloud console → APIs & Services →
-Credentials → OAuth client ID → Android**, package
-`net.travelroutes.travelroutes`. Put the one for the build you are making in
-`.env`, and list *both* on the backend so either build can sign in.
+Create the client in **Google Cloud console → APIs & Services → Credentials →
+OAuth client ID → Android**, package `net.travelroutes.travelroutes`, with
+that SHA-1. Put its id in `.env` and list it on the backend.
 
 ### Development
 
@@ -322,9 +338,9 @@ npx expo run:android          # or: npx expo run:ios
 
 ### Production
 
-The release APK is signed by the keystore in the `apk-keystore` volume, so its
-fingerprint — and therefore its OAuth client — is stable across rebuilds. See
-[Signing and Google sign-in](#signing-and-google-sign-in).
+Release builds sign with the same keystore as everything else, so the
+fingerprint — and therefore the OAuth client — is stable across rebuilds and
+build paths. See [Signing](#signing).
 
 ### When it does not work
 
@@ -703,6 +719,63 @@ Neither can be produced from this repository:
   profile photo, and shows a KVKK notice (`components/legal/`), but Play needs
   the policy hosted at a public URL.
 
+## Signing
+
+Google's OAuth client, `assetlinks.json` for the share links, and the Android
+developer-verification registration are all keyed by the app's signing
+certificate. They stay valid only while every APK carries the same
+fingerprint, which means every build — `expo run:android`, the Docker build,
+EAS — has to sign with the **same keystore file**. Fingerprints are derived
+from the key; there is no way to "set" them on a build.
+
+The key is `travel-routes.keystore` (alias `roadplanner`). It is not in git.
+Keep a copy somewhere safe: if it is lost the fingerprint is gone with it and
+every registration above has to be redone, and installed copies of the app
+refuse to update.
+
+| Build | Where it finds the key |
+| --- | --- |
+| `npx expo run:android` (debug or `--variant release`) | `ANDROID_KEYSTORE_PATH` in `.env`. `app.config.js` feeds it to `plugins/withAppSigning.js`, which points both build types at it in the generated `build.gradle`. Unset, the stock debug key is used and the fingerprint is wrong. |
+| Docker (`docker-compose.apk.yml`) | `~/.keystores/travel-routes.keystore` on the host, mounted at `/keystore`. Override the folder with `ANDROID_KEYSTORE_DIR`. |
+| EAS Build | `credentials.json` (`credentialsSource: local` in `eas.json`), pointing at `credentials/travel-routes.keystore`. Both are gitignored. |
+
+Setting up a new machine:
+
+```bash
+mkdir -p ~/.keystores && cp <backup>/travel-routes.keystore ~/.keystores/
+mkdir -p mobile-react-native/credentials && cp ~/.keystores/travel-routes.keystore mobile-react-native/credentials/
+```
+
+then in `mobile-react-native/.env`:
+
+```bash
+ANDROID_KEYSTORE_PATH=/home/<you>/.keystores/travel-routes.keystore
+ANDROID_KEYSTORE_PASSWORD=android
+ANDROID_KEY_ALIAS=roadplanner
+# ANDROID_KEY_PASSWORD defaults to the store password
+```
+
+and `mobile-react-native/credentials.json`:
+
+```json
+{
+  "android": {
+    "keystore": {
+      "keystorePath": "credentials/travel-routes.keystore",
+      "keystorePassword": "android",
+      "keyAlias": "roadplanner",
+      "keyPassword": "android"
+    }
+  }
+}
+```
+
+Check any APK before handing it out:
+
+```bash
+apksigner verify --print-certs apk-output/travel-routes-release.apk | grep SHA
+```
+
 ## Building an installable APK with Docker
 
 Produces a signed APK without an Expo account, Android Studio, or a JDK on the
@@ -720,6 +793,17 @@ adb install -r apk-output/travel-routes-release.apk
 
 The first run downloads the Android SDK and Gradle dependencies and takes a
 while; later runs reuse both from named volumes.
+
+`scripts/build-android.sh` is copied into the image, so after editing it (or
+`Dockerfile.android`) pass `--build` once, or the container keeps running the
+old copy:
+
+```bash
+docker compose -f docker-compose.apk.yml run --build --rm build-apk
+```
+
+Only one build at a time: two containers share the same `node_modules`, and
+each one's `npm ci` deletes files the other is compiling.
 
 ### Configuration
 
@@ -746,16 +830,16 @@ real release and the opt-in disappears on its own.
 
 ### Signing and Google sign-in
 
-The signing key is generated on the first run into a named volume and reused
-afterwards, so the certificate fingerprint stays the same between builds. The
-build prints its SHA-1; register that against package
-`net.travelroutes.travelroutes` in the Android OAuth client, or Google
-sign-in is refused. The rest of that setup is under
-[Google sign-in](#google-sign-in).
+The build signs with the keystore mounted at `/keystore/travel-routes.keystore`,
+which comes from `~/.keystores` on the host (`ANDROID_KEYSTORE_DIR` to point it
+elsewhere). That is the same key every other build path uses — see
+[Signing](#signing) — so the fingerprint the build prints is the one already
+registered with Google. If no keystore is there a fresh one is generated, with
+a fresh fingerprint that nothing is registered against; that is only useful
+for a throwaway build.
 
-Deleting the `apk-keystore` volume generates a new key with a new fingerprint,
-and Android refuses to install an update signed by a different key — uninstall
-the app first if that happens.
+Android refuses to install an update signed by a different key — uninstall the
+app first if that happens.
 
 ### Reading a crash off the phone
 

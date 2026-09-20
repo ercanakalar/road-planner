@@ -8,7 +8,9 @@ import { EMAIL_PATTERN } from 'hooks/auth/useSignInForm';
 import { RootStackParamList } from 'types/screens/screens';
 import i18n from 'i18n';
 
-export const MIN_PASSWORD_LENGTH = 6;
+// Mirrors the API (PASSWORD_MIN_LENGTH, PASSWORD_PATTERN): 8+, a letter and a digit.
+export const MIN_PASSWORD_LENGTH = 8;
+export const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 
 type SignUpValues = {
   email: string;
@@ -26,8 +28,8 @@ const validate = ({ email, password, confirmPassword }: SignUpValues) => {
   if (!email || !password || !confirmPassword)
     return i18n.t('forms.allFieldsRequired');
   if (!EMAIL_PATTERN.test(email)) return i18n.t('forms.validEmail');
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (password.length < MIN_PASSWORD_LENGTH || !PASSWORD_PATTERN.test(password)) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters, with a letter and a number.`;
   }
   if (password !== confirmPassword) return i18n.t('forms.passwordsDoNotMatch');
   return '';
