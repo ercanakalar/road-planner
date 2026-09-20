@@ -74,11 +74,11 @@ const RouteCard = ({
                 icon: 'navigate-outline',
                 action: () => onOpenInGoogleMaps(item),
             },
-            {
-                label: t('defaults.shareALink'),
-                icon: 'share-social-outline',
-                action: () => onShare(item),
-            },
+            // {
+            //     label: t('defaults.shareALink'),
+            //     icon: 'share-social-outline',
+            //     action: () => onShare(item),
+            // },
             {
                 label: t('defaults.editDetails'),
                 icon: 'create-outline',
