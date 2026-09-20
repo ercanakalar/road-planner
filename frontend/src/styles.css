@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand: #1967d2;
+  --color-brand-dark: #8ab4f8;
+  --color-soft: #e8f0fe;
+  --color-soft-dark: #28313f;
+  --color-line: #e0e3e7;
+  --color-line-dark: #3c4043;
+  --color-muted: #5f6368;
+  --color-muted-dark: #9aa0a6;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-white text-[#202124] antialiased dark:bg-[#202124] dark:text-[#e8eaed];
+}
+
+/* Long-form policy text: styled once here instead of per element in the template. */
+.prose-policy {
+  h1 {
+    @apply mb-1 text-3xl font-bold leading-tight;
+  }
+  h2 {
+    @apply mt-9 mb-2 text-xl font-semibold;
+  }
+  p {
+    @apply my-3;
+  }
+  .meta {
+    @apply text-sm text-muted dark:text-muted-dark;
+  }
+  .note {
+    @apply rounded-xl bg-soft px-4 py-3 dark:bg-soft-dark;
+  }
+  a {
+    @apply text-brand underline-offset-2 hover:underline dark:text-brand-dark;
+  }
+  ul {
+    @apply my-3 list-disc space-y-2 pl-6;
+  }
+  ol {
+    @apply my-3 list-decimal space-y-2 pl-6;
+  }
+  table {
+    @apply my-4 w-full border-collapse text-[15px];
+  }
+  th,
+  td {
+    @apply border-t border-line px-1.5 py-2 text-left align-top dark:border-line-dark;
+  }
+  th {
+    @apply font-semibold text-muted dark:text-muted-dark;
+  }
+  code {
+    @apply rounded-md bg-soft px-1.5 py-px text-sm dark:bg-soft-dark;
+  }
+}
