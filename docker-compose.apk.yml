@@ -6,11 +6,16 @@ services:
         image: road-planner-android-builder
         environment:
             BUILD_TYPE: ${BUILD_TYPE:-release}
+            # apk (default) or aab — Play only accepts the bundle
+            OUTPUT_FORMAT: ${OUTPUT_FORMAT:-apk}
+            # The keystore is mounted from the host (see ANDROID_KEYSTORE_DIR),
+            # so the path inside the container is fixed regardless of .env.
+            ANDROID_KEYSTORE_PATH: /keystore/travel-routes.keystore
         env_file:
             - ./mobile-react-native/.env.production
         volumes:
             - ./mobile-react-native:/app
-            - apk-keystore:/keystore
+            - ${ANDROID_KEYSTORE_DIR:-${HOME}/.keystores}:/keystore
             - ./apk-output:/output
             - apk-gradle-cache:/gradle-cache
 
@@ -28,5 +33,4 @@ services:
             - ./apk-output:/output
 
 volumes:
-    apk-keystore:
     apk-gradle-cache:

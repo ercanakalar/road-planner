@@ -17,3 +17,13 @@ ios/
 .rootowned_android
 .rootowned_expo
 .rootowned_node_modules
+
+/plugins/adi-registration.properties
+# signing key — never commit; see README "Signing"
+credentials.json
+credentials/
+*.keystore
+*.jks
+
+# store video is regenerated from a screen recording; too large to version
+store-assets/video/
