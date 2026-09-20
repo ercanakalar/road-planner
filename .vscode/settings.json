@@ -2,7 +2,8 @@
   "conventionalCommits.scopes": [
     "Mobile-React-Native",
     "Backend-NestJS:",
-    "Both"
+    "Both",
+    "Frontend"
 ],
   "editor.tabSize": 4,
   "editor.detectIndentation": false
