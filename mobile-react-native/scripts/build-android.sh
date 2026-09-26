@@ -138,35 +138,73 @@ if [ "${OUTPUT_FORMAT}" = "aab" ]; then
   exit 0
 fi
 
-say "Building the ${BUILD_TYPE} APK"
-cd android
-GRADLE_TASK="assemble$(echo "${BUILD_TYPE}" | sed 's/^./\U&/')"
-./gradlew "${GRADLE_TASK}" --no-daemon --stacktrace
+case "${OUTPUT_FORMAT}" in
+  apk|aab|both) ;;
+  *) echo "OUTPUT_FORMAT must be apk, aab or both (got '${OUTPUT_FORMAT}')" >&2; exit 1 ;;
+esac
 
-say "Signing"
+TYPE_CAP="$(echo "${BUILD_TYPE}" | sed 's/^./\U&/')"
+GRADLE_TASKS=()
+[ "${OUTPUT_FORMAT}" != "aab" ] && GRADLE_TASKS+=("assemble${TYPE_CAP}")
+[ "${OUTPUT_FORMAT}" != "apk" ] && GRADLE_TASKS+=("bundle${TYPE_CAP}")
+
+say "Building the ${BUILD_TYPE} ${OUTPUT_FORMAT}"
+cd android
+./gradlew "${GRADLE_TASKS[@]}" --no-daemon --stacktrace
 cd /app
-UNSIGNED="$(find android/app/build/outputs/apk/"${BUILD_TYPE}" -name '*.apk' | head -1)"
-if [ -z "${UNSIGNED}" ]; then
-  echo "gradle produced no apk under android/app/build/outputs/apk/${BUILD_TYPE}" >&2
-  exit 1
-fi
 
 BUILD_TOOLS_DIR="$(ls -d "${ANDROID_HOME}"/build-tools/* | sort -V | tail -1)"
-ALIGNED="/tmp/aligned.apk"
-FINAL="${OUTPUT_DIR}/travel-routes-${BUILD_TYPE}.apk"
+EXPECTED_SHA256="$(keytool -list -v -keystore "${KEYSTORE}" -alias "${KEY_ALIAS}" \
+  -storepass "${STORE_PASSWORD}" | grep -oP 'SHA256: \K[0-9A-F:]+' | tr -d ':' | tr 'A-F' 'a-f')"
+OUTPUTS=()
 
-"${BUILD_TOOLS_DIR}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
-"${BUILD_TOOLS_DIR}/apksigner" sign \
-  --ks "${KEYSTORE}" \
-  --ks-key-alias "${KEY_ALIAS}" \
-  --ks-pass "pass:${STORE_PASSWORD}" \
-  --key-pass "pass:${KEY_PASSWORD}" \
-  --out "${FINAL}" \
-  "${ALIGNED}"
+if [ "${OUTPUT_FORMAT}" != "aab" ]; then
+  say "Signing the APK"
+  UNSIGNED="$(find android/app/build/outputs/apk/"${BUILD_TYPE}" -name '*.apk' | head -1)"
+  if [ -z "${UNSIGNED}" ]; then
+    echo "gradle produced no apk under android/app/build/outputs/apk/${BUILD_TYPE}" >&2
+    exit 1
+  fi
+  ALIGNED="/tmp/aligned.apk"
+  FINAL_APK="${OUTPUT_DIR}/travel-routes-${BUILD_TYPE}.apk"
 
-"${BUILD_TOOLS_DIR}/apksigner" verify --print-certs "${FINAL}" | head -5
+  "${BUILD_TOOLS_DIR}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
+  "${BUILD_TOOLS_DIR}/apksigner" sign \
+    --ks "${KEYSTORE}" \
+    --ks-key-alias "${KEY_ALIAS}" \
+    --ks-pass "pass:${STORE_PASSWORD}" \
+    --key-pass "pass:${KEY_PASSWORD}" \
+    --out "${FINAL_APK}" \
+    "${ALIGNED}"
+
+  "${BUILD_TOOLS_DIR}/apksigner" verify --print-certs "${FINAL_APK}" | head -5
+  OUTPUTS+=("${FINAL_APK}")
+fi
+
+if [ "${OUTPUT_FORMAT}" != "apk" ]; then
+  say "Checking the bundle's signature"
+  BUNDLE="$(find android/app/build/outputs/bundle/"${BUILD_TYPE}" -name '*.aab' | head -1)"
+  if [ -z "${BUNDLE}" ]; then
+    echo "gradle produced no aab under android/app/build/outputs/bundle/${BUILD_TYPE}" >&2
+    exit 1
+  fi
+  FINAL_AAB="${OUTPUT_DIR}/travel-routes-${BUILD_TYPE}.aab"
+  cp "${BUNDLE}" "${FINAL_AAB}"
+
+  # Gradle signed it with the release signingConfig (from ANDROID_KEYSTORE_PATH
+  # via app.config.js). Make sure that really is the registered key, since
+  # Play rejects a bundle signed by any other.
+  BUNDLE_SHA256="$(keytool -printcert -jarfile "${FINAL_AAB}" | grep -oP 'SHA256: \K[0-9A-F:]+' | head -1 | tr -d ':' | tr 'A-F' 'a-f')"
+  echo "Bundle signer SHA-256: ${BUNDLE_SHA256}"
+  if [ "${BUNDLE_SHA256}" != "${EXPECTED_SHA256}" ]; then
+    echo "the bundle is not signed with ${KEYSTORE} (expected ${EXPECTED_SHA256})" >&2
+    exit 1
+  fi
+  OUTPUTS+=("${FINAL_AAB}")
+fi
 
 say "Done"
-ls -lh "${FINAL}"
-echo "Install it with:  adb install -r $(basename "${FINAL}")"
-echo "or copy it to the phone and open it."
+ls -lh "${OUTPUTS[@]}"
+[ -n "${FINAL_APK:-}" ] && echo "Install the APK with:  adb install -r $(basename "${FINAL_APK}")"
+[ -n "${FINAL_AAB:-}" ] && echo "Upload the AAB to the Play Console."
+exit 0

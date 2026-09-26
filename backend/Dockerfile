@@ -1,5 +1,5 @@
 # Stage 1: Dependencies
-FROM node:20-alpine AS dependencies
+FROM node:22-alpine AS dependencies
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN npm ci
 
 
 # Stage 2: Build
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN npm run build
 
 
 # Stage 3: Production dependencies
-FROM node:20-alpine AS production-deps
+FROM node:22-alpine AS production-deps
 
 WORKDIR /app
 
@@ -45,7 +45,7 @@ RUN npm ci --omit=dev
 # What docker-compose.yml builds (`target: development`). The source is bind
 # mounted over /app there, so only node_modules and the generated client come
 # from the image.
-FROM node:20-alpine AS development
+FROM node:22-alpine AS development
 
 WORKDIR /app
 
@@ -78,7 +78,7 @@ CMD ["npm", "run", "start:dev"]
 # Stage 5: Migrator
 # Applies migrations and exits. For a deploy that migrates as a separate step —
 # a Cloud Run Job, a Kubernetes Job — instead of letting each instance do it.
-FROM node:20-alpine AS migrator
+FROM node:22-alpine AS migrator
 
 WORKDIR /app
 
@@ -96,7 +96,7 @@ CMD ["npx", "--no-install", "prisma", "migrate", "deploy"]
 
 
 # Stage 6: Production
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 

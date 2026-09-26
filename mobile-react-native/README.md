@@ -791,6 +791,17 @@ The APK is written to `apk-output/`. Copy it to the phone and open it, or:
 adb install -r apk-output/travel-routes-release.apk
 ```
 
+Google Play does not take APKs. For the store, build the bundle instead
+(`both` produces the two side by side):
+
+```bash
+OUTPUT_FORMAT=aab docker compose -f docker-compose.apk.yml run --rm build-apk
+# → apk-output/travel-routes-release.aab
+```
+
+The bundle is signed by Gradle with the same key as the APK, and the build
+refuses to finish if the signer it finds on the bundle is not that key.
+
 The first run downloads the Android SDK and Gradle dependencies and takes a
 while; later runs reuse both from named volumes.
 
