@@ -1,6 +1,7 @@
 node_modules
 dist
 generated
+src/generated
 npm-debug.log
 .git
 .gitignore
