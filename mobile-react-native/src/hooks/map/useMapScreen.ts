@@ -5,6 +5,7 @@ import useConfirm from 'hooks/feedback/useConfirm';
 import useLocalMapLogic from 'hooks/map/useLocalMapLogic';
 import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
+import { showNotification } from 'services/notificationService';
 import { reportUsage } from 'services/usageReporter';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { uploadLocalRoutes } from 'store/actions/localRouteActions';
@@ -50,7 +51,20 @@ export function useMapScreen() {
 
     const openRouteSearch = useCallback(() => setIsSearchingRoute(true), []);
     const closeRouteSearch = useCallback(() => setIsSearchingRoute(false), []);
-    const openDetailsEditor = useCallback(() => setIsEditingDetails(true), []);
+    // The route only exists once its first stop is added, so until then
+    // there is nothing to hold a title or description.
+    const openDetailsEditor = useCallback(() => {
+        if (!activeRoute) {
+            showNotification({
+                type: 'info',
+                header: t('toast.addStopFirst'),
+                message: t('toast.addStopFirstHint'),
+                visibilityTime: 3000,
+            });
+            return;
+        }
+        setIsEditingDetails(true);
+    }, [activeRoute, t]);
     const closeDetailsEditor = useCallback(
         () => setIsEditingDetails(false),
         [],

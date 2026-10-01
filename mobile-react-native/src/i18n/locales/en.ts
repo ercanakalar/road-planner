@@ -497,6 +497,9 @@ const en = {
         couldNotCopy: 'The address could not be copied.',
         dragToMove: 'Drag to move',
         dragHint: 'Drag the highlighted pin to its new position.',
+        addStopFirst: 'Add a stop first',
+        addStopFirstHint:
+            'Press and hold on the map to add a stop, then you can name and describe your route.',
         addedToRoute: 'Added to your route',
         routeImported: 'Route imported',
         couldNotLookUpPlace: 'That place could not be found.',

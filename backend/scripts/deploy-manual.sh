@@ -232,6 +232,24 @@ gcloud run jobs execute "${JOB}" \
 # an outage. --cpu-boost buys the remaining Nest/Prisma startup extra CPU for
 # the same reason: the first request after idle is the one users feel.
 say "7/7 Deploying the API service"
+
+# The plain (non-secret) settings go through a YAML file rather than
+# --set-env-vars, because --set-env-vars splits on commas and CORS_ORIGINS and
+# GOOGLE_NATIVE_CLIENT_IDS are comma-separated lists. Values are written
+# single-quoted, so they stay strings (MAIL_PORT included) and the only
+# character to escape is ' itself, doubled.
+ENV_VARS_FILE="$(mktemp)"
+trap 'rm -f "${ENV_VARS_FILE}"' EXIT
+yaml_env() { printf "%s: '%s'\n" "$1" "${2//\'/\'\'}" >> "${ENV_VARS_FILE}"; }
+yaml_env NODE_ENV production
+yaml_env RUN_MIGRATIONS false
+yaml_env UPLOAD_DIR /mnt/uploads
+for name in CORS_ORIGINS FRONTEND_URL SHARE_LINK_BASE_URL GOOGLE_REDIRECT_URL \
+  GOOGLE_CLIENT_ID GOOGLE_NATIVE_CLIENT_IDS MAIL_HOST MAIL_PORT MAIL_USERNAME \
+  MAIL_FROM; do
+  yaml_env "${name}" "${!name}"
+done
+
 gcloud run deploy "${SERVICE}" \
   --image="${API_IMAGE}" \
   --region="${REGION}" \
@@ -239,7 +257,7 @@ gcloud run deploy "${SERVICE}" \
   --service-account="${SA_EMAIL}" \
   --allow-unauthenticated \
   --execution-environment=gen2 \
-  --set-env-vars="NODE_ENV=production,RUN_MIGRATIONS=false,UPLOAD_DIR=/mnt/uploads,CORS_ORIGINS=${CORS_ORIGINS},FRONTEND_URL=${FRONTEND_URL},SHARE_LINK_BASE_URL=${SHARE_LINK_BASE_URL},GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL},GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID},GOOGLE_NATIVE_CLIENT_IDS=${GOOGLE_NATIVE_CLIENT_IDS},MAIL_HOST=${MAIL_HOST},MAIL_PORT=${MAIL_PORT},MAIL_USERNAME=${MAIL_USERNAME},MAIL_FROM=${MAIL_FROM}" \
+  --env-vars-file="${ENV_VARS_FILE}" \
   --set-secrets="DATABASE_URL=DATABASE_URL:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,AUDIT_HASH_KEY=AUDIT_HASH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,MAP_API_KEY=MAP_API_KEY:latest" \
   --add-volume=name=uploads,type=cloud-storage,bucket="${BUCKET}" \
   --add-volume-mount=volume=uploads,mount-path=/mnt/uploads \

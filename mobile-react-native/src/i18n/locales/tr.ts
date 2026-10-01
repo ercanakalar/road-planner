@@ -503,6 +503,9 @@ const tr: Translations = {
         couldNotCopy: 'Adres kopyalanamadı.',
         dragToMove: 'Taşımak için sürükleyin',
         dragHint: 'Vurgulanan işareti yeni konumuna sürükleyin.',
+        addStopFirst: 'Önce bir durak ekleyin',
+        addStopFirstHint:
+            'Haritada basılı tutarak bir durak ekleyin, ardından rotanıza ad ve açıklama verebilirsiniz.',
         addedToRoute: 'Rotanıza eklendi',
         routeImported: 'Rota içe aktarıldı',
         couldNotLookUpPlace: 'Bu yer bulunamadı.',
