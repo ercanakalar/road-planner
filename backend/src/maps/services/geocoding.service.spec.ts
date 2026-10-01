@@ -171,6 +171,50 @@ describe('GeocodingService', () => {
       ]);
     });
 
+    it('says which city each place belongs to, so the map can colour by city', async () => {
+      const TURKEY = {
+        long_name: 'Türkiye',
+        short_name: 'TR',
+        types: ['country'],
+      };
+      const ISTANBUL = {
+        long_name: 'İstanbul',
+        short_name: 'İstanbul',
+        types: ['administrative_area_level_1'],
+      };
+
+      client.get.mockResolvedValue({
+        status: 'OK',
+        results: [
+          area(
+            'district',
+            'Kadıköy, İstanbul',
+            ['administrative_area_level_2'],
+            true,
+            [
+              component('Kadıköy', 'administrative_area_level_2'),
+              ISTANBUL,
+              TURKEY,
+            ],
+          ),
+          area('country', 'Türkiye', ['country'], true, [TURKEY]),
+        ],
+      });
+
+      const areas = await service.areasAt(KADIKOY);
+
+      expect(
+        areas.map(({ placeId, city, countryCode }) => ({
+          placeId,
+          city,
+          countryCode,
+        })),
+      ).toEqual([
+        { placeId: 'district', city: 'İstanbul', countryCode: 'TR' },
+        { placeId: 'country', city: null, countryCode: 'TR' },
+      ]);
+    });
+
     it('shades a place with its own outline rather than the camera box', async () => {
       client.get.mockResolvedValue(STACK);
 

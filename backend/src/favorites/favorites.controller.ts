@@ -20,11 +20,13 @@ import {
   UpdateFavoriteAnnotationDto,
 } from './dto/favorites.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { TrackUsage } from 'src/statistics/track-usage.decorator';
 
 @Controller('favorites')
 export class FavoritesController {
   constructor(private favoritesService: FavoritesService) {}
 
+  @TrackUsage({ event: 'favorite_toggled', detail: () => 'stop' })
   @Post('toggle-stop')
   @HttpCode(HttpStatus.OK)
   async addFavoriteStop(
@@ -34,6 +36,7 @@ export class FavoritesController {
     return this.favoritesService.toggleFavoriteStop(body, userId);
   }
 
+  @TrackUsage({ event: 'favorite_toggled', detail: () => 'route' })
   @Post('toggle-road')
   @HttpCode(HttpStatus.OK)
   async addFavoriteRoad(

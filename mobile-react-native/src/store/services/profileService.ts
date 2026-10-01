@@ -13,6 +13,7 @@ import {
   UserResponse,
   GetUserByIdArgs,
   GetUserByIdResponse,
+  NicknameAvailability,
 } from 'types/store/services/userService-type';
 import { ApiResponse } from 'types/store/bases';
 import { PickedPhoto, toUploadPart } from 'utils/photoUpload';
@@ -21,7 +22,7 @@ import type { AppLanguage } from 'types/i18n';
 export const profileService = createApi({
   reducerPath: 'profileService',
   baseQuery: baseQuery(),
-  tagTypes: ['UserProfile'],
+  tagTypes: ['UserProfile', 'NicknameCheck'],
   keepUnusedDataFor: 300,
   refetchOnFocus: true,
   refetchOnReconnect: true,
@@ -77,9 +78,22 @@ export const profileService = createApi({
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'UserProfile', id },
+        'NicknameCheck',
       ],
       transformResponse: (res: ApiResponse<UserResponse>) =>
         transformApiResponseWithToast(res),
+    }),
+
+    checkNickname: builder.query<NicknameAvailability, string>({
+      query: (nickName) => ({
+        url: '/user/nickname/availability',
+        method: 'GET',
+        params: { nickName },
+      }),
+      keepUnusedDataFor: 30,
+      providesTags: ['NicknameCheck'],
+      transformResponse: (res: ApiResponse<NicknameAvailability>) =>
+        transformApiResponse(res),
     }),
 
     setLanguage: builder.mutation<UserResponse, AppLanguage>({
@@ -99,4 +113,5 @@ export const {
   useUpdateUserMutation,
   useUpdatePhotoMutation,
   useSetLanguageMutation,
+  useCheckNicknameQuery,
 } = profileService;

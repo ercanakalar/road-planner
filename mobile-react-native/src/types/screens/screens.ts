@@ -13,6 +13,8 @@ type RootStackParamList = {
   SettingsScreen: undefined;
   NotificationsScreen: undefined;
   KvkkScreen: undefined;
+  StatisticsScreen: undefined;
+  AppStatisticsScreen: undefined;
   SignUpScreen: undefined;
   SignInScreen: undefined;
   ForgotPasswordScreen: { email?: string } | undefined;

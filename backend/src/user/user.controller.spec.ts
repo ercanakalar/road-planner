@@ -19,6 +19,7 @@ describe('UserController routing', () => {
     searchAuthors: jest.Mock;
     getAuthorById: jest.Mock;
     getUserById: jest.Mock;
+    nicknameAvailability: jest.Mock;
   };
   let followService: { setFollowing: jest.Mock };
 
@@ -29,6 +30,7 @@ describe('UserController routing', () => {
       searchAuthors: jest.fn().mockResolvedValue(ok()),
       getAuthorById: jest.fn().mockResolvedValue(ok()),
       getUserById: jest.fn().mockResolvedValue(ok()),
+      nicknameAvailability: jest.fn().mockResolvedValue(ok()),
     };
     followService = { setFollowing: jest.fn().mockResolvedValue(ok()) };
 
@@ -71,6 +73,16 @@ describe('UserController routing', () => {
 
     expect(userService.getAuthorById).toHaveBeenCalledWith(USER_ID, CALLER_ID);
     expect(userService.getUserById).not.toHaveBeenCalled();
+  });
+
+  it('reaches the nickname check, not the profile lookup, at /user/nickname/availability', async () => {
+    await get('/user/nickname/availability?nickName=ercan_a').expect(200);
+
+    expect(userService.getUserById).not.toHaveBeenCalled();
+    expect(userService.nicknameAvailability).toHaveBeenCalledWith(
+      'ercan_a',
+      CALLER_ID,
+    );
   });
 
   it('still reaches the private profile at /user/:id', async () => {

@@ -18,6 +18,7 @@ interface Props {
   title: string;
   canSwitch: boolean;
   hasActiveRoute: boolean;
+  canStartNewRoute: boolean;
   onSwitch: () => void;
   onEditDetails: () => void;
   onNewRoute: () => void;
@@ -30,6 +31,7 @@ const MapToolbar = ({
   title,
   canSwitch,
   hasActiveRoute,
+  canStartNewRoute,
   onSwitch,
   onEditDetails,
   onNewRoute,
@@ -61,14 +63,16 @@ const MapToolbar = ({
         ) : null}
       </Pressable>
 
-      <Pressable
-        style={styles.iconChip}
-        onPress={onNewRoute}
-        accessibilityRole='button'
-        accessibilityLabel={t('mapUi.newRouteAccessibility')}
-      >
-        <Ionicons name='add' size={18} color={colors.primary} />
-      </Pressable>
+      {canStartNewRoute ? (
+        <Pressable
+          style={styles.iconChip}
+          onPress={onNewRoute}
+          accessibilityRole='button'
+          accessibilityLabel={t('mapUi.newRouteAccessibility')}
+        >
+          <Ionicons name='add' size={18} color={colors.primary} />
+        </Pressable>
+      ) : null}
 
       <Pressable
         style={styles.iconChip}

@@ -1,13 +1,14 @@
 import createApi from 'store/middlewares/createApi';
 import baseQuery from 'store/bases/baseQuery';
-import { COLLECTION_PAGE_SIZE, DISCOVER_PAGE_SIZE } from 'constants/pagination';
+import { DISCOVER_PAGE_SIZE, ROUTES_PAGE_SIZE } from 'constants/pagination';
 import {
+  transformApiPage,
   transformApiResponse,
   transformApiResponseWithToast,
 } from 'store/bases/transformApiResponse';
 import { UNSHAPED_STOP } from 'utils/stopShape';
-import { ApiResponse } from 'types/store/bases';
-import { StopWithAddress } from 'types/map-screen-type';
+import { ApiResponse, Page } from 'types/store/bases';
+import { OwnRouteSummary, StopWithAddress } from 'types/map-screen-type';
 import {
   AddStopArgs,
   AddStopResponse,
@@ -23,6 +24,7 @@ import {
   GetDiscoverRoutesResponse,
   GetOwnRoutesArgs,
   GetOwnRoutesResponse,
+  OwnRoutesSummary,
   GetRouteByIdArgs,
   GetRouteByIdResponse,
   GetRouteTerrainArgs,
@@ -61,6 +63,30 @@ const moveItem = <T>(items: T[], from: number, to: number): T[] => {
   return next;
 };
 
+// The offset of the page after `lastPage`, or undefined once the list is
+// complete — which is what tells the list to stop asking.
+export const nextOwnRoutesOffset = (
+  lastPage: Page<OwnRouteSummary>,
+  lastOffset: number,
+): number | undefined =>
+  lastPage.hasMore ? lastOffset + ROUTES_PAGE_SIZE : undefined;
+
+// The loaded pages as one list. Offsets shift when a route is deleted between
+// two page loads, so the same route can arrive twice; it is shown once.
+export const flattenOwnRoutes = (
+  pages: readonly Page<OwnRouteSummary>[] | undefined,
+): OwnRouteSummary[] => {
+  const seen = new Set<string>();
+
+  return (pages ?? []).flatMap((page) =>
+    page.items.filter((route) => {
+      if (seen.has(route.id)) return false;
+      seen.add(route.id);
+      return true;
+    }),
+  );
+};
+
 export const routeService = createApi({
   reducerPath: 'routeService',
   baseQuery: baseQuery(),
@@ -70,21 +96,46 @@ export const routeService = createApi({
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: 30,
   endpoints: (builder) => ({
-    getOwnRoutes: builder.query<GetOwnRoutesResponse, GetOwnRoutesArgs>({
-      query: () => ({
+    // Loaded a page at a time as the list scrolls. An infinite query rather
+    // than a merged one: when the list is invalidated — a route created,
+    // deleted or edited — every loaded page is fetched again in order, so a
+    // new route shows at the top instead of only after a manual refresh.
+    getOwnRoutes: builder.infiniteQuery<
+      GetOwnRoutesResponse,
+      GetOwnRoutesArgs,
+      number
+    >({
+      infiniteQueryOptions: {
+        initialPageParam: 0,
+        getNextPageParam: (lastPage, _allPages, lastOffset) =>
+          nextOwnRoutesOffset(lastPage, lastOffset),
+      },
+      query: ({ pageParam }) => ({
         url: '/road/own-roads',
         method: 'POST',
         body: {},
-        params: { limit: COLLECTION_PAGE_SIZE },
+        params: { limit: ROUTES_PAGE_SIZE, offset: pageParam || undefined },
       }),
-      transformResponse: (res: ApiResponse<GetOwnRoutesResponse>) =>
-        transformApiResponse(res) ?? [],
+      transformResponse: (res: ApiResponse<OwnRouteSummary[]>) =>
+        transformApiPage(res),
       providesTags: (result) => [
         { type: 'Route' as const, id: 'LIST' },
-        ...(result ?? []).map((route) => ({
+        ...flattenOwnRoutes(result?.pages).map((route) => ({
           type: 'Route' as const,
           id: route.id,
         })),
+      ],
+    }),
+
+    // Totals over all the person's routes, counted by the server: the list
+    // above is only ever partly loaded, so it cannot be summed here.
+    getOwnRoutesSummary: builder.query<OwnRoutesSummary, void>({
+      query: () => ({ url: '/road/own-roads/summary', method: 'GET' }),
+      transformResponse: (res: ApiResponse<OwnRoutesSummary>) =>
+        transformApiResponse(res),
+      providesTags: [
+        { type: 'Route' as const, id: 'LIST' },
+        { type: 'Route' as const, id: 'SUMMARY' },
       ],
     }),
 
@@ -189,9 +240,11 @@ export const routeService = createApi({
       ],
       async onQueryStarted({ routeId }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
-          routeService.util.updateQueryData('getOwnRoutes', undefined, (draft) =>
-            draft.filter((route) => route.id !== routeId),
-          ),
+          routeService.util.updateQueryData('getOwnRoutes', undefined, (draft) => {
+            for (const page of draft.pages) {
+              page.items = page.items.filter((route) => route.id !== routeId);
+            }
+          }),
         );
         try {
           await queryFulfilled;
@@ -296,6 +349,7 @@ export const routeService = createApi({
         transformApiResponse(res),
       invalidatesTags: (_result, _error, { routeId }) => [
         { type: 'Route', id: routeId },
+        { type: 'Route', id: 'SUMMARY' },
       ],
       async onQueryStarted(
         { routeId, stopId },
@@ -405,7 +459,8 @@ export const routeService = createApi({
 });
 
 export const {
-  useGetOwnRoutesQuery,
+  useGetOwnRoutesInfiniteQuery,
+  useGetOwnRoutesSummaryQuery,
   useGetDiscoverRoutesQuery,
   useCloneRouteMutation,
   useLazyShareRouteQuery,

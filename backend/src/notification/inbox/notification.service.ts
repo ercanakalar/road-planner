@@ -5,6 +5,7 @@ import { pageMeta, PaginationQueryDto } from 'src/common/dto/pagination.dto';
 import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationSettingsDto } from './notification-settings.dto';
+import { displayNameOf } from 'src/i18n/display-name';
 
 const NOTIFICATION_SELECT = {
   id: true,
@@ -163,8 +164,7 @@ function shape(row: NotificationRow) {
     actor: row.actor
       ? {
           id: row.actor.id,
-          displayName:
-            row.actor.nickName ?? row.actor.firstName ?? 'A traveller',
+          displayName: displayNameOf(row.actor),
           photo: row.actor.photo,
         }
       : null,

@@ -74,9 +74,12 @@ export const favoriteService = createApi({
               'getOwnRoutes',
               undefined,
               (draft) => {
-                const target = draft.find((route) => route.id === routeId);
-                if (!target) return;
-                target.isFavorite = !target.isFavorite;
+                for (const page of draft.pages) {
+                  const target = page.items.find(
+                    (route) => route.id === routeId,
+                  );
+                  if (target) target.isFavorite = !target.isFavorite;
+                }
               },
             ),
           ),

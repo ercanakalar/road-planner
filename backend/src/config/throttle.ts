@@ -39,3 +39,22 @@ export const AUTH_THROTTLE = {
 
   refreshToken: { default: { ttl: MINUTE, limit: 20 } },
 } as const;
+
+export const USER_THROTTLE = {
+  // The profile screen asks once per pause in typing; this is generous for a
+  // person and tight enough that walking the nickname space is not practical.
+  nicknameCheck: { default: { ttl: MINUTE, limit: 30 } },
+} as const;
+
+export const STATISTICS_THROTTLE = {
+  // The app reports a handful of on-device events per session, in batches.
+  report: { default: { ttl: MINUTE, limit: 30 } },
+} as const;
+
+export const CONSENT_THROTTLE = {
+  // Sent once per sign-in.
+  grant: { default: { ttl: MINUTE, limit: 10 } },
+
+  // Erases an account: there is never a reason to ask often.
+  withdraw: { default: { ttl: MINUTE, limit: 3 } },
+} as const;

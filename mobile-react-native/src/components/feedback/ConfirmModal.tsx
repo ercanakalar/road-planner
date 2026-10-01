@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import PrimaryButton from 'components/ui/PrimaryButton';
 import {
@@ -24,8 +25,8 @@ const ConfirmModal = ({
   visible,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel: givenConfirmLabel,
+  cancelLabel: givenCancelLabel,
   icon,
   tone = 'default',
   onConfirm,
@@ -33,6 +34,10 @@ const ConfirmModal = ({
 }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+
+  const confirmLabel = givenConfirmLabel ?? t('common.confirm');
+  const cancelLabel = givenCancelLabel ?? t('common.cancel');
 
   return (
     <Modal

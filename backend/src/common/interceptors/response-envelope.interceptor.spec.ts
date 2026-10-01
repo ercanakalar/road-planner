@@ -121,7 +121,7 @@ describe('ResponseEnvelopeInterceptor', () => {
       ),
     );
 
-    expect(result.message).toBe('Ada now holds the ADMIN permit');
+    expect(result.message).toBe('Ada now holds the ADMIN permit.');
   });
 
   it('picks the branch a count calls for', async () => {

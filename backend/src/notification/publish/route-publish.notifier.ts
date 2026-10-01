@@ -12,6 +12,7 @@ import {
   FALLBACK_LANGUAGE,
   isAppLanguage,
 } from 'src/i18n/languages';
+import { chosenName } from 'src/i18n/display-name';
 
 const MAX_RECIPIENTS = 200;
 
@@ -102,7 +103,7 @@ export class RoutePublishNotifier {
 
     if (recipients.length === 0) return 0;
 
-    const author = road.user.nickName ?? road.user.firstName ?? 'A traveller';
+    const author = chosenName(road.user);
     const link = this.linkTo(road.id);
 
     const results = await Promise.allSettled(
@@ -132,13 +133,15 @@ export class RoutePublishNotifier {
 
   private async send(
     to: string,
-    author: string,
+    chosenAuthor: string | null,
     title: string,
     link: string | null,
     language: AppLanguage,
   ): Promise<void> {
     const say = (key: string, args: Record<string, unknown> = {}) =>
       this.i18n.translate(key, { lang: language, args }) as string;
+
+    const author = chosenAuthor ?? say('user.anonymousName');
 
     const bold = (value: string) => `<strong>${escapeHtml(value)}</strong>`;
 

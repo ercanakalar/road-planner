@@ -32,8 +32,16 @@ describe('travelMapSlice', () => {
 
     const state = reducer(undefined, travelAreasHydrated(stored));
 
-    expect(state.areas).toEqual(stored);
+    expect(state.areas).toEqual([{ ...stored[0], colorSlot: 0 }]);
     expect(state.isHydrated).toBe(true);
+  });
+
+  it('keeps the colour a city was stored with', () => {
+    const stored = [{ ...marked('izmir', '2026-01-01T00:00:00.000Z'), colorSlot: 2 }];
+
+    const state = reducer(undefined, travelAreasHydrated(stored));
+
+    expect(state.areas[0].colorSlot).toBe(2);
   });
 
   it('is hydrated even when the device had nothing on it', () => {
@@ -86,6 +94,69 @@ describe('travelMapSlice', () => {
 
     expect(reducer({ areas, isHydrated: true }, areaUnmarked('gone')).areas)
       .toEqual(areas);
+  });
+
+  it('dresses a newly marked city in a colour of its own', () => {
+    const first = reducer(undefined, areaMarked(area('izmir', 'İzmir')));
+    const second = reducer(
+      first,
+      areaMarked({
+        ...area('ankara', 'Ankara'),
+        latitude: 39.9,
+        longitude: 32.8,
+        bounds: { north: 40.1, south: 39.7, east: 33, west: 32.6 },
+      }),
+    );
+
+    const [ankara, izmir] = second.areas;
+    expect(izmir.colorSlot).toBe(0);
+    expect(ankara.colorSlot).toBeDefined();
+    expect(ankara.colorSlot).not.toBe(izmir.colorSlot);
+  });
+
+  it('gives a place in a city already on the map that city’s colour', () => {
+    const city = reducer(undefined, areaMarked(area('izmir', 'İzmir')));
+
+    const withDistrict = reducer(
+      city,
+      areaMarked({
+        ...area('konak', 'Konak'),
+        kind: 'district',
+        city: 'İzmir',
+        countryCode: 'TR',
+        bounds: { north: 38.45, south: 38.38, east: 27.17, west: 27.1 },
+      }),
+    );
+
+    expect(withDistrict.areas.map(({ colorSlot }) => colorSlot)).toEqual([0, 0]);
+  });
+
+  it('does not let a caller choose the colour', () => {
+    const state = reducer(
+      undefined,
+      areaMarked({ ...area('izmir'), colorSlot: 3 } as MapArea),
+    );
+
+    expect(state.areas[0].colorSlot).toBe(0);
+  });
+
+  it('keeps the other cities’ colours when one is unmarked', () => {
+    const one = reducer(undefined, areaMarked(area('izmir', 'İzmir')));
+    const two = reducer(
+      one,
+      areaMarked({
+        ...area('ankara', 'Ankara'),
+        latitude: 39.9,
+        longitude: 32.8,
+        bounds: { north: 40.1, south: 39.7, east: 33, west: 32.6 },
+      }),
+    );
+    const ankaraSlot = two.areas.find(({ placeId }) => placeId === 'ankara')
+      ?.colorSlot;
+
+    const after = reducer(two, areaUnmarked('izmir'));
+
+    expect(after.areas[0].colorSlot).toBe(ankaraSlot);
   });
 
   it('empties the map without forgetting it has been read', () => {

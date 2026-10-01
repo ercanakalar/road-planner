@@ -6,6 +6,7 @@ import type { MapPressEvent } from 'react-native-maps';
 import useConfirm from 'hooks/feedback/useConfirm';
 import { fetchAreasAt } from 'services/mapsService';
 import { showNotification } from 'services/notificationService';
+import { reportUsage } from 'services/usageReporter';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import {
   areaMarked,
@@ -14,6 +15,11 @@ import {
 } from 'store/slices/travelMapSlice';
 import { MapArea } from 'types/travel-map';
 import { boundsToRegion } from 'utils/areaBounds';
+import {
+  CityGroup,
+  groupByCity,
+  previewColorSlot,
+} from 'utils/travelCities';
 
 const FOCUS_ANIMATION_MS = 600;
 
@@ -46,12 +52,30 @@ export function useTravelMap() {
 
   const selected = candidates[candidateIndex];
 
-  const focusOn = useCallback((area: MapArea) => {
+  const { cities } = useMemo(() => groupByCity(areas), [areas]);
+
+  // The colour a place wears on the map, or would wear once marked.
+  const colorSlotOf = useCallback(
+    (area: MapArea) => previewColorSlot(area, areas),
+    [areas],
+  );
+
+  const previewSlot = useMemo(
+    () => (selected ? previewColorSlot(selected, areas) : null),
+    [areas, selected],
+  );
+
+  const focusOn = useCallback((area: Pick<MapArea, 'bounds'>) => {
     mapRef.current?.animateToRegion(
       boundsToRegion(area.bounds),
       FOCUS_ANIMATION_MS,
     );
   }, []);
+
+  const focusOnCity = useCallback(
+    (city: CityGroup) => focusOn(city),
+    [focusOn],
+  );
 
   const dismiss = useCallback(() => {
     lookupRef.current?.abort();
@@ -119,6 +143,7 @@ export function useTravelMap() {
     if (!selected) return;
 
     dispatch(areaMarked(selected));
+    reportUsage('travel_map_area_marked', selected.kind);
     dismiss();
     showNotification({
       type: 'success',
@@ -154,11 +179,14 @@ export function useTravelMap() {
   return {
     mapRef,
     areas,
+    cities,
     isHydrated,
     markedIds,
     candidates,
     candidateIndex,
     selected,
+    previewSlot,
+    colorSlotOf,
     isSelectedMarked: selected ? markedIds.has(selected.placeId) : false,
     isResolving,
     handleMapPress,
@@ -168,6 +196,7 @@ export function useTravelMap() {
     unmarkSelected,
     unmark,
     focusOn,
+    focusOnCity,
     dismiss,
     clearAll,
   };

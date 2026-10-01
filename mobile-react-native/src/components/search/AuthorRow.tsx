@@ -33,7 +33,9 @@ const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       onPress={handleSelect}
       accessibilityRole='button'
-      accessibilityLabel={`Show only routes by ${author.displayName}`}
+      accessibilityLabel={t('searchScreen.showOnlyRoutesBy', {
+        name: author.displayName,
+      })}
     >
       {photo ? (
         <Image source={{ uri: photo }} style={styles.avatar} />
@@ -74,7 +76,9 @@ const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
         hitSlop={10}
         style={({ pressed }) => [styles.open, pressed && styles.openPressed]}
         accessibilityRole='button'
-        accessibilityLabel={`Open ${author.displayName}'s profile`}
+        accessibilityLabel={t('searchScreen.openProfileOf', {
+          name: author.displayName,
+        })}
       >
         <Ionicons name='chevron-forward' size={18} color={colors.textSubtle} />
       </Pressable>

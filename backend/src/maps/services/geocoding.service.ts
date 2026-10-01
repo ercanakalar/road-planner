@@ -6,6 +6,8 @@ import { formatCoordinate } from '../utils/coordinates';
 import { cleanAddress } from '../utils/address';
 import {
   areaBounds,
+  areaCity,
+  areaCountryCode,
   areaKind,
   GoogleGeometry,
   hasOutline,
@@ -37,6 +39,7 @@ const DISTRICT_TYPES = [
 
 interface GeocodeComponent {
   long_name?: string;
+  short_name?: string;
   types?: string[];
 }
 
@@ -87,15 +90,20 @@ const toArea = (result: GeocodeResult): MapArea[] => {
   const coordinate = { latitude: location.lat, longitude: location.lng };
   const address =
     cleanAddress(result.formatted_address) || UNNAMED_PLACE.address;
+  const name = areaName(result, address);
+  const kind = areaKind(result.types);
+  const components = result.address_components ?? [];
 
   return [
     {
       ...coordinate,
       placeId: result.place_id,
-      name: areaName(result, address),
+      name,
       address,
-      kind: areaKind(result.types),
+      kind,
       bounds: areaBounds(result.geometry, coordinate),
+      city: areaCity(kind, name, components),
+      countryCode: areaCountryCode(components),
     },
   ];
 };

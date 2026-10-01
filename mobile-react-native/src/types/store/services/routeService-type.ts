@@ -4,6 +4,7 @@ import {
     StopWithAddress,
     StopWithAddressAndId,
 } from 'types/map-screen-type';
+import { Page } from 'types/store/bases';
 
 export interface Route {
     id: string;
@@ -38,7 +39,15 @@ export interface StopInput {
 }
 
 export type GetOwnRoutesArgs = void;
-export type GetOwnRoutesResponse = OwnRouteSummary[];
+export type GetOwnRoutesResponse = Page<OwnRouteSummary>;
+
+// Totals over every route the person owns, however many have been loaded.
+export interface OwnRoutesSummary {
+    routes: number;
+    publicRoutes: number;
+    stops: number;
+    favorites: number;
+}
 
 export interface DiscoverRoute {
     id: string;

@@ -1,4 +1,4 @@
-import { Text } from 'react-native';
+import { BackHandler, Platform, Text } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import renderer, { act } from 'react-test-renderer';
@@ -124,5 +124,67 @@ describe('KvkkGate', () => {
     expect(shows(tree, inEveryLanguage((copy) => copy.updatedNotice))).toBe(
       true,
     );
+  });
+
+  describe('on Android, where an app can close itself', () => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'android');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('closes the app when the notice is declined', () => {
+      const exitApp = jest
+        .spyOn(BackHandler, 'exitApp')
+        .mockImplementation(() => undefined);
+      hydrate(null);
+      const tree = render();
+
+      press(tree, (copy) => copy.declineLabel);
+
+      expect(exitApp).toHaveBeenCalledTimes(1);
+      expect(isAppShowing(tree)).toBe(false);
+    });
+
+    it('says so before anyone presses it', () => {
+      hydrate(null);
+
+      expect(
+        shows(render(), inEveryLanguage((copy) => copy.declineHint)),
+      ).toBe(true);
+    });
+  });
+
+  describe('on iOS, where an app may not quit itself', () => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'ios');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('stays put and explains, rather than pretending to close', () => {
+      const exitApp = jest.spyOn(BackHandler, 'exitApp');
+      hydrate(null);
+      const tree = render();
+
+      press(tree, (copy) => copy.declineLabel);
+
+      expect(exitApp).not.toHaveBeenCalled();
+      expect(shows(tree, inEveryLanguage((copy) => copy.declinedTitle))).toBe(
+        true,
+      );
+    });
+
+    it('does not promise that the app will close', () => {
+      hydrate(null);
+
+      expect(
+        shows(render(), inEveryLanguage((copy) => copy.declineHint)),
+      ).toBe(false);
+    });
   });
 });

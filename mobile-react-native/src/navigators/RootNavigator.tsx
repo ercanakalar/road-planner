@@ -14,6 +14,8 @@ import ShowStopById from 'screens/routes/ShowStopById';
 import ProfileDetailScreen from 'screens/profile/profile-detail/ProfileDetailScreen';
 import SettingsScreen from 'screens/profile/settings/SettingsScreen';
 import KvkkScreen from 'screens/profile/legal/KvkkScreen';
+import StatisticsScreen from 'screens/statistics/StatisticsScreen';
+import AppStatisticsScreen from 'screens/statistics/AppStatisticsScreen';
 import SearchScreen from 'screens/search/SearchScreen';
 import TravelMapScreen from 'screens/travel/TravelMapScreen';
 import NotificationsScreen from 'screens/notifications/NotificationsScreen';
@@ -48,12 +50,12 @@ const RootNavigator = () => {
       <Stack.Screen
         name='NotificationsScreen'
         component={NotificationsScreen}
-        options={{ title: 'Notifications' }}
+        options={{ title: t('nav.notifications') }}
       />
       <Stack.Screen
         name='SearchScreen'
         component={SearchScreen}
-        options={{ title: 'Search' }}
+        options={{ title: t('nav.search') }}
       />
       <Stack.Screen
         name='TravelMapScreen'
@@ -64,13 +66,13 @@ const RootNavigator = () => {
         name='AuthorScreen'
         component={AuthorScreen}
         options={({ route }) => ({
-          title: route.params?.displayName ?? 'Routes',
+          title: route.params?.displayName ?? t('nav.routes'),
         })}
       />
       <Stack.Screen
         name='ShowRouteByIdScreen'
         component={ShowRouteByIdScreen}
-        options={{ title: 'Route' }}
+        options={{ title: t('nav.route') }}
       />
       <Stack.Screen
         name='CommunityRouteScreen'
@@ -87,12 +89,12 @@ const RootNavigator = () => {
       <Stack.Screen
         name='ShowStopById'
         component={ShowStopById}
-        options={{ title: 'Stop' }}
+        options={{ title: t('nav.stop') }}
       />
       <Stack.Screen
         name='ProfileDetailScreen'
         component={ProfileDetailScreen}
-        options={{ title: 'Profile' }}
+        options={{ title: t('nav.profile') }}
       />
       <Stack.Screen
         name='SignUpScreen'
@@ -122,12 +124,22 @@ const RootNavigator = () => {
       <Stack.Screen
         name='SettingsScreen'
         component={SettingsScreen}
-        options={{ title: 'Settings' }}
+        options={{ title: t('nav.settings') }}
       />
       <Stack.Screen
         name='KvkkScreen'
         component={KvkkScreen}
-        options={{ title: 'KVKK consent' }}
+        options={{ title: t('nav.kvkk') }}
+      />
+      <Stack.Screen
+        name='StatisticsScreen'
+        component={StatisticsScreen}
+        options={{ title: t('nav.statistics') }}
+      />
+      <Stack.Screen
+        name='AppStatisticsScreen'
+        component={AppStatisticsScreen}
+        options={{ title: t('nav.appStatistics') }}
       />
     </Stack.Navigator>
   );

@@ -7,7 +7,14 @@ import {
   NearbySearchRequest,
   PlacePrediction,
 } from '../types/maps.types';
-import { areaBounds, areaKind, GoogleGeometry } from '../utils/area';
+import {
+  areaBounds,
+  areaCity,
+  areaCountryCode,
+  areaKind,
+  GoogleAddressComponent,
+  GoogleGeometry,
+} from '../utils/area';
 import { formatCoordinate } from '../utils/coordinates';
 import { createTtlCache } from '../utils/ttl-cache';
 
@@ -17,7 +24,10 @@ const DETAILS_CACHE = { ttlMs: 24 * 60 * 60 * 1000, maxEntries: 500 };
 
 const NEARBY_CACHE = { ttlMs: 5 * 60 * 1000, maxEntries: 800 };
 
-const DETAIL_FIELDS = 'geometry,formatted_address,name,place_id,type';
+// All Basic Data fields: address_component costs nothing on top of the
+// request, and is what says which city a place is in.
+const DETAIL_FIELDS =
+  'address_component,geometry,formatted_address,name,place_id,type';
 
 const UNNAMED_PLACE = 'Selected place';
 
@@ -34,6 +44,7 @@ interface PlaceDetailsResponse {
     formatted_address?: string;
     name?: string;
     types?: string[];
+    address_components?: GoogleAddressComponent[];
   };
 }
 
@@ -149,14 +160,19 @@ export class PlacesService {
       }
 
       const coordinate = { latitude: location.lat, longitude: location.lng };
+      const name = result?.name ?? result?.formatted_address ?? UNNAMED_PLACE;
+      const kind = areaKind(result?.types);
+      const components = result?.address_components ?? [];
 
       return {
         ...coordinate,
         placeId: result?.place_id ?? placeId,
-        name: result?.name ?? result?.formatted_address ?? UNNAMED_PLACE,
+        name,
         address: result?.formatted_address ?? result?.name ?? UNNAMED_PLACE,
-        kind: areaKind(result?.types),
+        kind,
         bounds: areaBounds(result?.geometry, coordinate),
+        city: areaCity(kind, name, components),
+        countryCode: areaCountryCode(components),
       };
     });
   }

@@ -10,6 +10,7 @@ import {
   RoadSearchQueryDto,
   RoadSearchSort,
 } from 'src/road/dto/road-search.dto';
+import { displayNameOf } from 'src/i18n/display-name';
 
 const SORTS: Record<RoadSearchSort, Prisma.RoadOrderByWithRelationInput[]> = {
   recent: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -101,7 +102,7 @@ export class RoadSearchService {
       ({ user, favoriteRoads, _count, userId: authorId, ...road }) => ({
         ...road,
         authorId,
-        author: user.nickName ?? user.firstName ?? 'A traveller',
+        author: displayNameOf(user),
         authorPhoto: user.photo,
         stopCount: _count.stops,
         favoriteCount: _count.favoriteRoads,

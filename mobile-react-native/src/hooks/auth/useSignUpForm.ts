@@ -29,7 +29,7 @@ const validate = ({ email, password, confirmPassword }: SignUpValues) => {
     return i18n.t('forms.allFieldsRequired');
   if (!EMAIL_PATTERN.test(email)) return i18n.t('forms.validEmail');
   if (password.length < MIN_PASSWORD_LENGTH || !PASSWORD_PATTERN.test(password)) {
-    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters, with a letter and a number.`;
+    return i18n.t('forms.passwordRules', { count: MIN_PASSWORD_LENGTH });
   }
   if (password !== confirmPassword) return i18n.t('forms.passwordsDoNotMatch');
   return '';
@@ -52,7 +52,7 @@ export function useSignUpForm() {
     initialValues: EMPTY_FORM,
     validate,
     submit,
-    failureMessage: 'Sign-up failed. Please try again.',
+    failureMessage: i18n.t('forms.signUpFailed'),
   });
 
   const goToSignIn = useCallback(

@@ -15,6 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AvatarPicker from 'components/profile/AvatarPicker';
 import ScreenState from 'components/ui/ScreenState';
+import useNicknameCheck, {
+  canSaveNickname,
+  NicknameStatus,
+} from 'hooks/profile/useNicknameCheck';
 import {
   useGetUserQuery,
   useUpdatePhotoMutation,
@@ -25,6 +29,7 @@ import { useAppDispatch } from 'store/hook';
 import { updateUserProfile } from 'store/slices/userSlice';
 import { showNotification } from 'services/notificationService';
 import { PickedPhoto } from 'utils/photoUpload';
+import { NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH } from 'utils/nickname';
 
 import {
   radius,
@@ -67,6 +72,84 @@ const FIELDS: {
   },
 ];
 
+const HTTP_CONFLICT = 409;
+
+type StatusLine = {
+  text: string;
+  icon: keyof typeof Ionicons.glyphMap | null;
+  tone: 'muted' | 'success' | 'danger';
+};
+
+const NicknameStatusLine = ({ status }: { status: NicknameStatus }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+
+  const line = ((): StatusLine | null => {
+    switch (status.kind) {
+      case 'checking':
+        return { text: t('forms.nickNameChecking'), icon: null, tone: 'muted' };
+      case 'available':
+        return {
+          text: t('forms.nickNameAvailable'),
+          icon: 'checkmark-circle',
+          tone: 'success',
+        };
+      case 'taken':
+        return {
+          text: t('forms.nickNameTaken'),
+          icon: 'close-circle',
+          tone: 'danger',
+        };
+      case 'required':
+        return {
+          text: t('forms.nickNameRequired'),
+          icon: 'alert-circle',
+          tone: 'danger',
+        };
+      case 'unverified':
+        return {
+          text: t('forms.nickNameUnverified'),
+          icon: 'help-circle',
+          tone: 'muted',
+        };
+      case 'invalid':
+        return {
+          text:
+            status.problem === 'tooShort'
+              ? t('forms.nickNameTooShort', { count: NICKNAME_MIN_LENGTH })
+              : status.problem === 'tooLong'
+                ? t('forms.nickNameTooLong', { count: NICKNAME_MAX_LENGTH })
+                : t('forms.nickNameCharacters'),
+          icon: 'alert-circle',
+          tone: 'danger',
+        };
+      default:
+        return null;
+    }
+  })();
+
+  if (!line) return null;
+
+  const color =
+    line.tone === 'success'
+      ? colors.success
+      : line.tone === 'danger'
+        ? colors.danger
+        : colors.textMuted;
+
+  return (
+    <View style={styles.status} accessibilityLiveRegion='polite'>
+      {line.icon ? (
+        <Ionicons name={line.icon} size={14} color={color} />
+      ) : (
+        <ActivityIndicator size='small' color={color} />
+      )}
+      <Text style={[styles.statusText, { color }]}>{line.text}</Text>
+    </View>
+  );
+};
+
 const ProfileDetailScreen = ({ navigation, route }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -102,6 +185,13 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
   );
 
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
+  const [takenNickname, setTakenNickname] = useState<string | null>(null);
+
+  const nicknameStatus = useNicknameCheck(
+    form.nickName,
+    data?.nickName,
+    takenNickname,
+  );
 
   useEffect(() => {
     if (!data) return;
@@ -124,21 +214,29 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
     [data, form],
   );
 
+  const canSave = isDirty && canSaveNickname(nicknameStatus);
+
   const handleUpdateProfile = useCallback(async () => {
-    if (!data?.id) return;
+    if (!data?.id || !canSave) return;
 
     try {
       await updateUser({ ...data, ...form }).unwrap();
       dispatch(updateUserProfile(form));
       navigation.goBack();
-    } catch {
+    } catch (error) {
+      // Someone may have taken the nickname since it was checked; remember
+      // it, so the field says so instead of offering it again.
+      if ((error as { status?: unknown })?.status === HTTP_CONFLICT) {
+        setTakenNickname(form.nickName.trim());
+      }
+
       showNotification({
         type: 'error',
         header: t('toast.updateFailed'),
-        message: t('toast.profileSaveFailed'),
+        message: apiErrorMessage(error, t('toast.profileSaveFailed')),
       });
     }
-  }, [data, dispatch, form, navigation, updateUser]);
+  }, [canSave, data, dispatch, form, navigation, t, updateUser]);
 
   if (isLoading) {
     return <ScreenState variant='loading' title={t('states.loadingProfile')} />;
@@ -188,6 +286,9 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
                 autoCorrect={false}
                 returnKeyType='done'
               />
+              {key === 'nickName' ? (
+                <NicknameStatusLine status={nicknameStatus} />
+              ) : null}
               {hint ? <Text style={styles.hint}>{t(hint)}</Text> : null}
             </View>
           ))}
@@ -212,14 +313,14 @@ const ProfileDetailScreen = ({ navigation, route }: Props) => {
 
         <Pressable
           onPress={handleUpdateProfile}
-          disabled={isUpdating || !isDirty}
+          disabled={isUpdating || !canSave}
           style={({ pressed }) => [
             styles.button,
-            (isUpdating || !isDirty) && styles.buttonDisabled,
+            (isUpdating || !canSave) && styles.buttonDisabled,
             pressed && styles.buttonPressed,
           ]}
           accessibilityRole='button'
-          accessibilityState={{ disabled: isUpdating || !isDirty }}
+          accessibilityState={{ disabled: isUpdating || !canSave }}
         >
           {isUpdating ? (
             <ActivityIndicator color={colors.textInverse} />
@@ -293,6 +394,15 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 11,
       lineHeight: 16,
       color: colors.textSubtle,
+    },
+    status: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    statusText: {
+      ...typography.caption,
+      flexShrink: 1,
     },
     button: {
       marginTop: spacing.sm,

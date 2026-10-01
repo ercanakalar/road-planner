@@ -65,6 +65,19 @@ describe('validateEnv', () => {
 
       expect(() => validateEnv(env)).toThrow(/openssl rand -base64 48/);
     });
+
+    it('holds AUDIT_HASH_KEY to the same length when one is given', () => {
+      const env = { ...validEnv(), AUDIT_HASH_KEY: 'too-short' };
+
+      expect(() => validateEnv(env)).toThrow(/AUDIT_HASH_KEY/);
+    });
+
+    it('boots without AUDIT_HASH_KEY, written blank or left out', () => {
+      expect(validateEnv(validEnv()).AUDIT_HASH_KEY).toBeUndefined();
+      expect(
+        validateEnv({ ...validEnv(), AUDIT_HASH_KEY: '' }).AUDIT_HASH_KEY,
+      ).toBeUndefined();
+    });
   });
 
   describe('JWT lifetimes', () => {

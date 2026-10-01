@@ -45,7 +45,7 @@ const ChangePasswordSection = () => {
   const validationError = useMemo(() => {
     if (!form.currentPassword) return t('forms.enterCurrentPassword');
     if (form.newPassword.length < MIN_PASSWORD_LENGTH) {
-      return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+      return t('forms.passwordTooShort', { count: MIN_PASSWORD_LENGTH });
     }
     if (!PASSWORD_PATTERN.test(form.newPassword)) {
       return t('forms.passwordNeedsLetterAndNumber');
@@ -126,7 +126,9 @@ const ChangePasswordSection = () => {
 
           <FormField
             label={t('fields.newPassword')}
-            placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+            placeholder={t('forms.passwordPlaceholder', {
+              count: MIN_PASSWORD_LENGTH,
+            })}
             value={form.newPassword}
             onChangeText={handleChange('newPassword')}
             autoComplete='new-password'

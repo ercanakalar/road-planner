@@ -30,7 +30,17 @@ authMiddleware.startListening({
     if (!accessToken || !refreshToken) return;
 
     const dispatch = listenerApi.dispatch as AppDispatch;
-    dispatch(routeService.util.prefetch('getOwnRoutes', undefined, { force: true }));
+    dispatch(
+      routeService.endpoints.getOwnRoutes.initiate(undefined, {
+        subscribe: false,
+        forceRefetch: true,
+      }),
+    );
+    dispatch(
+      routeService.util.prefetch('getOwnRoutesSummary', undefined, {
+        force: true,
+      }),
+    );
     dispatch(
       favoriteService.util.prefetch('getFavorites', undefined, { force: true }),
     );

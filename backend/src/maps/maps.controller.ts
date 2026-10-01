@@ -13,6 +13,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Public } from 'src/common/decorators';
 import { ok, Phrase, phrase } from 'src/common/http/api-response';
 import { MAPS_THROTTLE } from 'src/config/throttle';
+import { TrackUsage } from 'src/statistics/track-usage.decorator';
 import {
   DirectionsDto,
   DurationsDto,
@@ -28,7 +29,11 @@ import { DirectionsService } from './services/directions.service';
 import { GeocodingService } from './services/geocoding.service';
 import { PlacesService } from './services/places.service';
 import { RouteSearchService } from './services/route-search.service';
-import { RouteSearchResult, TRANSPORT_MODES } from './types/maps.types';
+import {
+  DEFAULT_TRANSPORT_MODE,
+  RouteSearchResult,
+  TRANSPORT_MODES,
+} from './types/maps.types';
 
 @Public()
 @Controller('maps')
@@ -41,6 +46,10 @@ export class MapsController {
   ) {}
 
   @Throttle(MAPS_THROTTLE.directions)
+  @TrackUsage({
+    event: 'maps_directions',
+    detail: ({ body }) => body?.mode ?? DEFAULT_TRANSPORT_MODE,
+  })
   @Post('/directions')
   @HttpCode(HttpStatus.OK)
   async getDirections(@Body() body: DirectionsDto) {
@@ -83,6 +92,7 @@ export class MapsController {
   }
 
   @Throttle(MAPS_THROTTLE.geocode)
+  @TrackUsage('travel_map_lookup')
   @Get('/geocode/areas')
   @HttpCode(HttpStatus.OK)
   async areasAt(@Query() query: ReverseGeocodeQueryDto) {
@@ -114,6 +124,7 @@ export class MapsController {
   }
 
   @Throttle(MAPS_THROTTLE.places)
+  @TrackUsage('maps_place_selected')
   @Get('/places/:placeId')
   @HttpCode(HttpStatus.OK)
   async getPlace(
@@ -130,6 +141,10 @@ export class MapsController {
   }
 
   @Throttle(MAPS_THROTTLE.routeSearch)
+  @TrackUsage({
+    event: 'maps_along_route_search',
+    detail: ({ body }) => body?.category ?? (body?.query ? 'keyword' : null),
+  })
   @Post('/places/along-route')
   @HttpCode(HttpStatus.OK)
   async searchAlongRoute(@Body() body: RouteSearchDto) {

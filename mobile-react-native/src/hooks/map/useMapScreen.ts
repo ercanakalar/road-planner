@@ -5,6 +5,7 @@ import useConfirm from 'hooks/feedback/useConfirm';
 import useLocalMapLogic from 'hooks/map/useLocalMapLogic';
 import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
+import { reportUsage } from 'services/usageReporter';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { uploadLocalRoutes } from 'store/actions/localRouteActions';
 import {
@@ -96,9 +97,19 @@ export function useMapScreen() {
         };
     }, [routeLine.distanceMeters, routeLine.durationSeconds]);
 
+    // A route with no stops is already a blank slate; starting another one
+    // from it would only leave an empty route behind.
+    const canStartNewRoute = (activeRoute?.stops.length ?? 0) > 0;
+
     const handleNewRoute = useCallback(() => {
-        dispatch(localRouteCreated(`Route ${routes.length + 1}`));
-    }, [dispatch, routes.length]);
+        if (!canStartNewRoute) return;
+        dispatch(
+            localRouteCreated(
+                t('defaults.numberedRoute', { number: routes.length + 1 }),
+            ),
+        );
+        reportUsage('map_local_route_created');
+    }, [canStartNewRoute, dispatch, routes.length, t]);
 
     const handleSwitchRoute = useCallback(() => {
         if (routes.length > 1) setIsPickingRoute(true);
@@ -169,6 +180,7 @@ export function useMapScreen() {
         handleSwitchRoute,
         handlePickRoute,
         closePicker,
+        canStartNewRoute,
         handleNewRoute,
         handleDeleteRoute,
     };

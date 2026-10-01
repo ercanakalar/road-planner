@@ -51,7 +51,9 @@ export interface FavoriteSectionHeaderProps {
 export interface RoutesListProps {
   data: OwnRouteSummary[];
   isRefreshing: boolean;
+  isLoadingMore?: boolean;
   onRefresh: () => void;
+  onEndReached?: () => void;
   onToggleFavorite: (route: OwnRouteSummary) => void;
   onDelete: (route: OwnRouteSummary) => void;
   onEdit: (route: OwnRouteSummary) => void;

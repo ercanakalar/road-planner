@@ -1,3 +1,4 @@
+import i18n from 'i18n';
 import type {
   BendShape,
   SlopeGrade,
@@ -14,20 +15,25 @@ export const UNSHAPED_STOP: StopShape = {
   bendShape: null,
 };
 
+// Translation keys rather than words: the words, and the order they go in,
+// differ by language ("Sharp left · 92°", "Sola keskin viraj · 92°").
 const SLOPE_WORDS: Record<SlopeGrade, string> = {
-  flat: 'Flat',
-  gentle: 'Gentle',
-  moderate: 'Moderate',
-  steep: 'Steep',
+  flat: 'terrain.gradeFlat',
+  gentle: 'terrain.gradeGentle',
+  moderate: 'terrain.gradeModerate',
+  steep: 'terrain.gradeSteep',
 };
 
-const BEND_WORDS: Record<BendShape, string> = {
-  straight: 'Straight',
-  slight: 'Slight',
-  moderate: 'Bend',
-  sharp: 'Sharp',
-  hairpin: 'Hairpin',
+const BEND_WORDS: Record<BendShape, { alone: string; turning: string }> = {
+  straight: { alone: 'terrain.bendStraight', turning: 'terrain.bendStraightTurn' },
+  slight: { alone: 'terrain.bendSlight', turning: 'terrain.bendSlightTurn' },
+  moderate: { alone: 'terrain.bendModerate', turning: 'terrain.bendModerateTurn' },
+  sharp: { alone: 'terrain.bendSharp', turning: 'terrain.bendSharpTurn' },
+  hairpin: { alone: 'terrain.bendHairpin', turning: 'terrain.bendHairpinTurn' },
 };
+
+const decimal = (value: string): string =>
+  i18n.language === 'tr' ? value.replace('.', ',') : value;
 
 export const slopeIcon = (
   shape: StopShape,
@@ -53,22 +59,35 @@ export const bendIcon = (
 export const slopeLabel = (shape: StopShape): string | null => {
   if (shape.slopePercent === null || !shape.slopeGrade) return null;
 
-  const grade = SLOPE_WORDS[shape.slopeGrade];
-  const percent = Math.abs(shape.slopePercent).toFixed(1).replace(/\.0$/, '');
+  const grade = i18n.t(SLOPE_WORDS[shape.slopeGrade]);
+  const percent = decimal(
+    Math.abs(shape.slopePercent).toFixed(1).replace(/\.0$/, ''),
+  );
 
-  if (shape.slopeGrade === 'flat') return `${grade} · ${percent}%`;
+  if (shape.slopeGrade === 'flat') {
+    return i18n.t('terrain.slopeLevel', { grade, percent });
+  }
 
-  return `${grade} · ${percent}% ${shape.slopePercent > 0 ? 'up' : 'down'}`;
+  return i18n.t(
+    shape.slopePercent > 0 ? 'terrain.slopeUp' : 'terrain.slopeDown',
+    { grade, percent },
+  );
 };
 
 export const bendLabel = (shape: StopShape): string | null => {
   if (shape.bendDegrees === null || !shape.bendShape) return null;
 
-  const degrees = `${Math.round(shape.bendDegrees)}°`;
+  const degrees = Math.round(shape.bendDegrees);
+  const words = BEND_WORDS[shape.bendShape];
 
-  if (!shape.bendDirection) return `${BEND_WORDS[shape.bendShape]} · ${degrees}`;
+  if (!shape.bendDirection) {
+    return i18n.t('terrain.bendAlone', { bend: i18n.t(words.alone), degrees });
+  }
 
-  return `${BEND_WORDS[shape.bendShape]} ${shape.bendDirection} · ${degrees}`;
+  return i18n.t(
+    shape.bendDirection === 'left' ? 'terrain.bendLeft' : 'terrain.bendRight',
+    { bend: i18n.t(words.turning), degrees },
+  );
 };
 
 export const runLabel = (shape: StopShape): string | null => {
@@ -76,8 +95,8 @@ export const runLabel = (shape: StopShape): string | null => {
   if (meters === null) return null;
 
   return meters >= 1000
-    ? `${(meters / 1000).toFixed(1)} km`
-    : `${Math.round(meters)} m`;
+    ? i18n.t('units.kilometres', { value: decimal((meters / 1000).toFixed(1)) })
+    : i18n.t('units.metres', { value: Math.round(meters) });
 };
 
 export const hasShape = (shape: StopShape): boolean =>

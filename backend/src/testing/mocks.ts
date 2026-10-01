@@ -17,6 +17,9 @@ const PRISMA_MODELS = [
   'favoriteStop',
   'authorFollow',
   'notification',
+  'usageEvent',
+  'consentRecord',
+  'accountDeletion',
 ] as const;
 
 const PRISMA_METHODS = [

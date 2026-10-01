@@ -69,8 +69,7 @@ const ForgotPasswordScreen = ({ navigation, route }: Props) => {
                 color={colors.danger}
               />
               <Text style={styles.noticeText}>
-                Too many incorrect codes were entered for this address. You can
-                try again in {formatWait(lockoutMs)}.
+                {t('resetPassword.lockedHere', { wait: formatWait(lockoutMs) })}
               </Text>
             </View>
           ) : null}

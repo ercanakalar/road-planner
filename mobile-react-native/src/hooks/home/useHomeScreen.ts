@@ -12,7 +12,7 @@ import { useAppSelector } from 'store/hook';
 import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
   useGetDiscoverRoutesQuery,
-  useGetOwnRoutesQuery,
+  useGetOwnRoutesSummaryQuery,
 } from 'store/services/routeService';
 import { useGetUserQuery } from 'store/services/profileService';
 import { DiscoverRoute } from 'types/store/services/routeService-type';
@@ -30,7 +30,11 @@ export function useHomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  const { data: routes } = useGetOwnRoutesQuery(undefined, { skip: !isLoggedIn });
+  // Counted by the server, so the home screen never downloads routes just to
+  // add them up.
+  const { data: summary } = useGetOwnRoutesSummaryQuery(undefined, {
+    skip: !isLoggedIn,
+  });
 
   const userId = useAppSelector((state) => state.auth.userId);
   const { data: profile } = useGetUserQuery(
@@ -60,14 +64,14 @@ export function useHomeScreen() {
   const [, startFavoriteAction] = useTransition();
   const [savingRouteId, setSavingRouteId] = useState<string | null>(null);
 
-  const stats = useMemo(() => {
-    const own = routes ?? [];
-    return {
-      routes: own.length,
-      stops: own.reduce((total, route) => total + (route._count.stops ?? 0), 0),
-      favorites: own.filter((route) => route.isFavorite).length,
-    };
-  }, [routes]);
+  const stats = useMemo(
+    () => ({
+      routes: summary?.routes ?? 0,
+      stops: summary?.stops ?? 0,
+      favorites: summary?.favorites ?? 0,
+    }),
+    [summary],
+  );
 
   const goToRoutes = useCallback(
     () => navigation.navigate('HomeTabNavigator', { screen: 'Routes' }),

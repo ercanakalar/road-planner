@@ -42,7 +42,7 @@ const ResetPasswordScreen = ({ navigation, route }: Props) => {
     const validationError = useMemo(() => {
         if (!password || !confirmPassword) return t('forms.bothFieldsRequired');
         if (password.length < MIN_PASSWORD_LENGTH) {
-            return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+            return t('forms.passwordTooShort', { count: MIN_PASSWORD_LENGTH });
         }
         if (!PASSWORD_PATTERN.test(password)) {
             return t('forms.passwordNeedsLetterAndNumber');

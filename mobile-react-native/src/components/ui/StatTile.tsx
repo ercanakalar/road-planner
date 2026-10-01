@@ -14,7 +14,7 @@ import type { ThemeColors } from 'theme';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
-  value: number;
+  value: number | string;
   label: string;
 }
 
@@ -23,7 +23,7 @@ const StatTile = ({ icon, value, label }: Props) => {
   const styles = useThemedStyles(createStyles);
 
   return (
-    <View style={styles.stat}>
+    <View style={styles.stat} accessible accessibilityLabel={`${label}: ${value}`}>
       <View style={styles.figure}>
         <Ionicons name={icon} size={16} color={colors.primary} />
         <Text style={styles.statValue}>{value}</Text>

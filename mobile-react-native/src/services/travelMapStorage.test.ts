@@ -27,6 +27,38 @@ describe('travelMapStorage', () => {
     await expect(travelMapStorage.load()).resolves.toEqual([izmir]);
   });
 
+  it('keeps the city a place is in and the colour its city wears', async () => {
+    const konak: MarkedArea = {
+      ...izmir,
+      placeId: 'konak',
+      kind: 'district',
+      city: 'İzmir',
+      countryCode: 'TR',
+      colorSlot: 2,
+    };
+
+    await travelMapStorage.save([konak]);
+
+    await expect(travelMapStorage.load()).resolves.toEqual([konak]);
+  });
+
+  it('still reads a place saved before places carried their city', async () => {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([izmir]));
+
+    await expect(travelMapStorage.load()).resolves.toEqual([izmir]);
+  });
+
+  it('drops a place whose stored colour is not one', async () => {
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([{ ...izmir, colorSlot: 'blue' }, { ...izmir, placeId: 'ok' }]),
+    );
+
+    await expect(travelMapStorage.load()).resolves.toEqual([
+      { ...izmir, placeId: 'ok' },
+    ]);
+  });
+
   it('reports nothing on a device that has marked nothing', async () => {
     await expect(travelMapStorage.load()).resolves.toEqual([]);
   });

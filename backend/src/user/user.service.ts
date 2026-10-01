@@ -18,6 +18,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSearchQueryDto } from './dto/user-search.dto';
 import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
 import { FollowService } from './follow.service';
+import { displayNameOf } from 'src/i18n/display-name';
 
 const AUTHOR_SELECT = {
   id: true,
@@ -36,6 +37,22 @@ const USER_PUBLIC_SELECT = {
   createdAt: true,
   updatedAt: true,
 } as const;
+
+// The column is CITEXT, so this equality is case-insensitive in the database:
+// 'Ercan' is held by whoever holds 'ercan'.
+const isNicknameHeldByOther = async (
+  db: Pick<PrismaService, 'user'>,
+  nickName: string,
+  userId: string,
+): Promise<boolean> =>
+  (await db.user.findFirst({
+    where: { nickName, NOT: { id: userId } },
+    select: { id: true },
+  })) !== null;
+
+const isUniqueViolation = (error: unknown): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === 'P2002';
 
 @Injectable()
 export class UserService {
@@ -89,33 +106,42 @@ export class UserService {
       throw new BadRequestException('error.nothingToUpdate');
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      if (body.nickName !== undefined) {
-        const taken = await tx.user.findFirst({
-          where: {
-            nickName: body.nickName,
-            NOT: { id: userId },
-          },
-          select: { id: true },
-        });
-
-        if (taken) {
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        if (
+          body.nickName !== undefined &&
+          (await isNicknameHeldByOther(tx, body.nickName, userId))
+        ) {
           throw new ConflictException('error.nicknameTaken');
         }
-      }
 
-      return tx.user.update({
-        where: { id: userId },
-        data,
-        select: USER_PUBLIC_SELECT,
+        return tx.user.update({
+          where: { id: userId },
+          data,
+          select: USER_PUBLIC_SELECT,
+        });
+      })
+      .catch((error: unknown) => {
+        // Two people can pass the lookup for the same nickname at once; the
+        // unique index lets only one of them write it, and the other should
+        // hear why rather than get the generic "value taken" answer.
+        if (body.nickName !== undefined && isUniqueViolation(error)) {
+          throw new ConflictException('error.nicknameTaken');
+        }
+        throw error;
       });
-    });
 
     return ok({
       header: 'user.updatedHeader',
       message: 'user.updatedMessage',
       data: updated,
     });
+  }
+
+  async nicknameAvailability(nickName: string, userId: string) {
+    const taken = await isNicknameHeldByOther(this.prisma, nickName, userId);
+
+    return ok({ data: { nickName, available: !taken } });
   }
 
   async searchAuthors(query: UserSearchQueryDto, viewerId: string | null) {
@@ -166,7 +192,7 @@ export class UserService {
 
     const shaped = users.map(({ _count, nickName, firstName, ...user }) => ({
       ...user,
-      displayName: nickName ?? firstName ?? 'A traveller',
+      displayName: displayNameOf({ nickName, firstName }),
       publicRouteCount: _count.roads,
       isFollowed: followed.has(user.id),
     }));
@@ -201,7 +227,7 @@ export class UserService {
       message: 'user.authorMessage',
       data: {
         ...rest,
-        displayName: nickName ?? firstName ?? 'A traveller',
+        displayName: displayNameOf({ nickName, firstName }),
         publicRouteCount: _count.roads,
         isFollowed: await this.follows.isFollowing(id, viewerId),
       },

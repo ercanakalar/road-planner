@@ -1,5 +1,5 @@
 import { collectDtoErrors, validateDto } from 'src/testing/validate-dto';
-import { UpdateUserDto } from './update-user.dto';
+import { NicknameAvailabilityQueryDto, UpdateUserDto } from './update-user.dto';
 
 const ADMIN_PERMIT_ID = '909c9b35-eec3-4afe-a21d-986682659f5a';
 
@@ -181,5 +181,33 @@ describe('UpdateUserDto', () => {
     const result = await validateDto(UpdateUserDto, { firstName: '   ' });
 
     expect(result.firstName).toBeUndefined();
+  });
+});
+
+describe('NicknameAvailabilityQueryDto', () => {
+  it('requires a nickname to check', async () => {
+    await expect(
+      collectDtoErrors(NicknameAvailabilityQueryDto, {}),
+    ).resolves.not.toEqual([]);
+  });
+
+  it('treats a blank nickname as missing rather than as a nickname', async () => {
+    await expect(
+      collectDtoErrors(NicknameAvailabilityQueryDto, { nickName: '   ' }),
+    ).resolves.not.toEqual([]);
+  });
+
+  it('holds the same rules as saving one, so it never promises one that cannot be saved', async () => {
+    for (const nickName of ['ab', 'a'.repeat(31), 'has space', '<script>']) {
+      await expect(
+        collectDtoErrors(NicknameAvailabilityQueryDto, { nickName }),
+      ).resolves.not.toEqual([]);
+    }
+  });
+
+  it('trims the nickname it checks', async () => {
+    await expect(
+      validateDto(NicknameAvailabilityQueryDto, { nickName: ' ercan_a ' }),
+    ).resolves.toEqual({ nickName: 'ercan_a' });
   });
 });

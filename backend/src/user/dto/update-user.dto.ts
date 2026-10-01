@@ -9,6 +9,10 @@ import {
 } from 'class-validator';
 
 import {
+  NICKNAME_MAX_LENGTH,
+  NICKNAME_MIN_LENGTH,
+  NICKNAME_PATTERN,
+  NICKNAME_PATTERN_MESSAGE,
   SHORT_TEXT_MAX_LENGTH,
   URL_MAX_LENGTH,
 } from 'src/common/dto/constants';
@@ -37,12 +41,21 @@ export class UpdateUserDto {
   @IsOptional()
   @Transform(emptyToUndefined)
   @IsString()
-  @MinLength(3)
-  @MaxLength(30)
-  @Matches(/^[A-Za-z0-9._-]+$/, { message: 'validation.nickNamePattern' })
+  @MinLength(NICKNAME_MIN_LENGTH)
+  @MaxLength(NICKNAME_MAX_LENGTH)
+  @Matches(NICKNAME_PATTERN, { message: NICKNAME_PATTERN_MESSAGE })
   nickName?: string;
 
   @IsOptional()
   @IsIn([...SUPPORTED_LANGUAGES])
   language?: string;
+}
+
+export class NicknameAvailabilityQueryDto {
+  @Transform(emptyToUndefined)
+  @IsString()
+  @MinLength(NICKNAME_MIN_LENGTH)
+  @MaxLength(NICKNAME_MAX_LENGTH)
+  @Matches(NICKNAME_PATTERN, { message: NICKNAME_PATTERN_MESSAGE })
+  nickName!: string;
 }

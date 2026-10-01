@@ -104,7 +104,7 @@ say "5/6 Generating the token signing keys"
 # secret shared across token classes would let an access token be replayed as
 # a refresh token. Generated here and left alone afterwards — regenerating one
 # signs every user out, so a later run of this script must not touch them.
-for name in ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY; do
+for name in ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY AUDIT_HASH_KEY; do
   if gcloud secrets describe "${name}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
     echo "  ${name} already exists — left alone"
     continue

@@ -7,9 +7,12 @@ import { routeService } from './services/routeService';
 import { favoriteService } from './services/favoriteService';
 import { searchService } from './services/searchService';
 import { notificationService } from './services/notificationService';
+import { consentService } from './services/consentService';
+import { statisticsService } from './services/statisticsService';
 
 import authMiddleware from './middlewares/auth-middleware';
 import persistenceMiddleware from './middlewares/persistence-middleware';
+import consentMiddleware from './middlewares/consent-middleware';
 
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
@@ -33,6 +36,8 @@ const rootReducer = combineReducers({
   [favoriteService.reducerPath]: favoriteService.reducer,
   [searchService.reducerPath]: searchService.reducer,
   [notificationService.reducerPath]: notificationService.reducer,
+  [consentService.reducerPath]: consentService.reducer,
+  [statisticsService.reducerPath]: statisticsService.reducer,
 });
 
 const API_REDUCER_PATHS = [
@@ -42,6 +47,8 @@ const API_REDUCER_PATHS = [
   favoriteService.reducerPath,
   searchService.reducerPath,
   notificationService.reducerPath,
+  consentService.reducerPath,
+  statisticsService.reducerPath,
 ];
 
 export const store = configureStore({
@@ -51,7 +58,11 @@ export const store = configureStore({
       immutableCheck: { warnAfter: 128, ignoredPaths: API_REDUCER_PATHS },
       serializableCheck: { warnAfter: 128, ignoredPaths: API_REDUCER_PATHS },
     })
-      .prepend(authMiddleware.middleware, persistenceMiddleware.middleware)
+      .prepend(
+        authMiddleware.middleware,
+        persistenceMiddleware.middleware,
+        consentMiddleware.middleware,
+      )
       .concat(
         authenticationService.middleware,
         profileService.middleware,
@@ -59,6 +70,8 @@ export const store = configureStore({
         favoriteService.middleware,
         searchService.middleware,
         notificationService.middleware,
+        consentService.middleware,
+        statisticsService.middleware,
       ),
 });
 

@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -41,6 +42,7 @@ const RouteSummaryRow = ({
 }: Props) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
 
     const handleOpen = useCallback(() => onOpen(route.id), [onOpen, route.id]);
 
@@ -66,7 +68,10 @@ const RouteSummaryRow = ({
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             onPress={handleOpen}
             accessibilityRole='button'
-            accessibilityLabel={`Open ${route.title} by ${route.author}`}
+            accessibilityLabel={t('routes.openBy', {
+                title: route.title,
+                author: route.author,
+            })}
         >
             <View style={styles.body}>
                 <Text style={styles.title} numberOfLines={1}>
@@ -81,7 +86,7 @@ const RouteSummaryRow = ({
                         accessibilityRole={onOpenAuthor ? 'button' : undefined}
                         accessibilityLabel={
                             onOpenAuthor
-                                ? `See routes by ${route.author}`
+                                ? t('routes.seeRoutesBy', { name: route.author })
                                 : undefined
                         }
                     >
@@ -99,7 +104,7 @@ const RouteSummaryRow = ({
                     <Text style={styles.dot}>·</Text>
 
                     <Text style={styles.meta}>
-                        {route.stopCount} stop{route.stopCount === 1 ? '' : 's'}
+                        {t('routes.stopCount', { count: route.stopCount })}
                     </Text>
 
                     {leg ? (
@@ -129,8 +134,12 @@ const RouteSummaryRow = ({
                     }}
                     accessibilityLabel={
                         route.isFavorite
-                            ? `Remove ${route.title} from favourites`
-                            : `Save ${route.title} to favourites`
+                            ? t('routes.removeFromFavourites', {
+                                  title: route.title,
+                              })
+                            : t('routes.saveToFavourites', {
+                                  title: route.title,
+                              })
                     }
                 >
                     <Ionicons

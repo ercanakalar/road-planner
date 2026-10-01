@@ -1,32 +1,28 @@
-import { ApiResponse } from "types/store/bases";
-
-const UNREACHABLE =
-  "Could not reach the server. Check your connection and try again.";
-
-const TIMED_OUT = "The server took too long to answer. Please try again.";
+import i18n from 'i18n';
+import { ApiResponse } from 'types/store/bases';
 
 export const apiErrorMessage = (error: unknown, fallback: string): string => {
   const status = (error as { status?: unknown } | undefined)?.status;
 
-  if (status === "FETCH_ERROR") return UNREACHABLE;
-  if (status === "TIMEOUT_ERROR") return TIMED_OUT;
+  if (status === 'FETCH_ERROR') return i18n.t('errors.unreachable');
+  if (status === 'TIMEOUT_ERROR') return i18n.t('errors.timedOut');
 
   const body = (error as { data?: unknown } | undefined)?.data as
     | ApiResponse<unknown>
     | undefined;
 
-  const message = typeof body?.message === "string" ? body.message.trim() : "";
+  const message = typeof body?.message === 'string' ? body.message.trim() : '';
   if (message) return message;
 
-  if (status === "PARSING_ERROR") {
+  if (status === 'PARSING_ERROR') {
     const original = (error as { originalStatus?: unknown }).originalStatus;
-    return `The server replied with something this app could not read (${
-      typeof original === "number" ? original : "no status"
-    }).`;
+    return i18n.t('errors.unreadable', {
+      status: typeof original === 'number' ? original : i18n.t('errors.noStatus'),
+    });
   }
 
-  if (typeof status === "number") {
-    return `The server answered ${status} without saying why.`;
+  if (typeof status === 'number') {
+    return i18n.t('errors.noReason', { status });
   }
 
   return fallback;

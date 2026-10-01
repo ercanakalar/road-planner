@@ -53,11 +53,11 @@ describe('AllExceptionsFilter', () => {
 
   describe('HttpException', () => {
     it.each([
-      [new BadRequestException('bad'), 400, 'Invalid Request'],
-      [new UnauthorizedException('nope'), 401, 'Not Signed In'],
-      [new ForbiddenException('no'), 403, 'Not Allowed'],
-      [new NotFoundException('gone'), 404, 'Not Found'],
-      [new ConflictException('taken'), 409, 'Conflict'],
+      [new BadRequestException('bad'), 400, 'Please check your details'],
+      [new UnauthorizedException('nope'), 401, 'Not signed in'],
+      [new ForbiddenException('no'), 403, 'Not allowed'],
+      [new NotFoundException('gone'), 404, 'Not found'],
+      [new ConflictException('taken'), 409, 'Already taken'],
     ])('maps %s to %i', (exception, expected, header) => {
       filter.catch(exception, host);
 
@@ -68,7 +68,7 @@ describe('AllExceptionsFilter', () => {
     it('says what the exception said, in words', () => {
       filter.catch(new NotFoundException('error.routeNotFound'), host);
 
-      expect(body().message).toBe('Route not found');
+      expect(body().message).toBe('Route not found.');
     });
 
     it('says it in the language the request asked for', () => {
@@ -76,7 +76,7 @@ describe('AllExceptionsFilter', () => {
 
       filter.catch(new NotFoundException('error.routeNotFound'), host);
 
-      expect(body().message).toBe('Rota bulunamadı');
+      expect(body().message).toBe('Rota bulunamadı.');
     });
 
     it('preserves a validation message array', () => {
@@ -126,7 +126,9 @@ describe('AllExceptionsFilter', () => {
       filter.catch(prismaKnown('P2037'), host);
 
       expect(status).toHaveBeenCalledWith(500);
-      expect(body().message).toBe('An unexpected error occurred.');
+      expect(body().message).toBe(
+        'Something unexpected went wrong. Please try again.',
+      );
     });
 
     describe('raw statement failures (P2010)', () => {
@@ -208,7 +210,9 @@ describe('AllExceptionsFilter', () => {
       );
 
       expect(status).toHaveBeenCalledWith(500);
-      expect(body().message).toBe('An unexpected error occurred.');
+      expect(body().message).toBe(
+        'Something unexpected went wrong. Please try again.',
+      );
     });
 
     it('reports an unreachable database as 503', () => {
@@ -221,7 +225,7 @@ describe('AllExceptionsFilter', () => {
       );
 
       expect(status).toHaveBeenCalledWith(503);
-      expect(body()).toMatchObject({ header: 'Temporarily Unavailable' });
+      expect(body()).toMatchObject({ header: 'Temporarily unavailable' });
     });
   });
 
@@ -235,7 +239,9 @@ describe('AllExceptionsFilter', () => {
       filter.catch(thrown, host);
 
       expect(status).toHaveBeenCalledWith(500);
-      expect(body().message).toBe('An unexpected error occurred.');
+      expect(body().message).toBe(
+        'Something unexpected went wrong. Please try again.',
+      );
     });
 
     it('does not leak the underlying message', () => {
@@ -312,7 +318,7 @@ describe('AllExceptionsFilter', () => {
       expect(status).toHaveBeenCalledWith(HttpStatus.PAYLOAD_TOO_LARGE);
       expect(body()).toMatchObject({
         status: ToastType.Error,
-        header: 'Too Large',
+        header: 'Too large',
         message: 'That file is too large to upload.',
       });
     });
@@ -327,7 +333,7 @@ describe('AllExceptionsFilter', () => {
       filter.catch(multerError('LIMIT_SOMETHING_NEW'), host);
 
       expect(status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
-      expect(body().message).toBe('That upload could not be read.');
+      expect(body().message).toBe('The upload could not be read.');
     });
 
     it('leaves an ordinary error alone', () => {

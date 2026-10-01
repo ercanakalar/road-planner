@@ -240,7 +240,7 @@ const PlaceRow = memo(
           onPress={handleAdd}
           hitSlop={8}
           accessibilityRole='button'
-          accessibilityLabel={`Add ${place.name} to the route`}
+          accessibilityLabel={t('mapUi.addPlaceToRoute', { name: place.name })}
         >
           <Ionicons name='add' size={20} color={colors.primary} />
         </Pressable>
@@ -439,7 +439,7 @@ const RouteSearchSheet = ({
             ListEmptyComponent={
               <Text style={styles.empty}>
                 {!isRoutable
-                  ? 'A route needs two stops before there is anything to search along.'
+                  ? t('errors.needTwoStops')
                   : error
                     ? error
                     : !hasSearch

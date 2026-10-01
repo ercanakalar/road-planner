@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -17,6 +18,7 @@ interface Props {
 const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   const handleOpen = useCallback(
     () => onOpen(notification),
@@ -28,8 +30,15 @@ const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
     [notification, onOpenActor],
   );
 
-  const who = notification.actor?.displayName ?? 'Someone';
-  const what = notification.road?.title ?? 'a route';
+  const who = notification.actor?.displayName ?? t('defaults.someone');
+  const what = notification.road?.title;
+  const when = timeAgo(notification.createdAt);
+
+  // A route deleted since has no title left to name, and the sentence has to
+  // be built without one rather than around a placeholder.
+  const sentence = what
+    ? 'notifications.publishedRoute'
+    : 'notifications.publishedSomeRoute';
   const photo = resolvePhotoUrl(notification.actor?.photo);
 
   return (
@@ -42,9 +51,13 @@ const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
       onPress={handleOpen}
       disabled={!notification.isOpenable}
       accessibilityRole={notification.isOpenable ? 'button' : undefined}
-      accessibilityLabel={`${who} published ${what}, ${timeAgo(
-        notification.createdAt,
-      )}${notification.isRead ? '' : ', unread'}`}
+      accessibilityLabel={[
+        t(sentence, { who, what }).replace(/<\/?(who|what)>/g, ''),
+        when,
+        notification.isRead ? null : t('notifications.unread'),
+      ]
+        .filter(Boolean)
+        .join(', ')}
     >
       <Pressable
         onPress={handleOpenActor}
@@ -52,7 +65,9 @@ const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
         hitSlop={6}
         accessibilityRole={notification.actor ? 'button' : undefined}
         accessibilityLabel={
-          notification.actor ? `Open ${who}'s profile` : undefined
+          notification.actor
+            ? t('searchScreen.openProfileOf', { name: who })
+            : undefined
         }
       >
         {photo ? (
@@ -68,18 +83,25 @@ const NotificationRow = ({ notification, onOpen, onOpenActor }: Props) => {
 
       <View style={styles.body}>
         <Text style={styles.text}>
-          <Text style={styles.who}>{who}</Text>
-          <Text> published </Text>
-          <Text style={styles.what}>{what}</Text>
+          <Trans
+            i18nKey={sentence}
+            values={{ who, what }}
+            components={{
+              who: <Text style={styles.who} />,
+              what: <Text style={styles.what} />,
+            }}
+          />
         </Text>
 
         <View style={styles.metaRow}>
-          <Text style={styles.meta}>{timeAgo(notification.createdAt)}</Text>
+          <Text style={styles.meta}>{when}</Text>
 
           {notification.isOpenable ? null : (
             <>
               <Text style={styles.dot}>·</Text>
-              <Text style={styles.meta}>no longer available</Text>
+              <Text style={styles.meta}>
+                {t('notifications.unavailableShort')}
+              </Text>
             </>
           )}
         </View>

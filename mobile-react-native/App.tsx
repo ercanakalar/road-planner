@@ -11,6 +11,8 @@ import RootNavigator from 'navigators/RootNavigator';
 import linking from 'navigators/linking';
 import ErrorBoundary from 'components/feedback/ErrorBoundary';
 import SessionGate from 'components/auth/SessionGate';
+import KvkkGate from 'components/legal/KvkkGate';
+import AppOpenedReport from 'components/statistics/AppOpenedReport';
 import ConfirmProvider from 'components/feedback/ConfirmProvider';
 import LocalRouteMigrationPrompt from 'components/route/LocalRouteMigrationPrompt';
 import store from 'store';
@@ -53,13 +55,16 @@ const ThemedApp = () => {
       <SafeAreaProvider>
         <ErrorBoundary>
           <SessionGate>
-            <ConfirmProvider>
-              <NavigationContainer theme={navigationTheme} linking={linking}>
-                <StatusBar style={isDark ? 'light' : 'dark'} />
-                <RootNavigator />
-                <LocalRouteMigrationPrompt />
-              </NavigationContainer>
-            </ConfirmProvider>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <KvkkGate>
+              <AppOpenedReport />
+              <ConfirmProvider>
+                <NavigationContainer theme={navigationTheme} linking={linking}>
+                  <RootNavigator />
+                  <LocalRouteMigrationPrompt />
+                </NavigationContainer>
+              </ConfirmProvider>
+            </KvkkGate>
           </SessionGate>
         </ErrorBoundary>
         <ThemedToast />

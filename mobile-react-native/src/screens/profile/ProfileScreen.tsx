@@ -46,6 +46,7 @@ const ProfileScreen = ({ navigation }: Props) => {
     goToProfile,
     goToSettings,
     goToKvkk,
+    goToStatistics,
   } = useProfileScreen(navigation);
 
   if (isLoading) {
@@ -110,6 +111,12 @@ const ProfileScreen = ({ navigation }: Props) => {
               description={t('profile.editProfileHint')}
               divided={false}
               onPress={goToProfile}
+            />
+            <SettingsRow
+              icon='stats-chart-outline'
+              label={t('profile.statistics')}
+              description={t('profile.statisticsHint')}
+              onPress={goToStatistics}
             />
             <SettingsRow
               icon='notifications-outline'

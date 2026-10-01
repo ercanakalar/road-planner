@@ -127,7 +127,9 @@ const SharedRouteScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>{route.title}</Text>
-        <Text style={styles.author}>Shared by {route.author}</Text>
+        <Text style={styles.author}>
+          {t('routes.sharedBy', { name: route.author })}
+        </Text>
         {route.description ? (
           <Text style={styles.description}>{route.description}</Text>
         ) : null}

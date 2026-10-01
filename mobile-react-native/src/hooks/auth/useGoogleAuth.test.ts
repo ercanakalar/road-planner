@@ -146,7 +146,7 @@ describe('describeAuthResponse', () => {
     expect(outcome.status).toBe('failed');
     expect(outcome).toHaveProperty(
       'message',
-      expect.stringContaining('already open'),
+      expect.stringContaining('already in progress'),
     );
   });
 
@@ -160,7 +160,7 @@ describe('describeAuthResponse', () => {
 describe('describeSignInError', () => {
   it('names an unreachable server rather than blaming Google', () => {
     expect(describeSignInError({ status: 'FETCH_ERROR' })).toMatch(
-      /could not reach the server/i,
+      /server could not be reached/i,
     );
   });
 
@@ -180,14 +180,14 @@ describe('describeSignInError', () => {
     ).toBe('idToken is required');
   });
 
-  it('points at the audience setting when the API rejects the token', () => {
+  it('tells the person plainly when the API rejects the token', () => {
     expect(describeSignInError({ status: 401 })).toMatch(
-      /GOOGLE_NATIVE_CLIENT_IDS/,
+      /cannot be used to sign in/i,
     );
   });
 
   it('says the server is unconfigured on a 503', () => {
-    expect(describeSignInError({ status: 503 })).toMatch(/not configured/i);
+    expect(describeSignInError({ status: 503 })).toMatch(/not available/i);
   });
 
   it('still names the status of an answer it has no wording for', () => {

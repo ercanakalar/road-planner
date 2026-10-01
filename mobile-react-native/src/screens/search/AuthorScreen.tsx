@@ -81,7 +81,7 @@ const AuthorScreen = ({ route }: Props) => {
 
   const keyExtractor = useCallback((item: RouteSearchHit) => item.id, []);
 
-  const name = author?.displayName ?? displayName ?? 'A traveller';
+  const name = author?.displayName ?? displayName ?? t('home.aTraveller');
   const photo = resolvePhotoUrl(author?.photo);
 
   const header = (
@@ -114,8 +114,8 @@ const AuthorScreen = ({ route }: Props) => {
         accessibilityState={{ selected: isFollowed, busy: isUpdatingFollow }}
         accessibilityLabel={
           isFollowed
-            ? `Stop being notified when ${name} publishes a route`
-            : `Notify me when ${name} publishes a route`
+            ? t('searchScreen.stopNotifying', { name })
+            : t('searchScreen.notifyWhen', { name })
         }
         accessibilityHint={t('searchScreen.notifyHint')}
       >

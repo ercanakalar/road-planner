@@ -15,6 +15,7 @@ const VALIDATION_KEYS: Record<string, string> = {
   isEmail: 'validation.mustBeEmail',
   isUrl: 'validation.mustBeUrl',
   isUuid: 'validation.mustBeId',
+  isIso8601: 'validation.mustBeDate',
   isJwt: 'validation.mustBeToken',
   isLatitude: 'validation.mustBeLatitude',
   isLongitude: 'validation.mustBeLongitude',

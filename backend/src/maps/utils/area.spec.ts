@@ -1,4 +1,10 @@
-import { areaBounds, areaKind, hasOutline } from './area';
+import {
+  areaBounds,
+  areaCity,
+  areaCountryCode,
+  areaKind,
+  hasOutline,
+} from './area';
 
 const KADIKOY = { latitude: 40.9903, longitude: 29.0275 };
 
@@ -96,5 +102,116 @@ describe('hasOutline', () => {
     expect(hasOutline({ bounds: box(41.2, 40.8, 29.3, 28.8) })).toBe(true);
     expect(hasOutline({ viewport: box(41.1, 40.9, 29.2, 28.9) })).toBe(false);
     expect(hasOutline()).toBe(false);
+  });
+});
+
+const part = (long_name: string, short_name: string, ...types: string[]) => ({
+  long_name,
+  short_name,
+  types: [...types, 'political'],
+});
+
+const TURKEY = part('Türkiye', 'TR', 'country');
+const ISTANBUL = part('İstanbul', 'İstanbul', 'administrative_area_level_1');
+const KOCAELI = part('Kocaeli', 'Kocaeli', 'administrative_area_level_1');
+
+const USA = part('United States', 'US', 'country');
+const TEXAS = part('Texas', 'TX', 'administrative_area_level_1');
+const AUSTIN = part('Austin', 'Austin', 'locality');
+
+describe('areaCountryCode', () => {
+  it('reads the ISO code of the country component', () => {
+    expect(areaCountryCode([ISTANBUL, TURKEY])).toBe('TR');
+  });
+
+  it('is null when Google named no country', () => {
+    expect(areaCountryCode([ISTANBUL])).toBeNull();
+    expect(areaCountryCode()).toBeNull();
+  });
+});
+
+describe('areaCity', () => {
+  it('belongs a country to no city', () => {
+    expect(areaCity('country', 'Türkiye', [TURKEY])).toBeNull();
+  });
+
+  describe('in Turkey, where the province is the city', () => {
+    it('puts a district in its province', () => {
+      expect(
+        areaCity('district', 'Kadıköy', [
+          part('Kadıköy', 'Kadıköy', 'administrative_area_level_2'),
+          ISTANBUL,
+          TURKEY,
+        ]),
+      ).toBe('İstanbul');
+    });
+
+    it('puts a town Google calls a locality in its province too', () => {
+      expect(
+        areaCity('city', 'Gebze', [
+          part('Gebze', 'Gebze', 'locality'),
+          KOCAELI,
+          TURKEY,
+        ]),
+      ).toBe('Kocaeli');
+    });
+
+    it('makes the province its own city', () => {
+      expect(areaCity('region', 'İstanbul', [ISTANBUL, TURKEY])).toBe(
+        'İstanbul',
+      );
+    });
+
+    it('puts a restaurant in the province it is in', () => {
+      expect(
+        areaCity('place', 'Çiya Sofrası', [
+          part('Caferağa', 'Caferağa', 'administrative_area_level_4'),
+          part('Kadıköy', 'Kadıköy', 'administrative_area_level_2'),
+          ISTANBUL,
+          TURKEY,
+        ]),
+      ).toBe('İstanbul');
+    });
+  });
+
+  describe('elsewhere, where the locality is the city', () => {
+    it('makes a locality its own city', () => {
+      expect(areaCity('city', 'Austin', [AUSTIN, TEXAS, USA])).toBe('Austin');
+    });
+
+    it('puts a place in its locality, not its state', () => {
+      expect(areaCity('place', 'Zilker Park', [AUSTIN, TEXAS, USA])).toBe(
+        'Austin',
+      );
+    });
+
+    it('uses the postal town where Britain has no locality', () => {
+      expect(
+        areaCity('district', 'Clifton', [
+          part('Bristol', 'Bristol', 'postal_town'),
+          part('England', 'England', 'administrative_area_level_1'),
+          part('United Kingdom', 'GB', 'country'),
+        ]),
+      ).toBe('Bristol');
+    });
+
+    it('puts a place in no town at all in no city, rather than its state', () => {
+      expect(
+        areaCity('place', 'Ranch', [
+          part('Travis County', 'Travis County', 'administrative_area_level_2'),
+          TEXAS,
+          USA,
+        ]),
+      ).toBeNull();
+    });
+
+    it('treats a state like a country: wider than any city', () => {
+      expect(areaCity('region', 'Texas', [TEXAS, USA])).toBeNull();
+    });
+  });
+
+  it('falls back to the area’s own name when Google listed no parts', () => {
+    expect(areaCity('city', 'Somewhere', [])).toBe('Somewhere');
+    expect(areaCity('place', 'A café', [])).toBeNull();
   });
 });

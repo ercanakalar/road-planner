@@ -6,6 +6,7 @@ import {
   GOOGLE_MAPS_STOP_LIMIT,
 } from 'constants/googleMapsLink';
 import { showNotification } from 'services/notificationService';
+import { reportUsage } from 'services/usageReporter';
 import { useLazyGetRouteByIdQuery } from 'store/services/routeService';
 
 import { RouteCoordinate } from 'types/map-screen-type';
@@ -47,6 +48,7 @@ export function useOpenInGoogleMaps(): OpenInGoogleMaps {
 
       try {
         await Linking.openURL(link.url);
+        reportUsage('map_opened_in_google_maps', mode);
       } catch {
         showNotification({
           type: 'error',

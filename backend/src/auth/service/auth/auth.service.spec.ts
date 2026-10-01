@@ -766,7 +766,7 @@ describe('AuthService', () => {
 
       await expect(
         service.verifyResetCode({ email: 'user@example.com', code: '00000' }),
-      ).rejects.toThrow(/incorrect or has expired/);
+      ).rejects.toThrow(/error\.resetCodeInvalid/);
 
       expect(prisma.passwordReset.update).toHaveBeenCalledWith({
         where: { id: 'reset-1' },
@@ -840,7 +840,7 @@ describe('AuthService', () => {
 
       await expect(
         service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
-      ).rejects.toThrow(/incorrect or has expired/);
+      ).rejects.toThrow(/error\.resetCodeInvalid/);
     });
 
     it('answers the same for an unknown address as for a wrong code', async () => {
@@ -848,7 +848,7 @@ describe('AuthService', () => {
 
       await expect(
         service.verifyResetCode({ email: 'nobody@example.com', code: '04213' }),
-      ).rejects.toThrow(/incorrect or has expired/);
+      ).rejects.toThrow(/error\.resetCodeInvalid/);
     });
 
     it('answers the same when no reset was ever requested', async () => {
@@ -856,7 +856,7 @@ describe('AuthService', () => {
 
       await expect(
         service.verifyResetCode({ email: 'user@example.com', code: '04213' }),
-      ).rejects.toThrow(/incorrect or has expired/);
+      ).rejects.toThrow(/error\.resetCodeInvalid/);
     });
   });
 

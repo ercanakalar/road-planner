@@ -83,7 +83,7 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
 
   const handleSubmit = useCallback(async () => {
     if (code.length !== RESET_CODE_LENGTH) {
-      setError(`Enter the ${RESET_CODE_LENGTH}-digit code.`);
+      setError(t('forms.enterCode', { length: RESET_CODE_LENGTH }));
       return;
     }
 
@@ -106,15 +106,13 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
       setAttemptsRemaining(remaining);
       setError(
         remaining !== null && remaining > 0
-          ? `That code is not right. ${remaining} attempt${
-              remaining === 1 ? '' : 's'
-            } left.`
+          ? t('forms.codeWrongAttemptsLeft', { count: remaining })
           : t('forms.codeIncorrect'),
       );
       setCode('');
       inputRef.current?.focus();
     }
-  }, [code, email, navigation, verifyResetCode]);
+  }, [code, email, navigation, t, verifyResetCode]);
 
   const handleResend = useCallback(async () => {
     try {
@@ -179,7 +177,9 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
             style={styles.digits}
             onPress={() => inputRef.current?.focus()}
             accessibilityRole='button'
-            accessibilityLabel={`Enter the ${RESET_CODE_LENGTH} digit code`}
+            accessibilityLabel={t('forms.enterCodeAccessibility', {
+              length: RESET_CODE_LENGTH,
+            })}
           >
             {Array.from({ length: RESET_CODE_LENGTH }).map((_, index) => (
               <View

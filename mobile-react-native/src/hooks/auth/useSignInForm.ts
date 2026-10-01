@@ -34,7 +34,7 @@ export function useSignInForm(navigation: NavigationProp<RootStackParamList>) {
     initialValues: EMPTY_FORM,
     validate,
     submit,
-    failureMessage: 'Sign-in failed. Please check your credentials.',
+    failureMessage: i18n.t('forms.signInFailed'),
   });
 
   const goToSignUp = useCallback(

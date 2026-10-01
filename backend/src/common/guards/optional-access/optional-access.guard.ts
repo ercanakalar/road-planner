@@ -25,7 +25,10 @@ function bearerToken(context: ExecutionContext): string | undefined {
     .switchToHttp()
     .getRequest<{ headers?: Record<string, unknown> }>();
 
-  const header = headers?.authorization;
+  return bearerTokenIn(headers?.authorization);
+}
+
+export function bearerTokenIn(header: unknown): string | undefined {
   if (typeof header !== 'string') return undefined;
 
   const [scheme, token] = header.split(' ');

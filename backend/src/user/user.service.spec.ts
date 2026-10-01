@@ -10,6 +10,7 @@ const UPLOAD_DIR = 'test-uploads';
 
 import { ConfigService } from '@nestjs/config';
 
+import { Prisma } from 'src/generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   createConfigMock,
@@ -21,6 +22,12 @@ import { UserService } from './user.service';
 
 const USER_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
 const ADMIN_PERMIT_ID = '909c9b35-eec3-4afe-a21d-986682659f5a';
+
+const uniqueViolation = () =>
+  new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+  });
 
 describe('UserService', () => {
   let service: UserService;
@@ -140,6 +147,71 @@ describe('UserService', () => {
 
         expect(prisma.user.findFirst).not.toHaveBeenCalled();
       });
+
+      it('names the nickname when another request took it between lookup and write', async () => {
+        prisma.user.update.mockRejectedValue(uniqueViolation());
+
+        await expect(
+          service.updateUser({ nickName: 'raced' }, USER_ID),
+        ).rejects.toMatchObject({
+          constructor: ConflictException,
+          message: 'error.nicknameTaken',
+        });
+      });
+
+      it('leaves other write failures alone', async () => {
+        const failure = new Error('connection reset');
+        prisma.user.update.mockRejectedValue(failure);
+
+        await expect(
+          service.updateUser({ nickName: 'fine' }, USER_ID),
+        ).rejects.toBe(failure);
+      });
+
+      it('does not blame the nickname for a conflict on an update without one', async () => {
+        const violation = uniqueViolation();
+        prisma.user.update.mockRejectedValue(violation);
+
+        await expect(
+          service.updateUser({ firstName: 'Ercan' }, USER_ID),
+        ).rejects.toBe(violation);
+      });
+    });
+  });
+
+  describe('nicknameAvailability', () => {
+    it('reports a nickname nobody else holds as available', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.nicknameAvailability('free_one', USER_ID),
+      ).resolves.toMatchObject({
+        data: { nickName: 'free_one', available: true },
+      });
+    });
+
+    it('reports a nickname someone else holds as taken', async () => {
+      prisma.user.findFirst.mockResolvedValue({ id: 'someone-else' });
+
+      await expect(
+        service.nicknameAvailability('taken', USER_ID),
+      ).resolves.toMatchObject({ data: { available: false } });
+    });
+
+    it('asks the same question saving does, leaving the caller out', async () => {
+      await service.nicknameAvailability('mine', USER_ID);
+
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { nickName: 'mine', NOT: { id: USER_ID } },
+        select: { id: true },
+      });
+    });
+
+    it('answers quietly, without a toast-worthy header', async () => {
+      const result = await service.nicknameAvailability('quiet', USER_ID);
+
+      expect(result).not.toHaveProperty('header');
+      expect(result).not.toHaveProperty('message');
     });
   });
 

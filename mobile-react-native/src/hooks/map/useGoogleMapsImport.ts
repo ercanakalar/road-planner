@@ -6,6 +6,7 @@ import {
   importGoogleMapsRoute,
 } from 'services/googleMapsRouteImport';
 import { showNotification } from 'services/notificationService';
+import { reportUsage } from 'services/usageReporter';
 import { useAppDispatch } from 'store/hook';
 import { localRouteImported } from 'store/slices/localRouteSlice';
 import { useTranslation } from 'react-i18next';
@@ -79,6 +80,8 @@ export function useGoogleMapsImport() {
           })),
         }),
       );
+
+      reportUsage('map_google_import');
 
       showNotification({
         type: 'success',

@@ -131,7 +131,7 @@ const ShowRouteByIdScreen = () => {
             />
             <Text style={styles.onTheWayText}>
               {routeSearch.places.length > 0
-                ? `${routeSearch.places.length} on the way`
+                ? t('map.onTheWayCount', { count: routeSearch.places.length })
                 : t('map.onTheWay')}
             </Text>
           </Pressable>

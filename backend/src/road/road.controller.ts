@@ -23,6 +23,7 @@ import { RoadOwnerGuard } from 'src/common/guards/road-owner/road-owner.guard';
 import { MAPS_THROTTLE } from 'src/config/throttle';
 import { DurationsQueryDto, RouteQueryDto } from 'src/maps/dto/maps.dto';
 import { TRANSPORT_MODES } from 'src/maps/types/maps.types';
+import { TrackUsage } from 'src/statistics/track-usage.decorator';
 import {
   AddStopDto,
   CreateRoadDto,
@@ -50,6 +51,7 @@ export class RoadController {
     private searchService: RoadSearchService,
   ) {}
 
+  @TrackUsage('route_created')
   @Post('/create')
   @HttpCode(HttpStatus.OK)
   async createRoad(
@@ -61,6 +63,7 @@ export class RoadController {
 
   @Public()
   @UseGuards(OptionalAccessGuard)
+  @TrackUsage('search_routes')
   @Get('/search')
   @HttpCode(HttpStatus.OK)
   async searchRoads(
@@ -106,6 +109,7 @@ export class RoadController {
 
   @Public()
   @Throttle(MAPS_THROTTLE.directions)
+  @TrackUsage('route_terrain')
   @Post('/terrain')
   @HttpCode(HttpStatus.OK)
   async getTerrainForStops(@Body() body: TerrainStopsDto) {
@@ -155,6 +159,12 @@ export class RoadController {
     );
   }
 
+  @Get('/own-roads/summary')
+  @HttpCode(HttpStatus.OK)
+  async getOwnRoadsSummary(@GetUser('userId') userId: string) {
+    return this.roadService.getOwnRoadsSummary(userId);
+  }
+
   @Post('/own-roads')
   @HttpCode(HttpStatus.OK)
   async getOwnRoads(
@@ -166,6 +176,7 @@ export class RoadController {
 
   @Public()
   @UseGuards(OptionalAccessGuard)
+  @TrackUsage('route_share_link_opened')
   @Post('/share/:token')
   @HttpCode(HttpStatus.OK)
   async routeToSharedRoad(
@@ -176,12 +187,14 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
+  @TrackUsage('route_share_link_created')
   @Get('/share/:id')
   @HttpCode(HttpStatus.OK)
   async shareRoadByIdWithToken(@Param('id', ParseUUIDPipe) id: string) {
     return this.sharingService.createLink(id);
   }
 
+  @TrackUsage('route_copied')
   @Post('/clone/:id')
   @HttpCode(HttpStatus.OK)
   async cloneRoad(
@@ -202,6 +215,7 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
+  @TrackUsage('route_deleted')
   @Post('/delete/:id')
   @HttpCode(HttpStatus.OK)
   async deleteRoadById(
@@ -212,6 +226,7 @@ export class RoadController {
   }
 
   @UseGuards(RoadOwnerGuard)
+  @TrackUsage('stop_added')
   @Post('/add-stop/:id')
   @HttpCode(HttpStatus.OK)
   async addStopToRoad(

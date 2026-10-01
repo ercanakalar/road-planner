@@ -1,21 +1,34 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { MapPressEvent, Marker, Polygon, Region } from 'react-native-maps';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, {
+  MapPressEvent,
+  Marker,
+  Polygon,
+  Region,
+} from 'react-native-maps';
 
 import LocateButton from 'components/map/LocateButton';
 import useInitialRegion from 'hooks/map/useInitialRegion';
 import useMapStyle from 'hooks/map/useMapStyle';
 import {
-  areaColor,
   areaFill,
   areaStroke,
   AREA_STROKE_WIDTH,
+  cityColor,
   widestFirst,
 } from 'constants/travelMap';
-import { spacing, useTheme, useThemedStyles } from 'theme';
+import {
+  radius,
+  shadows,
+  spacing,
+  typography,
+  useTheme,
+  useThemedStyles,
+} from 'theme';
 import type { ThemeColors } from 'theme';
 import { MapArea, MarkedArea } from 'types/travel-map';
-import { boundsCorners, boundsToPolygon } from 'utils/areaBounds';
+import { boundsCorners, boundsToPolygon, boundsToRegion } from 'utils/areaBounds';
+import { CityGroup } from 'utils/travelCities';
 
 const LOCATE_BUTTON_TOP = 62;
 
@@ -29,25 +42,77 @@ const PREVIEW_STROKE_WIDTH = 3;
 interface Props {
   mapRef: React.RefObject<MapView | null>;
   areas: readonly MarkedArea[];
+  cities: readonly CityGroup[];
   preview?: MapArea;
+  previewSlot: number | null;
   onPress: (event: MapPressEvent) => void;
+  onCityPress: (city: CityGroup) => void;
 }
 
-const AreaShape = memo(
-  ({ area, colors }: { area: MapArea; colors: ThemeColors }) => (
-    <Polygon
-      coordinates={boundsToPolygon(area.bounds)}
-      fillColor={areaFill(colors, area.kind)}
-      strokeColor={areaStroke(colors, area.kind)}
-      strokeWidth={AREA_STROKE_WIDTH}
-    />
-  ),
-);
+const AreaShape = memo(({ area, color }: { area: MapArea; color: string }) => (
+  <Polygon
+    coordinates={boundsToPolygon(area.bounds)}
+    fillColor={areaFill(color, area.kind)}
+    strokeColor={areaStroke(color)}
+    strokeWidth={AREA_STROKE_WIDTH}
+  />
+));
 
 AreaShape.displayName = 'AreaShape';
 
-const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) => {
-  const { colors } = useTheme();
+// The city's name on the map, beside its colour: colour alone never says
+// which city a shape belongs to.
+const CityLabel = memo(
+  ({
+    city,
+    color,
+    onPress,
+  }: {
+    city: CityGroup;
+    color: string;
+    onPress: (city: CityGroup) => void;
+  }) => {
+    const styles = useThemedStyles(createStyles);
+    const [isPainted, setIsPainted] = useState(false);
+
+    const coordinate = useMemo(() => {
+      const { latitude, longitude } = boundsToRegion(city.bounds);
+      return { latitude, longitude };
+    }, [city.bounds]);
+
+    const handlePress = useCallback(() => onPress(city), [city, onPress]);
+
+    return (
+      <Marker
+        coordinate={coordinate}
+        anchor={{ x: 0.5, y: 0.5 }}
+        tracksViewChanges={!isPainted}
+        onPress={handlePress}
+        accessibilityLabel={city.name}
+      >
+        <View style={styles.label} onLayout={() => setIsPainted(true)}>
+          <View style={[styles.dot, { backgroundColor: color }]} />
+          <Text style={styles.labelText} numberOfLines={1}>
+            {city.name}
+          </Text>
+        </View>
+      </Marker>
+    );
+  },
+);
+
+CityLabel.displayName = 'CityLabel';
+
+const VisitedAreasMapComponent = ({
+  mapRef,
+  areas,
+  cities,
+  preview,
+  previewSlot,
+  onPress,
+  onCityPress,
+}: Props) => {
+  const { colors, scheme } = useTheme();
   const { mapStyle, isDark, mapKey } = useMapStyle();
   const styles = useThemedStyles(createStyles);
 
@@ -83,6 +148,8 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
     mapRef.current?.animateToRegion(userRegion, 500);
   }, [areas.length, isResolving, mapRef, userRegion]);
 
+  const previewColor = cityColor(colors, scheme, previewSlot);
+
   return (
     <View style={styles.container} pointerEvents='box-none'>
       <MapView
@@ -103,7 +170,20 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
         customMapStyle={mapStyle}
       >
         {shapes.map((area) => (
-          <AreaShape key={area.placeId} area={area} colors={colors} />
+          <AreaShape
+            key={area.placeId}
+            area={area}
+            color={cityColor(colors, scheme, area.colorSlot)}
+          />
+        ))}
+
+        {cities.map((city) => (
+          <CityLabel
+            key={`${city.key}:${city.name}:${city.colorSlot}`}
+            city={city}
+            color={cityColor(colors, scheme, city.colorSlot)}
+            onPress={onCityPress}
+          />
         ))}
 
         {preview ? (
@@ -111,7 +191,7 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
             <Polygon
               coordinates={boundsToPolygon(preview.bounds)}
               fillColor='transparent'
-              strokeColor={areaColor(colors, preview.kind)}
+              strokeColor={previewColor}
               strokeWidth={PREVIEW_STROKE_WIDTH}
               lineDashPattern={PREVIEW_DASH}
             />
@@ -121,7 +201,7 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
                 longitude: preview.longitude,
               }}
               tracksViewChanges={false}
-              pinColor={areaColor(colors, preview.kind)}
+              pinColor={previewColor}
               title={preview.name}
               description={preview.address}
             />
@@ -138,12 +218,34 @@ const VisitedAreasMapComponent = ({ mapRef, areas, preview, onPress }: Props) =>
   );
 };
 
-const createStyles = (_colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1 },
     locateButton: {
       position: 'absolute',
       right: spacing.lg,
+    },
+    label: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      maxWidth: 160,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xxs,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: radius.pill,
+    },
+    labelText: {
+      ...typography.caption,
+      fontWeight: '700',
+      color: colors.text,
+      flexShrink: 1,
     },
   });
 

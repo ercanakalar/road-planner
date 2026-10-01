@@ -19,9 +19,12 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
   const {
     isLoggedIn,
     routes,
+    routeCount,
     stopCount,
     isLoading,
-    isFetching,
+    isRefreshing,
+    isLoadingMore,
+    loadMore,
     isError,
     editing,
     isSaving,
@@ -58,10 +61,10 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
         <ScreenHeader
           title={t('routes.title')}
           subtitle={
-            routes.length === 0
+            routeCount === 0
               ? t('routes.nothingSavedYet')
               : `${t('routes.routeCount', {
-                  count: routes.length,
+                  count: routeCount,
                 })} · ${t('routes.stopCount', { count: stopCount })}`
           }
         />
@@ -79,8 +82,10 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
         ) : (
           <RoutesList
             data={routes}
-            isRefreshing={isFetching}
+            isRefreshing={isRefreshing}
+            isLoadingMore={isLoadingMore}
             onRefresh={handleRefresh}
+            onEndReached={loadMore}
             onToggleFavorite={handleToggleFavorite}
             onDelete={handleDeleteRoute}
             onEdit={handleEdit}

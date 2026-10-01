@@ -37,7 +37,7 @@ export const FavoriteItem = memo(
           action: () => onPress(item),
         },
         {
-          label: 'Rename',
+          label: t('favorites.rename'),
           icon: 'create-outline',
           action: () => onEdit(item),
         },
@@ -109,7 +109,7 @@ export const FavoriteItem = memo(
           onPress={openMenu}
           hitSlop={8}
           accessibilityRole='button'
-          accessibilityLabel={`Options for ${item.title}`}
+          accessibilityLabel={t('favorites.optionsFor', { title: item.title })}
         >
           <Ionicons
             name='ellipsis-vertical'

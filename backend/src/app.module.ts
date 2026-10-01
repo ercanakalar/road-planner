@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { AccessGuard } from './common/guards/access/access.guard';
 import { ConfigModule } from './config/config.module';
 import { throttlerOptions } from './config/throttle';
+import { ConsentModule } from './consent/consent.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { HealthModule } from './health/health.module';
 import { FALLBACK_LANGUAGE } from './i18n/languages';
@@ -17,6 +18,7 @@ import { NotificationModule } from './notification/notification.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RoadModule } from './road/road.module';
+import { StatisticsModule } from './statistics/statistics.module';
 import { UserModule } from './user/user.module';
 
 @Module({
@@ -31,6 +33,7 @@ import { UserModule } from './user/user.module';
     }),
     ThrottlerModule.forRoot(throttlerOptions),
     PrismaModule,
+    StatisticsModule,
     HealthModule,
     NotificationModule,
     AuthModule,
@@ -39,6 +42,7 @@ import { UserModule } from './user/user.module';
     RoadModule,
     PermissionsModule,
     FavoritesModule,
+    ConsentModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

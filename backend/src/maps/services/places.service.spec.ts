@@ -46,6 +46,23 @@ const detailsBody = {
     formatted_address: 'Kadıköy, İstanbul',
     name: 'Kadıköy',
     types: ['administrative_area_level_2', 'political'],
+    address_components: [
+      {
+        long_name: 'Kadıköy',
+        short_name: 'Kadıköy',
+        types: ['administrative_area_level_2', 'political'],
+      },
+      {
+        long_name: 'İstanbul',
+        short_name: 'İstanbul',
+        types: ['administrative_area_level_1', 'political'],
+      },
+      {
+        long_name: 'Türkiye',
+        short_name: 'TR',
+        types: ['country', 'political'],
+      },
+    ],
   },
 };
 
@@ -137,6 +154,8 @@ describe('PlacesService', () => {
         address: 'Kadıköy, İstanbul',
         kind: 'district',
         bounds: { north: 41.03, south: 40.94, east: 29.12, west: 28.98 },
+        city: 'İstanbul',
+        countryCode: 'TR',
       });
     });
 
@@ -147,7 +166,8 @@ describe('PlacesService', () => {
 
       expect(client.get).toHaveBeenCalledWith('/place/details/json', {
         place_id: PLACE_ID,
-        fields: 'geometry,formatted_address,name,place_id,type',
+        fields:
+          'address_component,geometry,formatted_address,name,place_id,type',
         sessiontoken: SESSION,
       });
     });

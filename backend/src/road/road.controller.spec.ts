@@ -22,7 +22,7 @@ const allow = { canActivate: () => true };
 
 describe('RoadController routing', () => {
   let app: INestApplication;
-  let roadService: { getRoadById: jest.Mock };
+  let roadService: { getRoadById: jest.Mock; getOwnRoadsSummary: jest.Mock };
   let stopService: { getStopById: jest.Mock };
   let routeService: { getRoute: jest.Mock; getDurations: jest.Mock };
   let terrainService: { getTerrain: jest.Mock; measureStops: jest.Mock };
@@ -31,7 +31,10 @@ describe('RoadController routing', () => {
   const get = (path: string) => request(app.getHttpServer()).get(path);
 
   beforeEach(async () => {
-    roadService = { getRoadById: jest.fn().mockResolvedValue(ok()) };
+    roadService = {
+      getRoadById: jest.fn().mockResolvedValue(ok()),
+      getOwnRoadsSummary: jest.fn().mockResolvedValue(ok()),
+    };
     stopService = { getStopById: jest.fn().mockResolvedValue(ok()) };
     routeService = {
       getRoute: jest.fn().mockResolvedValue(ok()),
@@ -70,6 +73,13 @@ describe('RoadController routing', () => {
 
   afterEach(async () => {
     await app.close();
+  });
+
+  it('reaches the totals, not a road lookup, at /road/own-roads/summary', async () => {
+    await get('/road/own-roads/summary').expect(200);
+
+    expect(roadService.getRoadById).not.toHaveBeenCalled();
+    expect(roadService.getOwnRoadsSummary).toHaveBeenCalledWith(USER_ID);
   });
 
   it('reaches search, not the road lookup, at /road/search', async () => {

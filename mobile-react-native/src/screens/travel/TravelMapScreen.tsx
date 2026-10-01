@@ -23,10 +23,13 @@ const TravelMapScreen = () => {
   const {
     mapRef,
     areas,
+    cities,
     isHydrated,
     candidates,
     candidateIndex,
     selected,
+    previewSlot,
+    colorSlotOf,
     isSelectedMarked,
     isResolving,
     handleMapPress,
@@ -36,6 +39,7 @@ const TravelMapScreen = () => {
     unmarkSelected,
     unmark,
     focusOn,
+    focusOnCity,
     dismiss,
     clearAll,
   } = useTravelMap();
@@ -60,8 +64,11 @@ const TravelMapScreen = () => {
       <VisitedAreasMap
         mapRef={mapRef}
         areas={areas}
+        cities={cities}
         preview={selected}
+        previewSlot={previewSlot}
         onPress={handleMapPress}
+        onCityPress={focusOnCity}
       />
 
       <View style={styles.searchSlot}>
@@ -87,6 +94,7 @@ const TravelMapScreen = () => {
             candidates={candidates}
             selectedIndex={candidateIndex}
             isMarked={isSelectedMarked}
+            colorSlotOf={colorSlotOf}
             onChoose={chooseCandidate}
             onMark={markSelected}
             onRemove={unmarkSelected}
@@ -99,6 +107,7 @@ const TravelMapScreen = () => {
           isExpanded={isListExpanded}
           onToggle={toggleList}
           onFocus={focusOn}
+          onFocusCity={focusOnCity}
           onRemove={unmark}
           onClear={clearAll}
         />

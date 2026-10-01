@@ -100,6 +100,25 @@ describe('RoutePublishNotifier', () => {
     ]);
   });
 
+  it('names an author who chose no name in each reader’s own language', async () => {
+    prisma.road.findFirst.mockResolvedValue(
+      publishedRoad({ user: { nickName: null, firstName: null } }),
+    );
+    prisma.authorFollow.findMany.mockResolvedValue([
+      followerReading('tr'),
+      followerReading('en'),
+    ]);
+
+    await notifier.notifyFollowers(ROAD_ID);
+
+    expect(
+      email.sendEmail.mock.calls.map(([payload]) => payload.subject),
+    ).toEqual([
+      'Bir gezgin yeni bir rota yayımladı',
+      'A traveller has published a new route',
+    ]);
+  });
+
   it('looks up followers of the author, not of the route', async () => {
     await notifier.notifyFollowers(ROAD_ID);
 
@@ -117,7 +136,7 @@ describe('RoutePublishNotifier', () => {
 
     const [payload] = email.sendEmail.mock.calls[0];
 
-    expect(payload.subject).toBe('ercan published a new route');
+    expect(payload.subject).toBe('ercan has published a new route');
     expect(payload.html).toContain('Aegean coast');
     expect(payload.html).toContain(`https://routes.example/route/${ROAD_ID}`);
   });
@@ -138,8 +157,8 @@ describe('RoutePublishNotifier', () => {
     );
 
     expect(subjects).toEqual([
-      ['tr@example.com', 'ercan yeni bir rota yayınladı'],
-      ['en@example.com', 'ercan published a new route'],
+      ['tr@example.com', 'ercan yeni bir rota yayımladı'],
+      ['en@example.com', 'ercan has published a new route'],
     ]);
   });
 
@@ -150,7 +169,7 @@ describe('RoutePublishNotifier', () => {
 
     const [payload] = email.sendEmail.mock.calls[0];
 
-    expect(payload.subject).toBe('ercan published a new route');
+    expect(payload.subject).toBe('ercan has published a new route');
   });
 
   it('says nothing to anyone about a route that is no longer public', async () => {

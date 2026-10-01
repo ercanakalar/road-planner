@@ -75,6 +75,11 @@ export function useProfileScreen(
     [navigation],
   );
 
+  const goToStatistics = useCallback(
+    () => navigation.navigate('StatisticsScreen'),
+    [navigation],
+  );
+
   const displayName =
     [data?.firstName, data?.lastName].filter(Boolean).join(' ') ||
     data?.nickName ||
@@ -91,6 +96,7 @@ export function useProfileScreen(
     goToProfile,
     goToSettings,
     goToKvkk,
+    goToStatistics,
   };
 }
 

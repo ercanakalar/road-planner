@@ -1,8 +1,9 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
-  FlatList,
-  ListRenderItemInfo,
   Pressable,
+  SectionList,
+  SectionListData,
+  SectionListRenderItemInfo,
   StyleSheet,
   Text,
   View,
@@ -11,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import useAreaSummary from 'hooks/travel/useAreaSummary';
-import { areaColor, AREA_KIND_ICON, AREA_KIND_LABEL } from 'constants/travelMap';
+import { AREA_KIND_ICON, AREA_KIND_LABEL, cityColor } from 'constants/travelMap';
 import {
   radius,
   shadows,
@@ -22,15 +23,27 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 import { MarkedArea } from 'types/travel-map';
+import { CityGroup, groupByCity } from 'utils/travelCities';
 import { withAlpha } from 'utils/color';
 
-const LIST_MAX_HEIGHT = 244;
+const LIST_MAX_HEIGHT = 280;
+
+const SWATCH_SIZE = 30;
+
+interface Section {
+  key: string;
+  title: string;
+  colorSlot: number | null;
+  city: CityGroup | null;
+  data: MarkedArea[];
+}
 
 interface Props {
   areas: MarkedArea[];
   isExpanded: boolean;
   onToggle: () => void;
   onFocus: (area: MarkedArea) => void;
+  onFocusCity: (city: CityGroup) => void;
   onRemove: (placeId: string) => void;
   onClear: () => void;
 }
@@ -38,25 +51,27 @@ interface Props {
 const MarkedAreaRow = memo(
   ({
     area,
+    colorSlot,
     onFocus,
     onRemove,
   }: {
     area: MarkedArea;
+    colorSlot: number | null;
     onFocus: (area: MarkedArea) => void;
     onRemove: (placeId: string) => void;
   }) => {
-    const { colors } = useTheme();
+    const { colors, scheme } = useTheme();
     const styles = useThemedStyles(createStyles);
     const { t } = useTranslation();
 
-    const tint = areaColor(colors, area.kind);
+    const tint = cityColor(colors, scheme, colorSlot);
 
     return (
       <Pressable
         onPress={() => onFocus(area)}
         accessibilityRole='button'
         accessibilityLabel={t('travelMap.showOnMap', { name: area.name })}
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <View style={[styles.swatch, { backgroundColor: withAlpha(tint, 0.2) }]}>
           <Ionicons name={AREA_KIND_ICON[area.kind]} size={15} color={tint} />
@@ -78,7 +93,7 @@ const MarkedAreaRow = memo(
           accessibilityLabel={t('travelMap.removeFromMap', {
             name: area.name,
           })}
-          style={({ pressed }) => [pressed && styles.rowPressed]}
+          style={({ pressed }) => [pressed && styles.pressed]}
         >
           <Ionicons name='close' size={18} color={colors.textSubtle} />
         </Pressable>
@@ -89,11 +104,56 @@ const MarkedAreaRow = memo(
 
 MarkedAreaRow.displayName = 'MarkedAreaRow';
 
+const SectionHeader = memo(
+  ({
+    section,
+    onFocusCity,
+  }: {
+    section: Section;
+    onFocusCity: (city: CityGroup) => void;
+  }) => {
+    const { colors, scheme } = useTheme();
+    const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
+
+    const places = t('travelMap.places', { count: section.data.length });
+    const { city } = section;
+
+    return (
+      <Pressable
+        onPress={city ? () => onFocusCity(city) : undefined}
+        disabled={!city}
+        accessibilityRole={city ? 'button' : 'header'}
+        accessibilityLabel={
+          city
+            ? t('travelMap.showCity', { name: section.title, places })
+            : `${section.title}, ${places}`
+        }
+        style={({ pressed }) => [styles.sectionHeader, pressed && styles.pressed]}
+      >
+        <View
+          style={[
+            styles.sectionDot,
+            { backgroundColor: cityColor(colors, scheme, section.colorSlot) },
+          ]}
+        />
+        <Text style={styles.sectionTitle} numberOfLines={1}>
+          {section.title}
+        </Text>
+        <Text style={styles.sectionCount}>{places}</Text>
+      </Pressable>
+    );
+  },
+);
+
+SectionHeader.displayName = 'SectionHeader';
+
 const MarkedAreasPanel = ({
   areas,
   isExpanded,
   onToggle,
   onFocus,
+  onFocusCity,
   onRemove,
   onClear,
 }: Props) => {
@@ -103,11 +163,48 @@ const MarkedAreasPanel = ({
 
   const summary = useAreaSummary(areas);
 
+  const sections = useMemo<Section[]>(() => {
+    const { cities, elsewhere } = groupByCity(areas);
+
+    return [
+      ...cities.map((city) => ({
+        key: city.key,
+        title: city.name,
+        colorSlot: city.colorSlot,
+        city,
+        data: city.areas,
+      })),
+      ...(elsewhere.length
+        ? [
+            {
+              key: 'outside-cities',
+              title: t('travelMap.outsideCities'),
+              colorSlot: null,
+              city: null,
+              data: elsewhere,
+            },
+          ]
+        : []),
+    ];
+  }, [areas, t]);
+
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<MarkedArea>) => (
-      <MarkedAreaRow area={item} onFocus={onFocus} onRemove={onRemove} />
+    ({ item, section }: SectionListRenderItemInfo<MarkedArea, Section>) => (
+      <MarkedAreaRow
+        area={item}
+        colorSlot={section.colorSlot}
+        onFocus={onFocus}
+        onRemove={onRemove}
+      />
     ),
     [onFocus, onRemove],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: SectionListData<MarkedArea, Section> }) => (
+      <SectionHeader section={section} onFocusCity={onFocusCity} />
+    ),
+    [onFocusCity],
   );
 
   const keyExtractor = useCallback((area: MarkedArea) => area.placeId, []);
@@ -132,7 +229,7 @@ const MarkedAreasPanel = ({
               })
             : undefined
         }
-        style={({ pressed }) => [styles.header, pressed && styles.rowPressed]}
+        style={({ pressed }) => [styles.header, pressed && styles.pressed]}
       >
         <View style={styles.headings}>
           <Text style={styles.title}>
@@ -154,10 +251,12 @@ const MarkedAreasPanel = ({
 
       {isExpanded && areas.length ? (
         <>
-          <FlatList
-            data={areas}
+          <SectionList
+            sections={sections}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
+            renderSectionHeader={renderSectionHeader}
+            stickySectionHeadersEnabled={false}
             style={styles.list}
             keyboardShouldPersistTaps='handled'
             ItemSeparatorComponent={Separator}
@@ -166,7 +265,7 @@ const MarkedAreasPanel = ({
           <Pressable
             onPress={onClear}
             accessibilityRole='button'
-            style={({ pressed }) => [styles.clear, pressed && styles.rowPressed]}
+            style={({ pressed }) => [styles.clear, pressed && styles.pressed]}
           >
             <Ionicons name='trash-outline' size={15} color={colors.danger} />
             <Text style={styles.clearText}>{t('travelMap.clearMap')}</Text>
@@ -209,6 +308,29 @@ const createStyles = (colors: ThemeColors) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
     },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
+      backgroundColor: colors.surface,
+    },
+    sectionDot: {
+      width: 10,
+      height: 10,
+      borderRadius: radius.pill,
+    },
+    sectionTitle: {
+      ...typography.label,
+      flex: 1,
+      color: colors.text,
+    },
+    sectionCount: {
+      ...typography.caption,
+      color: colors.textMuted,
+    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -216,10 +338,10 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
     },
-    rowPressed: { opacity: 0.7 },
+    pressed: { opacity: 0.7 },
     swatch: {
-      width: 30,
-      height: 30,
+      width: SWATCH_SIZE,
+      height: SWATCH_SIZE,
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
@@ -237,7 +359,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     separator: {
       height: StyleSheet.hairlineWidth,
-      marginLeft: spacing.lg + 30 + spacing.md,
+      marginLeft: spacing.lg + SWATCH_SIZE + spacing.md,
       backgroundColor: colors.border,
     },
     clear: {

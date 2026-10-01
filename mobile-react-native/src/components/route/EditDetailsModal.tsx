@@ -78,16 +78,16 @@ const EditDetailsModal = ({
     const trimmedTitle = title.trim();
 
     if (requireTitle && !trimmedTitle) {
-      setError('A title is required.');
+      setError(t('editDetails.titleRequired'));
       return;
     }
     if (trimmedTitle.length > TITLE_MAX_LENGTH) {
-      setError(`Keep the title under ${TITLE_MAX_LENGTH} characters.`);
+      setError(t('editDetails.titleTooLong', { count: TITLE_MAX_LENGTH }));
       return;
     }
     if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
       setError(
-        `Keep the description under ${DESCRIPTION_MAX_LENGTH} characters.`,
+        t('editDetails.descriptionTooLong', { count: DESCRIPTION_MAX_LENGTH }),
       );
       return;
     }
@@ -97,7 +97,15 @@ const EditDetailsModal = ({
       description: description.trim(),
       ...(showPublishToggle ? { isPublic } : {}),
     });
-  }, [description, isPublic, onSave, requireTitle, showPublishToggle, title]);
+  }, [
+    description,
+    isPublic,
+    onSave,
+    requireTitle,
+    showPublishToggle,
+    t,
+    title,
+  ]);
 
   return (
     <Modal

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItemInfo,
   RefreshControl,
@@ -9,7 +10,7 @@ import {
 import RouteCard from './RouteCard';
 import ScreenState from 'components/ui/ScreenState';
 import useRefreshControlColors from 'hooks/common/useRefreshControlColors';
-import { spacing, useThemedStyles } from 'theme';
+import { spacing, useTheme, useThemedStyles } from 'theme';
 import { OwnRouteSummary } from 'types/map-screen-type';
 import { RoutesListProps } from 'types/screens/mapScreenType';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +18,9 @@ import { useTranslation } from 'react-i18next';
 const RoutesList = ({
   data,
   isRefreshing,
+  isLoadingMore = false,
   onRefresh,
+  onEndReached,
   onToggleFavorite,
   onDelete,
   onEdit,
@@ -29,6 +32,7 @@ const RoutesList = ({
   openingInMapsRouteId,
 }: RoutesListProps) => {
   const styles = useThemedStyles(createStyles);
+  const { colors } = useTheme();
   const refreshColors = useRefreshControlColors();
   const { t } = useTranslation();
 
@@ -87,6 +91,17 @@ const RoutesList = ({
           message={t('routes.emptyMessage')}
         />
       }
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        isLoadingMore ? (
+          <ActivityIndicator
+            style={styles.footer}
+            color={colors.primary}
+            accessibilityLabel={t('states.loadingRoutes')}
+          />
+        ) : null
+      }
       initialNumToRender={6}
       maxToRenderPerBatch={6}
       windowSize={7}
@@ -105,6 +120,9 @@ const createStyles = () =>
     },
     emptyContent: {
       flexGrow: 1,
+    },
+    footer: {
+      paddingVertical: spacing.lg,
     },
   });
 

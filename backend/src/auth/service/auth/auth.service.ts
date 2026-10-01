@@ -116,11 +116,10 @@ const DUMMY_PASSWORD_HASH =
 
 const FORGOT_PASSWORD_RESPONSE = ok({
   header: 'auth.resetRequestedHeader',
-  message:
-    'If an account exists for that address, a reset code has been sent to it.',
+  message: 'auth.resetRequestedMessage',
 });
 
-const INVALID_CODE_MESSAGE = 'That code is incorrect or has expired';
+const INVALID_CODE_MESSAGE = 'error.resetCodeInvalid';
 
 @Injectable()
 export class AuthService {

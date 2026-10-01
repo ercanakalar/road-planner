@@ -112,6 +112,7 @@ const AuthorChip = memo(
   ({ name, onClear }: { name: string; onClear: () => void }) => {
     const { colors } = useTheme();
     const styles = useThemedStyles(createStyles);
+    const { t } = useTranslation();
 
     return (
       <Pressable
@@ -123,7 +124,7 @@ const AuthorChip = memo(
         onPress={onClear}
         hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
         accessibilityRole='button'
-        accessibilityLabel={`Stop showing only routes by ${name}`}
+        accessibilityLabel={t('searchScreen.stopShowingOnlyRoutesBy', { name })}
       >
         <Ionicons name='person' size={12} color={colors.primary} />
         <Text style={[styles.chipText, styles.authorChipText]} numberOfLines={1}>

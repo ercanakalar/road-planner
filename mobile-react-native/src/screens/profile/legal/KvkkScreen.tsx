@@ -4,10 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import KvkkNotice from 'components/legal/KvkkNotice';
 import PrimaryButton from 'components/ui/PrimaryButton';
+import { KVKK_CONSENT_VERSION } from 'constants/kvkk';
 import useConfirm from 'hooks/feedback/useConfirm';
 import useKvkkLanguage from 'hooks/legal/useKvkkLanguage';
+import { showNotification } from 'services/notificationService';
+import { discardPendingUsage } from 'services/usageReporter';
+import { apiErrorMessage } from 'store/bases/apiErrorMessage';
 import { useAppDispatch, useAppSelector } from 'store/hook';
-import { useLogoutMutation } from 'store/services/authenticationService';
+import { useWithdrawConsentMutation } from 'store/services/consentService';
 import { logout } from 'store/slices/authSlice';
 import { kvkkWithdrawn, selectKvkkConsent } from 'store/slices/kvkkSlice';
 import { formatConsentDate } from 'utils/formatConsentDate';
@@ -32,28 +36,47 @@ const KvkkScreen = () => {
 
   const consent = useAppSelector(selectKvkkConsent);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const [logoutTrigger, { isLoading: isSigningOut }] = useLogoutMutation();
+  const [withdrawConsent, { isLoading: isWithdrawing }] =
+    useWithdrawConsentMutation();
 
   const handleWithdraw = useCallback(async () => {
     const confirmed = await confirm({
       title: copy.withdrawTitle,
-      message: copy.withdrawMessage,
-      confirmLabel: copy.withdrawConfirmLabel,
+      message: isLoggedIn ? copy.withdrawDeleteMessage : copy.withdrawMessage,
+      confirmLabel: isLoggedIn
+        ? copy.withdrawDeleteConfirmLabel
+        : copy.withdrawConfirmLabel,
       cancelLabel: copy.withdrawCancelLabel,
-      icon: 'shield-outline',
+      icon: isLoggedIn ? 'trash-outline' : 'shield-outline',
       tone: 'danger',
     });
     if (!confirmed) return;
 
     if (isLoggedIn) {
+      // The account is erased on the server before anything changes here. If
+      // that fails, the person stays signed in with their consent in place —
+      // never told their data is gone while it is still there.
       try {
-        await logoutTrigger().unwrap();
-      } catch {}
+        await withdrawConsent({
+          version: consent?.version ?? KVKK_CONSENT_VERSION,
+          language,
+        }).unwrap();
+      } catch (error) {
+        showNotification({
+          type: 'error',
+          header: copy.withdrawFailedTitle,
+          message: apiErrorMessage(error, copy.withdrawFailedMessage),
+        });
+        return;
+      }
+
+      // Signing out locally only: the deletion already ended every session.
       dispatch(logout());
     }
 
+    discardPendingUsage();
     dispatch(kvkkWithdrawn());
-  }, [confirm, copy, dispatch, isLoggedIn, logoutTrigger]);
+  }, [confirm, consent, copy, dispatch, isLoggedIn, language, withdrawConsent]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -92,7 +115,7 @@ const KvkkScreen = () => {
         label={copy.withdrawLabel}
         tone='danger'
         onPress={handleWithdraw}
-        isLoading={isSigningOut}
+        isLoading={isWithdrawing}
       />
     </ScrollView>
   );

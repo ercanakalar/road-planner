@@ -1,5 +1,12 @@
 import { memo, useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,6 +28,8 @@ import {
 } from 'theme';
 import type { ThemeColors } from 'theme';
 
+const canCloseItself = () => Platform.OS === 'android';
+
 const KvkkConsentWall = ({ isUpdate }: { isUpdate: boolean }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -39,7 +48,16 @@ const KvkkConsentWall = ({ isUpdate }: { isUpdate: boolean }) => {
     );
   }, [dispatch, language]);
 
-  const handleDecline = useCallback(() => setHasDeclined(true), []);
+  // Without consent there is nothing the app may do, so declining closes it.
+  // iOS does not let an app quit itself, so there the screen explains why it
+  // cannot go on and leaves closing the app to the person.
+  const handleDecline = useCallback(() => {
+    if (canCloseItself()) {
+      BackHandler.exitApp();
+      return;
+    }
+    setHasDeclined(true);
+  }, []);
   const handleReopen = useCallback(() => setHasDeclined(false), []);
 
   if (hasDeclined) {
@@ -85,6 +103,9 @@ const KvkkConsentWall = ({ isUpdate }: { isUpdate: boolean }) => {
           variant='secondary'
           onPress={handleDecline}
         />
+        {canCloseItself() ? (
+          <Text style={styles.hint}>{copy.declineHint}</Text>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -125,6 +146,11 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       lineHeight: 18,
       marginBottom: spacing.xxs,
+    },
+    hint: {
+      ...typography.caption,
+      color: colors.textSubtle,
+      textAlign: 'center',
     },
   });
 

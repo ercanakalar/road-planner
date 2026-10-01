@@ -72,6 +72,8 @@ export interface MapArea extends LatLng {
   address: string;
   kind: AreaKind;
   bounds: AreaBounds;
+  city: string | null;
+  countryCode: string | null;
 }
 
 export const PLACE_CATEGORIES = [

@@ -1,3 +1,5 @@
+import i18n from 'i18n';
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -12,15 +14,21 @@ export function timeAgo(
 
   const elapsed = now - then;
 
-  if (elapsed < MINUTE) return 'just now';
-  if (elapsed < HOUR) return `${Math.floor(elapsed / MINUTE)}m ago`;
-  if (elapsed < DAY) return `${Math.floor(elapsed / HOUR)}h ago`;
-  if (elapsed < WEEK) return `${Math.floor(elapsed / DAY)}d ago`;
+  if (elapsed < MINUTE) return i18n.t('time.justNow');
+  if (elapsed < HOUR) {
+    return i18n.t('time.minutesAgo', { count: Math.floor(elapsed / MINUTE) });
+  }
+  if (elapsed < DAY) {
+    return i18n.t('time.hoursAgo', { count: Math.floor(elapsed / HOUR) });
+  }
+  if (elapsed < WEEK) {
+    return i18n.t('time.daysAgo', { count: Math.floor(elapsed / DAY) });
+  }
 
-  return new Date(then).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-  });
+  return new Date(then).toLocaleDateString(
+    i18n.language === 'tr' ? 'tr-TR' : 'en-GB',
+    { day: 'numeric', month: 'short' },
+  );
 }
 
 export default timeAgo;

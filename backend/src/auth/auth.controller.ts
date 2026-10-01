@@ -35,6 +35,17 @@ import { AuthService } from './service/auth/auth.service';
 import { GoogleService } from './service/google/google.service';
 import { ok } from 'src/common/http/api-response';
 import { AppLanguage } from 'src/i18n/languages';
+import {
+  signedInUser,
+  TrackUsage,
+  UsageTracking,
+} from 'src/statistics/track-usage.decorator';
+
+const GOOGLE_SIGN_IN: UsageTracking = {
+  event: 'account_signed_in',
+  detail: () => 'google',
+  subject: signedInUser,
+};
 
 @Controller('auth')
 export class AuthController {
@@ -45,6 +56,11 @@ export class AuthController {
 
   @Public()
   @Throttle(AUTH_THROTTLE.signUp)
+  @TrackUsage({
+    event: 'account_signed_up',
+    detail: () => 'password',
+    subject: signedInUser,
+  })
   @Post('sign-up')
   @UseGuards(UserExistsGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -57,6 +73,11 @@ export class AuthController {
 
   @Public()
   @Throttle(AUTH_THROTTLE.signIn)
+  @TrackUsage({
+    event: 'account_signed_in',
+    detail: () => 'password',
+    subject: signedInUser,
+  })
   @Post('sign-in')
   @HttpCode(HttpStatus.CREATED)
   async signIn(
@@ -147,6 +168,7 @@ export class AuthController {
 
   @Public()
   @Throttle(AUTH_THROTTLE.signIn)
+  @TrackUsage(GOOGLE_SIGN_IN)
   @Get('google/callback')
   @HttpCode(HttpStatus.OK)
   async googleCallback(
@@ -163,6 +185,7 @@ export class AuthController {
 
   @Public()
   @Throttle(AUTH_THROTTLE.signIn)
+  @TrackUsage(GOOGLE_SIGN_IN)
   @Post('google/token')
   @HttpCode(HttpStatus.OK)
   async signInWithGoogleIdToken(

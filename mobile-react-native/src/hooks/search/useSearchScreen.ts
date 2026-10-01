@@ -123,7 +123,7 @@ export function useSearchScreen() {
       const hit = routes.items.find((route) => route.id === routeId);
       navigation.navigate('CommunityRouteScreen', {
         routeId,
-        title: hit?.title ?? 'Route',
+        title: hit?.title,
       });
     },
     [navigation, routes],

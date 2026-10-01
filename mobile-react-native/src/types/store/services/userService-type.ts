@@ -22,3 +22,8 @@ export interface ProfileForm {
   lastName: string;
   nickName: string;
 }
+
+export interface NicknameAvailability {
+  nickName: string;
+  available: boolean;
+}

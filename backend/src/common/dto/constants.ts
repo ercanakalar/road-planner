@@ -19,3 +19,10 @@ export const LATITUDE_MIN = -90;
 export const LATITUDE_MAX = 90;
 export const LONGITUDE_MIN = -180;
 export const LONGITUDE_MAX = 180;
+
+export const NICKNAME_MIN_LENGTH = 3;
+export const NICKNAME_MAX_LENGTH = 30;
+
+export const NICKNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+export const NICKNAME_PATTERN_MESSAGE = 'validation.nickNamePattern';

@@ -29,6 +29,7 @@ export interface KvkkCopy {
   consentStatement: string;
   acceptLabel: string;
   declineLabel: string;
+  declineHint: string;
   declinedTitle: string;
   declinedBody: string;
   declinedBackLabel: string;
@@ -39,8 +40,12 @@ export interface KvkkCopy {
   withdrawLabel: string;
   withdrawTitle: string;
   withdrawMessage: string;
+  withdrawDeleteMessage: string;
   withdrawConfirmLabel: string;
+  withdrawDeleteConfirmLabel: string;
   withdrawCancelLabel: string;
+  withdrawFailedTitle: string;
+  withdrawFailedMessage: string;
 }
 
 export interface KvkkConsentRecord {

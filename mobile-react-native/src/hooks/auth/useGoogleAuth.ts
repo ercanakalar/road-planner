@@ -145,13 +145,10 @@ export const describeSignInError = (error: unknown): string => {
             return i18n.t('errors.googleTimedOut');
         }
         if (status === 503) {
-            return message ?? 'Google sign-in is not configured on the server.';
+            return message ?? i18n.t('errors.googleUnavailable');
         }
         if (status === 401) {
-            return (
-                message ??
-                'The server would not accept this Google account. Its client id may be missing from GOOGLE_NATIVE_CLIENT_IDS.'
-            );
+            return message ?? i18n.t('errors.googleRejected');
         }
         if (typeof status === 'number') {
             return message ?? i18n.t('errors.serverAnswered', { status });
@@ -261,9 +258,7 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
             );
 
             if (!tokens.idToken) {
-                throw new Error(
-                    'Google issued no id token. The client id in use may not be the one for this platform.',
-                );
+                throw new Error(i18n.t('errors.googleNoToken'));
             }
 
             await signInWithGoogle({ idToken: tokens.idToken }).unwrap();

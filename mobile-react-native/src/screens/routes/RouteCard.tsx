@@ -106,7 +106,7 @@ const RouteCard = ({
             ]}
             onPress={handleView}
             accessibilityRole='button'
-            accessibilityLabel={`Open route ${item.title}`}
+            accessibilityLabel={t('routes.openRoute', { title: item.title })}
         >
             <View style={styles.headerRow}>
                 <View style={styles.cover}>
@@ -149,7 +149,9 @@ const RouteCard = ({
                     ]}
                     accessibilityRole='button'
                     accessibilityState={{ busy: isBusy }}
-                    accessibilityLabel={`Options for route ${item.title}`}
+                    accessibilityLabel={t('routes.optionsFor', {
+                        title: item.title,
+                    })}
                 >
                     {isBusy ? (
                         <ActivityIndicator
@@ -197,8 +199,10 @@ const RouteCard = ({
                         accessibilityState={{ checked: !!item.isPublic }}
                         accessibilityLabel={
                             item.isPublic
-                                ? `Stop sharing route ${item.title}`
-                                : `Share route ${item.title} with everyone`
+                                ? t('routes.stopSharing', { title: item.title })
+                                : t('routes.shareWithEveryone', {
+                                      title: item.title,
+                                  })
                         }
                     >
                         <Ionicons

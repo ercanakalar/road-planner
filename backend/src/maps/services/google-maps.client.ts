@@ -42,9 +42,7 @@ export class GoogleMapsClient {
 
   private assertConfigured(): void {
     if (!this.isConfigured()) {
-      throw new ServiceUnavailableException(
-        'Map lookups are not configured on this server',
-      );
+      throw new ServiceUnavailableException('error.mapsNotConfigured');
     }
   }
 

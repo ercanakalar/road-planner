@@ -35,7 +35,23 @@ describe('validationPhrases', () => {
     ];
 
     expect(say(errors)).toEqual(['Title must be at most 255 characters']);
-    expect(say(errors, 'tr')).toEqual(['Başlık en fazla 255 karakter olmalı']);
+    expect(say(errors, 'tr')).toEqual([
+      'Başlık en fazla 255 karakter olabilir',
+    ]);
+  });
+
+  it('says a date is wrong in the reader’s language', () => {
+    const errors = [
+      failure('acceptedAt', {
+        isIso8601: 'acceptedAt must be a valid ISO 8601 date string',
+      }),
+    ];
+
+    expect(validationPhrases(errors)).toEqual([
+      expect.objectContaining({ key: 'validation.mustBeDate' }),
+    ]);
+    expect(say(errors)).toEqual(['Date of consent must be a valid date']);
+    expect(say(errors, 'tr')).toEqual(['Onay tarihi geçerli bir tarih olmalı']);
   });
 
   it('reports every constraint a field failed', () => {
@@ -80,7 +96,7 @@ describe('validationPhrases', () => {
     ];
 
     expect(say(errors)).toEqual([
-      'Password must contain at least one letter and one digit',
+      'Your password must contain at least one letter and one number',
     ]);
   });
 
@@ -89,7 +105,7 @@ describe('validationPhrases', () => {
       failure('code', { matches: 'validation.resetCodeLength 6' }),
     ];
 
-    expect(say(errors)).toEqual(['The code must be 6 digits']);
+    expect(say(errors)).toEqual(['The code must be 6 digits long']);
     expect(say(errors, 'tr')).toEqual(['Kod 6 haneli olmalı']);
   });
 

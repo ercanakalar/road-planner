@@ -105,7 +105,7 @@ model User {
   firstName String?
   lastName  String?
   photo     String?
-  nickName  String? @unique
+  nickName  String? @unique @db.Citext
 
   manuelAuth     ManuelAuth?
   googleAuth     GoogleAuth?
@@ -130,8 +130,68 @@ model User {
   notifications       Notification[] @relation("NotificationsReceived")
   causedNotifications Notification[] @relation("NotificationsCaused")
 
+  usageEvents UsageEvent[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UsageEvent {
+  id String @id @default(uuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  event  String  @db.VarChar(64)
+  detail String? @db.VarChar(32)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([event, createdAt])
+  @@index([userId, createdAt])
+}
+
+enum ConsentAction {
+  GRANTED
+  WITHDRAWN
+}
+
+model ConsentRecord {
+  id String @id @default(uuid())
+
+  subjectId String
+
+  action        ConsentAction
+  noticeVersion String        @db.VarChar(32)
+  language      String        @db.VarChar(8)
+
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([subjectId, createdAt])
+}
+
+enum DeletionReason {
+  CONSENT_WITHDRAWN
+}
+
+model AccountDeletion {
+  id String @id @default(uuid())
+
+  subjectId String @unique
+  emailHash String @db.VarChar(64)
+
+  reason        DeletionReason
+  noticeVersion String?        @db.VarChar(32)
+
+  accountCreatedAt DateTime
+  erased           Json
+
+  deletedAt DateTime @default(now())
+
+  @@index([emailHash])
+  @@index([deletedAt])
 }
 
 model AuthorFollow {

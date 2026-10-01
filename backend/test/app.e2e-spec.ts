@@ -61,6 +61,11 @@ describe('Application wiring (e2e)', () => {
       ['post', '/api/favorites/toggle-road'],
       ['get', '/api/permissions/permit/get-all'],
       ['post', '/api/auth/sign-out'],
+      ['post', '/api/consent'],
+      ['post', '/api/consent/withdraw'],
+      ['get', '/api/statistics/me'],
+      ['get', '/api/statistics/overview'],
+      ['get', '/api/user/nickname/availability?nickName=ercan'],
     ])('rejects an unauthenticated %s %s', async (method, path) => {
       await request(app.getHttpServer())[method as 'get'](path).expect(401);
     });
@@ -108,7 +113,9 @@ describe('Application wiring (e2e)', () => {
         .post('/api/auth/sign-in')
         .send({ email: 'nobody@example.com', password: 'whatever' });
 
-      expect(response.body.message).toBe('Invalid email or password');
+      expect(response.body.message).toBe(
+        'The email address or password is incorrect.',
+      );
     });
 
     it('allows sign-up through the guard', async () => {

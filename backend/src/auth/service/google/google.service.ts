@@ -48,9 +48,7 @@ export class GoogleService implements OnModuleInit {
 
   private assertConfigured(): void {
     if (!this.isConfigured()) {
-      throw new ServiceUnavailableException(
-        'Google sign-in is not configured on this server',
-      );
+      throw new ServiceUnavailableException('error.googleNotConfigured');
     }
   }
 
@@ -80,9 +78,7 @@ export class GoogleService implements OnModuleInit {
     const audience = this.acceptedAudiences();
 
     if (!audience.length) {
-      throw new ServiceUnavailableException(
-        'Google sign-in is not configured on this server',
-      );
+      throw new ServiceUnavailableException('error.googleNotConfigured');
     }
     if (!idToken) {
       throw new BadRequestException('error.googleTokenMissing');

@@ -12,9 +12,11 @@ import {
   StopInputDto,
 } from 'src/road/dto/road.dto';
 import { RoutePublishNotifier } from 'src/notification/publish/route-publish.notifier';
+import { UsageRecorder } from 'src/statistics/usage.recorder';
 import { applyStopValues, positionByRank, StopValues } from './stop-writes';
 import { withStopMetrics } from '../stop/stop-metrics';
 import { RoadVisibility } from '../visibility/road-visibility';
+import { displayNameOf } from 'src/i18n/display-name';
 
 type PositionedStop = StopInputDto & { order: number };
 
@@ -42,6 +44,16 @@ function buildNewStopRows(
   }));
 }
 
+interface OwnRoadRow {
+  id: string;
+  title: string;
+  description: string;
+  isPublic: boolean;
+  stopCount: number;
+  isFavorite: boolean;
+  total: number;
+}
+
 function withRoadStopMetrics<
   T extends {
     stops: { latitude: number; longitude: number; elevation: number | null }[];
@@ -59,6 +71,7 @@ export class RoadService {
     private visibility: RoadVisibility,
     private elevationService: ElevationService,
     private publishNotifier: RoutePublishNotifier,
+    private usage: UsageRecorder,
   ) {}
 
   private async withElevations(
@@ -145,35 +158,54 @@ export class RoadService {
     });
   }
 
+  // One statement, one round trip. Prisma's version of this took three, and
+  // its `_count` of stops grouped every stop in the database — every user's —
+  // on each page, so it slowed down as the whole app grew. Here the page is
+  // read through Road(userId, createdAt, id) and only its own rows are
+  // counted, through the Stop and FavoriteRoad indexes.
   async getOwnRoads(userId: string, pagination: PaginationQueryDto) {
-    const where: Prisma.RoadWhereInput = this.visibility.ownedBy(userId);
+    const rows = await this.prisma.$queryRaw<OwnRoadRow[]>`
+      WITH page AS (
+        SELECT r."id", r."title", r."description", r."isPublic", r."createdAt"
+          FROM "Road" r
+         WHERE r."userId" = ${userId}
+           AND r."archivedAt" IS NULL
+         ORDER BY r."createdAt" DESC, r."id" DESC
+         LIMIT ${pagination.limit} OFFSET ${pagination.offset}
+      )
+      SELECT p."id", p."title", p."description", p."isPublic",
+             (SELECT COUNT(*) FROM "Stop" s WHERE s."roadId" = p."id")::int
+               AS "stopCount",
+             EXISTS (
+               SELECT 1 FROM "FavoriteRoad" f
+                WHERE f."userId" = ${userId} AND f."roadId" = p."id"
+             ) AS "isFavorite",
+             (SELECT COUNT(*) FROM "Road" t
+               WHERE t."userId" = ${userId} AND t."archivedAt" IS NULL)::int
+               AS "total"
+        FROM page p
+       ORDER BY p."createdAt" DESC, p."id" DESC`;
 
-    const [roads, total] = await Promise.all([
-      this.prisma.road.findMany({
-        where,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          isPublic: true,
-          _count: {
-            select: {
-              stops: true,
-            },
-          },
-          favoriteRoads: { where: { userId }, select: { id: true } },
-        },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: pagination.limit,
-        skip: pagination.offset,
+    // A page past the end has no row to carry the total, so it is counted on
+    // its own — only then, which the app never asks for in normal scrolling.
+    const total =
+      rows[0]?.total ??
+      (pagination.offset > 0
+        ? await this.prisma.road.count({
+            where: this.visibility.ownedBy(userId),
+          })
+        : 0);
+
+    const shaped = rows.map(
+      ({ id, title, description, isPublic, stopCount, isFavorite }) => ({
+        id,
+        title,
+        description,
+        isPublic,
+        _count: { stops: stopCount },
+        isFavorite,
       }),
-      this.prisma.road.count({ where }),
-    ]);
-
-    const shaped = roads.map(({ favoriteRoads, ...road }) => ({
-      ...road,
-      isFavorite: !!favoriteRoads?.length,
-    }));
+    );
 
     return ok({
       header: 'road.ownHeader',
@@ -181,6 +213,23 @@ export class RoadService {
       data: shaped,
       meta: pageMeta(total, pagination),
     });
+  }
+
+  // The totals for the person's own routes, counted in the database: the
+  // list is fetched a page at a time, so it cannot be summed on the phone.
+  async getOwnRoadsSummary(userId: string) {
+    const where = this.visibility.ownedBy(userId);
+
+    const [routes, publicRoutes, stops, favorites] = await Promise.all([
+      this.prisma.road.count({ where }),
+      this.prisma.road.count({ where: { ...where, isPublic: true } }),
+      this.prisma.stop.count({ where: { road: where } }),
+      this.prisma.road.count({
+        where: { ...where, favoriteRoads: { some: { userId } } },
+      }),
+    ]);
+
+    return ok({ data: { routes, publicRoutes, stops, favorites } });
   }
 
   async getDiscoverRoads(userId: string | null, limit: number) {
@@ -230,7 +279,7 @@ export class RoadService {
       .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
       .map(({ user, stops, favoriteRoads, ...road }) => ({
         ...road,
-        author: user.nickName ?? user.firstName ?? 'A traveller',
+        author: displayNameOf(user),
         stopCount: stops.length,
         isFavorite: !!favoriteRoads?.length,
         stops,
@@ -403,6 +452,7 @@ export class RoadService {
 
     if (isPublic === true && !wasPublic) {
       this.publishNotifier.notifyInBackground(id);
+      this.usage.record('route_published', { userId: updated?.userId });
     }
 
     return ok({

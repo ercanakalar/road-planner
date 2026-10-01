@@ -23,10 +23,17 @@ export interface MapArea {
   latitude: number;
   longitude: number;
   bounds: AreaBounds;
+  // The city the area belongs to, as the server named it: null for one in no
+  // city (a country), undefined for an area saved before areas carried it.
+  city?: string | null;
+  countryCode?: string | null;
 }
 
 export interface MarkedArea extends MapArea {
   markedAt: string;
+  // Which of the city colours its city wears. Kept with the area so a city
+  // keeps its colour when others come and go.
+  colorSlot?: number;
 }
 
 const isNumber = (value: unknown): value is number =>
@@ -47,6 +54,9 @@ const isBounds = (value: unknown): value is AreaBounds => {
 export const isAreaKind = (value: unknown): value is AreaKind =>
   AREA_KINDS.includes(value as AreaKind);
 
+const isOptionalText = (value: unknown): boolean =>
+  value === undefined || value === null || typeof value === 'string';
+
 export const isMarkedArea = (value: unknown): value is MarkedArea => {
   const area = value as MarkedArea | undefined;
 
@@ -59,6 +69,10 @@ export const isMarkedArea = (value: unknown): value is MarkedArea => {
     isAreaKind(area.kind) &&
     isNumber(area.latitude) &&
     isNumber(area.longitude) &&
-    isBounds(area.bounds)
+    isBounds(area.bounds) &&
+    isOptionalText(area.city) &&
+    isOptionalText(area.countryCode) &&
+    (area.colorSlot === undefined ||
+      (Number.isInteger(area.colorSlot) && area.colorSlot >= 0))
   );
 };

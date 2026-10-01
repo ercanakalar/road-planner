@@ -5,6 +5,7 @@ import { ok } from 'src/common/http/api-response';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
 import { withStopMetrics } from '../stop/stop-metrics';
+import { displayNameOf } from 'src/i18n/display-name';
 
 @Injectable()
 export class RoadSharingService {
@@ -61,7 +62,7 @@ export class RoadSharingService {
       data: {
         ...rest,
         stops: withStopMetrics(rest.stops),
-        author: user?.nickName ?? user?.firstName ?? 'A traveller',
+        author: displayNameOf(user),
         isFavorite: !!favoriteRoads?.length,
       },
     });

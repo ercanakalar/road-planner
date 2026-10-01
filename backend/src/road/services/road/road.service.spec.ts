@@ -9,6 +9,7 @@ import {
   PrismaMock,
 } from 'src/testing/mocks';
 import { RoutePublishNotifier } from 'src/notification/publish/route-publish.notifier';
+import { UsageRecorder } from 'src/statistics/usage.recorder';
 import { RoadVisibility } from '../visibility/road-visibility';
 import { RoadService } from './road.service';
 
@@ -20,11 +21,13 @@ describe('RoadService', () => {
   let prisma: PrismaMock;
   let elevation: ReturnType<typeof createElevationMock>;
   let publishNotifier: { notifyInBackground: jest.Mock };
+  let usage: { record: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
     elevation = createElevationMock();
     publishNotifier = { notifyInBackground: jest.fn() };
+    usage = { record: jest.fn() };
 
     prisma.stop.findMany.mockResolvedValue([]);
 
@@ -35,6 +38,7 @@ describe('RoadService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: ElevationService, useValue: elevation },
         { provide: RoutePublishNotifier, useValue: publishNotifier },
+        { provide: UsageRecorder, useValue: usage },
       ],
     }).compile();
 
@@ -578,79 +582,67 @@ describe('RoadService', () => {
   });
 
   describe('archived roads', () => {
+    const ownRow = (overrides: Record<string, unknown> = {}) => ({
+      id: ROAD_ID,
+      title: 'T',
+      description: 'D',
+      isPublic: false,
+      stopCount: 12,
+      isFavorite: true,
+      total: 1,
+      ...overrides,
+    });
+
+    const ownSql = () => prisma.$queryRaw.mock.calls[0][0].join('?');
+
     it('hides archived roads from the owner’s own list', async () => {
-      prisma.road.findMany.mockResolvedValue([]);
-      prisma.road.count.mockResolvedValue(0);
+      prisma.$queryRaw.mockResolvedValue([]);
 
       await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
 
-      expect(prisma.road.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'user-1', archivedAt: null },
-        }),
-      );
+      expect(ownSql()).toContain('"archivedAt" IS NULL');
+      expect(prisma.$queryRaw.mock.calls[0]).toContain('user-1');
     });
 
     it('sends a stop count instead of the stops themselves', async () => {
-      prisma.road.findMany.mockResolvedValue([
-        {
-          id: ROAD_ID,
-          title: 'T',
-          description: 'D',
-          isPublic: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          _count: { stops: 12 },
-          favoriteRoads: [{ id: 'fav-1' }],
-        },
-      ]);
-      prisma.road.count.mockResolvedValue(1);
+      prisma.$queryRaw.mockResolvedValue([ownRow()]);
 
       const result = await service.getOwnRoads('user-1', {
         limit: 10,
         offset: 0,
       });
 
-      expect(result.data[0]).toMatchObject({
+      expect(result.data[0]).toEqual({
         id: ROAD_ID,
+        title: 'T',
+        description: 'D',
+        isPublic: false,
         _count: { stops: 12 },
         isFavorite: true,
       });
-      expect(result.data[0]).not.toHaveProperty('stops');
-      expect(
-        prisma.road.findMany.mock.calls[0][0].select.stops,
-      ).toBeUndefined();
     });
 
-    it('asks for the star as the caller’s own favourite row only', async () => {
-      prisma.road.findMany.mockResolvedValue([]);
-      prisma.road.count.mockResolvedValue(0);
+    it('counts only the stops of the routes on the page, never the whole table', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
 
       await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
 
-      expect(prisma.road.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          select: expect.objectContaining({
-            favoriteRoads: {
-              where: { userId: 'user-1' },
-              select: { id: true },
-            },
-          }),
-        }),
-      );
+      expect(ownSql()).toMatch(/FROM "Stop" s WHERE s."roadId" = p."id"/);
+      expect(ownSql()).not.toMatch(/GROUP BY/i);
     });
 
-    it('does not leak the favourite rows themselves', async () => {
-      prisma.road.findMany.mockResolvedValue([
-        {
-          id: ROAD_ID,
-          title: 'T',
-          description: 'D',
-          _count: { stops: 0 },
-          favoriteRoads: [],
-        },
+    it('asks for the star as the caller’s own favourite row only', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.getOwnRoads('user-1', { limit: 10, offset: 0 });
+
+      expect(ownSql()).toMatch(/f."userId" = \? AND f."roadId" = p."id"/);
+    });
+
+    it('does not leak the row fields used to build the answer', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        ownRow({ stopCount: 0, isFavorite: false }),
       ]);
-      prisma.road.count.mockResolvedValue(1);
 
       const result = await service.getOwnRoads('user-1', {
         limit: 10,
@@ -661,7 +653,56 @@ describe('RoadService', () => {
         _count: { stops: 0 },
         isFavorite: false,
       });
-      expect(result.data[0]).not.toHaveProperty('favoriteRoads');
+      expect(result.data[0]).not.toHaveProperty('stopCount');
+      expect(result.data[0]).not.toHaveProperty('total');
+    });
+
+    it('pages with the limit and offset it was given, in one round trip', async () => {
+      prisma.$queryRaw.mockResolvedValue([ownRow({ total: 45 })]);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 20,
+        offset: 20,
+      });
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.road.count).not.toHaveBeenCalled();
+      expect(prisma.$queryRaw.mock.calls[0]).toEqual(
+        expect.arrayContaining([20]),
+      );
+      expect(result.meta).toEqual({
+        total: 45,
+        limit: 20,
+        offset: 20,
+        hasMore: true,
+      });
+    });
+
+    it('still reports the total for a page past the end', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+      prisma.road.count.mockResolvedValue(45);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 20,
+        offset: 60,
+      });
+
+      expect(result.meta).toMatchObject({ total: 45, hasMore: false });
+      expect(prisma.road.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', archivedAt: null },
+      });
+    });
+
+    it('needs no second query when someone has no routes at all', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      const result = await service.getOwnRoads('user-1', {
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result.meta).toMatchObject({ total: 0, hasMore: false });
+      expect(prisma.road.count).not.toHaveBeenCalled();
     });
 
     it('keeps archived roads out of the discover feed', async () => {
@@ -882,6 +923,85 @@ describe('RoadService', () => {
       await save();
 
       expect(publishNotifier.notifyInBackground).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateRoadById — counting publications', () => {
+    const storedVisibility = (isPublic: boolean) => {
+      prisma.stop.findMany.mockResolvedValue([]);
+      prisma.road.findUnique
+        .mockResolvedValueOnce({ isPublic })
+        .mockResolvedValue({ id: ROAD_ID, userId: 'owner-1', stops: [] });
+    };
+
+    const save = (isPublic?: boolean) =>
+      service.updateRoadById(ROAD_ID, {
+        title: 'T',
+        description: 'D',
+        stops: [],
+        ...(isPublic === undefined ? {} : { isPublic }),
+      });
+
+    it('counts a route going public, for its owner', async () => {
+      storedVisibility(false);
+
+      await save(true);
+
+      expect(usage.record).toHaveBeenCalledWith('route_published', {
+        userId: 'owner-1',
+      });
+    });
+
+    it('does not count an edit to a route that was public already', async () => {
+      storedVisibility(true);
+
+      await save(true);
+
+      expect(usage.record).not.toHaveBeenCalled();
+    });
+
+    it('does not count a route being unpublished', async () => {
+      storedVisibility(true);
+
+      await save(false);
+
+      expect(usage.record).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getOwnRoadsSummary', () => {
+    beforeEach(() => {
+      prisma.road.count
+        .mockResolvedValueOnce(42)
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(3);
+      prisma.stop.count.mockResolvedValue(311);
+    });
+
+    it('counts every route and stop, not just the page on screen', async () => {
+      await expect(service.getOwnRoadsSummary('user-1')).resolves.toEqual(
+        expect.objectContaining({
+          data: { routes: 42, publicRoutes: 5, stops: 311, favorites: 3 },
+        }),
+      );
+    });
+
+    it('counts exactly the routes the list shows, removed ones left out', async () => {
+      await service.getOwnRoadsSummary('user-1');
+
+      const owned = { userId: 'user-1', archivedAt: null };
+      expect(prisma.road.count).toHaveBeenCalledWith({ where: owned });
+      expect(prisma.stop.count).toHaveBeenCalledWith({
+        where: { road: owned },
+      });
+    });
+
+    it('takes no page size: totals are never cut short', async () => {
+      await service.getOwnRoadsSummary('user-1');
+
+      for (const [args] of prisma.road.count.mock.calls) {
+        expect(args).not.toHaveProperty('take');
+      }
     });
   });
 });

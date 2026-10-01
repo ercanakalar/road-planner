@@ -109,7 +109,7 @@ const StopMarker = memo(
         onDragEnd={handleDragEnd}
         tracksViewChanges={isSelected && !isBadgePainted}
         pinColor={isSelected ? colors.selection : pinColor(colors, index, total)}
-        title={`${label}${addressName(stop.address) || 'Stop'}`}
+        title={`${label}${addressName(stop.address) || t('mapUi.unnamedStop')}`}
         description={
           isDraggable
             ? t('defaults.dragToReposition')
@@ -144,6 +144,7 @@ const FoundPlaceMarker = memo(
     onPress?: (place: RoutePlace) => void;
   }) => {
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     const handlePress = useCallback(() => onPress?.(place), [onPress, place]);
 
@@ -159,7 +160,9 @@ const FoundPlaceMarker = memo(
         tracksViewChanges={false}
         pinColor={colors.place}
         title={place.name}
-        description={`${metersToDistance(place.distanceFromRouteMeters)} off route`}
+        description={t('mapUi.offRoute', {
+          distance: metersToDistance(place.distanceFromRouteMeters),
+        })}
       />
     );
   },

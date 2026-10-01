@@ -84,7 +84,7 @@ const StopOptions = ({
 
       <ContextMenu
         visible={isOpen}
-        title={addressName(item.address) || 'Stop'}
+        title={addressName(item.address) || t('mapUi.unnamedStop')}
         options={options}
         onClose={close}
       />

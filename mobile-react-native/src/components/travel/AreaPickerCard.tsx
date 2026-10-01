@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 
 import PrimaryButton from 'components/ui/PrimaryButton';
 import {
-  areaColor,
   AREA_KIND_ICON,
   AREA_KIND_LABEL,
+  cityColor,
 } from 'constants/travelMap';
 import {
   radius,
@@ -27,6 +27,7 @@ interface Props {
   candidates: readonly MapArea[];
   selectedIndex: number;
   isMarked: boolean;
+  colorSlotOf: (area: MapArea) => number | null;
   onChoose: (index: number) => void;
   onMark: () => void;
   onRemove: () => void;
@@ -37,19 +38,24 @@ const AreaPickerCard = ({
   candidates,
   selectedIndex,
   isMarked,
+  colorSlotOf,
   onChoose,
   onMark,
   onRemove,
   onDismiss,
 }: Props) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const styles = useThemedStyles(createStyles);
   const { t } = useTranslation();
 
   const selected = candidates[selectedIndex];
   if (!selected) return null;
 
-  const tint = areaColor(colors, selected.kind);
+  const tint = cityColor(colors, scheme, colorSlotOf(selected));
+  const where =
+    selected.city && selected.city !== selected.name
+      ? selected.city
+      : selected.address;
 
   return (
     <View style={styles.card}>
@@ -67,7 +73,7 @@ const AreaPickerCard = ({
             {selected.name}
           </Text>
           <Text style={styles.address} numberOfLines={1}>
-            {t(AREA_KIND_LABEL[selected.kind])} · {selected.address}
+            {t(AREA_KIND_LABEL[selected.kind])} · {where}
           </Text>
         </View>
 
@@ -91,7 +97,11 @@ const AreaPickerCard = ({
         >
           {candidates.map((candidate, index) => {
             const isSelected = index === selectedIndex;
-            const chipTint = areaColor(colors, candidate.kind);
+            const chipTint = cityColor(
+              colors,
+              scheme,
+              colorSlotOf(candidate),
+            );
 
             return (
               <Pressable

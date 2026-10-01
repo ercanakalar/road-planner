@@ -16,14 +16,20 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { I18nService } from 'nestjs-i18n';
 
 import { Public } from 'src/common/decorators';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { OptionalAccessGuard } from 'src/common/guards/optional-access/optional-access.guard';
+import { USER_THROTTLE } from 'src/config/throttle';
+import { TrackUsage } from 'src/statistics/track-usage.decorator';
 import { FollowAuthorDto } from './dto/follow-author.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  NicknameAvailabilityQueryDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
 import { UserSearchQueryDto } from './dto/user-search.dto';
 import { FollowService } from './follow.service';
 import { UserService } from './user.service';
@@ -90,6 +96,7 @@ export class UserController {
 
   @Public()
   @UseGuards(OptionalAccessGuard)
+  @TrackUsage('search_people')
   @Get('/search')
   @HttpCode(HttpStatus.OK)
   async searchAuthors(
@@ -110,6 +117,20 @@ export class UserController {
     return this.userService.getAuthorById(id, user?.userId ?? null);
   }
 
+  @Throttle(USER_THROTTLE.nicknameCheck)
+  @Get('/nickname/availability')
+  @HttpCode(HttpStatus.OK)
+  async nicknameAvailability(
+    @Query() query: NicknameAvailabilityQueryDto,
+    @GetUser('userId') userId: string,
+  ) {
+    return this.userService.nicknameAvailability(query.nickName, userId);
+  }
+
+  @TrackUsage({
+    event: 'author_follow_toggled',
+    detail: ({ body }) => (body?.follow === true ? 'on' : 'off'),
+  })
   @Post('/author/:id/follow')
   @HttpCode(HttpStatus.OK)
   async followAuthor(

@@ -5,6 +5,7 @@ import {
 } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import HomeScreen from 'screens/home/HomeScreen';
 import MapScreen from 'screens/map/MapScreen';
@@ -33,16 +34,29 @@ const ACTIVE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Profile: 'person',
 };
 
-const FavouritesTabButton = centreTabButton('heart', 'Favourites');
+// The route names are identifiers; what the tab bar shows is translated.
+const LABELS: Record<string, string> = {
+  Home: 'tabs.home',
+  Map: 'tabs.map',
+  Routes: 'tabs.routes',
+  Profile: 'tabs.profile',
+};
 
 const HomeTabNavigator = () => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  const FavouritesTabButton = useMemo(
+    () => centreTabButton('heart', t('tabs.favourites')),
+    [t],
+  );
 
   const insets = useSafeAreaInsets();
 
   const screenOptions = useMemo(
     () =>
       ({ route }: { route: { name: string } }): BottomTabNavigationOptions => ({
+        tabBarLabel: LABELS[route.name] ? t(LABELS[route.name]) : route.name,
         tabBarIcon: ({ color, size, focused }) => (
           <Ionicons
             name={
@@ -73,7 +87,7 @@ const HomeTabNavigator = () => {
         tabBarItemStyle: { paddingVertical: spacing.xxs },
         headerShown: false,
       }),
-    [colors, insets.bottom],
+    [colors, insets.bottom, t],
   );
 
   return (

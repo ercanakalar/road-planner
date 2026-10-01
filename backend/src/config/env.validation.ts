@@ -141,6 +141,18 @@ export class EnvironmentVariables {
   @IsOptional()
   UPLOAD_DIR: string = 'uploads';
 
+  // Keys the hash under which the account-deletion log keeps an e-mail
+  // address. Falls back to ACCESS_KEY; set it separately so that rotating
+  // ACCESS_KEY does not make the existing log unsearchable, and never rotate
+  // this one.
+  @Transform(blankAsUnset)
+  @IsString()
+  @MinLength(MIN_SECRET_LENGTH, {
+    message: `AUDIT_HASH_KEY must be at least ${MIN_SECRET_LENGTH} characters. Generate one with: openssl rand -base64 48`,
+  })
+  @IsOptional()
+  AUDIT_HASH_KEY?: string;
+
   @Transform(blankAsUnset)
   @IsString()
   @IsOptional()

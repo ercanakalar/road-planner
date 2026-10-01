@@ -40,7 +40,9 @@ export default function SignUpScreen() {
 
       <FormField
         label={t('auth.password')}
-        placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+        placeholder={t('forms.passwordPlaceholder', {
+          count: MIN_PASSWORD_LENGTH,
+        })}
         value={values.password}
         onChangeText={handleChange('password')}
         autoComplete='new-password'

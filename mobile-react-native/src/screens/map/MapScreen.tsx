@@ -84,6 +84,7 @@ const MapScreen = () => {
     handleSwitchRoute,
     handlePickRoute,
     closePicker,
+    canStartNewRoute,
     handleNewRoute,
     handleDeleteRoute,
   } = useMapScreen();
@@ -119,6 +120,7 @@ const MapScreen = () => {
           title={activeRoute?.title ?? t('map.newRoute')}
           canSwitch={routes.length > 1}
           hasActiveRoute={activeRoute !== undefined}
+          canStartNewRoute={canStartNewRoute}
           onSwitch={handleSwitchRoute}
           onEditDetails={openDetailsEditor}
           onNewRoute={handleNewRoute}
@@ -140,7 +142,7 @@ const MapScreen = () => {
             />
             <Text style={styles.onTheWayText}>
               {routeSearch.places.length > 0
-                ? `${routeSearch.places.length} on the way`
+                ? t('map.onTheWayCount', { count: routeSearch.places.length })
                 : t('map.onTheWay')}
             </Text>
           </Pressable>

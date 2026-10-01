@@ -8,14 +8,14 @@ import { updateRouteDetails } from 'store/actions/routeActions';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { useToggleFavoriteRouteMutation } from 'store/services/favoriteService';
 import {
+  flattenOwnRoutes,
   useDeleteRouteByIdMutation,
-  useGetOwnRoutesQuery,
+  useGetOwnRoutesInfiniteQuery,
+  useGetOwnRoutesSummaryQuery,
 } from 'store/services/routeService';
 import type { DetailsDraft } from 'types/components/editDetailsModal';
 import { MapScreenProps, OwnRouteSummary } from 'types/map-screen-type';
 import { useTranslation } from 'react-i18next';
-
-const EMPTY_ROUTES: OwnRouteSummary[] = [];
 
 export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const dispatch = useAppDispatch();
@@ -30,20 +30,34 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   const [isSaving, setIsSaving] = useState(false);
 
   const {
-    data: routes = EMPTY_ROUTES,
+    data,
     refetch,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     isLoading,
     isError,
-  } = useGetOwnRoutesQuery(undefined, { skip: !isLoggedIn });
+  } = useGetOwnRoutesInfiniteQuery(undefined, { skip: !isLoggedIn });
+
+  const { data: summary, refetch: refetchSummary } =
+    useGetOwnRoutesSummaryQuery(undefined, { skip: !isLoggedIn });
+
+  const routes = useMemo(() => flattenOwnRoutes(data?.pages), [data]);
+
+  // Until the server's totals arrive, the loaded pages are all there is to
+  // count; once they do, they cover routes not scrolled to yet.
+  const routeCount = summary?.routes ?? data?.pages[0]?.total ?? routes.length;
+  const stopCount =
+    summary?.stops ??
+    routes.reduce((total, route) => total + (route._count.stops ?? 0), 0);
 
   const [deleteRouteById] = useDeleteRouteByIdMutation();
   const [toggleFavoriteRoute] = useToggleFavoriteRouteMutation();
 
-  const stopCount = useMemo(
-    () => routes.reduce((total, route) => total + (route._count.stops ?? 0), 0),
-    [routes],
-  );
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isFetching) fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetching, isFetchingNextPage]);
 
   const handleDeleteRoute = useCallback(
     async (route: OwnRouteSummary) => {
@@ -93,8 +107,10 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   );
 
   const handleRefresh = useCallback(() => {
-    if (isLoggedIn) refetch();
-  }, [isLoggedIn, refetch]);
+    if (!isLoggedIn) return;
+    refetch();
+    refetchSummary();
+  }, [isLoggedIn, refetch, refetchSummary]);
 
   const handleView = useCallback(
     (routeId: string) => navigation.navigate('ShowRouteByIdScreen', { routeId }),
@@ -146,9 +162,12 @@ export function useRoutesScreen(navigation: MapScreenProps['navigation']) {
   return {
     isLoggedIn,
     routes,
+    routeCount,
     stopCount,
     isLoading,
-    isFetching,
+    isRefreshing: isFetching && !isFetchingNextPage,
+    isLoadingMore: isFetchingNextPage,
+    loadMore,
     isError,
     editing,
     isSaving,
