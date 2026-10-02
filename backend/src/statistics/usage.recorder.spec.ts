@@ -17,8 +17,6 @@ describe('UsageRecorder', () => {
     recorder = new UsageRecorder(prisma as unknown as PrismaService);
   });
 
-  afterEach(() => recorder.onApplicationShutdown());
-
   describe('record', () => {
     it('writes the event, the person and the detail', async () => {
       recorder.record('maps_directions', {
@@ -104,15 +102,6 @@ describe('UsageRecorder', () => {
           },
         },
       });
-    });
-
-    it('prunes once at start-up and survives the database refusing', async () => {
-      prisma.usageEvent.deleteMany.mockRejectedValue(new Error('read only'));
-
-      expect(() => recorder.onApplicationBootstrap()).not.toThrow();
-      await flush();
-
-      expect(prisma.usageEvent.deleteMany).toHaveBeenCalledTimes(1);
     });
   });
 });

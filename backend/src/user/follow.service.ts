@@ -73,10 +73,8 @@ export class FollowService {
     }
 
     return ok({
-      header: follow ? 'Following' : 'Not following',
-      message: follow
-        ? 'You will hear about their next route'
-        : 'You will not hear about their new routes',
+      header: follow ? 'follow.following' : 'follow.notFollowing',
+      message: follow ? 'follow.willHear' : 'follow.willNotHear',
       data: { authorId, isFollowed: follow },
     });
   }

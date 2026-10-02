@@ -28,6 +28,13 @@ set -a; source "${ENV_FILE}"; set +a
 : "${MAX_INSTANCES:?set MAX_INSTANCES in ${ENV_FILE}}"
 : "${SERVICE_ACCOUNT:?set SERVICE_ACCOUNT in ${ENV_FILE}}"
 : "${SA_EMAIL:?set SA_EMAIL in ${ENV_FILE}}"
+# The plain settings the API refuses to start without (src/config/
+# env.validation.ts). Missing, they would surface only once the new revision
+# failed to boot — after the builds and the migration.
+: "${FRONTEND_URL:?set FRONTEND_URL in ${ENV_FILE}}"
+: "${MAIL_HOST:?set MAIL_HOST in ${ENV_FILE}}"
+: "${MAIL_USERNAME:?set MAIL_USERNAME in ${ENV_FILE}}"
+: "${MAIL_FROM:?set MAIL_FROM in ${ENV_FILE}}"
 
 REPO="travel-routes"
 BUCKET="${PROJECT_ID}-travel-routes-uploads"
@@ -120,11 +127,11 @@ say "1/7 Checking the secrets this deploy references"
 # Discovering that here costs a second. Discovering it at step 5 costs two
 # image builds and pushes first.
 missing=()
-for name in DATABASE_URL ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY \
-            MAIL_PASSWORD GOOGLE_CLIENT_SECRET MAP_API_KEY; do
+for name in DATABASE_URL ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY AUDIT_HASH_KEY \
+            MAIL_PASSWORD MAP_API_KEY; do
   # A value present in the env file is one this script can store itself. The
-  # three signing keys are generated rather than configured, so they are never
-  # in that file and a missing one has to be created deliberately below.
+  # four keys are generated rather than configured, so they are never in that
+  # file and a missing one has to be created deliberately below.
   eval "value=\${${name}:-}"
 
   if secret_exists "${name}"; then
@@ -147,10 +154,11 @@ if [ "${#missing[@]}" -gt 0 ]; then
   for name in "${missing[@]}"; do printf '  %s\n' "${name}" >&2; done
   cat >&2 <<MSG
 
-ACCESS_KEY, REFRESH_KEY and ROAD_SHARE_KEY are generated, not configured, and
-scripts/setup-project.sh creates them along with the rest of a new project's
-setup. Run that first. To create one by hand instead — three *different*
-random values, so that an access token cannot be replayed as a refresh token:
+ACCESS_KEY, REFRESH_KEY, ROAD_SHARE_KEY and AUDIT_HASH_KEY are generated, not
+configured, and scripts/setup-project.sh creates them along with the rest of a
+new project's setup. Run that first. To create one by hand instead — four
+*different* random values, so that an access token cannot be replayed as a
+refresh token:
 
   openssl rand -base64 48 \\
     | gcloud secrets create ACCESS_KEY --data-file=- --project ${PROJECT_ID}
@@ -231,23 +239,47 @@ gcloud run jobs execute "${JOB}" \
 # apply stops the container from starting at all, turning a deploy problem into
 # an outage. --cpu-boost buys the remaining Nest/Prisma startup extra CPU for
 # the same reason: the first request after idle is the one users feel.
+#
+# --no-cpu-throttling keeps the CPU on between requests. Without it Cloud Run
+# all but stops an instance the moment a response is sent, and the work the
+# API does after answering — e-mailing followers about a published route,
+# writing usage statistics, the daily retention run — stalls or is lost when
+# the instance is shut down. It bills the instance for as long as it is up
+# (it still scales to zero when idle), not just while it serves a request.
 say "7/7 Deploying the API service"
 
 # The plain (non-secret) settings go through a YAML file rather than
 # --set-env-vars, because --set-env-vars splits on commas and CORS_ORIGINS and
 # GOOGLE_NATIVE_CLIENT_IDS are comma-separated lists. Values are written
 # single-quoted, so they stay strings (MAIL_PORT included) and the only
-# character to escape is ' itself, doubled.
+# character to escape is ' itself, doubled. The quote goes through a variable
+# because bash before 4.3 keeps the backslashes of \' in a replacement.
 ENV_VARS_FILE="$(mktemp)"
 trap 'rm -f "${ENV_VARS_FILE}"' EXIT
-yaml_env() { printf "%s: '%s'\n" "$1" "${2//\'/\'\'}" >> "${ENV_VARS_FILE}"; }
+yaml_env() {
+  local q="'"
+  case "$2" in
+    *$'\n'*)
+      warn "$1 spans more than one line, which a YAML single-quoted value would fold into spaces."
+      exit 1
+      ;;
+  esac
+  printf "%s: '%s'\n" "$1" "${2//$q/$q$q}" >> "${ENV_VARS_FILE}"
+}
 yaml_env NODE_ENV production
 yaml_env RUN_MIGRATIONS false
 yaml_env UPLOAD_DIR /mnt/uploads
-for name in CORS_ORIGINS FRONTEND_URL SHARE_LINK_BASE_URL GOOGLE_REDIRECT_URL \
-  GOOGLE_CLIENT_ID GOOGLE_NATIVE_CLIENT_IDS MAIL_HOST MAIL_PORT MAIL_USERNAME \
-  MAIL_FROM; do
-  yaml_env "${name}" "${!name}"
+# Cloud Run's front end is the one proxy between a client and the API; the
+# rate limits read the client's address through it. See TRUST_PROXY in
+# src/config/env.validation.ts.
+yaml_env TRUST_PROXY 1
+# Optional settings are written only when set: an unset one keeps the API's
+# default rather than becoming an empty string (and `set -u` never trips here).
+for name in CORS_ORIGINS FRONTEND_URL SHARE_LINK_BASE_URL GOOGLE_CLIENT_ID \
+  GOOGLE_NATIVE_CLIENT_IDS MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_FROM; do
+  if [ -n "${!name:-}" ]; then
+    yaml_env "${name}" "${!name}"
+  fi
 done
 
 gcloud run deploy "${SERVICE}" \
@@ -258,7 +290,7 @@ gcloud run deploy "${SERVICE}" \
   --allow-unauthenticated \
   --execution-environment=gen2 \
   --env-vars-file="${ENV_VARS_FILE}" \
-  --set-secrets="DATABASE_URL=DATABASE_URL:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,AUDIT_HASH_KEY=AUDIT_HASH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,MAP_API_KEY=MAP_API_KEY:latest" \
+  --set-secrets="DATABASE_URL=DATABASE_URL:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,AUDIT_HASH_KEY=AUDIT_HASH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,MAP_API_KEY=MAP_API_KEY:latest" \
   --add-volume=name=uploads,type=cloud-storage,bucket="${BUCKET}" \
   --add-volume-mount=volume=uploads,mount-path=/mnt/uploads \
   --min-instances=0 \
@@ -266,6 +298,7 @@ gcloud run deploy "${SERVICE}" \
   --memory=512Mi \
   --cpu=1 \
   --cpu-boost \
+  --no-cpu-throttling \
   --timeout=60s
 
 # A deploy can succeed and change nothing: if traffic is pinned to a named

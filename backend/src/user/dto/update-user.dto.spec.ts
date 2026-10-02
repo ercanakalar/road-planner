@@ -64,20 +64,26 @@ describe('UpdateUserDto', () => {
   });
 
   describe('accepted fields', () => {
-    it('accepts the four mutable profile fields', async () => {
+    it('accepts the mutable profile fields', async () => {
       const result = await validateDto(UpdateUserDto, {
         firstName: 'Ercan',
         lastName: 'Akalar',
-        photo: 'https://cdn.example.com/a.png',
         nickName: 'ercan_a',
       });
 
       expect(result).toEqual({
         firstName: 'Ercan',
         lastName: 'Akalar',
-        photo: 'https://cdn.example.com/a.png',
         nickName: 'ercan_a',
       });
+    });
+
+    it('drops a photo: only an upload may set one', async () => {
+      await expect(
+        validateDto(UpdateUserDto, {
+          photo: '/api/user/photo/0b5f4d3e-1c2a-4b7e-9f00-123456789abc.jpg',
+        }),
+      ).resolves.toEqual({});
     });
 
     it('accepts a partial update', async () => {
@@ -99,7 +105,6 @@ describe('UpdateUserDto', () => {
       expect(result).toEqual({
         firstName: 'Ercan',
         lastName: 'Akalar',
-        photo: 'https://cdn.example.com/a.png',
         nickName: 'ercan_a',
       });
     });
@@ -158,12 +163,6 @@ describe('UpdateUserDto', () => {
         ).resolves.not.toEqual([]);
       },
     );
-
-    it('rejects a photo URL longer than 2048 characters', async () => {
-      await expect(
-        collectDtoErrors(UpdateUserDto, { photo: 'a'.repeat(2049) }),
-      ).resolves.not.toEqual([]);
-    });
   });
 
   describe('type coercion', () => {

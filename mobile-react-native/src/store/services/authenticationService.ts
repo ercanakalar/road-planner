@@ -5,6 +5,7 @@ import {
 } from 'store/bases/transformApiResponse';
 
 import createApi from '../middlewares/createApi';
+import { sessionRefreshed } from 'store/actions/sessionActions';
 
 import {
   SignInArgs,
@@ -15,6 +16,7 @@ import {
   ValidateRefreshTokenResponse,
   ForgotPasswordArgs,
   ChangePasswordArgs,
+  ChangePasswordResponse,
   VerifyResetCodeArgs,
   VerifyResetCodeResponse,
   ResetPasswordArgs,
@@ -69,11 +71,13 @@ export const authenticationService = createApi({
         transformApiResponseWithToast(res),
     }),
 
-    logout: builder.mutation<void, void>({
-      query: () => ({
+    // Sends the device's refresh token so only this session ends; the
+    // others stay signed in.
+    logout: builder.mutation<void, { refreshToken?: string | null } | void>({
+      query: (args) => ({
         url: '/auth/sign-out',
         method: 'POST',
-        body: {},
+        body: args?.refreshToken ? { refreshToken: args.refreshToken } : {},
       }),
       extraOptions: { maxRetries: 0 },
       transformResponse: (res: ApiResponse<void>) => transformApiResponse(res),
@@ -118,15 +122,35 @@ export const authenticationService = createApi({
         transformApiResponse(res),
     }),
 
-    changePassword: builder.mutation<void, ChangePasswordArgs>({
+    // The server signs every other device out and issues this one a new
+    // session, which has to replace the one it just ended.
+    changePassword: builder.mutation<
+      ChangePasswordResponse,
+      ChangePasswordArgs
+    >({
       query: (body) => ({
         url: '/auth/change-password',
         method: 'PATCH',
         body,
       }),
       extraOptions: { maxRetries: 0 },
-      transformResponse: (res: ApiResponse<void>) =>
+      transformResponse: (res: ApiResponse<ChangePasswordResponse>) =>
         transformApiResponseWithToast(res),
+      async onQueryStarted(_args, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          if (data?.accessToken && data?.refreshToken) {
+            dispatch(
+              sessionRefreshed({
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken,
+              }),
+            );
+          }
+        } catch {
+          // The screen reports the failure.
+        }
+      },
     }),
 
     resetPassword: builder.mutation<void, ResetPasswordArgs>({
@@ -139,19 +163,6 @@ export const authenticationService = createApi({
       transformResponse: (res: ApiResponse<void>) =>
         transformApiResponseWithToast(res),
     }),
-
-    googleMobileSignIn: builder.mutation<
-      ValidateRefreshTokenResponse,
-      { code: string }
-    >({
-      query: ({ code }) => ({
-        url: `/auth/google/callback?code=${encodeURIComponent(code)}`,
-        method: 'GET',
-      }),
-      extraOptions: { maxRetries: 0 },
-      transformResponse: (res: ApiResponse<ValidateRefreshTokenResponse>) =>
-        transformApiResponseWithToast(res),
-    }),
   }),
 });
 
@@ -161,7 +172,6 @@ export const {
   useSignInWithGoogleMutation,
   useValidateRefreshTokenMutation,
   useLogoutMutation,
-  useGoogleMobileSignInMutation,
   useRequestPasswordResetCodeMutation,
   useChangePasswordMutation,
   useVerifyResetCodeMutation,

@@ -24,12 +24,22 @@ export function parseCorsOrigins(raw: string): string[] | true {
 
 export interface AppConfiguration {
   corsOrigins: string;
+  // Proxies in front of the API; see TRUST_PROXY in env.validation.ts.
+  trustProxy?: number;
 }
 
 export function configureApp(
   app: INestApplication,
   config: AppConfiguration,
 ): INestApplication {
+  // The rate limits are counted per client address. Behind a proxy the
+  // socket's peer is the proxy, shared by everyone, unless Express is told
+  // how many hops to look through.
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set('trust proxy', config.trustProxy ?? 0);
+
   app.use(helmet());
 
   app.use(compression());

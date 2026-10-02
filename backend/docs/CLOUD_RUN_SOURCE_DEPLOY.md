@@ -48,6 +48,24 @@ fill them in from `.env.production` and `gcloud config list` rather than
 copying real values into a shared document.
 
 ```bash
+# Plain settings go in a YAML file, not --set-env-vars: that flag splits on
+# commas, and CORS_ORIGINS and GOOGLE_NATIVE_CLIENT_IDS are comma-separated.
+cat > env.yaml <<'YAML'
+NODE_ENV: 'production'
+RUN_MIGRATIONS: 'false'
+TRUST_PROXY: '1'
+UPLOAD_DIR: '/mnt/uploads'
+CORS_ORIGINS: '<CORS_ORIGINS>'
+FRONTEND_URL: '<FRONTEND_URL>'
+SHARE_LINK_BASE_URL: '<SHARE_LINK_BASE_URL>'
+MAIL_HOST: '<MAIL_HOST>'
+MAIL_PORT: '<MAIL_PORT>'
+MAIL_USERNAME: '<MAIL_USERNAME>'
+MAIL_FROM: '<MAIL_FROM>'
+GOOGLE_CLIENT_ID: '<GOOGLE_CLIENT_ID>'
+GOOGLE_NATIVE_CLIENT_IDS: '<GOOGLE_NATIVE_CLIENT_IDS>'
+YAML
+
 gcloud run deploy <SERVICE_NAME> \
   --source . \
   --project <PROJECT_ID> \
@@ -59,12 +77,17 @@ gcloud run deploy <SERVICE_NAME> \
   --max-instances 4 \
   --memory 512Mi \
   --cpu 1 \
+  --no-cpu-throttling \
   --timeout 60s \
-  --set-env-vars "NODE_ENV=production,CORS_ORIGINS=<CORS_ORIGINS>,UPLOAD_DIR=/mnt/uploads,MAIL_HOST=<MAIL_HOST>,MAIL_USERNAME=<MAIL_USERNAME>,MAIL_FROM=<MAIL_FROM>,GOOGLE_CLIENT_ID=<GOOGLE_CLIENT_ID>,FRONTEND_URL=<FRONTEND_URL>,SHARE_LINK_BASE_URL=<SHARE_LINK_BASE_URL>,GOOGLE_REDIRECT_URL=<GOOGLE_REDIRECT_URL>" \
-  --set-secrets "DATABASE_URL=DATABASE_URL:latest,DATABASE_URL_UNPOOLED=DATABASE_URL_UNPOOLED:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest" \
+  --env-vars-file env.yaml \
+  --set-secrets "DATABASE_URL=DATABASE_URL:latest,ACCESS_KEY=ACCESS_KEY:latest,REFRESH_KEY=REFRESH_KEY:latest,ROAD_SHARE_KEY=ROAD_SHARE_KEY:latest,AUDIT_HASH_KEY=AUDIT_HASH_KEY:latest,MAIL_PASSWORD=MAIL_PASSWORD:latest,MAP_API_KEY=MAP_API_KEY:latest" \
   --add-volume name=uploads,type=cloud-storage,bucket=<UPLOAD_BUCKET_NAME> \
   --add-volume-mount volume=uploads,mount-path=/mnt/uploads
 ```
+
+Values are single-quoted so they stay strings (`MAIL_PORT` included); a `'`
+inside one is written twice. `RUN_MIGRATIONS=false` assumes the migration job
+has already run `prisma migrate deploy`.
 
 **What each part means:**
 
@@ -72,7 +95,8 @@ gcloud run deploy <SERVICE_NAME> \
 | --- | --- |
 | `--source .` | Build the image from the current directory with Cloud Build, then deploy it — no manual `docker build`/`push` step. |
 | `--execution-environment gen2` | Required for `--add-volume` with `type=cloud-storage` (Cloud Storage FUSE volumes need the gen2 sandbox). |
-| `--set-env-vars "..."` | Plain, readable-in-the-console values. **Replaces the entire list** on every run — a variable left out here is a variable that gets removed, not left alone. |
+| `--env-vars-file env.yaml` | Plain, readable-in-the-console values. **Replaces the entire list** on every run — a variable left out here is a variable that gets removed, not left alone. |
+| `--no-cpu-throttling` | Keeps the CPU on between requests, so the work the API does after answering — e-mails to followers, usage statistics, the daily retention run — finishes. Billed for the instance's lifetime rather than per request; it still scales to zero. |
 | `--set-secrets "APP_NAME=SECRET_NAME:latest,..."` | Values resolved from Secret Manager at container start, never shown in plain text in the console. Also fully replaces the existing list, same caveat as above. |
 | `--add-volume` / `--add-volume-mount` | Mounts a Cloud Storage bucket as a filesystem path, so files written there (avatar uploads, via `UPLOAD_DIR=/mnt/uploads`) survive past a single container instance instead of living on ephemeral local disk. |
 

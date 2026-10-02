@@ -17,6 +17,7 @@ import { MapsModule } from './maps/maps.module';
 import { NotificationModule } from './notification/notification.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RetentionModule } from './retention/retention.module';
 import { RoadModule } from './road/road.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { UserModule } from './user/user.module';
@@ -43,6 +44,7 @@ import { UserModule } from './user/user.module';
     PermissionsModule,
     FavoritesModule,
     ConsentModule,
+    RetentionModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

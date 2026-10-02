@@ -1,69 +1,91 @@
-import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 import { PaginationQueryDto } from '../../src/common/dto/pagination.dto';
+import { PrismaClient } from '../../src/generated/prisma/client';
+import { ElevationService } from '../../src/maps/services/elevation.service';
 import { GeocodingService } from '../../src/maps/services/geocoding.service';
+import { RoutePublishNotifier } from '../../src/notification/publish/route-publish.notifier';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { createGeocodingMock } from '../../src/testing/mocks';
+import { StopInputDto } from '../../src/road/dto/road.dto';
 import { RoadService } from '../../src/road/services/road/road.service';
+import { StopService } from '../../src/road/services/stop/stop.service';
 import { RoadVisibility } from '../../src/road/services/visibility/road-visibility';
-import { WaypointService } from '../../src/road/services/waypoint/waypoint.service';
+import { RetentionService } from '../../src/retention/retention.service';
+import { UsageRecorder } from '../../src/statistics/usage.recorder';
+import {
+  createElevationMock,
+  createGeocodingMock,
+} from '../../src/testing/mocks';
+import { describeIntegration, integrationClient } from './client';
 
-const DATABASE_URL = process.env.INTEGRATION_DATABASE_URL;
-
-const describeIntegration = DATABASE_URL ? describe : describe.skip;
-
+// The raw SQL in the road and stop services, run against Postgres: the
+// one-statement page of a person's routes, the bulk stop writes and the
+// deferred (roadId, order) constraint they lean on.
 describeIntegration('Road writes (integration)', () => {
   let prisma: PrismaClient;
-  let service: RoadService;
-  let waypoints: WaypointService;
+  let roads: RoadService;
+  let stops: StopService;
   let userId: string;
 
-  const firstPage = () => new PaginationQueryDto();
+  const page = (limit = 50, offset = 0) =>
+    Object.assign(new PaginationQueryDto(), { limit, offset });
 
-  const address = (label: string) => ({ address: label, country: 'TR' });
-
-  const waypointsOf = async (roadId: string) =>
+  const stopsOf = async (roadId: string) =>
     (
-      await prisma.wayPoint.findMany({
+      await prisma.stop.findMany({
         where: { roadId },
         orderBy: { order: 'asc' },
-        include: { address: true },
       })
-    ).map((w) => ({
-      order: w.order,
-      latitude: w.latitude,
-      address: w.address?.address ?? null,
-    }));
+    ).map(({ order, latitude, address }) => ({ order, latitude, address }));
 
-  const createRoad = async (labels: string[]) => {
-    const result = await service.createRoad(
+  const stopInput = (label: string, i: number): StopInputDto => ({
+    latitude: i + 1,
+    longitude: i + 1,
+    order: i + 1,
+    address: label,
+  });
+
+  const createRoad = async (labels: string[], owner = userId) => {
+    const result = await roads.createRoad(
       {
         title: 'Trip',
         description: 'A trip',
-        waypoints: labels.map((label, i) => ({
-          latitude: i + 1,
-          longitude: i + 1,
-          order: i + 1,
-          address: address(label),
-        })),
+        stops: labels.map(stopInput),
       },
-      userId,
+      owner,
     );
 
     return result.data!.id;
   };
 
-  beforeAll(async () => {
-    prisma = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
-    await prisma.$connect();
+  // Routes are listed newest first; a pause keeps two created back to back
+  // from sharing a millisecond.
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
 
+  const storedStops = (roadId: string) =>
+    prisma.stop.findMany({ where: { roadId }, orderBy: { order: 'asc' } });
+
+  beforeAll(() => {
+    prisma = integrationClient();
+
+    const db = prisma as unknown as PrismaService;
     const visibility = new RoadVisibility();
-    service = new RoadService(prisma as unknown as PrismaService, visibility);
-    waypoints = new WaypointService(
-      prisma as unknown as PrismaService,
+    const elevation = createElevationMock() as unknown as ElevationService;
+
+    roads = new RoadService(
+      db,
+      visibility,
+      elevation,
+      {
+        notifyInBackground: jest.fn(),
+      } as unknown as RoutePublishNotifier,
+      { record: jest.fn() } as unknown as UsageRecorder,
+    );
+    stops = new StopService(
+      db,
       visibility,
       createGeocodingMock() as unknown as GeocodingService,
+      elevation,
     );
   });
 
@@ -83,10 +105,10 @@ describeIntegration('Road writes (integration)', () => {
   });
 
   describe('createRoad', () => {
-    it('creates every waypoint with its own address', async () => {
+    it('creates every stop with its own address', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 1, address: 'A' },
         { order: 2, latitude: 2, address: 'B' },
         { order: 3, latitude: 3, address: 'C' },
@@ -94,278 +116,186 @@ describeIntegration('Road writes (integration)', () => {
     });
 
     it('normalises duplicated and gapped positions', async () => {
-      const result = await service.createRoad(
+      const result = await roads.createRoad(
         {
           title: 'Trip',
           description: 'A trip',
-          waypoints: [
-            { latitude: 1, longitude: 1, order: 7, address: address('A') },
-            { latitude: 2, longitude: 2, order: 7, address: address('B') },
-            { latitude: 3, longitude: 3, order: 99, address: address('C') },
+          stops: [
+            { latitude: 1, longitude: 1, order: 7, address: 'A' },
+            { latitude: 2, longitude: 2, order: 7, address: 'B' },
+            { latitude: 3, longitude: 3, order: 99, address: 'C' },
           ],
         },
         userId,
       );
 
-      expect((await waypointsOf(result.data!.id)).map((w) => w.order)).toEqual([
+      expect((await stopsOf(result.data!.id)).map((w) => w.order)).toEqual([
         1, 2, 3,
       ]);
     });
 
-    it('creates a road with no waypoints', async () => {
+    it('creates a road with no stops', async () => {
       const roadId = await createRoad([]);
 
-      expect(await waypointsOf(roadId)).toEqual([]);
+      expect(await stopsOf(roadId)).toEqual([]);
     });
 
     it('does not return the owner id', async () => {
-      const result = await service.createRoad(
+      const result = await roads.createRoad(
         { title: 'Trip', description: 'A trip' },
         userId,
       );
 
       expect(result.data).not.toHaveProperty('userId');
     });
-
-    it('gives each waypoint a distinct address row', async () => {
-      const roadId = await createRoad(['A', 'B']);
-
-      const ids = (
-        await prisma.wayPoint.findMany({
-          where: { roadId },
-          select: { addressInfoId: true },
-        })
-      ).map((w) => w.addressInfoId);
-
-      expect(new Set(ids).size).toBe(2);
-    });
   });
 
   describe('updateRoadById', () => {
-    it('updates the surviving waypoints and drops the rest', async () => {
+    it('updates the surviving stops and drops the rest', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
-      const existing = await prisma.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-      });
+      const existing = await storedStops(roadId);
 
-      await service.updateRoadById(roadId, {
+      await roads.updateRoadById(roadId, {
         title: 'Edited',
         description: 'Edited',
-        waypoints: [
+        stops: [
           {
             id: existing[0].id,
             latitude: 10,
             longitude: 10,
             order: 1,
-            address: address('A2'),
+            address: 'A2',
           },
           {
             id: existing[2].id,
             latitude: 30,
             longitude: 30,
             order: 2,
-            address: address('C2'),
+            address: 'C2',
           },
         ],
       });
 
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 10, address: 'A2' },
         { order: 2, latitude: 30, address: 'C2' },
       ]);
     });
 
-    it('keeps a favourite pointing at a waypoint it edited', async () => {
-      const roadId = await createRoad(['A', 'B']);
-      const [first] = await prisma.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-      });
+    it('swaps positions in place, which the deferred constraint allows', async () => {
+      const roadId = await createRoad(['A', 'B', 'C']);
+      const existing = await storedStops(roadId);
 
-      await prisma.favoriteWaypoint.create({
-        data: { userId, waypointId: first.id },
-      });
-
-      await service.updateRoadById(roadId, {
+      await roads.updateRoadById(roadId, {
         title: 'Edited',
         description: 'Edited',
-        waypoints: [
+        stops: [
+          { id: existing[2].id, latitude: 3, longitude: 3, order: 1 },
+          { id: existing[1].id, latitude: 2, longitude: 2, order: 2 },
+          { id: existing[0].id, latitude: 1, longitude: 1, order: 3 },
+        ],
+      });
+
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual([
+        'C',
+        'B',
+        'A',
+      ]);
+    });
+
+    it('keeps a favourite pointing at a stop it edited', async () => {
+      const roadId = await createRoad(['A', 'B']);
+      const [first] = await storedStops(roadId);
+
+      await prisma.favoriteStop.create({
+        data: { userId, stopId: first.id },
+      });
+
+      await roads.updateRoadById(roadId, {
+        title: 'Edited',
+        description: 'Edited',
+        stops: [
           {
             id: first.id,
             latitude: 99,
             longitude: 99,
             order: 1,
-            address: address('A2'),
+            address: 'A2',
           },
         ],
       });
 
       await expect(
-        prisma.favoriteWaypoint.count({ where: { waypointId: first.id } }),
+        prisma.favoriteStop.count({ where: { stopId: first.id } }),
       ).resolves.toBe(1);
     });
 
-    it('reorders and deletes in the same transaction', async () => {
-      const roadId = await createRoad(['A', 'B', 'C']);
-      const existing = await prisma.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-      });
-
-      await service.updateRoadById(roadId, {
-        title: 'Edited',
-        description: 'Edited',
-        waypoints: [
-          {
-            id: existing[2].id,
-            latitude: 30,
-            longitude: 30,
-            order: 1,
-            address: address('C'),
-          },
-          {
-            id: existing[1].id,
-            latitude: 20,
-            longitude: 20,
-            order: 2,
-            address: address('B'),
-          },
-        ],
-      });
-
-      expect(await waypointsOf(roadId)).toEqual([
-        { order: 1, latitude: 30, address: 'C' },
-        { order: 2, latitude: 20, address: 'B' },
-      ]);
-    });
-
-    it('deletes the addresses of removed waypoints', async () => {
-      const roadId = await createRoad(['A', 'B']);
-      const existing = await prisma.wayPoint.findMany({ where: { roadId } });
-      const removedAddressId = existing[1].addressInfoId!;
-
-      await service.updateRoadById(roadId, {
-        title: 'Edited',
-        description: 'Edited',
-        waypoints: [
-          {
-            id: existing[0].id,
-            latitude: 1,
-            longitude: 1,
-            order: 1,
-            address: address('A'),
-          },
-        ],
-      });
-
-      await expect(
-        prisma.addressInfo.count({ where: { id: removedAddressId } }),
-      ).resolves.toBe(0);
-    });
-
-    it('applies inline address values when addressInfoId names the address already owned', async () => {
+    it('adds new stops alongside existing ones', async () => {
       const roadId = await createRoad(['A']);
-      const [first] = await prisma.wayPoint.findMany({ where: { roadId } });
+      const [first] = await storedStops(roadId);
 
-      await service.updateRoadById(roadId, {
+      await roads.updateRoadById(roadId, {
         title: 'Edited',
         description: 'Edited',
-        waypoints: [
-          {
-            id: first.id,
-            addressInfoId: first.addressInfoId!,
-            latitude: 1,
-            longitude: 1,
-            order: 1,
-            address: address('A-edited'),
-          },
+        stops: [
+          { id: first.id, latitude: 1, longitude: 1, order: 1 },
+          { latitude: 2, longitude: 2, order: 2, address: 'B' },
+          { latitude: 3, longitude: 3, order: 3, address: 'C' },
         ],
       });
 
-      expect((await waypointsOf(roadId))[0].address).toBe('A-edited');
-    });
-
-    it('relinks when addressInfoId names a different address', async () => {
-      const roadId = await createRoad(['A', 'B']);
-      const existing = await prisma.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-      });
-      const borrowed = existing[1].addressInfoId!;
-
-      await prisma.wayPoint.delete({ where: { id: existing[1].id } });
-
-      await service.updateRoadById(roadId, {
-        title: 'Edited',
-        description: 'Edited',
-        waypoints: [
-          {
-            id: existing[0].id,
-            addressInfoId: borrowed,
-            latitude: 1,
-            longitude: 1,
-            order: 1,
-            address: address('ignored'),
-          },
-        ],
-      });
-
-      expect((await waypointsOf(roadId))[0].address).toBe('B');
-    });
-
-    it('adds new waypoints alongside existing ones', async () => {
-      const roadId = await createRoad(['A']);
-      const [first] = await prisma.wayPoint.findMany({ where: { roadId } });
-
-      await service.updateRoadById(roadId, {
-        title: 'Edited',
-        description: 'Edited',
-        waypoints: [
-          {
-            id: first.id,
-            latitude: 1,
-            longitude: 1,
-            order: 1,
-            address: address('A'),
-          },
-          { latitude: 2, longitude: 2, order: 2, address: address('B') },
-          { latitude: 3, longitude: 3, order: 3, address: address('C') },
-        ],
-      });
-
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 1, address: 'A' },
         { order: 2, latitude: 2, address: 'B' },
         { order: 3, latitude: 3, address: 'C' },
       ]);
     });
 
-    it('clears every waypoint when the payload has none', async () => {
-      const roadId = await createRoad(['A', 'B']);
+    it('renames a route without touching a single stop', async () => {
+      const roadId = await createRoad(['A', 'B', 'C']);
 
-      await service.updateRoadById(roadId, {
-        title: 'Edited',
-        description: 'Edited',
+      await roads.updateRoadById(roadId, {
+        title: 'Renamed',
+        description: 'Only the name changed',
       });
 
-      expect(await waypointsOf(roadId)).toEqual([]);
-      await expect(prisma.addressInfo.count()).resolves.toBeGreaterThanOrEqual(
-        0,
-      );
+      expect(await stopsOf(roadId)).toEqual([
+        { order: 1, latitude: 1, address: 'A' },
+        { order: 2, latitude: 2, address: 'B' },
+        { order: 3, latitude: 3, address: 'C' },
+      ]);
+      await expect(
+        prisma.road.findUniqueOrThrow({ where: { id: roadId } }),
+      ).resolves.toMatchObject({ title: 'Renamed' });
+    });
+
+    it('clears every stop when sent an empty list of them', async () => {
+      const roadId = await createRoad(['A', 'B']);
+
+      await roads.updateRoadById(roadId, {
+        title: 'Edited',
+        description: 'Edited',
+        stops: [],
+      });
+
+      expect(await stopsOf(roadId)).toEqual([]);
     });
   });
 
-  describe('addWaypointToRoad', () => {
+  describe('addStopToRoad', () => {
+    const at = (order: number) => ({
+      latitude: 9,
+      longitude: 9,
+      order,
+      address: 'Z',
+    });
+
     it('appends past the end and compacts', async () => {
       const roadId = await createRoad(['A', 'B']);
 
-      const result = await waypoints.addWaypointToRoad(
-        { latitude: 9, longitude: 9, order: 50, address: address('Z') },
-        roadId,
-      );
+      const result = await stops.addStopToRoad(at(50), roadId);
 
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 1, address: 'A' },
         { order: 2, latitude: 2, address: 'B' },
         { order: 3, latitude: 9, address: 'Z' },
@@ -376,220 +306,209 @@ describeIntegration('Road writes (integration)', () => {
     it('inserts in the middle, shifting the rest down', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await waypoints.addWaypointToRoad(
-        { latitude: 9, longitude: 9, order: 2, address: address('Z') },
-        roadId,
-      );
+      await stops.addStopToRoad(at(2), roadId);
 
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual([
         'A',
         'Z',
         'B',
         'C',
-      ]);
-    });
-
-    it('inserts at the front', async () => {
-      const roadId = await createRoad(['A', 'B']);
-
-      await waypoints.addWaypointToRoad(
-        { latitude: 9, longitude: 9, order: 1, address: address('Z') },
-        roadId,
-      );
-
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
-        'Z',
-        'A',
-        'B',
       ]);
     });
 
     it('treats a requested position of 0 as the front', async () => {
       const roadId = await createRoad(['A']);
 
-      await waypoints.addWaypointToRoad(
-        { latitude: 9, longitude: 9, order: 0, address: address('Z') },
-        roadId,
-      );
+      await stops.addStopToRoad(at(0), roadId);
 
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
-        'Z',
-        'A',
-      ]);
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual(['Z', 'A']);
     });
 
-    it('adds the first waypoint to an empty road', async () => {
+    it('adds the first stop to an empty road', async () => {
       const roadId = await createRoad([]);
 
-      await waypoints.addWaypointToRoad(
-        { latitude: 9, longitude: 9, order: 1, address: address('Z') },
-        roadId,
-      );
+      await stops.addStopToRoad(at(1), roadId);
 
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 9, address: 'Z' },
       ]);
     });
   });
 
-  describe('deleteWaypointById', () => {
+  describe('deleteStopById', () => {
     it('closes the gap it leaves', async () => {
       const roadId = await createRoad(['A', 'B', 'C', 'D']);
-      const existing = await prisma.wayPoint.findMany({
-        where: { roadId },
-        orderBy: { order: 'asc' },
-      });
+      const existing = await storedStops(roadId);
 
-      await waypoints.deleteWaypointById(existing[1].id);
+      await stops.deleteStopById(existing[1].id);
 
-      expect(await waypointsOf(roadId)).toEqual([
+      expect(await stopsOf(roadId)).toEqual([
         { order: 1, latitude: 1, address: 'A' },
         { order: 2, latitude: 3, address: 'C' },
         { order: 3, latitude: 4, address: 'D' },
       ]);
     });
 
-    it('deletes the address the waypoint owned', async () => {
-      const roadId = await createRoad(['A', 'B']);
-      const existing = await prisma.wayPoint.findMany({ where: { roadId } });
-      const addressId = existing[0].addressInfoId!;
-
-      await waypoints.deleteWaypointById(existing[0].id);
-
-      await expect(
-        prisma.addressInfo.count({ where: { id: addressId } }),
-      ).resolves.toBe(0);
-    });
-
-    it('raises P2025 for an unknown waypoint', async () => {
-      await expect(
-        waypoints.deleteWaypointById(randomUUID()),
-      ).rejects.toMatchObject({ code: 'P2025' });
-    });
-
-    it('deletes the last waypoint on a road', async () => {
-      const roadId = await createRoad(['A']);
-      const [only] = await prisma.wayPoint.findMany({ where: { roadId } });
-
-      await waypoints.deleteWaypointById(only.id);
-
-      expect(await waypointsOf(roadId)).toEqual([]);
+    it('raises P2025 for an unknown stop', async () => {
+      await expect(stops.deleteStopById(randomUUID())).rejects.toMatchObject({
+        code: 'P2025',
+      });
     });
   });
 
-  describe('reorderWaypoints', () => {
-    it('moves a waypoint to the end', async () => {
+  describe('reorderStops', () => {
+    it('moves a stop to the end', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await waypoints.reorderWaypoints(roadId, { from: 0, to: 2 });
+      await stops.reorderStops(roadId, { from: 0, to: 2 });
 
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual([
         'B',
         'C',
         'A',
       ]);
     });
 
-    it('moves a waypoint to the front', async () => {
+    it('moves a stop to the front', async () => {
       const roadId = await createRoad(['A', 'B', 'C']);
 
-      await waypoints.reorderWaypoints(roadId, { from: 2, to: 0 });
+      await stops.reorderStops(roadId, { from: 2, to: 0 });
 
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual([
         'C',
         'A',
         'B',
       ]);
     });
 
-    it('reverses a longer road', async () => {
-      const roadId = await createRoad(['A', 'B', 'C', 'D', 'E']);
-
-      await waypoints.reorderWaypoints(roadId, { from: 0, to: 4 });
-
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
-        'B',
-        'C',
-        'D',
-        'E',
-        'A',
-      ]);
-    });
-
-    it('leaves the road alone when from equals to', async () => {
-      const roadId = await createRoad(['A', 'B']);
-
-      await waypoints.reorderWaypoints(roadId, { from: 1, to: 1 });
-
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
-        'A',
-        'B',
-      ]);
-    });
-
-    it('rejects an out-of-range index without writing', async () => {
+    it('rejects an out-of-range position without writing', async () => {
       const roadId = await createRoad(['A', 'B']);
 
       await expect(
-        waypoints.reorderWaypoints(roadId, { from: 9, to: 0 }),
-      ).rejects.toThrow(/between 0 and 1/);
-      expect((await waypointsOf(roadId)).map((w) => w.address)).toEqual([
-        'A',
-        'B',
-      ]);
+        stops.reorderStops(roadId, { from: 9, to: 0 }),
+      ).rejects.toThrow('error.stopPositionOutOfRange');
+      expect((await stopsOf(roadId)).map((w) => w.address)).toEqual(['A', 'B']);
     });
   });
 
   describe('getOwnRoads', () => {
-    it('bounds the result to the requested page', async () => {
-      for (const label of ['A', 'B', 'C']) await createRoad([label]);
+    it('pages through the routes, newest first, counting the whole set', async () => {
+      const first = await createRoad(['A']);
+      await tick();
+      const second = await createRoad(['A', 'B']);
+      await tick();
+      const third = await createRoad(['A', 'B', 'C']);
 
-      const page = Object.assign(new PaginationQueryDto(), {
-        limit: 2,
-        offset: 0,
-      });
-      const result = await service.getOwnRoads(userId, page);
+      const one = await roads.getOwnRoads(userId, page(2, 0));
+      const two = await roads.getOwnRoads(userId, page(2, 2));
 
-      expect(result.data).toHaveLength(2);
-      expect(result.meta).toEqual({
+      expect(one.data.map((r) => r.id)).toEqual([third, second]);
+      expect(two.data.map((r) => r.id)).toEqual([first]);
+      expect(one.meta).toEqual({
         total: 3,
         limit: 2,
         offset: 0,
         hasMore: true,
       });
+      expect(two.meta).toMatchObject({ total: 3, hasMore: false });
     });
 
-    it('returns disjoint pages that together cover the collection', async () => {
-      for (const label of ['A', 'B', 'C']) await createRoad([label]);
-
-      const first = await service.getOwnRoads(
-        userId,
-        Object.assign(new PaginationQueryDto(), { limit: 2, offset: 0 }),
-      );
-      const second = await service.getOwnRoads(
-        userId,
-        Object.assign(new PaginationQueryDto(), { limit: 2, offset: 2 }),
-      );
-
-      const ids = [...first.data, ...second.data].map((r) => r.id);
-      expect(new Set(ids).size).toBe(3);
-      expect(second.meta).toMatchObject({ hasMore: false });
-    });
-
-    it('returns only the caller’s roads', async () => {
+    it('counts each route’s stops and the caller’s favourites', async () => {
+      const liked = await createRoad(['A', 'B', 'C']);
+      await tick();
       await createRoad(['A']);
+      await prisma.favoriteRoad.create({ data: { userId, roadId: liked } });
+
+      const result = await roads.getOwnRoads(userId, page());
+
+      expect(result.data.map((r) => [r._count.stops, r.isFavorite])).toEqual([
+        [1, false],
+        [3, true],
+      ]);
+    });
+
+    it('leaves out deleted routes, and other people’s', async () => {
+      const kept = await createRoad(['A']);
+      const deleted = await createRoad(['A']);
+      await roads.deleteRoadById(deleted, userId);
 
       const other = await prisma.user.create({
         data: { email: `other-${randomUUID()}@integration.test` },
       });
-      await prisma.road.create({
-        data: { title: 'Theirs', description: 'x', userId: other.id },
+      await createRoad(['A'], other.id);
+
+      const result = await roads.getOwnRoads(userId, page());
+
+      expect(result.data.map((r) => r.id)).toEqual([kept]);
+      expect(result.meta).toMatchObject({ total: 1 });
+      await prisma.user.delete({ where: { id: other.id } });
+    });
+
+    it('still reports the total on a page past the end', async () => {
+      await createRoad(['A']);
+
+      const result = await roads.getOwnRoads(userId, page(10, 10));
+
+      expect(result.data).toEqual([]);
+      expect(result.meta).toMatchObject({ total: 1, hasMore: false });
+    });
+  });
+
+  describe('retention', () => {
+    it('erases a route deleted over 30 days ago, with what hangs off it', async () => {
+      const old = await createRoad(['A', 'B']);
+      const recent = await createRoad(['A']);
+      const [stop] = await storedStops(old);
+      await prisma.favoriteStop.create({ data: { userId, stopId: stop.id } });
+      await prisma.favoriteRoad.create({ data: { userId, roadId: old } });
+
+      const now = new Date();
+      await prisma.road.update({
+        where: { id: old },
+        data: { archivedAt: new Date(now.getTime() - 31 * 86_400_000) },
+      });
+      await prisma.road.update({
+        where: { id: recent },
+        data: { archivedAt: new Date(now.getTime() - 86_400_000) },
       });
 
-      const result = await service.getOwnRoads(userId, firstPage());
+      const retention = new RetentionService(
+        prisma as unknown as PrismaService,
+        { prune: jest.fn().mockResolvedValue(0) } as unknown as UsageRecorder,
+      );
+      await retention.run(now);
 
-      expect(result.data).toHaveLength(1);
-      await prisma.user.delete({ where: { id: other.id } });
+      await expect(prisma.road.count({ where: { id: old } })).resolves.toBe(0);
+      await expect(prisma.stop.count({ where: { roadId: old } })).resolves.toBe(
+        0,
+      );
+      await expect(
+        prisma.favoriteStop.count({ where: { userId } }),
+      ).resolves.toBe(0);
+      await expect(prisma.road.count({ where: { id: recent } })).resolves.toBe(
+        1,
+      );
+    });
+  });
+
+  describe('getOwnRoadsSummary', () => {
+    it('counts routes, public routes, stops and favourites', async () => {
+      const shared = await createRoad(['A', 'B']);
+      await createRoad(['A']);
+      await prisma.road.update({
+        where: { id: shared },
+        data: { isPublic: true },
+      });
+      await prisma.favoriteRoad.create({ data: { userId, roadId: shared } });
+
+      const result = await roads.getOwnRoadsSummary(userId);
+
+      expect(result.data).toEqual({
+        routes: 2,
+        publicRoutes: 1,
+        stops: 3,
+        favorites: 1,
+      });
     });
   });
 });

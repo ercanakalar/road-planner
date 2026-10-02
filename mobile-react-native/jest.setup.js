@@ -1,5 +1,3 @@
-/* eslint-env jest */
-
 jest.mock('expo-file-system', () => {
   const { readFileSync } = require('fs');
   const { basename, extname } = require('path');

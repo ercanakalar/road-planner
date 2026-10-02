@@ -7,14 +7,12 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Req,
-  Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 import { Language, Public, RequirePermission } from 'src/common/decorators';
 import { PermissionsGuard } from 'src/common/guards/permissions/permissions.guard';
@@ -25,6 +23,7 @@ import {
   ForgotPasswordDto,
   GoogleIdTokenDto,
   RefreshTokenDto,
+  SignOutDto,
   ChangePasswordDto,
   ResetPasswordDto,
   VerifyResetCodeDto,
@@ -89,14 +88,14 @@ export class AuthController {
 
   @Post('sign-out')
   @HttpCode(HttpStatus.OK)
-  async signOut(@Req() req: Request) {
+  async signOut(@Req() req: Request, @Body() body: SignOutDto) {
     const userId = (req.user as { userId?: string } | undefined)?.userId;
 
     if (!userId) {
       throw new UnauthorizedException('error.notAuthenticated');
     }
 
-    return this.authService.signOut(userId);
+    return this.authService.signOut(userId, body.refreshToken);
   }
 
   @Public()
@@ -107,20 +106,11 @@ export class AuthController {
     return this.authService.refreshToken(refreshBody.refreshToken);
   }
 
+  // The emailed link this used to send led to a page that does not exist; a
+  // code typed into the app is the only reset there is, under either path.
   @Public()
   @Throttle(AUTH_THROTTLE.forgotPassword)
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  async forgotPassword(
-    @Body() body: ForgotPasswordDto,
-    @Language() language: AppLanguage,
-  ) {
-    return this.authService.forgotPassword(body.email, language);
-  }
-
-  @Public()
-  @Throttle(AUTH_THROTTLE.forgotPassword)
-  @Post('forgot-password/code')
+  @Post(['forgot-password', 'forgot-password/code'])
   @HttpCode(HttpStatus.OK)
   async requestPasswordResetCode(
     @Body() body: ForgotPasswordDto,
@@ -156,31 +146,6 @@ export class AuthController {
     @Param('token') token: string,
   ) {
     return this.authService.resetPassword(resetPassword, token);
-  }
-
-  @Public()
-  @Get('google')
-  @HttpCode(HttpStatus.OK)
-  async redirectToGoogle(@Res() res: Response) {
-    const { url } = await this.googleService.getAuthClientUrl();
-    res.redirect(url);
-  }
-
-  @Public()
-  @Throttle(AUTH_THROTTLE.signIn)
-  @TrackUsage(GOOGLE_SIGN_IN)
-  @Get('google/callback')
-  @HttpCode(HttpStatus.OK)
-  async googleCallback(
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @Language() language: AppLanguage,
-  ) {
-    this.googleService.verifyState(state);
-
-    const profile = await this.googleService.getAuthClientData(code);
-
-    return this.authService.signInWithGoogle(profile, language);
   }
 
   @Public()

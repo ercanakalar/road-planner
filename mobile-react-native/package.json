@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "check:contrast": "node scripts/check-contrast.mjs",
     "eas-build-pre-install": "node -e \"const fs=require('fs');const t='src/constants/appConfig.ts';if(!fs.existsSync(t)){fs.copyFileSync('src/constants/appConfig.example.ts',t);console.log('appConfig.ts created from the example');}\""
   },
@@ -61,6 +62,8 @@
     "@types/react": "~19.2.4",
     "@types/react-test-renderer": "^19.1.0",
     "babel-preset-expo": "~57.0.10",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
     "jest": "^29.7.0",
     "jest-expo": "~57.0.5",
     "typescript": "~6.0.3"

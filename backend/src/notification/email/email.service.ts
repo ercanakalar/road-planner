@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import SMTPPool from 'nodemailer/lib/smtp-pool';
 
 import { EnvironmentVariables } from 'src/config/env.validation';
 
@@ -21,14 +21,19 @@ interface EmailPayload {
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
-  private transporter!: Transporter<SMTPTransport.SentMessageInfo>;
+  private transporter!: Transporter<SMTPPool.SentMessageInfo>;
 
   constructor(
     private readonly config: ConfigService<EnvironmentVariables, true>,
   ) {}
 
   onModuleInit(): void {
+    // Pooled, so announcing a route to many followers queues the messages on
+    // a few connections instead of opening one per recipient at once — which
+    // a mail provider treats as abuse.
     this.transporter = createTransport({
+      pool: true,
+      maxConnections: 3,
       host: this.config.get('MAIL_HOST', { infer: true }),
       port: this.config.get('MAIL_PORT', { infer: true }),
       auth: {

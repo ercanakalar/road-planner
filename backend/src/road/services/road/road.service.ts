@@ -353,31 +353,15 @@ export class RoadService {
     });
   }
 
+  // Changes a route's details, and its stops only when a list of them is
+  // sent. An update without one leaves every stop where it is, so renaming a
+  // route can never empty it — nor undo stops added on another device.
   async updateRoadById(id: string, data: UpdateRoadDto) {
     const { title, description, isPublic } = data;
-    const stops = positionByRank(data.stops ?? []);
+    const stops =
+      data.stops === undefined ? undefined : positionByRank(data.stops);
 
-    const stored = await this.prisma.stop.findMany({
-      where: { roadId: id },
-      select: {
-        id: true,
-        latitude: true,
-        longitude: true,
-        elevation: true,
-      },
-    });
-
-    const storedById = new Map(stored.map((stop) => [stop.id, stop]));
-
-    const needsElevation = stops.filter((stop) => {
-      const before = stop.id ? storedById.get(stop.id) : undefined;
-      return !before || before.elevation === null || !samePlace(before, stop);
-    });
-
-    const heights = await this.elevationService.elevations(needsElevation);
-    const resolved = new Map(
-      needsElevation.map((stop, index) => [stop, heights[index] ?? null]),
-    );
+    const heights = stops ? await this.heightsToRefresh(id, stops) : undefined;
 
     const { road: updated, wasPublic } = await this.prisma.$transaction(
       async (tx) => {
@@ -395,48 +379,8 @@ export class RoadService {
           },
         });
 
-        const existing = await tx.stop.findMany({
-          where: { roadId: id },
-          select: { id: true },
-        });
-        const existingIds = new Set(existing.map((w) => w.id));
-
-        const kept = stops.filter((w) => w.id && existingIds.has(w.id));
-        const added = stops.filter((w) => !w.id || !existingIds.has(w.id));
-        const keptIds = new Set(kept.map((w) => w.id as string));
-
-        const removed = existing.filter((w) => !keptIds.has(w.id));
-
-        if (removed.length) {
-          await tx.stop.deleteMany({
-            where: { id: { in: removed.map((w) => w.id) } },
-          });
-        }
-
-        await applyStopValues(
-          tx,
-          id,
-          kept.map((w): StopValues => ({
-            id: w.id as string,
-            latitude: w.latitude,
-            longitude: w.longitude,
-            order: w.order,
-            address: w.address ?? null,
-            refreshElevation: resolved.has(w),
-            elevation: resolved.get(w) ?? null,
-          })),
-        );
-
-        const rows = buildNewStopRows(
-          id,
-          added.map((stop) => ({
-            ...stop,
-            elevation: resolved.get(stop) ?? null,
-          })),
-        );
-
-        if (rows.length) {
-          await tx.stop.createMany({ data: rows });
+        if (stops && heights) {
+          await this.replaceStops(tx, id, stops, heights);
         }
 
         const road = await tx.road.findUnique({
@@ -460,6 +404,89 @@ export class RoadService {
       message: 'road.updatedMessage',
       data: withRoadStopMetrics(updated),
     });
+  }
+
+  // The heights of the sent stops that are new, moved or never measured,
+  // looked up before the transaction so it is not held open over the network.
+  private async heightsToRefresh(
+    roadId: string,
+    stops: readonly PositionedStop[],
+  ): Promise<Map<PositionedStop, number | null>> {
+    const stored = await this.prisma.stop.findMany({
+      where: { roadId },
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        elevation: true,
+      },
+    });
+
+    const storedById = new Map(stored.map((stop) => [stop.id, stop]));
+
+    const needsElevation = stops.filter((stop) => {
+      const before = stop.id ? storedById.get(stop.id) : undefined;
+      return !before || before.elevation === null || !samePlace(before, stop);
+    });
+
+    const heights = await this.elevationService.elevations(needsElevation);
+
+    return new Map(
+      needsElevation.map((stop, index) => [stop, heights[index] ?? null]),
+    );
+  }
+
+  // Makes the route's stops exactly the ones sent: those that already exist
+  // are updated in place, new ones are added and the rest removed.
+  private async replaceStops(
+    tx: Prisma.TransactionClient,
+    roadId: string,
+    stops: readonly PositionedStop[],
+    heights: Map<PositionedStop, number | null>,
+  ): Promise<void> {
+    const existing = await tx.stop.findMany({
+      where: { roadId },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((w) => w.id));
+
+    const kept = stops.filter((w) => w.id && existingIds.has(w.id));
+    const added = stops.filter((w) => !w.id || !existingIds.has(w.id));
+    const keptIds = new Set(kept.map((w) => w.id as string));
+
+    const removed = existing.filter((w) => !keptIds.has(w.id));
+
+    if (removed.length) {
+      await tx.stop.deleteMany({
+        where: { id: { in: removed.map((w) => w.id) } },
+      });
+    }
+
+    await applyStopValues(
+      tx,
+      roadId,
+      kept.map((w): StopValues => ({
+        id: w.id as string,
+        latitude: w.latitude,
+        longitude: w.longitude,
+        order: w.order,
+        address: w.address ?? null,
+        refreshElevation: heights.has(w),
+        elevation: heights.get(w) ?? null,
+      })),
+    );
+
+    const rows = buildNewStopRows(
+      roadId,
+      added.map((stop) => ({
+        ...stop,
+        elevation: heights.get(stop) ?? null,
+      })),
+    );
+
+    if (rows.length) {
+      await tx.stop.createMany({ data: rows });
+    }
   }
 
   async deleteRoadById(id: string, userId: string) {

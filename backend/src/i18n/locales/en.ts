@@ -40,6 +40,8 @@ const en = {
 
     adminsOnly: 'Only administrators can do that.',
     emailTaken: 'An account with this email address already exists.',
+    emailUsesGoogle:
+      'This email address belongs to an account that signs in with Google. Choose “Continue with Google” instead.',
     imageRequired: 'Please choose an image file.',
     currentPasswordWrong: 'Your current password is incorrect.',
     googleStateExpired:
@@ -97,6 +99,7 @@ const en = {
     roadIdMismatch:
       'The route in the request body does not match the one in the address.',
     stopIdRequired: 'A stop ID is required.',
+    stopPositionOutOfRange: 'That position does not exist on this route.',
   },
 
   consent: {
@@ -178,6 +181,8 @@ const en = {
     googleHeader: 'Signed in with Google',
     googleCreated: 'Your account has been created and you are now signed in.',
     googleSignedIn: 'You are signed in with your Google account.',
+    googlePasswordRemoved:
+      'You are signed in with Google. The password on this account has been removed because its email address had never been confirmed; you can set a new one with “Forgotten your password?”.',
   },
 
   road: {
@@ -311,6 +316,10 @@ const en = {
     nickNamePattern:
       'Nicknames may contain only letters, numbers, dots, underscores and hyphens',
     resetCodeLength: 'The code must be {{bound}} digits long',
+    searchNeedsTerm:
+      'Enter something to search for, choose a category, or both',
+    searchTermLength:
+      'The search text must be between {{bound}} and 255 characters long',
   },
 
   field: {

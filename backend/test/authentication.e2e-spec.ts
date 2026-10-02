@@ -98,20 +98,15 @@ describe('Authentication (e2e)', () => {
       expect(JSON.stringify(response.body)).not.toMatch(/[0-9a-f]{64}/);
     });
 
-    it('stores a digest that is not the emailed value', async () => {
+    it('answers the old link path with a code too, never a link', async () => {
       await request(app.getHttpServer())
         .post('/api/auth/forgot-password')
         .send({ email: 'user@example.com' })
         .expect(200);
 
-      const stored =
-        prisma.passwordReset.create.mock.calls[0][0].data.tokenHash;
-      const emailed = sendEmail.mock.calls[0][0].text.match(
-        /reset-password\/([0-9a-f]{64})/,
-      )![1];
-
-      expect(stored).not.toBe(emailed);
-      expect(stored).toBe(helper.hashToken(emailed));
+      const { text } = sendEmail.mock.calls[0][0];
+      expect(text).toMatch(/\b\d{5}\b/);
+      expect(text).not.toContain('reset-password/');
     });
 
     describe('code channel', () => {
@@ -174,6 +169,10 @@ describe('Authentication (e2e)', () => {
   describe('C6 — the refresh route is reachable', () => {
     const refreshTokenFor = async (userId: string) =>
       helper.createRefreshToken({ userId, email: 'user@example.com' });
+
+    beforeEach(() => {
+      prisma.session.updateMany.mockResolvedValue({ count: 1 });
+    });
 
     it('does not require an access token', async () => {
       const refreshToken = await refreshTokenFor(USER_ID);

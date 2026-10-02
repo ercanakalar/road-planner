@@ -68,9 +68,9 @@ export const uploadLocalRoutes =
       showNotification({
         type: 'success',
         header: i18n.t('defaults.routesSaved'),
-        message: `${uploadedIds.length} route${
-          uploadedIds.length === 1 ? '' : 's'
-        } added to your account.`,
+        message: i18n.t('defaults.routesSavedMessage', {
+          count: uploadedIds.length,
+        }),
       });
     }
 
@@ -78,9 +78,7 @@ export const uploadLocalRoutes =
       showNotification({
         type: 'error',
         header: i18n.t('defaults.someRoutesFailed'),
-        message: `${failed} route${
-          failed === 1 ? '' : 's'
-        } stayed on this device. Try again later.`,
+        message: i18n.t('defaults.routesFailedMessage', { count: failed }),
       });
     }
 

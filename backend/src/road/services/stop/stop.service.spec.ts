@@ -142,7 +142,7 @@ describe('StopService', () => {
       it('reports the valid range in the error', async () => {
         await expect(
           service.reorderStops(ROAD_ID, { from: 99, to: 0 }),
-        ).rejects.toThrow(/between 0 and 2/);
+        ).rejects.toThrow('error.stopPositionOutOfRange');
       });
 
       it('accepts the last valid index', async () => {
@@ -228,7 +228,12 @@ describe('StopService', () => {
             OR: [
               { road: { userId: 'user-1', archivedAt: null } },
               { road: { isPublic: true, archivedAt: null } },
-              { road: { favoriteRoads: { some: { userId: 'user-1' } } } },
+              {
+                road: {
+                  favoriteRoads: { some: { userId: 'user-1' } },
+                  archivedAt: null,
+                },
+              },
               { favoriteStops: { some: { userId: 'user-1' } } },
             ],
           },

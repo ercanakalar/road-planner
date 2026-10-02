@@ -503,9 +503,6 @@ const tr: Translations = {
         couldNotCopy: 'Adres kopyalanamadı.',
         dragToMove: 'Taşımak için sürükleyin',
         dragHint: 'Vurgulanan işareti yeni konumuna sürükleyin.',
-        addStopFirst: 'Önce bir durak ekleyin',
-        addStopFirstHint:
-            'Haritada basılı tutarak bir durak ekleyin, ardından rotanıza ad ve açıklama verebilirsiniz.',
         addedToRoute: 'Rotanıza eklendi',
         routeImported: 'Rota içe aktarıldı',
         couldNotLookUpPlace: 'Bu yer bulunamadı.',
@@ -694,7 +691,13 @@ const tr: Translations = {
         readTheLink: 'Bağlantıyı oku',
         readingTheLink: 'Bağlantı okunuyor…',
         routesSaved: 'Rotalar kaydedildi',
+        routesSavedMessage_one: '{{count}} rota hesabınıza eklendi.',
+        routesSavedMessage_other: '{{count}} rota hesabınıza eklendi.',
         someRoutesFailed: 'Bazı rotalar kaydedilemedi',
+        routesFailedMessage_one:
+            '{{count}} rota hâlâ yalnızca bu cihazda. Daha sonra yeniden deneyin.',
+        routesFailedMessage_other:
+            '{{count}} rota hâlâ yalnızca bu cihazda. Daha sonra yeniden deneyin.',
     },
 
     sorting: {
@@ -898,7 +901,6 @@ const tr: Translations = {
             'Bu bağlantıda bir rota yok. Google Haritalar’da bir rota açın, Paylaş’a dokunun ve verdiği bağlantıyı buraya yapıştırın.',
         noStopsFound: 'Bu durakların hiçbiri bulunamadı.',
         couldNotReadLink: 'Bu bağlantı okunamadı. Bağlantınızı kontrol edin.',
-        couldNotLoadRouteToUpdate: 'Rota, güncellenmek üzere yüklenemedi.',
         googleNoCode: 'Google bir yetkilendirme kodu döndürmedi.',
         googleUnreachable:
             'Sunucuya ulaşılamadı. Uygulamanın bu cihazdan erişilebilen bir adresi kullandığından emin olun.',

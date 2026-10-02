@@ -82,7 +82,7 @@ describe('android share intent filters', () => {
   const filters = (config: { android: { intentFilters?: unknown[] } }) =>
     config.android.intentFilters ?? [];
 
-  it('claims the share path on the configured host', () => {
+  it('claims the share and route paths on the configured host', () => {
     withEnv(
       { EXPO_PUBLIC_SHARE_LINK_BASE_URL: 'https://roads.example.com' },
       () => {
@@ -92,6 +92,7 @@ describe('android share intent filters', () => {
             autoVerify: true,
             data: [
               { scheme: 'https', host: 'roads.example.com', pathPrefix: '/share' },
+              { scheme: 'https', host: 'roads.example.com', pathPrefix: '/route' },
             ],
             category: ['BROWSABLE', 'DEFAULT'],
           },

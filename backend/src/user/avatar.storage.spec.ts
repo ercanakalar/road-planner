@@ -137,9 +137,22 @@ describe('avatar storage', () => {
       await expect(readFile(outside, 'utf8')).resolves.toBe('kept');
     });
 
+    it('leaves a bare file name alone: only a served avatar path counts', async () => {
+      const filename = await writeAvatar('up', jpeg());
+      const path = join(avatarDirectory('up'), filename);
+
+      await removeAvatar('up', filename);
+      await removeAvatar('up', `https://elsewhere.example/${filename}`);
+
+      await expect(readFile(path)).resolves.toBeInstanceOf(Buffer);
+    });
+
     it('does not throw when the file is already gone', async () => {
       await expect(
-        removeAvatar('up', '123e4567-e89b-12d3-a456-426614174000.jpg'),
+        removeAvatar(
+          'up',
+          '/api/user/photo/123e4567-e89b-12d3-a456-426614174000.jpg',
+        ),
       ).resolves.toBeUndefined();
     });
   });

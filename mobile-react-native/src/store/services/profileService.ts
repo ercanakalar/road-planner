@@ -67,12 +67,11 @@ export const profileService = createApi({
       query: (args) => ({
         url: '/user/update',
         method: 'POST',
+        // Only what the server lets a person change here: the photo goes
+        // through uploadPhoto, and the id and email are not editable.
         body: {
-          id: args.id,
           firstName: args.firstName,
           lastName: args.lastName,
-          email: args.email,
-          photo: args.photo,
           nickName: args.nickName,
         },
       }),

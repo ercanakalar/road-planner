@@ -1,32 +1,30 @@
-import { Prisma, PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
+import { Prisma, PrismaClient } from '../../src/generated/prisma/client';
 import {
-  applyWaypointOrder,
-  applyWaypointValues,
-  compactWaypointOrder,
-} from '../../src/road/services/road/waypoint-writes';
+  applyStopOrder,
+  applyStopValues,
+  compactStopOrder,
+  StopValues,
+} from '../../src/road/services/road/stop-writes';
+import { describeIntegration, integrationClient } from './client';
 
-const DATABASE_URL = process.env.INTEGRATION_DATABASE_URL;
-
-const describeIntegration = DATABASE_URL ? describe : describe.skip;
-
-describeIntegration('Waypoint ordering (integration)', () => {
+describeIntegration('Stop ordering (integration)', () => {
   let prisma: PrismaClient;
   let userId: string;
   let roadId: string;
 
   const positionsOf = async (road = roadId) =>
     (
-      await prisma.wayPoint.findMany({
+      await prisma.stop.findMany({
         where: { roadId: road },
         orderBy: { order: 'asc' },
         select: { id: true, order: true },
       })
     ).map((w) => [w.id, w.order] as const);
 
-  const givenWaypoints = async (count: number, road = roadId) => {
-    await prisma.wayPoint.createMany({
+  const givenStops = async (count: number, road = roadId) => {
+    await prisma.stop.createMany({
       data: Array.from({ length: count }, (_, i) => ({
         id: `${road}-wp-${i + 1}`,
         latitude: i,
@@ -40,7 +38,7 @@ describeIntegration('Waypoint ordering (integration)', () => {
   const wp = (n: number, road = roadId) => `${road}-wp-${n}`;
 
   beforeAll(async () => {
-    prisma = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
+    prisma = integrationClient();
     await prisma.$connect();
   });
 
@@ -50,7 +48,7 @@ describeIntegration('Waypoint ordering (integration)', () => {
 
   beforeEach(async () => {
     const user = await prisma.user.create({
-      data: { email: `waypoint-order-${randomUUID()}@integration.test` },
+      data: { email: `stop-order-${randomUUID()}@integration.test` },
     });
     userId = user.id;
 
@@ -65,25 +63,25 @@ describeIntegration('Waypoint ordering (integration)', () => {
   });
 
   describe('the constraint itself', () => {
-    it('rejects two waypoints sharing a position on one road', async () => {
-      await givenWaypoints(2);
+    it('rejects two stops sharing a position on one road', async () => {
+      await givenStops(2);
 
       await expect(
-        prisma.wayPoint.create({
+        prisma.stop.create({
           data: { latitude: 9, longitude: 9, order: 1, roadId },
         }),
       ).rejects.toMatchObject({ code: 'P2002' });
     });
 
     it('allows the same position on a different road', async () => {
-      await givenWaypoints(2);
+      await givenStops(2);
 
       const other = await prisma.road.create({
         data: { title: 'Other', description: 'Other', userId },
       });
 
       await expect(
-        prisma.wayPoint.create({
+        prisma.stop.create({
           data: { latitude: 9, longitude: 9, order: 1, roadId: other.id },
         }),
       ).resolves.toMatchObject({ order: 1 });
@@ -95,7 +93,7 @@ describeIntegration('Waypoint ordering (integration)', () => {
       >(Prisma.sql`
         SELECT condeferrable, condeferred
           FROM pg_constraint
-         WHERE conname = 'WayPoint_roadId_order_key'
+         WHERE conname = 'Stop_roadId_order_key'
       `);
 
       expect(constraint).toMatchObject({
@@ -105,11 +103,11 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
   });
 
-  describe('applyWaypointOrder', () => {
+  describe('applyStopOrder', () => {
     it('permutes positions in one statement', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
-      const changed = await applyWaypointOrder(prisma, roadId, [
+      const changed = await applyStopOrder(prisma, roadId, [
         { id: wp(1), order: 3 },
         { id: wp(2), order: 1 },
         { id: wp(3), order: 2 },
@@ -124,9 +122,9 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('reverses a whole road in one statement', async () => {
-      await givenWaypoints(5);
+      await givenStops(5);
 
-      await applyWaypointOrder(
+      await applyStopOrder(
         prisma,
         roadId,
         [1, 2, 3, 4, 5].map((n) => ({ id: wp(n), order: 6 - n })),
@@ -142,9 +140,9 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('swaps two adjacent positions', async () => {
-      await givenWaypoints(2);
+      await givenStops(2);
 
-      await applyWaypointOrder(prisma, roadId, [
+      await applyStopOrder(prisma, roadId, [
         { id: wp(1), order: 2 },
         { id: wp(2), order: 1 },
       ]);
@@ -156,9 +154,9 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('writes nothing when every position is already correct', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
-      const changed = await applyWaypointOrder(prisma, roadId, [
+      const changed = await applyStopOrder(prisma, roadId, [
         { id: wp(1), order: 1 },
         { id: wp(2), order: 2 },
         { id: wp(3), order: 3 },
@@ -168,14 +166,14 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('ignores an id belonging to a different road', async () => {
-      await givenWaypoints(2);
+      await givenStops(2);
 
       const other = await prisma.road.create({
         data: { title: 'Other', description: 'Other', userId },
       });
-      await givenWaypoints(1, other.id);
+      await givenStops(1, other.id);
 
-      const changed = await applyWaypointOrder(prisma, roadId, [
+      const changed = await applyStopOrder(prisma, roadId, [
         { id: wp(1, other.id), order: 9 },
       ]);
 
@@ -183,39 +181,44 @@ describeIntegration('Waypoint ordering (integration)', () => {
       expect(await positionsOf(other.id)).toEqual([[wp(1, other.id), 1]]);
     });
 
-    it('still rejects a permutation that duplicates a position', async () => {
-      await givenWaypoints(3);
+    // The shapes below are what AllExceptionsFilter maps to a 409; its unit
+    // tests mirror them.
+    it('still rejects a permutation that duplicates a position, at commit', async () => {
+      await givenStops(3);
 
       await expect(
         prisma.$transaction((tx) =>
-          applyWaypointOrder(tx, roadId, [
+          applyStopOrder(tx, roadId, [
             { id: wp(1), order: 2 },
             { id: wp(2), order: 2 },
           ]),
         ),
-      ).rejects.toMatchObject({ code: 'P2002' });
+      ).rejects.toMatchObject({
+        name: 'DriverAdapterError',
+        cause: { originalCode: '23505' },
+      });
     });
 
-    it('reports the violation as P2010 with SQLSTATE 23505 outside a transaction', async () => {
-      await givenWaypoints(3);
+    it('reports the violation as P2010 carrying SQLSTATE 23505 outside a transaction', async () => {
+      await givenStops(3);
 
       await expect(
-        applyWaypointOrder(prisma, roadId, [
+        applyStopOrder(prisma, roadId, [
           { id: wp(1), order: 2 },
           { id: wp(2), order: 2 },
         ]),
       ).rejects.toMatchObject({
         code: 'P2010',
-        meta: { code: '23505' },
+        meta: { driverAdapterError: { cause: { originalCode: '23505' } } },
       });
     });
 
     it('leaves the positions untouched when the permutation is rejected', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
       await expect(
         prisma.$transaction((tx) =>
-          applyWaypointOrder(tx, roadId, [
+          applyStopOrder(tx, roadId, [
             { id: wp(1), order: 2 },
             { id: wp(2), order: 2 },
           ]),
@@ -230,16 +233,33 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
   });
 
-  describe('applyWaypointValues', () => {
-    it('rewrites coordinates and positions together', async () => {
-      await givenWaypoints(2);
+  describe('applyStopValues', () => {
+    const values = (
+      id: string,
+      latitude: number,
+      longitude: number,
+      order: number,
+      extra: Partial<StopValues> = {},
+    ): StopValues => ({
+      id,
+      latitude,
+      longitude,
+      order,
+      address: null,
+      refreshElevation: false,
+      elevation: null,
+      ...extra,
+    });
 
-      await applyWaypointValues(prisma, roadId, [
-        { id: wp(1), latitude: 51.5, longitude: -0.12, order: 2 },
-        { id: wp(2), latitude: 48.85, longitude: 2.35, order: 1 },
+    it('rewrites coordinates and positions together', async () => {
+      await givenStops(2);
+
+      await applyStopValues(prisma, roadId, [
+        values(wp(1), 51.5, -0.12, 2),
+        values(wp(2), 48.85, 2.35, 1),
       ]);
 
-      const rows = await prisma.wayPoint.findMany({
+      const rows = await prisma.stop.findMany({
         where: { roadId },
         orderBy: { order: 'asc' },
       });
@@ -250,17 +270,45 @@ describeIntegration('Waypoint ordering (integration)', () => {
       ]);
     });
 
+    it('keeps the stored address and height unless told otherwise', async () => {
+      await givenStops(1);
+      await prisma.stop.update({
+        where: { id: wp(1) },
+        data: { address: 'Kadıköy', elevation: 12 },
+      });
+
+      await applyStopValues(prisma, roadId, [values(wp(1), 1, 1, 1)]);
+
+      await expect(
+        prisma.stop.findUniqueOrThrow({ where: { id: wp(1) } }),
+      ).resolves.toMatchObject({ address: 'Kadıköy', elevation: 12 });
+    });
+
+    it('replaces the height of a stop that moved', async () => {
+      await givenStops(1);
+      await prisma.stop.update({
+        where: { id: wp(1) },
+        data: { elevation: 12 },
+      });
+
+      await applyStopValues(prisma, roadId, [
+        values(wp(1), 2, 2, 1, { refreshElevation: true, elevation: 40 }),
+      ]);
+
+      await expect(
+        prisma.stop.findUniqueOrThrow({ where: { id: wp(1) } }),
+      ).resolves.toMatchObject({ elevation: 40 });
+    });
+
     it('touches updatedAt', async () => {
-      await givenWaypoints(1);
-      const before = await prisma.wayPoint.findUniqueOrThrow({
+      await givenStops(1);
+      const before = await prisma.stop.findUniqueOrThrow({
         where: { id: wp(1) },
       });
 
-      await applyWaypointValues(prisma, roadId, [
-        { id: wp(1), latitude: 5, longitude: 5, order: 1 },
-      ]);
+      await applyStopValues(prisma, roadId, [values(wp(1), 5, 5, 1)]);
 
-      const after = await prisma.wayPoint.findUniqueOrThrow({
+      const after = await prisma.stop.findUniqueOrThrow({
         where: { id: wp(1) },
       });
       expect(after.updatedAt.getTime()).toBeGreaterThanOrEqual(
@@ -269,12 +317,12 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
   });
 
-  describe('compactWaypointOrder', () => {
+  describe('compactStopOrder', () => {
     it('closes the gap a deletion leaves', async () => {
-      await givenWaypoints(4);
-      await prisma.wayPoint.delete({ where: { id: wp(2) } });
+      await givenStops(4);
+      await prisma.stop.delete({ where: { id: wp(2) } });
 
-      await compactWaypointOrder(prisma, roadId);
+      await compactStopOrder(prisma, roadId);
 
       expect(await positionsOf()).toEqual([
         [wp(1), 1],
@@ -284,12 +332,12 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('closes the gap an insertion past the end leaves', async () => {
-      await givenWaypoints(3);
-      await prisma.wayPoint.create({
+      await givenStops(3);
+      await prisma.stop.create({
         data: { id: wp(99), latitude: 9, longitude: 9, order: 99, roadId },
       });
 
-      await compactWaypointOrder(prisma, roadId);
+      await compactStopOrder(prisma, roadId);
 
       expect(await positionsOf()).toEqual([
         [wp(1), 1],
@@ -300,24 +348,24 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('leaves a contiguous road untouched', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
-      expect(await compactWaypointOrder(prisma, roadId)).toBe(0);
+      expect(await compactStopOrder(prisma, roadId)).toBe(0);
     });
 
-    it('tolerates a road with no waypoints', async () => {
-      await expect(compactWaypointOrder(prisma, roadId)).resolves.toBe(0);
+    it('tolerates a road with no stops', async () => {
+      await expect(compactStopOrder(prisma, roadId)).resolves.toBe(0);
     });
 
     it('does not renumber another road', async () => {
       const other = await prisma.road.create({
         data: { title: 'Other', description: 'Other', userId },
       });
-      await givenWaypoints(3);
-      await givenWaypoints(3, other.id);
-      await prisma.wayPoint.delete({ where: { id: wp(2) } });
+      await givenStops(3);
+      await givenStops(3, other.id);
+      await prisma.stop.delete({ where: { id: wp(2) } });
 
-      await compactWaypointOrder(prisma, roadId);
+      await compactStopOrder(prisma, roadId);
 
       expect((await positionsOf(other.id)).map(([, order]) => order)).toEqual([
         1, 2, 3,
@@ -329,12 +377,12 @@ describeIntegration('Waypoint ordering (integration)', () => {
     const insertAt = async (position: number) => {
       await prisma.$transaction(async (tx) => {
         await tx.$executeRaw(Prisma.sql`
-          UPDATE "WayPoint"
+          UPDATE "Stop"
              SET "order" = "order" + 1, "updatedAt" = NOW()
            WHERE "roadId" = ${roadId} AND "order" >= ${position}
         `);
 
-        await tx.wayPoint.create({
+        await tx.stop.create({
           data: {
             id: wp(99),
             latitude: 9,
@@ -344,12 +392,12 @@ describeIntegration('Waypoint ordering (integration)', () => {
           },
         });
 
-        await compactWaypointOrder(tx, roadId);
+        await compactStopOrder(tx, roadId);
       });
     };
 
     it('inserts in the middle without disturbing relative order', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
       await insertAt(2);
 
@@ -362,7 +410,7 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('inserts at the front', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
       await insertAt(1);
 
@@ -375,7 +423,7 @@ describeIntegration('Waypoint ordering (integration)', () => {
     });
 
     it('inserts past the end and compacts to contiguous', async () => {
-      await givenWaypoints(3);
+      await givenStops(3);
 
       await insertAt(50);
 

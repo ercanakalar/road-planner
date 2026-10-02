@@ -62,6 +62,9 @@ describe('flattenOwnRoutes', () => {
 });
 
 describe('own routes over the network', () => {
+  // Two full pages and part of a third, whatever the page size is.
+  const TOTAL = 2 * ROUTES_PAGE_SIZE + Math.ceil(ROUTES_PAGE_SIZE / 2);
+
   const makeStore = () =>
     configureStore({
       reducer: {
@@ -88,18 +91,23 @@ describe('own routes over the network', () => {
       const url = new URL(request.url);
 
       if (url.pathname.endsWith('/own-roads/summary')) {
-        return envelope({ routes: 45, publicRoutes: 4, stops: 312, favorites: 6 });
+        return envelope({
+          routes: TOTAL,
+          publicRoutes: 4,
+          stops: 312,
+          favorites: 6,
+        });
       }
 
       const offset = Number(url.searchParams.get('offset') ?? 0);
       const ids = Array.from(
-        { length: Math.min(ROUTES_PAGE_SIZE, 45 - offset) },
+        { length: Math.min(ROUTES_PAGE_SIZE, TOTAL - offset) },
         (_, index) => `route-${offset + index}`,
       );
 
       return envelope(
         ids.map((id) => route(id)),
-        { total: 45, hasMore: offset + ids.length < 45 },
+        { total: TOTAL, hasMore: offset + ids.length < TOTAL },
       );
     }) as never;
   });
@@ -118,7 +126,11 @@ describe('own routes over the network', () => {
     );
 
     const offsets = requests().map((url) => url.searchParams.get('offset'));
-    expect(offsets).toEqual([null, String(ROUTES_PAGE_SIZE), String(2 * ROUTES_PAGE_SIZE)]);
+    expect(offsets).toEqual([
+      null,
+      String(ROUTES_PAGE_SIZE),
+      String(2 * ROUTES_PAGE_SIZE),
+    ]);
     expect(
       requests().every(
         (url) => url.searchParams.get('limit') === String(ROUTES_PAGE_SIZE),
@@ -126,7 +138,7 @@ describe('own routes over the network', () => {
     ).toBe(true);
 
     const state = getOwnRoutes.select(undefined)(store.getState());
-    expect(flattenOwnRoutes(state.data?.pages)).toHaveLength(45);
+    expect(flattenOwnRoutes(state.data?.pages)).toHaveLength(TOTAL);
     expect(state.hasNextPage).toBe(false);
 
     first.unsubscribe();
@@ -140,7 +152,7 @@ describe('own routes over the network', () => {
     );
 
     expect(result.data).toEqual({
-      routes: 45,
+      routes: TOTAL,
       publicRoutes: 4,
       stops: 312,
       favorites: 6,

@@ -269,13 +269,13 @@ MAIL_FROM="noreply@yourdomain.com"
 MAP_API_KEY="..."
 ```
 
-Leave `FRONTEND_URL`, `SHARE_LINK_BASE_URL` and `GOOGLE_REDIRECT_URL` empty.
-They are the service's own address, which does not exist yet; the deploy
-discovers it and fills them in for you.
+Set `FRONTEND_URL` to the address of the `frontend/` site (the privacy policy,
+and the page a route link opens on a phone without the app) — the API will not
+start without it. `SHARE_LINK_BASE_URL` is normally the same site, and must
+match `EXPO_PUBLIC_SHARE_LINK_BASE_URL` in the app.
 
-Google sign-in is optional. Leave `GOOGLE_CLIENT_ID`,
-`GOOGLE_NATIVE_CLIENT_IDS` and `GOOGLE_CLIENT_SECRET` empty and email sign-in
-still works.
+Google sign-in is optional. Leave `GOOGLE_CLIENT_ID` and
+`GOOGLE_NATIVE_CLIENT_IDS` empty and email sign-in still works.
 
 You do not set `ACCESS_KEY`, `REFRESH_KEY` or `ROAD_SHARE_KEY`. Setup
 generates three different random values and leaves them alone on later runs —
@@ -338,19 +338,18 @@ curl https://YOUR-SERVICE-URL/api/health
 
 ---
 
-## Step 8 — Save the address
+## Step 8 — Check the web addresses
 
-The first deploy prints three lines. Paste them into `.env.production`:
+`.env.production` names the web site, not the API — the API's own address is
+only needed by the app (step 9):
 
 ```bash
-FRONTEND_URL="https://travel-routes-api-xxxx.us-east5.run.app"
-SHARE_LINK_BASE_URL="https://travel-routes-api-xxxx.us-east5.run.app"
-GOOGLE_REDIRECT_URL="https://travel-routes-api-xxxx.us-east5.run.app/api/auth/google/callback"
+FRONTEND_URL="https://travel-routes.example"
+SHARE_LINK_BASE_URL="https://travel-routes.example"
 ```
 
-The deploy sets these for you the first time, but writing them down means
-later deploys do not rediscover them — and it is where a custom domain goes
-when you have one.
+A custom domain for route links goes in `SHARE_LINK_BASE_URL`, and in the
+app's `EXPO_PUBLIC_SHARE_LINK_BASE_URL` with it.
 
 ---
 

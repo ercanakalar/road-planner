@@ -177,42 +177,36 @@ describe('validateEnv', () => {
       expect(() => validateEnv(validEnv())).not.toThrow();
     });
 
-    it('rejects a malformed GOOGLE_REDIRECT_URL when one is supplied', () => {
-      const env = { ...validEnv(), GOOGLE_REDIRECT_URL: 'not-a-url' };
+    it('boots with only the client ids the app signs in with', () => {
+      const env = {
+        ...validEnv(),
+        GOOGLE_CLIENT_ID: 'web.apps.googleusercontent.com',
+        GOOGLE_NATIVE_CLIENT_IDS: 'a.apps.googleusercontent.com',
+      };
 
-      expect(() => validateEnv(env)).toThrow(/GOOGLE_REDIRECT_URL/);
+      expect(() => validateEnv(env)).not.toThrow();
     });
   });
 
   describe('blank values', () => {
-    it.each([
-      'GOOGLE_CLIENT_ID',
-      'GOOGLE_CLIENT_SECRET',
-      'GOOGLE_REDIRECT_URL',
-      'GOOGLE_SCOPES_API',
-      'GOOGLE_OAUTH2_USERINFO_URL',
-      'GOOGLE_OAUTH2_ACCESS_TYPE',
-      'GOOGLE_OAUTH2_PROMPT',
-    ])('treats a blank %s as unset', (key) => {
-      const env = { ...validEnv(), [key]: '' };
+    it.each(['GOOGLE_CLIENT_ID', 'GOOGLE_NATIVE_CLIENT_IDS'])(
+      'treats a blank %s as unset',
+      (key) => {
+        const env = { ...validEnv(), [key]: '' };
 
-      expect(() => validateEnv(env)).not.toThrow();
-      expect(
-        validateEnv(env)[key as keyof EnvironmentVariables],
-      ).toBeUndefined();
-    });
+        expect(() => validateEnv(env)).not.toThrow();
+        expect(
+          validateEnv(env)[key as keyof EnvironmentVariables],
+        ).toBeUndefined();
+      },
+    );
 
     it('accepts the whole optional block written as empty strings', () => {
       expect(() =>
         validateEnv({
           ...validEnv(),
           GOOGLE_CLIENT_ID: '',
-          GOOGLE_CLIENT_SECRET: '',
-          GOOGLE_REDIRECT_URL: '',
-          GOOGLE_SCOPES_API: '',
-          GOOGLE_OAUTH2_USERINFO_URL: '',
-          GOOGLE_OAUTH2_ACCESS_TYPE: '',
-          GOOGLE_OAUTH2_PROMPT: '',
+          GOOGLE_NATIVE_CLIENT_IDS: '',
         }),
       ).not.toThrow();
     });

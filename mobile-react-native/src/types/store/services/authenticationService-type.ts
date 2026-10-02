@@ -22,6 +22,7 @@ interface SessionTokens {
 export type SignUpArgsResponse = SessionTokens;
 export type SignInArgsResponse = SessionTokens;
 export type ValidateRefreshTokenResponse = SessionTokens;
+export type ChangePasswordResponse = SessionTokens;
 
 interface GoogleUserProfile {
   id: string;

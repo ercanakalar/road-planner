@@ -186,6 +186,46 @@ describe('AllExceptionsFilter', () => {
         expect(status).toHaveBeenCalledWith(500);
       });
 
+      describe('as the PrismaPg driver adapter reports them', () => {
+        const adapterError = (sqlState: string) =>
+          Object.assign(new Error('UniqueConstraintViolation'), {
+            name: 'DriverAdapterError',
+            cause: {
+              originalCode: sqlState,
+              originalMessage:
+                'duplicate key value violates unique constraint "Stop_roadId_order_key"',
+              kind: 'UniqueConstraintViolation',
+            },
+          });
+
+        it('maps a raw statement failure by the SQLSTATE it nests', () => {
+          filter.catch(
+            new Prisma.PrismaClientKnownRequestError('Raw query failed', {
+              code: 'P2010',
+              clientVersion: CLIENT_VERSION,
+              meta: { driverAdapterError: adapterError('23505') },
+            }),
+            host,
+          );
+
+          expect(status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+          expect(body().message).toBe('That value is already taken.');
+        });
+
+        it('maps a violation raised at commit, which arrives unwrapped', () => {
+          filter.catch(adapterError('23505'), host);
+
+          expect(status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+          expect(JSON.stringify(body())).not.toMatch(/Stop_roadId_order_key/);
+        });
+
+        it('answers 500 for an adapter error it has no mapping for', () => {
+          filter.catch(adapterError('40001'), host);
+
+          expect(status).toHaveBeenCalledWith(500);
+        });
+      });
+
       it('ignores a non-string SQLSTATE', () => {
         filter.catch(
           new Prisma.PrismaClientKnownRequestError('Raw query failed', {

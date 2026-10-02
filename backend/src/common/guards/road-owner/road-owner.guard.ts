@@ -31,10 +31,12 @@ export class RoadOwnerGuard implements CanActivate {
 
     const road = await this.prisma.road.findUnique({
       where: { id: roadId },
-      select: { userId: true },
+      select: { userId: true, archivedAt: true },
     });
 
-    if (!road) {
+    // A deleted route is gone for its owner too: it can no longer be edited,
+    // given stops, shared or made public again.
+    if (!road || road.archivedAt) {
       throw new NotFoundException('error.routeNotFound');
     }
 

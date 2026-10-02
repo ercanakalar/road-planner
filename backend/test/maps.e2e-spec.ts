@@ -157,7 +157,7 @@ describe('Maps endpoints (e2e)', () => {
   describe('a road as a route', () => {
     it('routes a road the caller can read', async () => {
       prisma.road.findFirst.mockResolvedValue({
-        wayPoints: [ISTANBUL, ANKARA],
+        stops: [ISTANBUL, ANKARA],
       });
       client.get.mockResolvedValue(directionsBody);
 
@@ -174,8 +174,22 @@ describe('Maps endpoints (e2e)', () => {
       await api().get(`/api/road/${ROAD_ID}/route`).expect(404);
     });
 
-    it('spends nothing on a road with one waypoint', async () => {
-      prisma.road.findFirst.mockResolvedValue({ wayPoints: [ISTANBUL] });
+    it('reads a comma-separated list of modes from the query string', async () => {
+      prisma.road.findFirst.mockResolvedValue({ stops: [ISTANBUL, ANKARA] });
+      client.get.mockResolvedValue(directionsBody);
+
+      const response = await api()
+        .get(`/api/road/${ROAD_ID}/durations?modes=driving,walking`)
+        .expect(200);
+
+      expect(Object.keys(response.body.data).sort()).toEqual([
+        'driving',
+        'walking',
+      ]);
+    });
+
+    it('spends nothing on a road with one stop', async () => {
+      prisma.road.findFirst.mockResolvedValue({ stops: [ISTANBUL] });
 
       const response = await api()
         .get(`/api/road/${ROAD_ID}/durations`)

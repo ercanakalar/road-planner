@@ -47,17 +47,37 @@ const isRetryableError = (error: FetchBaseQueryError): boolean => {
   return typeof error.status === 'number' && error.status >= 500;
 };
 
+// Only a read is safe to send twice. A write that timed out may well have
+// reached the server, and sending it again would add a second route or stop,
+// or flip a favourite back to where it was.
+const isSafeToRepeat = (args: string | FetchArgs): boolean => {
+  const method = (
+    typeof args === 'string' ? 'GET' : (args.method ?? 'GET')
+  ).toUpperCase();
+  return method === 'GET' || method === 'HEAD';
+};
+
+// What the server said about the refresh token itself. Only a refusal ends
+// the session; a refresh that could not be made — no signal, a timeout, the
+// server down — leaves it for the next request to try again.
+const SESSION_REFUSED = new Set<unknown>([400, 401, 403]);
+
+type RefreshOutcome =
+  | { kind: 'refreshed' }
+  | { kind: 'refused' }
+  | { kind: 'unavailable'; error: FetchBaseQueryError };
+
 const delay = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-let refreshInFlight: Promise<boolean> | null = null;
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 const refreshSession = async (
   api: Parameters<BaseQueryFn>[1],
   extraOptions: Parameters<BaseQueryFn>[2],
-): Promise<boolean> => {
+): Promise<RefreshOutcome> => {
   const { refreshToken } = await tokenStorage.get();
-  if (!refreshToken) return false;
+  if (!refreshToken) return { kind: 'refused' };
 
   const result = await rawBaseQuery(
     {
@@ -69,11 +89,26 @@ const refreshSession = async (
     extraOptions,
   );
 
-  const tokens = (result.data as { data?: unknown } | undefined)?.data as
-    | { accessToken?: string; refreshToken?: string }
-    | undefined;
+  if (result.error) {
+    return SESSION_REFUSED.has(result.error.status)
+      ? { kind: 'refused' }
+      : { kind: 'unavailable', error: result.error };
+  }
 
-  if (!tokens?.accessToken || !tokens?.refreshToken) return false;
+  const tokens = (result.data as { data?: unknown } | undefined)?.data as
+    { accessToken?: string; refreshToken?: string } | undefined;
+
+  if (!tokens?.accessToken || !tokens?.refreshToken) {
+    return {
+      kind: 'unavailable',
+      error: {
+        status: 'PARSING_ERROR',
+        originalStatus: 200,
+        data: String(result.data),
+        error: 'The refreshed session carried no tokens',
+      },
+    };
+  }
 
   await tokenStorage.save({
     accessToken: tokens.accessToken,
@@ -85,7 +120,7 @@ const refreshSession = async (
       refreshToken: tokens.refreshToken,
     }),
   );
-  return true;
+  return { kind: 'refreshed' };
 };
 
 const isPublicAuthRoute = (args: string | FetchArgs): boolean => {
@@ -103,7 +138,9 @@ const baseQueryWithReauth: BaseQueryFn<
 
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+  const retries = isSafeToRepeat(args) ? maxRetries : 0;
+
+  for (let attempt = 0; attempt < retries; attempt += 1) {
     if (!result.error || !isRetryableError(result.error)) break;
     await delay(2 ** attempt * 300);
     result = await rawBaseQuery(args, api, extraOptions);
@@ -117,13 +154,17 @@ const baseQueryWithReauth: BaseQueryFn<
       refreshInFlight = null;
     });
 
-  const refreshed = await refreshInFlight;
+  const outcome = await refreshInFlight;
 
-  if (!refreshed) {
+  if (outcome.kind === 'refused') {
     await tokenStorage.clear();
     api.dispatch(sessionCleared());
     return result;
   }
+
+  // Still signed in. This request fails the way the refresh did — offline,
+  // most likely — and the next one tries the refresh again.
+  if (outcome.kind === 'unavailable') return { error: outcome.error };
 
   return rawBaseQuery(args, api, extraOptions);
 };

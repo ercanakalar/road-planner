@@ -16,6 +16,7 @@ async function bootstrap(): Promise<void> {
 
   configureApp(app, {
     corsOrigins: config.get('CORS_ORIGINS', { infer: true }),
+    trustProxy: config.get('TRUST_PROXY', { infer: true }),
   });
 
   const port = parseInt(

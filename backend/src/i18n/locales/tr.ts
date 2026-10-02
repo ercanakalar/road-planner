@@ -43,6 +43,8 @@ const tr: Translations = {
 
     adminsOnly: 'Bu işlemi yalnızca yöneticiler yapabilir.',
     emailTaken: 'Bu e-posta adresiyle açılmış bir hesap zaten var.',
+    emailUsesGoogle:
+      'Bu e-posta adresi Google ile giriş yapılan bir hesaba ait. Lütfen “Google ile devam et” seçeneğini kullanın.',
     imageRequired: 'Lütfen bir görsel dosyası seçin.',
     currentPasswordWrong: 'Mevcut parolanız yanlış.',
     googleStateExpired:
@@ -97,6 +99,7 @@ const tr: Translations = {
     passwordsDoNotMatch: 'Parolalar birbiriyle eşleşmiyor.',
     roadIdMismatch: 'İstek gövdesindeki rota, adresteki rotayla eşleşmiyor.',
     stopIdRequired: 'Durak kimliği gerekli.',
+    stopPositionOutOfRange: 'Bu sıra bu rotada bulunmuyor.',
   },
 
   consent: {
@@ -177,6 +180,8 @@ const tr: Translations = {
     googleHeader: 'Google ile giriş yapıldı',
     googleCreated: 'Hesabınız oluşturuldu ve giriş yaptınız.',
     googleSignedIn: 'Google hesabınızla giriş yaptınız.',
+    googlePasswordRemoved:
+      'Google ile giriş yaptınız. Bu hesabın e-posta adresi daha önce doğrulanmadığı için hesaptaki parola kaldırıldı; dilerseniz “Parolanızı mı unuttunuz?” bağlantısıyla yeni bir parola belirleyebilirsiniz.',
   },
 
   road: {
@@ -308,6 +313,9 @@ const tr: Translations = {
     nickNamePattern:
       'Kullanıcı adı yalnızca harf, rakam, nokta, alt çizgi ve kısa çizgi içerebilir',
     resetCodeLength: 'Kod {{bound}} haneli olmalı',
+    searchNeedsTerm:
+      'Aranacak bir metin girin, bir kategori seçin ya da ikisini birden yapın',
+    searchTermLength: 'Arama metni {{bound}} ile 255 karakter arasında olmalı',
   },
 
   field: {

@@ -116,7 +116,7 @@ describe('Request validation (e2e)', () => {
     it.each([
       ['get', '/api/user/not-a-uuid'],
       ['get', '/api/road/not-a-uuid'],
-      ['get', '/api/road/waypoint/not-a-uuid'],
+      ['get', '/api/road/stop/not-a-uuid'],
     ])('rejects a non-UUID id on %s %s', async (method, path) => {
       await auth(request(app.getHttpServer())[method as 'get'](path)).expect(
         400,
@@ -162,7 +162,7 @@ describe('Request validation (e2e)', () => {
         .send({
           title: 'T',
           description: 'D',
-          waypoints: [{ latitude: 999, longitude: 0, order: 1 }],
+          stops: [{ latitude: 999, longitude: 0, order: 1 }],
         })
         .expect(400);
 
@@ -181,9 +181,7 @@ describe('Request validation (e2e)', () => {
 
     it('reaches the guard before the body is validated on a guarded route', async () => {
       const response = await auth(
-        request(app.getHttpServer()).put(
-          `/api/road/reorder-waypoint/${ROAD_ID}`,
-        ),
+        request(app.getHttpServer()).put(`/api/road/reorder-stop/${ROAD_ID}`),
       ).send({ from: -1, to: 0 });
 
       expect(response.status).not.toBe(200);

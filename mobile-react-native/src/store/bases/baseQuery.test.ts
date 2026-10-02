@@ -141,6 +141,19 @@ describe('retries', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'never sends a %s twice, since the first may have arrived',
+    async (method) => {
+      (global.fetch as jest.Mock).mockResolvedValue(
+        jsonResponse(503, envelope(null)),
+      );
+
+      const { result } = runQuery('/favorites/toggle-road', method);
+      await expect(result).resolves.toMatchObject({ error: { status: 503 } });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('does not retry a 4xx, which will fail identically', async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       jsonResponse(404, envelope(null)),
@@ -197,6 +210,34 @@ describe('401 handling', () => {
     expect(tokenStorage.clear).toHaveBeenCalled();
     expect(api.dispatch).toHaveBeenCalledWith(sessionCleared());
   });
+
+  it.each([
+    [
+      'the phone is offline',
+      () => Promise.reject(new TypeError('Network request failed')),
+    ],
+    [
+      'the server is down',
+      () => Promise.resolve(jsonResponse(503, envelope(null))),
+    ],
+  ])(
+    'keeps the session when the refresh fails because %s',
+    async (_label, refresh) => {
+      (global.fetch as jest.Mock).mockImplementation((request: Request) => {
+        const url = typeof request === 'string' ? request : request.url;
+        return url.endsWith('/auth/refresh-token')
+          ? refresh()
+          : Promise.resolve(jsonResponse(401, envelope(null)));
+      });
+
+      const { result, api } = runQuery('/road/own-roads');
+      const outcome = await result;
+
+      expect(outcome.error?.status).not.toBe(401);
+      expect(tokenStorage.clear).not.toHaveBeenCalled();
+      expect(api.dispatch).not.toHaveBeenCalledWith(sessionCleared());
+    },
+  );
 
   it('does not try to refresh when there is no refresh token', async () => {
     jest

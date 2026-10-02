@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
-const DATABASE_URL = process.env.INTEGRATION_DATABASE_URL;
-
-const describeIntegration = DATABASE_URL ? describe : describe.skip;
+import { PrismaClient } from '../../src/generated/prisma/client';
+import { describeIntegration, integrationClient } from './client';
 
 describeIntegration('Schema (integration)', () => {
   let prisma: PrismaClient;
@@ -19,7 +17,7 @@ describeIntegration('Schema (integration)', () => {
   };
 
   beforeAll(async () => {
-    prisma = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
+    prisma = integrationClient();
     await prisma.$connect();
   });
 
@@ -146,26 +144,22 @@ describeIntegration('Schema (integration)', () => {
         data: { userId, title: 'Commute', description: 'Home to office' },
       });
 
-      const address = await prisma.addressInfo.create({
-        data: { address: 'Bağdat Cd. 1', district: 'Kadıköy' },
-      });
-
-      const waypoint = await prisma.wayPoint.create({
+      const stop = await prisma.stop.create({
         data: {
           roadId: road.id,
           latitude: 40.99,
           longitude: 29.03,
           order: 1,
-          addressInfoId: address.id,
+          address: 'Bağdat Cd. 1, Kadıköy',
         },
       });
 
-      return { road, waypoint, address };
+      return { road, stop };
     };
 
-    it('deletes a user’s roads, waypoints and sessions with the user', async () => {
+    it('deletes a user’s roads, stops and sessions with the user', async () => {
       const user = await createUser(uniqueEmail('cascade'));
-      const { road, waypoint } = await seedRoad(user.id);
+      const { road, stop } = await seedRoad(user.id);
       await prisma.session.create({
         data: {
           userId: user.id,
@@ -181,34 +175,49 @@ describeIntegration('Schema (integration)', () => {
         await prisma.road.findUnique({ where: { id: road.id } }),
       ).toBeNull();
       expect(
-        await prisma.wayPoint.findUnique({ where: { id: waypoint.id } }),
+        await prisma.stop.findUnique({ where: { id: stop.id } }),
       ).toBeNull();
       expect(
         await prisma.session.findMany({ where: { userId: user.id } }),
       ).toHaveLength(0);
     });
 
-    it('deletes waypoints with their road', async () => {
+    it('deletes stops with their road', async () => {
       const user = await createUser(uniqueEmail('road-cascade'));
-      const { road, waypoint } = await seedRoad(user.id);
+      const { road, stop } = await seedRoad(user.id);
 
       await prisma.road.delete({ where: { id: road.id } });
 
       expect(
-        await prisma.wayPoint.findUnique({ where: { id: waypoint.id } }),
+        await prisma.stop.findUnique({ where: { id: stop.id } }),
       ).toBeNull();
+    });
+
+    it('anonymises usage statistics instead of deleting them', async () => {
+      const user = await createUser(uniqueEmail('usage'));
+      const event = await prisma.usageEvent.create({
+        data: { userId: user.id, event: 'app_opened' },
+      });
+
+      await prisma.user.delete({ where: { id: user.id } });
+      createdUserIds = [];
+
+      await expect(
+        prisma.usageEvent.findUniqueOrThrow({ where: { id: event.id } }),
+      ).resolves.toMatchObject({ userId: null, event: 'app_opened' });
+      await prisma.usageEvent.delete({ where: { id: event.id } });
     });
 
     it('deletes favourites with the record they point at', async () => {
       const owner = await createUser(uniqueEmail('fav-owner'));
       const fan = await createUser(uniqueEmail('fav-fan'));
-      const { road, waypoint } = await seedRoad(owner.id);
+      const { road, stop } = await seedRoad(owner.id);
 
       const favouriteRoad = await prisma.favoriteRoad.create({
         data: { userId: fan.id, roadId: road.id },
       });
-      const favouriteWaypoint = await prisma.favoriteWaypoint.create({
-        data: { userId: fan.id, waypointId: waypoint.id },
+      const favouriteStop = await prisma.favoriteStop.create({
+        data: { userId: fan.id, stopId: stop.id },
       });
 
       await prisma.road.delete({ where: { id: road.id } });
@@ -219,8 +228,8 @@ describeIntegration('Schema (integration)', () => {
         }),
       ).toBeNull();
       expect(
-        await prisma.favoriteWaypoint.findUnique({
-          where: { id: favouriteWaypoint.id },
+        await prisma.favoriteStop.findUnique({
+          where: { id: favouriteStop.id },
         }),
       ).toBeNull();
     });
@@ -238,37 +247,57 @@ describeIntegration('Schema (integration)', () => {
     });
   });
 
-  describe('one address per waypoint (D5)', () => {
-    it('rejects two waypoints sharing an address', async () => {
-      const user = await createUser(uniqueEmail('address'));
-      const road = await prisma.road.create({
-        data: { userId: user.id, title: 'T', description: 'D' },
-      });
-      const address = await prisma.addressInfo.create({
-        data: { address: 'Shared street' },
-      });
+  describe('case-insensitive nicknames', () => {
+    it('treats nicknames differing only by case as the same', async () => {
+      const suffix = randomUUID().slice(0, 8);
+      await prisma.user
+        .create({
+          data: { email: uniqueEmail('nick-a'), nickName: `Ada_${suffix}` },
+        })
+        .then((user) => createdUserIds.push(user.id));
 
-      await prisma.wayPoint.create({
+      await expect(
+        prisma.user.create({
+          data: { email: uniqueEmail('nick-b'), nickName: `ada_${suffix}` },
+        }),
+      ).rejects.toMatchObject({ code: 'P2002' });
+    });
+  });
+
+  describe('the KVKK records outlive the account', () => {
+    it('keeps the consent trail and the deletion log after the user is gone', async () => {
+      const user = await createUser(uniqueEmail('kvkk'));
+      const consent = await prisma.consentRecord.create({
         data: {
-          roadId: road.id,
-          latitude: 1,
-          longitude: 2,
-          order: 1,
-          addressInfoId: address.id,
+          subjectId: user.id,
+          action: 'GRANTED',
+          noticeVersion: '2026-10-01',
+          language: 'tr',
+          occurredAt: new Date(),
+        },
+      });
+      const log = await prisma.accountDeletion.create({
+        data: {
+          subjectId: user.id,
+          emailHash: 'f'.repeat(64),
+          reason: 'CONSENT_WITHDRAWN',
+          accountCreatedAt: user.createdAt,
+          erased: {},
         },
       });
 
+      await prisma.user.delete({ where: { id: user.id } });
+      createdUserIds = [];
+
       await expect(
-        prisma.wayPoint.create({
-          data: {
-            roadId: road.id,
-            latitude: 3,
-            longitude: 4,
-            order: 2,
-            addressInfoId: address.id,
-          },
-        }),
-      ).rejects.toThrow(/Unique constraint/);
+        prisma.consentRecord.count({ where: { id: consent.id } }),
+      ).resolves.toBe(1);
+      await expect(
+        prisma.accountDeletion.count({ where: { id: log.id } }),
+      ).resolves.toBe(1);
+
+      await prisma.consentRecord.delete({ where: { id: consent.id } });
+      await prisma.accountDeletion.delete({ where: { id: log.id } });
     });
   });
 
@@ -278,6 +307,9 @@ describeIntegration('Schema (integration)', () => {
         SELECT count(*) AS count
           FROM information_schema.columns
          WHERE table_schema = 'public' AND column_name = 'deletedAt'
+           -- When an account was erased, which is the record itself, not a
+           -- soft-delete flag.
+           AND table_name <> 'AccountDeletion'
       `;
 
       expect(Number(rows[0].count)).toBe(0);

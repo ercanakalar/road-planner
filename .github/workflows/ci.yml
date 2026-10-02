@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # prisma.config.ts reads it; the integration suites run against it.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+      INTEGRATION_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run typecheck
+      - run: npm run lint:check
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run test:e2e
+      # Applies every migration to an empty database, so one that does not
+      # apply fails here rather than in the production deploy.
+      - run: npx prisma migrate deploy
+      - run: npm run test:integration
+      - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-react-native
+    env:
+      EXPO_PUBLIC_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile-react-native/package-lock.json
+      - run: npm ci
+      # Git-ignored per machine; the example is what EAS builds start from.
+      - run: cp src/constants/appConfig.example.ts src/constants/appConfig.ts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --ci
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

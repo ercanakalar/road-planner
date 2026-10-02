@@ -497,9 +497,6 @@ const en = {
         couldNotCopy: 'The address could not be copied.',
         dragToMove: 'Drag to move',
         dragHint: 'Drag the highlighted pin to its new position.',
-        addStopFirst: 'Add a stop first',
-        addStopFirstHint:
-            'Press and hold on the map to add a stop, then you can name and describe your route.',
         addedToRoute: 'Added to your route',
         routeImported: 'Route imported',
         couldNotLookUpPlace: 'That place could not be found.',
@@ -688,7 +685,14 @@ const en = {
         readTheLink: 'Read the link',
         readingTheLink: 'Reading the link…',
         routesSaved: 'Routes saved',
+        routesSavedMessage_one: '{{count}} route has been added to your account.',
+        routesSavedMessage_other:
+            '{{count}} routes have been added to your account.',
         someRoutesFailed: 'Some routes could not be saved',
+        routesFailedMessage_one:
+            '{{count}} route is still only on this device. Try again later.',
+        routesFailedMessage_other:
+            '{{count}} routes are still only on this device. Try again later.',
     },
 
     sorting: {
@@ -890,7 +894,6 @@ const en = {
             'That link has no route in it. Open a route in Google Maps, tap Share and paste the link it gives you.',
         noStopsFound: 'None of those stops could be found.',
         couldNotReadLink: 'That link could not be read. Check your connection.',
-        couldNotLoadRouteToUpdate: 'The route could not be loaded for updating.',
         googleNoCode: 'Google returned no authorisation code.',
         googleUnreachable:
             'The server could not be reached. Check that the app points to an address this device can open.',

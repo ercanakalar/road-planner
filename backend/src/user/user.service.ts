@@ -16,7 +16,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { EnvironmentVariables } from 'src/config/env.validation';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSearchQueryDto } from './dto/user-search.dto';
-import { avatarPath, removeAvatar, writeAvatar } from './avatar.storage';
+import {
+  AVATAR_URL_PREFIX,
+  avatarPath,
+  removeAvatar,
+  writeAvatar,
+} from './avatar.storage';
 import { FollowService } from './follow.service';
 import { displayNameOf } from 'src/i18n/display-name';
 
@@ -76,7 +81,7 @@ export class UserService {
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { photo: `/api/user/photo/${filename}` },
+      data: { photo: `${AVATAR_URL_PREFIX}${filename}` },
       select: USER_PUBLIC_SELECT,
     });
 
@@ -98,7 +103,6 @@ export class UserService {
 
     if (body.firstName !== undefined) data.firstName = body.firstName;
     if (body.lastName !== undefined) data.lastName = body.lastName;
-    if (body.photo !== undefined) data.photo = body.photo;
     if (body.nickName !== undefined) data.nickName = body.nickName;
     if (body.language !== undefined) data.language = body.language;
 

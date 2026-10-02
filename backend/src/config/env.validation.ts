@@ -2,7 +2,6 @@ import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -50,6 +49,18 @@ export class EnvironmentVariables {
   @Max(65535)
   @IsOptional()
   PORT: number = 3000;
+
+  // How many proxies stand between the internet and the API. Behind one —
+  // Cloud Run's front end — it is 1, and the client's address is read from
+  // the last X-Forwarded-For entry that proxy added. Left at 0 when the API
+  // is reached directly, so a caller cannot choose their own address, and
+  // with it their own rate limit, by sending the header themselves.
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  @IsOptional()
+  TRUST_PROXY: number = 0;
 
   @IsString()
   @IsNotEmpty()
@@ -166,37 +177,7 @@ export class EnvironmentVariables {
   @Transform(blankAsUnset)
   @IsString()
   @IsOptional()
-  GOOGLE_CLIENT_SECRET?: string;
-
-  @Transform(blankAsUnset)
-  @IsString()
-  @IsOptional()
   GOOGLE_NATIVE_CLIENT_IDS?: string;
-
-  @Transform(blankAsUnset)
-  @IsUrl({ require_tld: false, require_protocol: true })
-  @IsOptional()
-  GOOGLE_REDIRECT_URL?: string;
-
-  @Transform(blankAsUnset)
-  @IsString()
-  @IsOptional()
-  GOOGLE_SCOPES_API?: string;
-
-  @Transform(blankAsUnset)
-  @IsUrl({ require_tld: false, require_protocol: true })
-  @IsOptional()
-  GOOGLE_OAUTH2_USERINFO_URL?: string;
-
-  @Transform(blankAsUnset)
-  @IsIn(['online', 'offline'])
-  @IsOptional()
-  GOOGLE_OAUTH2_ACCESS_TYPE?: string;
-
-  @Transform(blankAsUnset)
-  @IsIn(['none', 'consent', 'select_account'])
-  @IsOptional()
-  GOOGLE_OAUTH2_PROMPT?: string;
 }
 
 export function validateEnv(

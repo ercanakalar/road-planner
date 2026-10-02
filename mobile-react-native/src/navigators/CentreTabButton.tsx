@@ -47,11 +47,16 @@ const CentreTabButton = ({
 
 const MemoCentreTabButton = memo(CentreTabButton);
 
-export const centreTabButton =
-  (icon: keyof typeof Ionicons.glyphMap, label: string) =>
-  (props: BottomTabBarButtonProps) => (
+export const centreTabButton = (
+  icon: keyof typeof Ionicons.glyphMap,
+  label: string,
+) => {
+  const TabButton = (props: BottomTabBarButtonProps) => (
     <MemoCentreTabButton icon={icon} label={label} {...props} />
   );
+  TabButton.displayName = 'CentreTabButton';
+  return TabButton;
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({

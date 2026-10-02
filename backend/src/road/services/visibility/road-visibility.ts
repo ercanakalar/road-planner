@@ -8,11 +8,13 @@ export class RoadVisibility {
   roadWhere(userId: string | null): Prisma.RoadWhereInput {
     if (!userId) return { isPublic: true, ...this.live };
 
+    // A favourite keeps a route someone shared by link readable after the
+    // link is gone — but not once its owner has deleted it.
     return {
       OR: [
         { userId, ...this.live },
         { isPublic: true, ...this.live },
-        { favoriteRoads: { some: { userId } } },
+        { favoriteRoads: { some: { userId } }, ...this.live },
       ],
     };
   }

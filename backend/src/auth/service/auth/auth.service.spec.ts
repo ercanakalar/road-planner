@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
@@ -19,7 +20,7 @@ import {
   createPrismaMock,
   PrismaMock,
 } from 'src/testing/mocks';
-import { AuthService } from './auth.service';
+import { AuthService, REFRESH_REUSE_GRACE_MS } from './auth.service';
 
 type AsMocks<T> = { [K in keyof T]: jest.Mock };
 
@@ -113,7 +114,7 @@ describe('AuthService', () => {
     beforeEach(() => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.permit.findUnique.mockResolvedValue({ id: 'permit-1' });
-      prisma.user.upsert.mockResolvedValue({
+      prisma.user.create.mockResolvedValue({
         id: 'new-user',
         email: 'new@example.com',
       });
@@ -189,7 +190,48 @@ describe('AuthService', () => {
 
       await expect(
         service.signUp({ email: 'user@example.com', password: 'Str0ng-Pass1' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(new ConflictException('error.emailTaken'));
+    });
+
+    describe('an address that already signs in with Google', () => {
+      beforeEach(() => {
+        prisma.user.findUnique.mockResolvedValue(
+          existingUser({ manuelAuth: null, googleAuth: { id: 'google-1' } }),
+        );
+      });
+
+      it('is refused and pointed at Google sign-in', async () => {
+        await expect(
+          service.signUp({
+            email: 'user@example.com',
+            password: 'Str0ng-Pass1',
+          }),
+        ).rejects.toThrow(new ConflictException('error.emailUsesGoogle'));
+      });
+
+      it('gains no password and opens no session for the caller', async () => {
+        await expect(
+          service.signUp({
+            email: 'user@example.com',
+            password: 'Str0ng-Pass1',
+          }),
+        ).rejects.toThrow();
+
+        expect(prisma.manuelAuth.create).not.toHaveBeenCalled();
+        expect(prisma.session.create).not.toHaveBeenCalled();
+        expect(prisma.user.update).not.toHaveBeenCalled();
+        expect(prisma.user.upsert).not.toHaveBeenCalled();
+      });
+    });
+
+    it('only ever creates an account', async () => {
+      await service.signUp({
+        email: 'new@example.com',
+        password: 'Str0ng-Password',
+      });
+
+      expect(prisma.user.create).toHaveBeenCalled();
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
     });
 
     it('fails loudly when the database has not been seeded', async () => {
@@ -374,14 +416,33 @@ describe('AuthService', () => {
   });
 
   describe('signOut', () => {
-    it('revokes every live session for the user', async () => {
+    it('ends only the session of the refresh token it is given', async () => {
+      prisma.user.findUnique.mockResolvedValue(existingUser());
+
+      await service.signOut('user-1', REFRESH_TOKEN);
+
+      expect(prisma.session.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          refreshTokenHash: REFRESH_TOKEN_HASH,
+          revokedAt: null,
+        },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('revokes every session when the app sent no refresh token', async () => {
       prisma.user.findUnique.mockResolvedValue(existingUser());
 
       await service.signOut('user-1');
 
       expect(prisma.session.updateMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', revokedAt: null },
-        data: { revokedAt: expect.any(Date) },
+        where: {
+          userId: 'user-1',
+          OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+        },
+        data: { revokedAt: expect.any(Date), rotatedAt: null },
       });
     });
 
@@ -417,6 +478,10 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken', () => {
+    beforeEach(() => {
+      prisma.session.updateMany.mockResolvedValue({ count: 1 });
+    });
+
     it('issues a new pair for a token matching a live session', async () => {
       prisma.session.findUnique.mockResolvedValue(liveSession());
 
@@ -440,7 +505,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('replaces the session rather than updating it in place', async () => {
+    it('retires the old session as rotated and opens a new one', async () => {
       prisma.session.findUnique.mockResolvedValue(liveSession());
       helper.generateTokens!.mockResolvedValue({
         accessToken: 'access-2',
@@ -450,9 +515,15 @@ describe('AuthService', () => {
       const result = await service.refreshToken(REFRESH_TOKEN);
 
       expect(result.data.refreshToken).toBe('refresh-2');
-      expect(prisma.session.delete).toHaveBeenCalledWith({
-        where: { id: SESSION_ID },
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: { id: SESSION_ID, revokedAt: null },
+        data: {
+          revokedAt: expect.any(Date),
+          rotatedAt: expect.any(Date),
+          lastUsedAt: expect.any(Date),
+        },
       });
+      expect(prisma.session.delete).not.toHaveBeenCalled();
       expect(prisma.session.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ refreshTokenHash: 'hash(refresh-2)' }),
       });
@@ -463,8 +534,58 @@ describe('AuthService', () => {
 
       await service.refreshToken(REFRESH_TOKEN);
 
-      expect(prisma.session.updateMany).not.toHaveBeenCalled();
+      expect(prisma.session.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.session.updateMany.mock.calls[0][0].where).toEqual({
+        id: SESSION_ID,
+        revokedAt: null,
+      });
       expect(prisma.session.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses a session a sign-out ended between lookup and rotation', async () => {
+      prisma.session.findUnique.mockResolvedValue(liveSession());
+      prisma.session.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.refreshToken(REFRESH_TOKEN)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(prisma.session.create).not.toHaveBeenCalled();
+    });
+
+    describe('a token presented again after it was exchanged', () => {
+      const rotated = (msAgo: number) =>
+        liveSession({
+          revokedAt: new Date(Date.now() - msAgo),
+          rotatedAt: new Date(Date.now() - msAgo),
+        });
+
+      it('is honoured within the grace period, as an answer the phone lost', async () => {
+        prisma.session.findUnique.mockResolvedValue(rotated(5_000));
+
+        const result = await service.refreshToken(REFRESH_TOKEN);
+
+        expect(result.data).toMatchObject({ userId: 'user-1' });
+        expect(prisma.session.create).toHaveBeenCalled();
+        expect(prisma.session.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('is treated as a replay after it, ending every session', async () => {
+        prisma.session.findUnique.mockResolvedValue(
+          rotated(REFRESH_REUSE_GRACE_MS + 1_000),
+        );
+
+        await expect(service.refreshToken(REFRESH_TOKEN)).rejects.toThrow(
+          UnauthorizedException,
+        );
+        expect(prisma.session.updateMany).toHaveBeenCalledWith({
+          where: {
+            userId: 'user-1',
+            OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+          },
+          data: { revokedAt: expect.any(Date), rotatedAt: null },
+        });
+        expect(prisma.session.create).not.toHaveBeenCalled();
+      });
     });
 
     describe('validation against storage (C4)', () => {
@@ -506,14 +627,23 @@ describe('AuthService', () => {
         );
       });
 
-      it('revokes every session when an unknown token is presented', async () => {
+      it('leaves other sessions alone for a token it has no record of', async () => {
         prisma.session.findUnique.mockResolvedValue(null);
 
         await expect(service.refreshToken(REFRESH_TOKEN)).rejects.toThrow();
-        expect(prisma.session.updateMany).toHaveBeenCalledWith({
-          where: { userId: 'user-1', revokedAt: null },
-          data: { revokedAt: expect.any(Date) },
-        });
+        expect(prisma.session.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('does not revive a signed-out session', async () => {
+        prisma.session.findUnique.mockResolvedValue(
+          liveSession({ revokedAt: new Date(), rotatedAt: null }),
+        );
+
+        await expect(service.refreshToken(REFRESH_TOKEN)).rejects.toThrow(
+          UnauthorizedException,
+        );
+        expect(prisma.session.create).not.toHaveBeenCalled();
+        expect(prisma.session.updateMany).not.toHaveBeenCalled();
       });
 
       it('does not issue a new session on a failed refresh', async () => {
@@ -561,7 +691,27 @@ describe('AuthService', () => {
     beforeEach(() => {
       prisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
+        email: 'user@example.com',
         manuelAuth: { id: 'auth-1', password: 'scrypt$stored' },
+      });
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+    });
+
+    it('signs out every other session and keeps this device signed in', async () => {
+      const result = await service.changePassword('user-1', body);
+
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+        },
+        data: { revokedAt: expect.any(Date), rotatedAt: null },
+      });
+      expect(prisma.session.create).toHaveBeenCalledTimes(1);
+      expect(result.data).toEqual({
+        userId: 'user-1',
+        accessToken: 'access-token',
+        refreshToken: REFRESH_TOKEN,
       });
     });
 
@@ -860,106 +1010,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('forgotPassword', () => {
-    describe('token disclosure (C1)', () => {
-      beforeEach(() => {
-        prisma.user.findUnique.mockResolvedValue(existingUser());
-      });
-
-      it('does not return the reset token', async () => {
-        const result = await service.forgotPassword('user@example.com');
-
-        expect(result).not.toHaveProperty('resetToken');
-      });
-
-      it('does not return the reset URL', async () => {
-        const result = await service.forgotPassword('user@example.com');
-
-        expect(result).not.toHaveProperty('resetTokenUrl');
-      });
-
-      it('returns nothing beyond a generic acknowledgement', async () => {
-        const result = await service.forgotPassword('user@example.com');
-
-        expect(Object.keys(result).sort()).toEqual([
-          'header',
-          'message',
-          'status',
-        ]);
-      });
-
-      it('emails the raw token, not the stored digest', async () => {
-        await service.forgotPassword('user@example.com');
-
-        const [payload] = email.sendEmail!.mock.calls[0];
-        expect(payload.text).toContain('raw-reset-token');
-        expect(payload.text).not.toContain('hash(raw-reset-token)');
-      });
-
-      it('stores only the digest, already usable', async () => {
-        await service.forgotPassword('user@example.com');
-
-        expect(prisma.passwordReset.create).toHaveBeenCalledWith({
-          data: {
-            userId: 'user-1',
-            channel: 'LINK',
-            tokenHash: 'hash(raw-reset-token)',
-            expiresAt: expect.any(Date),
-            verifiedAt: expect.any(Date),
-          },
-        });
-      });
-
-      it('supersedes any outstanding request for the same account', async () => {
-        await service.forgotPassword('user@example.com');
-
-        expect(prisma.passwordReset.updateMany).toHaveBeenCalledWith({
-          where: { userId: 'user-1', usedAt: null },
-          data: { usedAt: expect.any(Date) },
-        });
-      });
-    });
-
-    describe('account enumeration (H4)', () => {
-      it('answers identically for an unknown address', async () => {
-        prisma.user.findUnique.mockResolvedValue(existingUser());
-        const known = await service.forgotPassword('user@example.com');
-
-        prisma.user.findUnique.mockResolvedValue(null);
-        const unknown = await service.forgotPassword('nobody@example.com');
-
-        expect(unknown).toEqual(known);
-      });
-
-      it('does not send an email for an unknown address', async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-
-        await service.forgotPassword('nobody@example.com');
-
-        expect(email.sendEmail).not.toHaveBeenCalled();
-      });
-
-      it('does not write a reset token for an unknown address', async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-
-        await service.forgotPassword('nobody@example.com');
-
-        expect(prisma.passwordReset.create).not.toHaveBeenCalled();
-      });
-
-      it('answers the same way for a Google-only account', async () => {
-        prisma.user.findUnique.mockResolvedValue(
-          existingUser({ manuelAuth: null }),
-        );
-
-        await expect(
-          service.forgotPassword('user@example.com'),
-        ).resolves.toMatchObject({ status: ToastType.Success });
-        expect(email.sendEmail).not.toHaveBeenCalled();
-      });
-    });
-  });
-
   describe('resetPassword', () => {
     const valid = {
       password: 'Str0ng-Password',
@@ -1032,12 +1082,24 @@ describe('AuthService', () => {
       expect(data.usedAt).toBeInstanceOf(Date);
     });
 
-    it('revokes every live session for the account', async () => {
+    it('revokes every session for the account', async () => {
       await service.resetPassword(valid, 'raw-reset-token');
 
       expect(prisma.session.updateMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', revokedAt: null },
-        data: { revokedAt: expect.any(Date) },
+        where: {
+          userId: 'user-1',
+          OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+        },
+        data: { revokedAt: expect.any(Date), rotatedAt: null },
+      });
+    });
+
+    it('records that the address is proven, since the code reached it', async () => {
+      await service.resetPassword(valid, 'raw-reset-token');
+
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'user-1', emailVerifiedAt: null },
+        data: { emailVerifiedAt: expect.any(Date) },
       });
     });
 
@@ -1113,10 +1175,12 @@ describe('AuthService', () => {
     const googleUser = (overrides: Record<string, unknown> = {}) => ({
       id: 'user-1',
       email: 'user@example.com',
+      emailVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
       firstName: null,
       lastName: null,
       photo: null,
       nickName: null,
+      manuelAuth: null,
       googleAuth: null,
       ...overrides,
     });
@@ -1223,6 +1287,80 @@ describe('AuthService', () => {
 
       expect(result.data.userId).toBe('user-1');
       expect(prisma.googleAuth.create).toHaveBeenCalled();
+    });
+
+    describe('linking to a password account', () => {
+      beforeEach(() => {
+        prisma.user.update.mockResolvedValue(googleUser());
+        prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+      });
+
+      it('drops a password set on an address nobody had proved', async () => {
+        prisma.user.findUnique.mockResolvedValue(
+          googleUser({
+            emailVerifiedAt: null,
+            manuelAuth: { id: 'auth-1' },
+          }),
+        );
+
+        const result = await service.signInWithGoogle(
+          googleProfile({ email: 'user@example.com' }),
+        );
+
+        expect(prisma.manuelAuth.delete).toHaveBeenCalledWith({
+          where: { id: 'auth-1' },
+        });
+        expect(prisma.session.updateMany).toHaveBeenCalledWith({
+          where: {
+            userId: 'user-1',
+            OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+          },
+          data: { revokedAt: expect.any(Date), rotatedAt: null },
+        });
+        expect(result.message).toBe('auth.googlePasswordRemoved');
+      });
+
+      it('marks the address as proven by Google', async () => {
+        prisma.user.findUnique.mockResolvedValue(
+          googleUser({ emailVerifiedAt: null, manuelAuth: { id: 'auth-1' } }),
+        );
+
+        await service.signInWithGoogle(
+          googleProfile({ email: 'user@example.com' }),
+        );
+
+        expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({
+          emailVerifiedAt: expect.any(Date),
+        });
+      });
+
+      it('keeps the password of an account whose owner proved the address', async () => {
+        prisma.user.findUnique.mockResolvedValue(
+          googleUser({ manuelAuth: { id: 'auth-1' } }),
+        );
+
+        const result = await service.signInWithGoogle(
+          googleProfile({ email: 'user@example.com' }),
+        );
+
+        expect(prisma.manuelAuth.delete).not.toHaveBeenCalled();
+        expect(prisma.session.updateMany).not.toHaveBeenCalled();
+        expect(result.message).toBe('auth.googleSignedIn');
+      });
+    });
+
+    it('records a new Google account as proven', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(
+        googleUser({ id: 'new-user', email: 'g@example.com' }),
+      );
+      prisma.session.create.mockResolvedValue({ id: SESSION_ID });
+
+      await service.signInWithGoogle(googleProfile());
+
+      expect(prisma.user.create.mock.calls[0][0].data.emailVerifiedAt).toEqual(
+        expect.any(Date),
+      );
     });
 
     it('reuses an existing Google link', async () => {

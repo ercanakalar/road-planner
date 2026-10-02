@@ -47,7 +47,7 @@ const TR: KvkkCopy = {
     {
       id: 'retention',
       title: 'Saklama süresi',
-      body: 'Hesap ve rota verileriniz hesabınız açık kaldığı sürece saklanır. Oturum kayıtları süresi dolduğunda ya da çıkış yaptığınızda geçersiz kılınır. Kullanım istatistikleri en fazla iki yıl saklanır; hesabınız silindiğinde sizinle ilişkileri kesilerek anonim hâle getirilir. Hesap açmadan oluşturduğunuz rotalar ve seyahat haritanız yalnızca bu cihazda tutulur, sunucumuza gönderilmez ve siz silene kadar cihazda kalır.',
+      body: 'Hesap ve rota verileriniz hesabınız açık kaldığı sürece saklanır; sildiğiniz bir rota 30 gün sonra kalıcı olarak silinir. Oturum kayıtları süresi dolduğunda ya da çıkış yaptığınızda geçersiz kılınır. Kullanım istatistikleri en fazla iki yıl saklanır; hesabınız silindiğinde sizinle ilişkileri kesilerek anonim hâle getirilir. Hesap açmadan oluşturduğunuz rotalar ve seyahat haritanız yalnızca bu cihazda tutulur, sunucumuza gönderilmez ve siz silene kadar cihazda kalır.',
     },
     {
       id: 'rights',
@@ -131,7 +131,7 @@ const EN: KvkkCopy = {
     {
       id: 'retention',
       title: 'How long we keep it',
-      body: 'Account and route data is kept for as long as your account exists. Session records are invalidated when they expire or when you sign out. Usage statistics are kept for up to two years; when your account is deleted, they are anonymised so that they can no longer be linked to you. Routes you create without an account, and your travel map, stay on this device only, are never sent to our server, and remain there until you delete them.',
+      body: 'Account and route data is kept for as long as your account exists; a route you delete is erased permanently 30 days later. Session records are invalidated when they expire or when you sign out. Usage statistics are kept for up to two years; when your account is deleted, they are anonymised so that they can no longer be linked to you. Routes you create without an account, and your travel map, stay on this device only, are never sent to our server, and remain there until you delete them.',
     },
     {
       id: 'rights',

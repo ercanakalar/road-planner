@@ -35,14 +35,12 @@ describe('Application wiring (e2e)', () => {
   describe('global prefix', () => {
     it('serves routes under /api', async () => {
       await request(app.getHttpServer())
-        .get('/api/road/waypoint/some-id')
+        .get('/api/road/stop/some-id')
         .expect(401);
     });
 
     it('does not serve routes without the prefix', async () => {
-      await request(app.getHttpServer())
-        .get('/road/waypoint/some-id')
-        .expect(404);
+      await request(app.getHttpServer()).get('/road/stop/some-id').expect(404);
     });
 
     it('has no root route', async () => {
@@ -52,7 +50,7 @@ describe('Application wiring (e2e)', () => {
 
   describe('deny-by-default authentication', () => {
     it.each([
-      ['get', '/api/road/waypoint/wp-1'],
+      ['get', '/api/road/stop/wp-1'],
       ['post', '/api/road/own-roads'],
       ['post', '/api/road/create'],
       ['get', '/api/user/user-1'],

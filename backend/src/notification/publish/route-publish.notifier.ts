@@ -56,6 +56,15 @@ export class RoutePublishNotifier {
 
     if (!road) return 0;
 
+    // Claimed before anyone is told, so two publishes racing each other — or
+    // a route switched off and on again — announce it once.
+    const { count: claimed } = await this.prisma.road.updateMany({
+      where: { id: road.id, announcedAt: null },
+      data: { announcedAt: new Date() },
+    });
+
+    if (claimed === 0) return 0;
+
     const follows = await this.prisma.authorFollow.findMany({
       where: { authorId: road.userId },
       select: {

@@ -73,6 +73,21 @@ describe('RoadOwnerGuard', () => {
       );
     });
 
+    it('treats a deleted route as gone, even for its owner', async () => {
+      prisma.road.findUnique.mockResolvedValue({
+        userId: OWNER,
+        archivedAt: new Date(),
+      });
+      const { context } = createExecutionContext({
+        user: { userId: OWNER },
+        params: { id: ROAD_ID },
+      });
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
     it('reports a missing road as not found', async () => {
       givenRoads({});
       const { context } = createExecutionContext({
@@ -138,7 +153,7 @@ describe('RoadOwnerGuard', () => {
       });
       expect(prisma.road.findUnique).toHaveBeenCalledWith({
         where: { id: ROAD_ID },
-        select: { userId: true },
+        select: { userId: true, archivedAt: true },
       });
     });
 

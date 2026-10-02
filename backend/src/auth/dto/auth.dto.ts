@@ -107,6 +107,15 @@ export class RefreshTokenDto {
   refreshToken!: string;
 }
 
+export class SignOutDto {
+  // The refresh token of the session to end. Older app versions send none,
+  // and are signed out everywhere.
+  @IsOptional()
+  @IsString()
+  @IsJWT()
+  refreshToken?: string;
+}
+
 export class GoogleIdTokenDto {
   @IsString()
   @IsNotEmpty()

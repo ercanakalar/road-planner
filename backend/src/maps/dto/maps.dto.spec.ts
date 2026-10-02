@@ -236,7 +236,7 @@ describe('RouteSearchDto', () => {
 
   it('rejects a search with nothing to search for', async () => {
     await expect(collectDtoErrors(RouteSearchDto, route())).resolves.toEqual([
-      'give a query, a category, or both to search for',
+      'validation.searchNeedsTerm',
     ]);
   });
 

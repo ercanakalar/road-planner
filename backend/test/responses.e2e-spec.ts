@@ -1,12 +1,13 @@
 import { INestApplication, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../src/generated/prisma/client';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/config/bootstrap';
 import { PrismaService } from '../src/prisma/prisma.service';
+import en from '../src/i18n/locales/en';
 import { createPrismaMock, PrismaMock } from '../src/testing/mocks';
 
 const USER_ID = 'b1e9c9a2-1f3d-4c8a-9f2b-0a1b2c3d4e5f';
@@ -106,7 +107,7 @@ describe('Response contract (e2e)', () => {
         title: 'Trip',
         archivedAt: null,
         user: { nickName: 'ada', firstName: 'Ada' },
-        wayPoints: [],
+        stops: [],
       });
 
       const response = await request(app.getHttpServer())
@@ -126,7 +127,7 @@ describe('Response contract (e2e)', () => {
         title: 'Trip',
         archivedAt: null,
         user: { nickName: 'ada', firstName: 'Ada' },
-        wayPoints: [],
+        stops: [],
       });
 
       await request(app.getHttpServer())
@@ -137,7 +138,7 @@ describe('Response contract (e2e)', () => {
       expect(omit).toEqual({ userId: true });
     });
 
-    it('a handler returning a bare object is wrapped rather than mistaken for an envelope', async () => {
+    it('a phrase key in the envelope reaches the client translated', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: USER_ID,
         permit: { name: 'ADMIN', permissions: [{ name: 'ACCESS_DASHBOARD' }] },
@@ -149,9 +150,8 @@ describe('Response contract (e2e)', () => {
 
       expect(response.body).toEqual({
         status: 'success',
-        data: { message: 'Welcome to the admin dashboard' },
+        message: en.user.dashboardWelcome,
       });
-      expect(response.body).not.toHaveProperty('message');
     });
   });
 
@@ -169,6 +169,7 @@ describe('Response contract (e2e)', () => {
         expiresAt: new Date(Date.now() + 86_400_000),
         user: { id: USER_ID, email: 'a@b.com', permit: null },
       });
+      prisma.session.updateMany.mockResolvedValue({ count: 1 });
       prisma.session.create.mockResolvedValue({ id: 'session-2' });
 
       const response = await request(app.getHttpServer())
@@ -193,19 +194,19 @@ describe('Response contract (e2e)', () => {
   });
 
   describe('errors get a status code that matches', () => {
-    it('a missing waypoint is 404, not 200', async () => {
-      prisma.favoriteWaypoint.findUnique.mockResolvedValue(null);
-      prisma.wayPoint.findUnique.mockResolvedValue(null);
+    it('a missing stop is 404, not 200', async () => {
+      prisma.favoriteStop.findUnique.mockResolvedValue(null);
+      prisma.stop.findFirst.mockResolvedValue(null);
 
       const response = await asUser(
         request(app.getHttpServer())
-          .post('/api/favorites/toggle-waypoint')
-          .send({ waypointId: ROAD_ID }),
+          .post('/api/favorites/toggle-stop')
+          .send({ stopId: ROAD_ID }),
       ).expect(404);
 
       expect(response.body).toMatchObject({
         status: 'error',
-        header: 'Not Found',
+        header: en.error.notFoundHeader,
         statusCode: 404,
       });
     });
@@ -221,7 +222,7 @@ describe('Response contract (e2e)', () => {
           .send({ roadId: ROAD_ID }),
       ).expect(500);
 
-      expect(response.body.message).toBe('An unexpected error occurred.');
+      expect(response.body.message).toBe(en.error.unexpected);
     });
 
     it('does not leak the underlying failure text', async () => {
@@ -323,17 +324,27 @@ describe('Response contract (e2e)', () => {
         .send({ email: 'taken@example.com', password: 'Str0ng-Password' })
         .expect(409);
 
-      expect(response.body.message).toBe(
-        'An account with this email already exists',
-      );
+      expect(response.body.message).toBe(en.error.emailTaken);
     });
   });
 
   describe('pagination', () => {
-    it('bounds an unpaged request to the default page size', async () => {
-      prisma.road.findMany.mockResolvedValue([]);
-      prisma.$transaction.mockResolvedValue([[], 0]);
+    // getOwnRoads is one tagged SQL statement: the strings carry the query,
+    // the values what was bound into it.
+    const ownRoadsQuery = () => {
+      const [strings, ...values] = prisma.$queryRaw.mock.calls[0] as [
+        TemplateStringsArray,
+        ...unknown[],
+      ];
+      return { sql: strings.join('?'), values };
+    };
 
+    beforeEach(() => {
+      prisma.$queryRaw.mockReset();
+      prisma.$queryRaw.mockResolvedValue([]);
+    });
+
+    it('bounds an unpaged request to the default page size', async () => {
       const response = await asUser(
         request(app.getHttpServer()).post('/api/road/own-roads'),
       ).expect(200);
@@ -347,7 +358,7 @@ describe('Response contract (e2e)', () => {
     });
 
     it('honours limit and offset from the query string', async () => {
-      prisma.$transaction.mockResolvedValue([[], 500]);
+      prisma.road.count.mockResolvedValue(500);
 
       const response = await asUser(
         request(app.getHttpServer()).post(
@@ -361,9 +372,7 @@ describe('Response contract (e2e)', () => {
         offset: 20,
         hasMore: true,
       });
-      expect(prisma.road.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 10, skip: 20 }),
-      );
+      expect(ownRoadsQuery().values).toEqual(expect.arrayContaining([10, 20]));
     });
 
     it('rejects a page size above the ceiling', async () => {
@@ -379,33 +388,28 @@ describe('Response contract (e2e)', () => {
     });
 
     it('falls back to the default for a blank limit', async () => {
-      prisma.$transaction.mockResolvedValue([[], 0]);
-
       await asUser(
         request(app.getHttpServer()).post('/api/road/own-roads?limit='),
       ).expect(200);
 
-      expect(prisma.road.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 50 }),
-      );
+      expect(ownRoadsQuery().values).toEqual(expect.arrayContaining([50, 0]));
     });
 
     it('orders the page deterministically', async () => {
-      prisma.$transaction.mockResolvedValue([[], 0]);
-
       await asUser(
         request(app.getHttpServer()).post('/api/road/own-roads'),
       ).expect(200);
 
-      expect(prisma.road.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        }),
+      expect(ownRoadsQuery().sql).toContain(
+        'ORDER BY r."createdAt" DESC, r."id" DESC',
       );
     });
 
     it('reports a page per collection for favourites', async () => {
-      prisma.$transaction.mockResolvedValue([[], 3, [], 7]);
+      prisma.favoriteRoad.findMany.mockResolvedValue([]);
+      prisma.favoriteRoad.count.mockResolvedValue(3);
+      prisma.favoriteStop.findMany.mockResolvedValue([]);
+      prisma.favoriteStop.count.mockResolvedValue(7);
 
       const response = await asUser(
         request(app.getHttpServer()).get('/api/favorites?limit=2'),
@@ -413,12 +417,15 @@ describe('Response contract (e2e)', () => {
 
       expect(response.body.meta).toEqual({
         roads: { total: 3, limit: 2, offset: 0, hasMore: true },
-        waypoints: { total: 7, limit: 2, offset: 0, hasMore: true },
+        stops: { total: 7, limit: 2, offset: 0, hasMore: true },
       });
     });
 
     it('still returns the four buckets the client expects', async () => {
-      prisma.$transaction.mockResolvedValue([[], 0, [], 0]);
+      prisma.favoriteRoad.findMany.mockResolvedValue([]);
+      prisma.favoriteRoad.count.mockResolvedValue(0);
+      prisma.favoriteStop.findMany.mockResolvedValue([]);
+      prisma.favoriteStop.count.mockResolvedValue(0);
 
       const response = await asUser(
         request(app.getHttpServer()).get('/api/favorites'),
@@ -426,15 +433,13 @@ describe('Response contract (e2e)', () => {
 
       expect(Object.keys(response.body.data).sort()).toEqual([
         'othersRoads',
-        'othersWaypoints',
+        'othersStops',
         'ownRoads',
-        'ownWaypoints',
+        'ownStops',
       ]);
     });
 
     it('keeps the page information out of data', async () => {
-      prisma.$transaction.mockResolvedValue([[], 0]);
-
       const response = await asUser(
         request(app.getHttpServer()).post('/api/road/own-roads'),
       ).expect(200);

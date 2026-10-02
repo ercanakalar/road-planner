@@ -173,9 +173,7 @@ export class StopService {
       });
 
       if (from >= stops.length || to >= stops.length) {
-        throw new BadRequestException(
-          `from and to must be between 0 and ${Math.max(stops.length - 1, 0)}`,
-        );
+        throw new BadRequestException('error.stopPositionOutOfRange');
       }
 
       if (from === to) return;

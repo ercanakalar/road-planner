@@ -83,7 +83,24 @@ describe('RoutePublishNotifier', () => {
     notifier = module.get(RoutePublishNotifier);
 
     prisma.road.findFirst.mockResolvedValue(publishedRoad());
+    prisma.road.updateMany.mockResolvedValue({ count: 1 });
     prisma.authorFollow.findMany.mockResolvedValue([]);
+  });
+
+  it('announces a route once, however often it is published again', async () => {
+    prisma.authorFollow.findMany.mockResolvedValue(
+      followers('one@example.com'),
+    );
+    prisma.road.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(notifier.notifyFollowers(ROAD_ID)).resolves.toBe(0);
+
+    expect(prisma.road.updateMany).toHaveBeenCalledWith({
+      where: { id: ROAD_ID, announcedAt: null },
+      data: { announcedAt: expect.any(Date) },
+    });
+    expect(inbox.notifyMany).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
   });
 
   it('writes to each follower of the author', async () => {

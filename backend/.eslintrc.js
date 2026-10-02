@@ -1,7 +1,9 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: 'tsconfig.json',
+    // Covers test/ as well as src/, so the suites are linted and type-checked
+    // like the code they test — a suite that no longer compiles fails here.
+    project: 'tsconfig.lint.json',
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },

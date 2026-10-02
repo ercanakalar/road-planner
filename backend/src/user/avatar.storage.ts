@@ -73,12 +73,18 @@ export async function writeAvatar(
   return filename;
 }
 
+// Where an uploaded avatar is served from; the photo column holds this path.
+export const AVATAR_URL_PREFIX = '/api/user/photo/';
+
+// Removes the file behind a photo column value — only ever one of ours: a
+// Google avatar url, or anything else, is left alone.
 export async function removeAvatar(
   uploadDir: string,
   photo: string | null,
 ): Promise<void> {
-  const filename = photo?.split('/').pop();
-  if (!filename) return;
+  if (!photo?.startsWith(AVATAR_URL_PREFIX)) return;
+
+  const filename = photo.slice(AVATAR_URL_PREFIX.length);
 
   const path = avatarPath(uploadDir, filename);
   if (!path) return;

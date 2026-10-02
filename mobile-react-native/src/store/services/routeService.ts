@@ -275,7 +275,8 @@ export const routeService = createApi({
         body: {
           title,
           description,
-          stops,
+          // Sent only to replace the stops; left out, the server keeps them.
+          ...(stops === undefined ? {} : { stops }),
           ...(isPublic === undefined ? {} : { isPublic }),
         },
       }),

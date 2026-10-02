@@ -20,9 +20,13 @@ const asAndroidScrollViewWould = (
 
 describe('the element handed to refreshControl', () => {
   it('is dropped on the floor by a wrapper that only declares its own props', () => {
-    const Wrapper = memo(({ refreshing }: { refreshing: boolean }) => (
-      <RefreshControl refreshing={refreshing} onRefresh={jest.fn()} />
-    ));
+    const Wrapper = memo(function Wrapper({
+      refreshing,
+    }: {
+      refreshing: boolean;
+    }) {
+      return <RefreshControl refreshing={refreshing} onRefresh={jest.fn()} />;
+    });
 
     const Screen = () =>
       asAndroidScrollViewWould(<Wrapper refreshing={false} />);

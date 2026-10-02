@@ -53,6 +53,12 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
+  it('queues mail on a few pooled connections rather than one per message', () => {
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ pool: true, maxConnections: 3 }),
+    );
+  });
+
   it('verifies TLS certificates by default', () => {
     expect(createTransport).toHaveBeenCalledWith(
       expect.objectContaining({ tls: { rejectUnauthorized: true } }),

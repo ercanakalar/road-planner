@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -28,12 +23,8 @@ const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 @Injectable()
-export class UsageRecorder
-  implements OnApplicationBootstrap, OnApplicationShutdown
-{
+export class UsageRecorder {
   private readonly logger = new Logger(UsageRecorder.name);
-
-  private pruneTimer: NodeJS.Timeout | undefined;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -74,27 +65,5 @@ export class UsageRecorder
     });
 
     return count;
-  }
-
-  onApplicationBootstrap(): void {
-    void this.pruneQuietly();
-
-    this.pruneTimer = setInterval(() => void this.pruneQuietly(), DAY_MS);
-    this.pruneTimer.unref();
-  }
-
-  onApplicationShutdown(): void {
-    clearInterval(this.pruneTimer);
-  }
-
-  private async pruneQuietly(): Promise<void> {
-    try {
-      const removed = await this.prune();
-      if (removed > 0) {
-        this.logger.log(`Pruned ${removed} usage events past retention`);
-      }
-    } catch (error) {
-      this.logger.warn(`Could not prune usage events: ${messageOf(error)}`);
-    }
   }
 }

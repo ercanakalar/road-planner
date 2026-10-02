@@ -14,11 +14,13 @@ import {
   NICKNAME_PATTERN,
   NICKNAME_PATTERN_MESSAGE,
   SHORT_TEXT_MAX_LENGTH,
-  URL_MAX_LENGTH,
 } from 'src/common/dto/constants';
 import { emptyToUndefined } from 'src/common/dto/transforms';
 import { SUPPORTED_LANGUAGES } from 'src/i18n/languages';
 
+// The photo is not here on purpose: it changes only through an upload, so
+// the column always names a file this API wrote for this person — never
+// someone else's avatar, which replacing it would then delete.
 export class UpdateUserDto {
   @IsOptional()
   @Transform(emptyToUndefined)
@@ -31,12 +33,6 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(SHORT_TEXT_MAX_LENGTH)
   lastName?: string;
-
-  @IsOptional()
-  @Transform(emptyToUndefined)
-  @IsString()
-  @MaxLength(URL_MAX_LENGTH)
-  photo?: string;
 
   @IsOptional()
   @Transform(emptyToUndefined)

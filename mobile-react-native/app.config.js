@@ -25,17 +25,17 @@ const shareIntentFilters = (shareLinkBaseUrl) => {
     return [];
   }
 
+  // /share/<token> is a link someone shared; /route/<id> is the link in the
+  // e-mail telling followers about a newly published route.
   return [
     {
       action: 'VIEW',
       autoVerify: true,
-      data: [
-        {
-          scheme: parsed.protocol.replace(':', ''),
-          host: parsed.hostname,
-          pathPrefix: '/share',
-        },
-      ],
+      data: ['/share', '/route'].map((pathPrefix) => ({
+        scheme: parsed.protocol.replace(':', ''),
+        host: parsed.hostname,
+        pathPrefix,
+      })),
       category: ['BROWSABLE', 'DEFAULT'],
     },
   ];

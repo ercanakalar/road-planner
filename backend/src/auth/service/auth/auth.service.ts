@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -51,10 +52,14 @@ const USER_AUTH_SELECT = {
 const USER_GOOGLE_SELECT = {
   id: true,
   email: true,
+  emailVerifiedAt: true,
   firstName: true,
   lastName: true,
   photo: true,
   nickName: true,
+  manuelAuth: {
+    select: { id: true },
+  },
   googleAuth: {
     select: { id: true },
   },
@@ -120,6 +125,12 @@ const FORGOT_PASSWORD_RESPONSE = ok({
 });
 
 const INVALID_CODE_MESSAGE = 'error.resetCodeInvalid';
+
+// How long a refresh token that has just been exchanged is still honoured.
+// A phone that sent the refresh but lost the answer — a timeout, the app
+// killed mid-request — comes back with the old token; inside this window that
+// is an interrupted exchange, after it a replayed token.
+export const REFRESH_REUSE_GRACE_MS = 60_000;
 
 @Injectable()
 export class AuthService {
@@ -229,22 +240,43 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  // Ends every session, including the grace period of any token exchanged a
+  // moment ago: after this, no refresh token issued so far opens anything.
   private async revokeAllSessions(
     userId: string,
     tx: Pick<PrismaService, 'session'> = this.prisma,
   ) {
     return tx.session.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
+      where: {
+        userId,
+        OR: [{ revokedAt: null }, { rotatedAt: { not: null } }],
+      },
+      data: { revokedAt: new Date(), rotatedAt: null },
     });
+  }
+
+  private sessionIssued(
+    userId: string,
+    tokens: { accessToken: string; refreshToken: string },
+  ) {
+    return {
+      userId,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   async signUp(signUpData: SignUpDto, language?: AppLanguage) {
     const { email, password } = signUpData;
 
+    // Sign-up only ever creates an account. Giving an existing one — a Google
+    // account, say — this caller's password would let anyone who knows an
+    // address into the account behind it.
     const existingUser = await this.findUserByEmail(email);
-    if (existingUser?.manuelAuth) {
-      throw new BadRequestException('error.userExists');
+    if (existingUser) {
+      throw new ConflictException(
+        existingUser.manuelAuth ? 'error.emailTaken' : 'error.emailUsesGoogle',
+      );
     }
 
     const [userPermit, hashedPassword] = await Promise.all([
@@ -253,13 +285,8 @@ export class AuthService {
     ]);
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.upsert({
-        where: { email },
-        update: {
-          permit: { connect: { id: userPermit.id } },
-          ...(language ? { language } : {}),
-        },
-        create: {
+      const user = await tx.user.create({
+        data: {
           email,
           ...(language ? { language } : {}),
           permit: { connect: { id: userPermit.id } },
@@ -331,7 +358,9 @@ export class AuthService {
     });
   }
 
-  async signOut(userId: string) {
+  // Signs out the device that holds this refresh token. Without one — an app
+  // version that did not send it — every session ends, as it always did.
+  async signOut(userId: string, refreshToken?: string) {
     if (!userId) {
       throw new BadRequestException('error.userIdRequired');
     }
@@ -342,7 +371,18 @@ export class AuthService {
       throw new NotFoundException('error.userNotFound');
     }
 
-    await this.revokeAllSessions(userId);
+    if (refreshToken) {
+      await this.prisma.session.updateMany({
+        where: {
+          userId,
+          refreshTokenHash: this.helperService.hashToken(refreshToken),
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+    } else {
+      await this.revokeAllSessions(userId);
+    }
 
     return ok({
       header: 'auth.logoutHeader',
@@ -363,72 +403,60 @@ export class AuthService {
       throw new UnauthorizedException('error.sessionExpired');
     }
 
+    const now = new Date();
+
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash: this.helperService.hashToken(refreshToken) },
       include: { user: { select: { id: true, email: true } } },
     });
 
-    if (!session) {
-      this.logger.warn(
-        `Refresh token replay detected for user ${decoded.userId}; sessions revoked`,
-      );
-      await this.revokeAllSessions(decoded.userId);
+    if (
+      !session ||
+      session.userId !== decoded.userId ||
+      session.expiresAt <= now
+    ) {
       throw new UnauthorizedException('error.sessionExpired');
     }
 
-    if (session.revokedAt || session.expiresAt <= new Date()) {
-      throw new UnauthorizedException('error.sessionExpired');
-    }
+    if (session.revokedAt) {
+      // Signed out, or ended by a password change or reset.
+      if (!session.rotatedAt) {
+        throw new UnauthorizedException('error.sessionExpired');
+      }
 
-    if (session.userId !== decoded.userId) {
-      throw new UnauthorizedException('error.sessionExpired');
+      if (
+        now.getTime() - session.rotatedAt.getTime() >
+        REFRESH_REUSE_GRACE_MS
+      ) {
+        this.logger.warn(
+          `Refresh token replay detected for user ${session.userId}; sessions revoked`,
+        );
+        await this.revokeAllSessions(session.userId);
+        throw new UnauthorizedException('error.sessionExpired');
+      }
+
+      // Exchanged a moment ago and presented again: the answer to that
+      // exchange never reached the phone.
+      const reissued = await this.createSession(session.user);
+
+      return ok({ data: this.sessionIssued(session.userId, reissued) });
     }
 
     const issued = await this.prisma.$transaction(async (tx) => {
-      await tx.session.delete({ where: { id: session.id } });
+      const rotated = await tx.session.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: now, rotatedAt: now, lastUsedAt: now },
+      });
+
+      // Ended between the lookup and here, by a sign-out or a reset.
+      if (rotated.count === 0) {
+        throw new UnauthorizedException('error.sessionExpired');
+      }
+
       return this.createSession(session.user, tx);
     });
 
-    return ok({
-      data: {
-        userId: session.userId,
-        accessToken: issued.accessToken,
-        refreshToken: issued.refreshToken,
-      },
-    });
-  }
-
-  async forgotPassword(email: string, language?: AppLanguage) {
-    const user = await this.findUserByEmail(email);
-    if (!user?.manuelAuth) {
-      return FORGOT_PASSWORD_RESPONSE;
-    }
-
-    const { token, tokenHash, expiresAt } =
-      this.helperService.createPasswordResetToken();
-
-    await this.supersedeAndCreate(user.id, {
-      channel: PasswordResetChannel.LINK,
-      tokenHash,
-      expiresAt,
-      verifiedAt: new Date(),
-    });
-
-    const frontendUrl = this.config.get('FRONTEND_URL', { infer: true });
-    const resetTokenUrl = `${frontendUrl}/reset-password/${token}`;
-
-    const say = this.sayTo(user.language, language);
-
-    await this.emailService.sendEmail({
-      to: email,
-      subject: say('email.resetSubject'),
-      text: say('email.resetBody', { link: resetTokenUrl }),
-      html: `<p>${say('email.resetBody', {
-        link: `<a href="${resetTokenUrl}">${resetTokenUrl}</a>`,
-      })}</p>`,
-    });
-
-    return FORGOT_PASSWORD_RESPONSE;
+    return ok({ data: this.sessionIssued(session.userId, issued) });
   }
 
   async requestPasswordResetCode(email: string, language?: AppLanguage) {
@@ -608,6 +636,12 @@ export class AuthService {
         data: { password: hashedPassword },
       });
 
+      // The reset code reached this address, so its owner holds the account.
+      await tx.user.updateMany({
+        where: { id: grant.userId, emailVerifiedAt: null },
+        data: { emailVerifiedAt: new Date() },
+      });
+
       await this.revokeAllSessions(grant.userId, tx);
     });
 
@@ -626,6 +660,7 @@ export class AuthService {
       where: { id: userId },
       select: {
         id: true,
+        email: true,
         manuelAuth: { select: { id: true, password: true } },
       },
     });
@@ -651,14 +686,25 @@ export class AuthService {
       body.newPassword,
     );
 
-    await this.prisma.manuelAuth.update({
-      where: { id: user.manuelAuth.id },
-      data: { password: hashedPassword },
+    const manuelAuthId = user.manuelAuth.id;
+
+    // Whoever else was signed in with the old password is signed out; this
+    // device carries on with the session issued here.
+    const tokens = await this.prisma.$transaction(async (tx) => {
+      await tx.manuelAuth.update({
+        where: { id: manuelAuthId },
+        data: { password: hashedPassword },
+      });
+
+      await this.revokeAllSessions(user.id, tx);
+
+      return this.createSession(user, tx);
     });
 
     return ok({
       header: 'auth.changedHeader',
       message: 'auth.changedMessage',
+      data: this.sessionIssued(user.id, tokens),
     });
   }
 
@@ -669,13 +715,15 @@ export class AuthService {
       where: { email },
       select: USER_GOOGLE_SELECT,
     });
-    const userPermit = await this.getDefaultPermit();
 
     if (!existingUser) {
+      const userPermit = await this.getDefaultPermit();
+
       const created = await this.prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
           data: {
             email,
+            emailVerifiedAt: new Date(),
             ...googleProfileFields(profile),
             ...(language ? { language } : {}),
             permit: { connect: { id: userPermit.id } },
@@ -705,13 +753,30 @@ export class AuthService {
     }
 
     const issued = await this.prisma.$transaction(async (tx) => {
+      let passwordRemoved = false;
+
       if (!existingUser.googleAuth) {
+        // Google has just proved that this person receives mail at the
+        // address. A password set before anyone proved that may belong to
+        // someone who registered a stranger's address and waited for them to
+        // arrive, so it does not survive the link — nor does any session it
+        // opened.
+        if (existingUser.manuelAuth && !existingUser.emailVerifiedAt) {
+          await tx.manuelAuth.delete({
+            where: { id: existingUser.manuelAuth.id },
+          });
+          await this.revokeAllSessions(existingUser.id, tx);
+          passwordRemoved = true;
+        }
+
         await tx.googleAuth.create({
           data: { email, user: { connect: { id: existingUser.id } } },
         });
       }
 
       const patch = googleProfilePatch(existingUser, profile);
+
+      if (!existingUser.emailVerifiedAt) patch.emailVerifiedAt = new Date();
 
       const user = Object.keys(patch).length
         ? await tx.user.update({
@@ -721,14 +786,20 @@ export class AuthService {
           })
         : existingUser;
 
-      return { user, ...(await this.createSession(user, tx)) };
+      return {
+        user,
+        passwordRemoved,
+        ...(await this.createSession(user, tx)),
+      };
     });
 
     await this.rememberLanguage(issued.user.id, language);
 
     return ok({
       header: 'auth.googleHeader',
-      message: 'auth.googleSignedIn',
+      message: issued.passwordRemoved
+        ? 'auth.googlePasswordRemoved'
+        : 'auth.googleSignedIn',
       data: {
         userId: issued.user.id,
         accessToken: issued.accessToken,

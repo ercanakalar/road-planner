@@ -5,7 +5,6 @@ import useConfirm from 'hooks/feedback/useConfirm';
 import useLocalMapLogic from 'hooks/map/useLocalMapLogic';
 import useStopPair from 'hooks/map/useStopPair';
 import { RoutePlace } from 'services/mapsService';
-import { showNotification } from 'services/notificationService';
 import { reportUsage } from 'services/usageReporter';
 import { useAppDispatch, useAppSelector } from 'store/hook';
 import { uploadLocalRoutes } from 'store/actions/localRouteActions';
@@ -45,26 +44,27 @@ export function useMapScreen() {
 
     const [isReordering, setIsReordering] = useState(false);
     const [isEditingDetails, setIsEditingDetails] = useState(false);
+    // The route the details editor was opened for, held by id: the active
+    // route can change while the editor is open — an upload finishing takes
+    // it off the device — and the save must not land on another one. Null
+    // means there was no route yet, and saving starts one.
+    const [editingRouteId, setEditingRouteId] = useState<string | null>(
+        null,
+    );
     const [isSearchingRoute, setIsSearchingRoute] = useState(false);
     const [isPickingRoute, setIsPickingRoute] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
 
     const openRouteSearch = useCallback(() => setIsSearchingRoute(true), []);
     const closeRouteSearch = useCallback(() => setIsSearchingRoute(false), []);
-    // The route only exists once its first stop is added, so until then
-    // there is nothing to hold a title or description.
+    const activeRouteId = activeRoute?.id;
     const openDetailsEditor = useCallback(() => {
-        if (!activeRoute) {
-            showNotification({
-                type: 'info',
-                header: t('toast.addStopFirst'),
-                message: t('toast.addStopFirstHint'),
-                visibilityTime: 3000,
-            });
-            return;
-        }
+        setEditingRouteId(activeRouteId ?? null);
         setIsEditingDetails(true);
-    }, [activeRoute, t]);
+    }, [activeRouteId]);
+    const editingRoute = editingRouteId
+        ? routes.find((route) => route.id === editingRouteId)
+        : undefined;
     const closeDetailsEditor = useCallback(
         () => setIsEditingDetails(false),
         [],
@@ -154,17 +154,40 @@ export function useMapScreen() {
 
     const handleSaveDetails = useCallback(
         ({ title, description }: DetailsDraft) => {
-            if (!activeRoute) return;
-            dispatch(
-                localRouteDetailsChanged({
-                    routeId: activeRoute.id,
-                    title,
-                    description,
-                }),
-            );
             setIsEditingDetails(false);
+
+            if (editingRouteId) {
+                // Gone since the editor opened: saved to the account, or
+                // deleted. There is nothing left on the device to rename.
+                if (!routes.some((route) => route.id === editingRouteId)) {
+                    return;
+                }
+                dispatch(
+                    localRouteDetailsChanged({
+                        routeId: editingRouteId,
+                        title,
+                        description,
+                    }),
+                );
+                return;
+            }
+
+            // Named before its first stop: the route starts here.
+            const { payload: created } = dispatch(
+                localRouteCreated(title || t('defaults.myRoute')),
+            );
+            if (description) {
+                dispatch(
+                    localRouteDetailsChanged({
+                        routeId: created.id,
+                        title: created.title,
+                        description,
+                    }),
+                );
+            }
+            reportUsage('map_local_route_created');
         },
-        [activeRoute, dispatch],
+        [dispatch, editingRouteId, routes, t],
     );
 
     return {
@@ -179,6 +202,10 @@ export function useMapScreen() {
         sheetGesturesEnabled: !map.draggingStopId && !isReordering,
         setIsReordering,
         isEditingDetails,
+        detailsDraft: {
+            title: editingRoute?.title,
+            description: editingRoute?.description,
+        },
         openDetailsEditor,
         closeDetailsEditor,
         handleSaveDetails,

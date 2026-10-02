@@ -39,15 +39,17 @@ const ThemedToast = () => {
   const config = useMemo<ToastConfig>(() => {
     const build = (accent: string) => {
       const styles = createToastStyles(colors, accent);
-      return (props: BaseToastProps) => (
-        <BaseToast
-          {...props}
-          style={styles.toast}
-          contentContainerStyle={styles.content}
-          text1Style={styles.text1}
-          text2Style={styles.text2}
-        />
-      );
+      return function ThemedToastBody(props: BaseToastProps) {
+        return (
+          <BaseToast
+            {...props}
+            style={styles.toast}
+            contentContainerStyle={styles.content}
+            text1Style={styles.text1}
+            text2Style={styles.text2}
+          />
+        );
+      };
     };
 
     return {

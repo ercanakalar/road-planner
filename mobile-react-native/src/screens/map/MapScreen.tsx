@@ -69,6 +69,7 @@ const MapScreen = () => {
     sheetGesturesEnabled,
     setIsReordering,
     isEditingDetails,
+    detailsDraft,
     openDetailsEditor,
     closeDetailsEditor,
     handleSaveDetails,
@@ -203,8 +204,8 @@ const MapScreen = () => {
         visible={isEditingDetails}
         heading={t('routes.routeDetails')}
         hint={t('mapUi.localHint')}
-        initialTitle={activeRoute?.title}
-        initialDescription={activeRoute?.description}
+        initialTitle={detailsDraft.title}
+        initialDescription={detailsDraft.description}
         titleLabel={t('defaults.routeName')}
         onSave={handleSaveDetails}
         onCancel={closeDetailsEditor}

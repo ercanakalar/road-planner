@@ -18,6 +18,7 @@ export function useProfileScreen(
   const confirm = useConfirm();
   const { t } = useTranslation();
   const userId = useAppSelector((state) => state.auth.userId);
+  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
 
   const [logoutTrigger, { isLoading: isLoggingOut }] = useLogoutMutation();
 
@@ -37,13 +38,13 @@ export function useProfileScreen(
 
   const confirmLogout = useCallback(async () => {
     try {
-      await logoutTrigger().unwrap();
+      await logoutTrigger({ refreshToken }).unwrap();
     } catch {
     } finally {
       dispatch(logout());
       navigation.reset({ index: 0, routes: [{ name: 'HomeTabNavigator' }] });
     }
-  }, [dispatch, logoutTrigger, navigation]);
+  }, [dispatch, logoutTrigger, navigation, refreshToken]);
 
   const handleLogout = useCallback(async () => {
     const confirmed = await confirm({

@@ -188,6 +188,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
+    // A constraint checked at COMMIT — the deferred (roadId, order) one — fails
+    // outside any query, so the driver adapter's error arrives unwrapped.
+    const adapterState = driverAdapterSqlState(exception);
+    if (adapterState !== undefined) {
+      const mapped = SQLSTATE_ERRORS[adapterState];
+
+      return {
+        ...(mapped
+          ? { status: mapped.status, body: { message: mapped.message } }
+          : this.internal()),
+        logDetail: `Database ${adapterState}: ${messageOf(exception)}`,
+      };
+    }
+
     if (exception instanceof Prisma.PrismaClientValidationError) {
       return {
         ...this.internal(),
@@ -212,9 +226,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private bySqlState(
     exception: Prisma.PrismaClientKnownRequestError,
   ): { status: HttpStatus; message: string } | undefined {
-    const sqlState = (exception.meta as { code?: unknown } | undefined)?.code;
+    const meta = exception.meta as
+      { code?: unknown; driverAdapterError?: unknown } | undefined;
 
-    return typeof sqlState === 'string' ? SQLSTATE_ERRORS[sqlState] : undefined;
+    // Prisma's own engine put the SQLSTATE in meta.code; a driver adapter
+    // (PrismaPg, which this API runs on) nests it in the error it wraps.
+    const sqlState =
+      typeof meta?.code === 'string'
+        ? meta.code
+        : driverAdapterSqlState(meta?.driverAdapterError);
+
+    return sqlState === undefined ? undefined : SQLSTATE_ERRORS[sqlState];
   }
 
   private internal(): Described {
@@ -247,6 +269,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     this.logger.debug(line);
   }
+}
+
+// The SQLSTATE a driver adapter's error carries, as cause.originalCode.
+function driverAdapterSqlState(error: unknown): string | undefined {
+  if (!(error instanceof Error) && typeof error !== 'object') return undefined;
+  if ((error as { name?: unknown } | null)?.name !== 'DriverAdapterError') {
+    return undefined;
+  }
+
+  const code = (error as { cause?: { originalCode?: unknown } }).cause
+    ?.originalCode;
+
+  return typeof code === 'string' ? code : undefined;
 }
 
 function messageOf(exception: unknown): string {

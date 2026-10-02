@@ -33,7 +33,7 @@ describe('RoadVisibility', () => {
         OR: [
           { userId: 'user-1', archivedAt: null },
           { isPublic: true, archivedAt: null },
-          { favoriteRoads: { some: { userId: 'user-1' } } },
+          { favoriteRoads: { some: { userId: 'user-1' } }, archivedAt: null },
         ],
       });
     });
@@ -44,7 +44,12 @@ describe('RoadVisibility', () => {
         OR: [
           { road: { userId: 'user-1', archivedAt: null } },
           { road: { isPublic: true, archivedAt: null } },
-          { road: { favoriteRoads: { some: { userId: 'user-1' } } } },
+          {
+            road: {
+              favoriteRoads: { some: { userId: 'user-1' } },
+              archivedAt: null,
+            },
+          },
           { favoriteStops: { some: { userId: 'user-1' } } },
         ],
       });
@@ -52,18 +57,20 @@ describe('RoadVisibility', () => {
   });
 
   describe('archival', () => {
-    it('excludes archived roads from every branch that is not a favourite', () => {
+    it('excludes archived roads from every branch, favourites included', () => {
       const where = visibility.road('road-1', 'user-1');
 
-      expect(where.OR?.[0]).toMatchObject({ archivedAt: null });
-      expect(where.OR?.[1]).toMatchObject({ archivedAt: null });
+      for (const branch of where.OR ?? []) {
+        expect(branch).toMatchObject({ archivedAt: null });
+      }
     });
 
-    it('keeps a favourited road readable after its owner deletes it', () => {
+    it('keeps a favourited road readable while it exists, shared or not', () => {
       const where = visibility.road('road-1', 'user-1');
 
       expect(where.OR?.[2]).toEqual({
         favoriteRoads: { some: { userId: 'user-1' } },
+        archivedAt: null,
       });
     });
 

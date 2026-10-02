@@ -185,10 +185,11 @@ class SearchTermConstraint implements ValidatorConstraintInterface {
 
   defaultMessage({ value }: ValidationArguments): string {
     if (value === undefined || value === null) {
-      return 'give a query, a category, or both to search for';
+      return 'validation.searchNeedsTerm';
     }
 
-    return `query must be between ${ROUTE_SEARCH_QUERY_MIN_LENGTH} and ${SHORT_TEXT_MAX_LENGTH} characters`;
+    // The locale states the upper bound, SHORT_TEXT_MAX_LENGTH, in words.
+    return `validation.searchTermLength ${ROUTE_SEARCH_QUERY_MIN_LENGTH}`;
   }
 }
 

@@ -61,7 +61,10 @@ describe('RoadService', () => {
             OR: [
               { userId: 'user-1', archivedAt: null },
               { isPublic: true, archivedAt: null },
-              { favoriteRoads: { some: { userId: 'user-1' } } },
+              {
+                favoriteRoads: { some: { userId: 'user-1' } },
+                archivedAt: null,
+              },
             ],
           },
         }),
@@ -492,11 +495,38 @@ describe('RoadService', () => {
       expect(updateValues()).toContain(null);
     });
 
-    it('clears every stop when the payload has none', async () => {
+    it('leaves every stop alone when no list of stops is sent', async () => {
       prisma.stop.findMany.mockResolvedValue(existing(['wp-1', 'wp-2']));
       prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, stops: [] });
 
       await service.updateRoadById(ROAD_ID, { title: 'T', description: 'D' });
+
+      expect(prisma.stop.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.stop.createMany).not.toHaveBeenCalled();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+      expect(prisma.road.update).toHaveBeenCalledWith({
+        where: { id: ROAD_ID },
+        data: { title: 'T', description: 'D' },
+      });
+    });
+
+    it('measures no heights for a details-only update', async () => {
+      prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, stops: [] });
+
+      await service.updateRoadById(ROAD_ID, { title: 'T', description: 'D' });
+
+      expect(elevation.elevations).not.toHaveBeenCalled();
+    });
+
+    it('clears every stop when sent an empty list of them', async () => {
+      prisma.stop.findMany.mockResolvedValue(existing(['wp-1', 'wp-2']));
+      prisma.road.findUnique.mockResolvedValue({ id: ROAD_ID, stops: [] });
+
+      await service.updateRoadById(ROAD_ID, {
+        title: 'T',
+        description: 'D',
+        stops: [],
+      });
 
       expect(prisma.stop.deleteMany).toHaveBeenCalledWith({
         where: { id: { in: ['wp-1', 'wp-2'] } },
@@ -714,7 +744,7 @@ describe('RoadService', () => {
       expect(sql).toContain('"archivedAt" IS NULL');
     });
 
-    it('still lets someone who favourited an archived road read it', async () => {
+    it('no longer lets someone who favourited an archived road read it', async () => {
       prisma.road.findFirst.mockResolvedValue({
         id: ROAD_ID,
         favoriteRoads: [{ id: 'fav-1' }],
@@ -725,6 +755,7 @@ describe('RoadService', () => {
       const { where } = prisma.road.findFirst.mock.calls[0][0];
       expect(where.OR).toContainEqual({
         favoriteRoads: { some: { userId: 'user-2' } },
+        archivedAt: null,
       });
       expect(where.OR).toContainEqual({ userId: 'user-2', archivedAt: null });
     });
