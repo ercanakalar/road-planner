@@ -127,8 +127,13 @@ say "1/7 Checking the secrets this deploy references"
 # Discovering that here costs a second. Discovering it at step 5 costs two
 # image builds and pushes first.
 missing=()
-for name in DATABASE_URL ACCESS_KEY REFRESH_KEY ROAD_SHARE_KEY AUDIT_HASH_KEY \
-            MAIL_PASSWORD MAP_API_KEY; do
+# DATABASE_URL_UNPOOLED is in this list because it was once left out of it:
+# the create-if-missing block further down never refreshes a secret that
+# already exists, so it stayed pinned to a Neon endpoint that had been gone
+# for months while every deploy reported success. The migration job then
+# failed P1000 against credentials nothing in this repo mentioned any more.
+for name in DATABASE_URL DATABASE_URL_UNPOOLED ACCESS_KEY REFRESH_KEY \
+            ROAD_SHARE_KEY AUDIT_HASH_KEY MAIL_PASSWORD MAP_API_KEY; do
   # A value present in the env file is one this script can store itself. The
   # four keys are generated rather than configured, so they are never in that
   # file and a missing one has to be created deliberately below.

@@ -631,28 +631,28 @@ async function main(): Promise<void> {
     );
   }
 
-  console.log(`Creating ${USER_COUNT} users...`);
+//   console.log(`Creating ${USER_COUNT} users...`);
 
-  const users = await createUsers();
+//   const users = await createUsers();
 
-  console.log(`Creating ${ROUTE_COUNT} routes...`);
+//   console.log(`Creating ${ROUTE_COUNT} routes...`);
 
-  const routes = await createRoutes(users);
+//   const routes = await createRoutes(users);
 
-  const plannedStops = routes.reduce(
-    (total, route) => total + stopsForRoute(route.routeNumber),
-    0,
-  );
+//   const plannedStops = routes.reduce(
+//     (total, route) => total + stopsForRoute(route.routeNumber),
+//     0,
+//   );
 
-  console.log(`Creating up to ${plannedStops} stops...`);
+//   console.log(`Creating up to ${plannedStops} stops...`);
 
-  await createStops(routes);
+//   await createStops(routes);
 
-  console.log('Creating favorites...');
+//   console.log('Creating favorites...');
 
-  await createFavorites(users);
+//   await createFavorites(users);
 
-  await printStatistics();
+//   await printStatistics();
 }
 
 main()
