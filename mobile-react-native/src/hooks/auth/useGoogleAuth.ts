@@ -173,6 +173,7 @@ const withTimeout = <T>(work: Promise<T>, message: string): Promise<T> =>
 interface GoogleAuthState {
     isAvailable: boolean;
     isBusy: boolean;
+    isSigningIn: boolean;
     error: Error | null;
     unavailableReason: string | null;
     signIn: () => Promise<void>;
@@ -192,6 +193,7 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
     });
     const [signInWithGoogle, { isLoading }] = useSignInWithGoogleMutation();
     const [isPrompting, setIsPrompting] = useState(false);
+    const [isExchanging, setIsExchanging] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const exchanged = useRef<string | null>(null);
 
@@ -238,6 +240,7 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
         exchanged.current = outcome.code;
 
         setError(null);
+        setIsExchanging(true);
 
         const finish = async () => {
             const codeVerifier = requestRef.current?.codeVerifier;
@@ -271,7 +274,9 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
                 fail(describeSignInError(cause), cause);
             })
             .finally(() => {
-                if (isMounted.current) setIsPrompting(false);
+                if (!isMounted.current) return;
+                setIsPrompting(false);
+                setIsExchanging(false);
             });
     }, [fail, redirectUri, response, signInWithGoogle]);
 
@@ -308,7 +313,11 @@ export function useGoogleAuth(onSuccess?: () => void): GoogleAuthState {
 
     return {
         isAvailable: isGoogleAuthConfigured && !isExpoGo,
-        isBusy: isPrompting || isLoading,
+        isBusy: isPrompting || isExchanging || isLoading,
+        isSigningIn:
+            isExchanging ||
+            isLoading ||
+            (Platform.OS === 'android' && isPrompting),
         error,
         unavailableReason:
             isGoogleAuthConfigured && isExpoGo

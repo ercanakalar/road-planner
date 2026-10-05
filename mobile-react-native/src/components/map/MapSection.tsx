@@ -138,13 +138,16 @@ StopMarker.displayName = 'StopMarker';
 const FoundPlaceMarker = memo(
   ({
     place,
+    number,
     onPress,
   }: {
     place: RoutePlace;
+    number: number;
     onPress?: (place: RoutePlace) => void;
   }) => {
-    const { colors } = useTheme();
+    const styles = useThemedStyles(createStyles);
     const { t } = useTranslation();
+    const [isBadgePainted, setIsBadgePainted] = useState(false);
 
     const handlePress = useCallback(() => onPress?.(place), [onPress, place]);
 
@@ -157,13 +160,17 @@ const FoundPlaceMarker = memo(
       <Marker
         coordinate={coordinate}
         onPress={handlePress}
-        tracksViewChanges={false}
-        pinColor={colors.place}
-        title={place.name}
+        tracksViewChanges={!isBadgePainted}
+        anchor={{ x: 0.5, y: 0.5 }}
+        title={`${number}. ${place.name}`}
         description={t('mapUi.offRoute', {
           distance: metersToDistance(place.distanceFromRouteMeters),
         })}
-      />
+      >
+        <View style={styles.placePin} onLayout={() => setIsBadgePainted(true)}>
+          <Text style={styles.placePinText}>{number}</Text>
+        </View>
+      </Marker>
     );
   },
 );
@@ -395,10 +402,11 @@ const MapSectionComponent = ({
           <RouteLine coordinates={routeCoordinates} lineStyle={lineStyle} />
         )}
 
-        {foundPlaces?.map((place) => (
+        {foundPlaces?.map((place, index) => (
           <FoundPlaceMarker
-            key={place.placeId}
+            key={`${place.placeId}:${index}`}
             place={place}
+            number={index + 1}
             onPress={onFoundPlacePress}
           />
         ))}
@@ -482,6 +490,23 @@ const createStyles = (colors: ThemeColors) =>
     },
     selectionPinText: {
       ...typography.label,
+      color: colors.textInverse,
+      fontWeight: '700',
+    },
+    placePin: {
+      minWidth: 28,
+      height: 28,
+      paddingHorizontal: spacing.xs,
+      borderRadius: radius.pill,
+      backgroundColor: colors.place,
+      borderWidth: 2,
+      borderColor: colors.textInverse,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.md,
+    },
+    placePinText: {
+      ...typography.caption,
       color: colors.textInverse,
       fontWeight: '700',
     },

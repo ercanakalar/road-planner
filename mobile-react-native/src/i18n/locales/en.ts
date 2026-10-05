@@ -144,6 +144,7 @@ const en = {
         forgotPassword: 'Forgotten your password?',
         continueWithGoogle: 'Continue with Google',
         signUpWithGoogle: 'Sign up with Google',
+        signingInWithGoogle: 'Signing you in with Google…',
         createAccount: 'Create your account',
         createAccountSubtitle:
             'Plan routes and save the places that matter to you.',
@@ -439,6 +440,10 @@ const en = {
         withinOfRoute: 'Within {{distance}} of your route',
         addSecondStop: 'Add a second stop to search along a route',
         offRoute: '{{distance}} off the route',
+        placeCount_one: '{{count}} place',
+        placeCount_other: '{{count}} places',
+        partialSearch:
+            'This route is long, so only parts of it were searched. A wider radius covers more of it.',
         addPlaceToRoute: 'Add {{name}} to the route',
         walking: 'Walking',
         driving: 'Driving',
@@ -652,6 +657,12 @@ const en = {
         saveChanges: 'Save changes',
         nothingToSave: 'Nothing to save',
         nickName: 'Nickname',
+    },
+
+    share: {
+        dialogTitle: 'Share “{{title}}”',
+        message: '“{{title}}” on Travel Routes — open it in the app:\n{{url}}',
+        messageWithoutLink: '“{{title}}” on Travel Routes',
     },
 
     defaults: {

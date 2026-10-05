@@ -175,10 +175,12 @@ SortChip.displayName = 'RouteSearchSortChip';
 const PlaceRow = memo(
   ({
     place,
+    number,
     onShowOnMap,
     onAddStop,
   }: {
     place: RoutePlace;
+    number: number;
     onShowOnMap: (place: RoutePlace) => void;
     onAddStop: (place: RoutePlace) => void;
   }) => {
@@ -197,10 +199,14 @@ const PlaceRow = memo(
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         onPress={handleShow}
         accessibilityRole='button'
-        accessibilityLabel={`${place.name}, ${metersToDistance(
-          place.distanceFromRouteMeters,
-        )} off the route`}
+        accessibilityLabel={`${number}. ${place.name}, ${t('mapUi.offRoute', {
+          distance: metersToDistance(place.distanceFromRouteMeters),
+        })}`}
       >
+        <View style={styles.rowNumber}>
+          <Text style={styles.rowNumberText}>{number}</Text>
+        </View>
+
         <View style={styles.rowText}>
           <Text style={styles.rowTitle} numberOfLines={1}>
             {place.name}
@@ -283,9 +289,10 @@ const RouteSearchSheet = ({
   } = search;
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<RoutePlace>) => (
+    ({ item, index }: ListRenderItemInfo<RoutePlace>) => (
       <PlaceRow
         place={item}
+        number={index + 1}
         onShowOnMap={onShowOnMap}
         onAddStop={onAddStop}
       />
@@ -398,7 +405,7 @@ const RouteSearchSheet = ({
               keyboardShouldPersistTaps='handled'
             >
               <Text style={styles.resultsCount}>
-                {places.length} place{places.length === 1 ? '' : 's'}
+                {t('mapUi.placeCount', { count: places.length })}
               </Text>
 
               <View style={styles.chipDivider} />
@@ -430,8 +437,7 @@ const RouteSearchSheet = ({
                     color={colors.warning}
                   />
                   <Text style={styles.noticeText}>
-                    This route is long enough that only stretches of it were
-                    searched. A wider radius covers more of it.
+                    {t('mapUi.partialSearch')}
                   </Text>
                 </View>
               ) : null
@@ -579,6 +585,20 @@ const createStyles = (colors: ThemeColors) =>
       borderTopColor: colors.border,
     },
     rowPressed: { backgroundColor: colors.surfaceAlt },
+    rowNumber: {
+      minWidth: 26,
+      height: 26,
+      paddingHorizontal: spacing.xs,
+      borderRadius: radius.pill,
+      backgroundColor: colors.place,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowNumberText: {
+      ...typography.caption,
+      color: colors.textInverse,
+      fontWeight: '700',
+    },
     rowText: { flex: 1, gap: 2 },
     rowTitle: {
       ...typography.body,

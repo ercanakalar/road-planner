@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Platform, Share } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { buildShareLink } from 'constants/shareLinks';
 import { useLazyShareRouteQuery } from 'store/services/routeService';
@@ -9,15 +10,13 @@ interface ShareableRoute {
   title: string;
 }
 
-const shareMessage = (title: string, url: string): string =>
-  `${title}\n${url}`;
-
 interface ShareRouteState {
   shareRoute: (route: ShareableRoute) => Promise<void>;
   sharingRouteId: string | null;
 }
 
 export function useShareRoute(): ShareRouteState {
+  const { t } = useTranslation();
   const [requestShareLink] = useLazyShareRouteQuery();
   const [sharingRouteId, setSharingRouteId] = useState<string | null>(null);
 
@@ -28,18 +27,23 @@ export function useShareRoute(): ShareRouteState {
       try {
         const link = await requestShareLink({ routeId: route.id }).unwrap();
         const url = buildShareLink(link.token, link.url);
-        const message = shareMessage(route.title, url);
+        const message = t('share.message', { title: route.title, url });
 
         await Share.share(
-          Platform.OS === 'ios' ? { message: route.title, url } : { message },
-          { dialogTitle: `Share ${route.title}` },
+          Platform.OS === 'ios'
+            ? {
+                message: t('share.messageWithoutLink', { title: route.title }),
+                url,
+              }
+            : { message },
+          { dialogTitle: t('share.dialogTitle', { title: route.title }) },
         );
       } catch {
       } finally {
         setSharingRouteId(null);
       }
     },
-    [requestShareLink],
+    [requestShareLink, t],
   );
 
   return { shareRoute, sharingRouteId };

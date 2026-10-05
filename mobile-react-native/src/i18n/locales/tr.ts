@@ -147,6 +147,7 @@ const tr: Translations = {
         forgotPassword: 'Parolanızı mı unuttunuz?',
         continueWithGoogle: 'Google ile devam et',
         signUpWithGoogle: 'Google ile kayıt ol',
+        signingInWithGoogle: 'Google ile giriş yapılıyor…',
         createAccount: 'Hesabınızı oluşturun',
         createAccountSubtitle:
             'Rotalar planlayın, sizin için önemli yerleri kaydedin.',
@@ -446,6 +447,10 @@ const tr: Translations = {
         addSecondStop:
             'Rota üzerinde arama yapmak için ikinci bir durak ekleyin',
         offRoute: 'Rotadan {{distance}} uzakta',
+        placeCount_one: '{{count}} yer',
+        placeCount_other: '{{count}} yer',
+        partialSearch:
+            'Bu rota uzun olduğu için yalnızca bazı bölümlerinde arama yapıldı. Daha geniş bir yarıçap rotanın daha fazlasını kapsar.',
         addPlaceToRoute: '{{name}} yerini rotaya ekle',
         walking: 'Yürüyerek',
         driving: 'Arabayla',
@@ -658,6 +663,12 @@ const tr: Translations = {
         saveChanges: 'Değişiklikleri kaydet',
         nothingToSave: 'Kaydedilecek bir değişiklik yok',
         nickName: 'Kullanıcı adı',
+    },
+
+    share: {
+        dialogTitle: '“{{title}}” rotasını paylaş',
+        message: 'Travel Routes’ta “{{title}}” rotası — uygulamada açın:\n{{url}}',
+        messageWithoutLink: 'Travel Routes’ta “{{title}}” rotası',
     },
 
     defaults: {

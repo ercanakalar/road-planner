@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+import BlockingOverlay from 'components/feedback/BlockingOverlay';
 import { useGoogleAuth } from 'hooks/auth/useGoogleAuth';
 import { radius, spacing, typography, useTheme, useThemedStyles } from 'theme';
 import type { ThemeColors } from 'theme';
@@ -23,7 +24,7 @@ const GoogleSignInButton = ({ label, onSuccess }: Props) => {
   const styles = useThemedStyles(createStyles);
   const { t } = useTranslation();
   const buttonLabel = label ?? t('auth.continueWithGoogle');
-  const { isAvailable, isBusy, error, unavailableReason, signIn } =
+  const { isAvailable, isBusy, isSigningIn, error, unavailableReason, signIn } =
     useGoogleAuth(onSuccess);
 
   if (!isAvailable && !unavailableReason) return null;
@@ -67,6 +68,11 @@ const GoogleSignInButton = ({ label, onSuccess }: Props) => {
           {error.message}
         </Text>
       ) : null}
+
+      <BlockingOverlay
+        visible={isSigningIn}
+        message={t('auth.signingInWithGoogle')}
+      />
     </View>
   );
 };
