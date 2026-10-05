@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.travelroutes.travelroutes",
+      "sha256_cert_fingerprints": [
+        "78:D1:AF:19:11:F8:6B:D6:CA:90:B1:EA:1F:BA:82:64:8A:DE:46:EA:2C:A2:B9:DE:BF:37:B6:CE:DE:6B:41:10"
+      ]
+    }
+  }
+]

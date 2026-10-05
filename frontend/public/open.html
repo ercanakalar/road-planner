@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Travel Routes</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Travel Routes">
+  <meta property="og:title" content="A route on Travel Routes">
+  <meta property="og:description" content="Tap to open it in the Travel Routes app.">
+  <meta property="og:image" content="https://travelroutes.net/og-image.png">
+  <style>
+    :root { color-scheme: light dark; --brand: #1967d2; --text: #202124; --muted: #5f6368; --bg: #fff; --line: #e0e3e7; }
+    @media (prefers-color-scheme: dark) {
+      :root { --brand: #8ab4f8; --text: #e8eaed; --muted: #9aa0a6; --bg: #202124; --line: #3c4043; }
+    }
+    body { margin: 0; min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 360px; padding: 32px 16px; text-align: center; display: flex; flex-direction: column; gap: 16px; }
+    h1 { margin: 0; font-size: 22px; }
+    p { margin: 0; color: var(--muted); line-height: 1.5; }
+    a { display: block; padding: 14px 20px; border-radius: 999px; font-weight: 600; text-decoration: none; }
+    #open { background: var(--brand); color: var(--bg); }
+    #store { border: 1px solid var(--line); color: var(--brand); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title">Opening Travel Routes…</h1>
+    <p id="body">If the app does not open, tap the button below.</p>
+    <a id="open" href="#">Open in the app</a>
+    <a id="store" href="https://play.google.com/store/apps/details?id=net.travelroutes.travelroutes">Get it on Google Play</a>
+  </main>
+  <script>
+    (function () {
+      var PACKAGE = 'net.travelroutes.travelroutes';
+      var PLAY = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+
+      var match = location.pathname.match(/^\/(share|route)\/([^/?#]+)\/?$/);
+      if (!match) {
+        location.replace(PLAY);
+        return;
+      }
+
+      var path = match[1] + '/' + match[2];
+      var isAndroid = /android/i.test(navigator.userAgent);
+      var appLink = isAndroid
+        ? 'intent://' + path + '#Intent;scheme=' + PACKAGE + ';package=' + PACKAGE +
+          ';S.browser_fallback_url=' + encodeURIComponent(PLAY) + ';end'
+        : PACKAGE + '://' + path;
+
+      if (/^tr\b/i.test(navigator.language || '')) {
+        document.documentElement.lang = 'tr';
+        document.title = 'Travel Routes';
+        document.getElementById('title').textContent = 'Travel Routes açılıyor…';
+        document.getElementById('body').textContent = 'Uygulama açılmazsa aşağıdaki düğmeye dokunun.';
+        document.getElementById('open').textContent = 'Uygulamada aç';
+        document.getElementById('store').textContent = 'Google Play’den indir';
+      }
+
+      document.getElementById('open').href = appLink;
+
+      if (isAndroid) location.replace(appLink);
+    })();
+  </script>
+</body>
+</html>
