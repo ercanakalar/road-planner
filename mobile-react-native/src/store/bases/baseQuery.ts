@@ -4,6 +4,7 @@ import {
   FetchBaseQueryError,
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query';
+import { jwtDecode } from 'jwt-decode';
 
 import i18n from 'i18n';
 
@@ -128,6 +129,38 @@ const isPublicAuthRoute = (args: string | FetchArgs): boolean => {
   return url.startsWith('/auth/');
 };
 
+// Access tokens live fifteen minutes, so after the app has been closed the
+// one it wakes up with has nearly always run out. Sending it anyway costs a
+// 401 — from a server that may still be starting — then the refresh, then
+// the request again. Refreshing first saves that first trip. A token that
+// cannot be read is sent as it is and left for the server to judge.
+const EXPIRY_MARGIN_S = 30;
+
+const expiresSoon = (token: string | null | undefined): boolean => {
+  if (!token) return false;
+  try {
+    const { exp } = jwtDecode<{ exp?: number }>(token);
+    return (
+      typeof exp === 'number' &&
+      exp - EXPIRY_MARGIN_S <= Math.floor(Date.now() / 1000)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const sharedRefresh = (
+  api: Parameters<BaseQueryFn>[1],
+  extraOptions: Parameters<BaseQueryFn>[2],
+): Promise<RefreshOutcome> => {
+  refreshInFlight =
+    refreshInFlight ??
+    refreshSession(api, extraOptions).finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+};
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -135,6 +168,16 @@ const baseQueryWithReauth: BaseQueryFn<
   { maxRetries?: number }
 > = async (args, api, extraOptions) => {
   const maxRetries = extraOptions?.maxRetries ?? MAX_RETRIES;
+
+  if (!isPublicAuthRoute(args)) {
+    const token =
+      (api.getState() as RootState).auth.accessToken ??
+      (await tokenStorage.getAccessToken());
+
+    // Whatever the outcome, the request goes out: a refused or unreachable
+    // refresh is handled below exactly as it was before.
+    if (expiresSoon(token)) await sharedRefresh(api, extraOptions);
+  }
 
   let result = await rawBaseQuery(args, api, extraOptions);
 
@@ -148,13 +191,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
   if (result.error?.status !== 401 || isPublicAuthRoute(args)) return result;
 
-  refreshInFlight =
-    refreshInFlight ??
-    refreshSession(api, extraOptions).finally(() => {
-      refreshInFlight = null;
-    });
-
-  const outcome = await refreshInFlight;
+  const outcome = await sharedRefresh(api, extraOptions);
 
   if (outcome.kind === 'refused') {
     await tokenStorage.clear();

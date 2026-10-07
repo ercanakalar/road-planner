@@ -301,3 +301,120 @@ describe('401 handling', () => {
     expect(refreshCalls).toHaveLength(1);
   });
 });
+
+describe('an access token that has run out', () => {
+  const jwt = (secondsFromNow: number) => {
+    const part = (value: object) =>
+      Buffer.from(JSON.stringify(value)).toString('base64url');
+    const exp = Math.floor(Date.now() / 1000) + secondsFromNow;
+    return `${part({ alg: 'HS256' })}.${part({ userId: 'u1', exp })}.sig`;
+  };
+
+  // A store whose token follows the refresh, as the real one does.
+  const runWithToken = (url: string, initialToken: string) => {
+    let accessToken = initialToken;
+    const api = {
+      signal: new AbortController().signal,
+      dispatch: jest.fn((action: { type: string; payload?: unknown }) => {
+        if (action.type === sessionRefreshed.type) {
+          accessToken = (action.payload as { accessToken: string }).accessToken;
+        }
+        return action;
+      }),
+      getState: () => ({ auth: { accessToken } }),
+      abort: jest.fn(),
+      extra: undefined,
+      endpoint: 'test',
+      type: 'query' as const,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return baseQuery()({ url, method: 'GET' }, api as any, {});
+  };
+
+  const refreshed = () =>
+    jsonResponse(
+      200,
+      envelope({
+        userId: 'u1',
+        accessToken: 'access-2',
+        refreshToken: 'refresh-2',
+      }),
+    );
+
+  const answerRefreshThenOk = () =>
+    (global.fetch as jest.Mock).mockImplementation((request: Request) =>
+      Promise.resolve(
+        request.url.endsWith('/auth/refresh-token')
+          ? refreshed()
+          : jsonResponse(200, envelope({ ok: true })),
+      ),
+    );
+
+  it('is refreshed before the request, saving the 401 round trip', async () => {
+    answerRefreshThenOk();
+
+    await expect(runWithToken('/favorites', jwt(-60))).resolves.toMatchObject({
+      data: { data: { ok: true } },
+    });
+
+    expect(requestedUrls()).toEqual([
+      'http://api.test/api/auth/refresh-token',
+      'http://api.test/api/favorites',
+    ]);
+    const request = (global.fetch as jest.Mock).mock.calls[1][0];
+    expect(request.headers.get('Authorization')).toBe('Bearer access-2');
+  });
+
+  it('is refreshed when it is about to run out', async () => {
+    answerRefreshThenOk();
+
+    await runWithToken('/favorites', jwt(10));
+
+    expect(requestedUrls()[0]).toBe('http://api.test/api/auth/refresh-token');
+  });
+
+  it('is left alone while it still has time', async () => {
+    answerRefreshThenOk();
+
+    await runWithToken('/favorites', jwt(600));
+
+    expect(requestedUrls()).toEqual(['http://api.test/api/favorites']);
+  });
+
+  it('is refreshed once for every request the screens send together', async () => {
+    answerRefreshThenOk();
+    const token = jwt(-60);
+
+    await Promise.all([
+      runWithToken('/favorites', token),
+      runWithToken('/road/own-roads', token),
+      runWithToken('/road/own-roads/summary', token),
+    ]);
+
+    expect(
+      requestedUrls().filter((url) => url.endsWith('/auth/refresh-token')),
+    ).toHaveLength(1);
+    expect(requestedUrls()).toHaveLength(4);
+  });
+
+  it('still sends the request when the refresh cannot be made', async () => {
+    (global.fetch as jest.Mock).mockImplementation((request: Request) =>
+      request.url.endsWith('/auth/refresh-token')
+        ? Promise.reject(new TypeError('Network request failed'))
+        : Promise.resolve(jsonResponse(200, envelope({ ok: true }))),
+    );
+
+    await expect(runWithToken('/favorites', jwt(-60))).resolves.toMatchObject({
+      data: { data: { ok: true } },
+    });
+    expect(tokenStorage.clear).not.toHaveBeenCalled();
+  });
+
+  it('does not hold up a sign-in', async () => {
+    answerRefreshThenOk();
+
+    await runWithToken('/auth/sign-in', jwt(-60));
+
+    expect(requestedUrls()).toEqual(['http://api.test/api/auth/sign-in']);
+  });
+});

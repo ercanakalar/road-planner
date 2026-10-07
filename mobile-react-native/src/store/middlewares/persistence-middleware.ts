@@ -1,5 +1,8 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 
+import collectionCacheStorage, {
+  CollectionPart,
+} from 'services/collectionCacheStorage';
 import kvkkStorage from 'services/kvkkStorage';
 import localRouteStorage from 'services/localRouteStorage';
 import preferencesStorage from 'services/preferencesStorage';
@@ -12,6 +15,8 @@ import {
   travelMapCleared,
 } from 'store/slices/travelMapSlice';
 import { kvkkAccepted, kvkkWithdrawn } from 'store/slices/kvkkSlice';
+import { favoriteService } from 'store/services/favoriteService';
+import { routeService } from 'store/services/routeService';
 import {
   languageSet,
   settingsRestored,
@@ -70,6 +75,50 @@ persistenceMiddleware.startListening({
   actionCreator: kvkkWithdrawn,
   effect: async () => {
     await kvkkStorage.clear();
+  },
+});
+
+// The latest answers for the Routes and Favourites screens, kept for the next
+// launch. Only the first page of routes is kept: it is what the screen opens
+// on, and the rest is fetched again as the list scrolls.
+const { getFavorites } = favoriteService.endpoints;
+const { getOwnRoutes, getOwnRoutesSummary } = routeService.endpoints;
+
+const collectionPartOf = (
+  action: unknown,
+  state: RootState,
+): CollectionPart | null => {
+  if (getFavorites.matchFulfilled(action)) {
+    const { data } = getFavorites.select(undefined)(state);
+    return data ? { favorites: data } : null;
+  }
+  if (getOwnRoutes.matchFulfilled(action)) {
+    const { data } = getOwnRoutes.select(undefined)(state);
+    if (!data?.pages.length) return null;
+    return {
+      ownRoutes: { pages: [data.pages[0]], pageParams: [data.pageParams[0]] },
+    };
+  }
+  if (getOwnRoutesSummary.matchFulfilled(action)) {
+    const { data } = getOwnRoutesSummary.select(undefined)(state);
+    return data ? { summary: data } : null;
+  }
+  return null;
+};
+
+persistenceMiddleware.startListening({
+  matcher: isAnyOf(
+    getFavorites.matchFulfilled,
+    getOwnRoutes.matchFulfilled,
+    getOwnRoutesSummary.matchFulfilled,
+  ),
+  effect: async (action, listenerApi) => {
+    const state = listenerApi.getState() as RootState;
+    const { userId, isLoggedIn } = state.auth;
+    if (!isLoggedIn || !userId) return;
+
+    const part = collectionPartOf(action, state);
+    if (part) await collectionCacheStorage.save(userId, part);
   },
 });
 

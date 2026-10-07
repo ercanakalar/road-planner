@@ -71,7 +71,7 @@ const RoutesScreen = ({ navigation }: MapScreenProps) => {
 
         {isLoading ? (
           <ScreenState variant='loading' title={t('states.loadingRoutes')} />
-        ) : isError ? (
+        ) : isError && routes.length === 0 ? (
           <ScreenState
             variant='error'
             title={t('routes.errorTitle')}

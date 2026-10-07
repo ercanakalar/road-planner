@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
+import collectionCacheStorage from 'services/collectionCacheStorage';
 import jwtService from 'services/jwtService';
 import tokenStorage from 'services/tokenStorage';
 import kvkkStorage from 'services/kvkkStorage';
 import preferencesStorage from 'services/preferencesStorage';
 import localRouteStorage from 'services/localRouteStorage';
 import travelMapStorage from 'services/travelMapStorage';
+import { hydrateCollections } from 'store/actions/collectionCacheActions';
 import { useAppDispatch } from 'store/hook';
 import { sessionRestored } from 'store/slices/authSlice';
 import { settingsRestored } from 'store/slices/settingsSlice';
@@ -49,6 +51,18 @@ export function useSessionBootstrap(): boolean {
 
         const decoded = await jwtService.decodeToken<JwtPayload>(accessToken);
         if (cancelled) return;
+
+        // What the screens showed last time goes into the cache before the
+        // session is restored, since restoring it is what sends the requests
+        // that replace it.
+        const snapshot = decoded?.userId
+          ? await collectionCacheStorage.load(decoded.userId)
+          : null;
+        if (cancelled) return;
+        if (snapshot) {
+          await dispatch(hydrateCollections(snapshot)).catch(() => undefined);
+          if (cancelled) return;
+        }
 
         dispatch(
           sessionRestored({

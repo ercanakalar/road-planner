@@ -1,18 +1,23 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 
+import collectionCacheStorage from 'services/collectionCacheStorage';
 import tokenStorage from 'services/tokenStorage';
 import { resetAllApiStates } from 'store/actions/authAction';
+import { prefetchCollections } from 'store/actions/collectionCacheActions';
 import { sessionCleared, sessionRefreshed } from 'store/actions/sessionActions';
 import { authenticationService } from 'store/services/authenticationService';
-import { favoriteService } from 'store/services/favoriteService';
-import { routeService } from 'store/services/routeService';
-import { clearAuth, logout } from 'store/slices/authSlice';
+import { clearAuth, logout, sessionRestored } from 'store/slices/authSlice';
 import type { AppDispatch } from 'store';
 
 const authMiddleware = createListenerMiddleware();
 
-const { signIn, signUp, signInWithGoogle, validateRefreshToken } =
-  authenticationService.endpoints;
+const {
+  signIn,
+  signUp,
+  signInWithGoogle,
+  validateRefreshToken,
+  logout: logoutEndpoint,
+} = authenticationService.endpoints;
 
 const isSessionIssued = isAnyOf(
   signIn.matchFulfilled,
@@ -29,23 +34,20 @@ authMiddleware.startListening({
     const { accessToken, refreshToken } = action.payload;
     if (!accessToken || !refreshToken) return;
 
-    const dispatch = listenerApi.dispatch as AppDispatch;
-    dispatch(
-      routeService.endpoints.getOwnRoutes.initiate(undefined, {
-        subscribe: false,
-        forceRefetch: true,
-      }),
-    );
-    dispatch(
-      routeService.util.prefetch('getOwnRoutesSummary', undefined, {
-        force: true,
-      }),
-    );
-    dispatch(
-      favoriteService.util.prefetch('getFavorites', undefined, { force: true }),
-    );
+    (listenerApi.dispatch as AppDispatch)(prefetchCollections());
 
     await tokenStorage.save({ accessToken, refreshToken });
+  },
+});
+
+// A session restored at launch: fetch what the Routes and Favourites screens
+// show now, behind whatever the last session left in the cache, instead of
+// waiting for each screen to be opened.
+authMiddleware.startListening({
+  actionCreator: sessionRestored,
+  effect: (action, listenerApi) => {
+    if (!action.payload) return;
+    (listenerApi.dispatch as AppDispatch)(prefetchCollections());
   },
 });
 
@@ -59,8 +61,17 @@ authMiddleware.startListening({
 authMiddleware.startListening({
   matcher: isAnyOf(sessionCleared, logout, clearAuth),
   effect: async (_action, listenerApi) => {
-    await tokenStorage.clear();
+    await Promise.all([tokenStorage.clear(), collectionCacheStorage.clear()]);
     (listenerApi.dispatch as AppDispatch)(resetAllApiStates());
+  },
+});
+
+// Signing out through the server ends the session in the auth slice without
+// any of the actions above, so the saved collections are dropped here too.
+authMiddleware.startListening({
+  matcher: isAnyOf(logoutEndpoint.matchFulfilled, logoutEndpoint.matchRejected),
+  effect: async () => {
+    await collectionCacheStorage.clear();
   },
 });
 

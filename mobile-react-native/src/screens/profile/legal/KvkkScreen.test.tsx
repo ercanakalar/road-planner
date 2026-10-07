@@ -30,12 +30,15 @@ const json = (status: number, body: unknown) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+// A restored session also fetches the person's routes and favourites; those
+// get an empty list, everything else on the consent side its usual answer.
 const answerWithdrawal = (response: () => Response) => {
-  global.fetch = jest.fn(async (request: Request) =>
-    request.url.endsWith('/consent/withdraw')
-      ? response()
-      : json(200, { status: 'success', data: { recorded: true } }),
-  ) as never;
+  global.fetch = jest.fn(async (request: Request) => {
+    if (request.url.endsWith('/consent/withdraw')) return response();
+    return new URL(request.url).pathname.includes('/consent')
+      ? json(200, { status: 'success', data: { recorded: true } })
+      : json(200, { status: 'success', data: [] });
+  }) as never;
 };
 
 const withdrawalRequests = () =>
