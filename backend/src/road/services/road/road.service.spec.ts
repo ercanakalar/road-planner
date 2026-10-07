@@ -557,6 +557,54 @@ describe('RoadService', () => {
       expect(prisma.road.findMany).not.toHaveBeenCalled();
     });
 
+    it('draws from a random point in the id index instead of sorting every route', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.getDiscoverRoads('user-1', 5);
+
+      const [strings, ...values] = prisma.$queryRaw.mock.calls[0];
+      const sql = strings.join('?');
+      expect(sql).not.toMatch(/random\(\)/i);
+      expect(sql).toMatch(/"id" >= \?[\s\S]*ORDER BY "id"/);
+      expect(sql).toMatch(/UNION ALL[\s\S]*"id" < \?/);
+      expect(values).toContain(5);
+    });
+
+    it('wraps round with the same pivot on both sides', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.getDiscoverRoads('user-1', 5);
+
+      const pivots = prisma.$queryRaw.mock.calls[0]
+        .slice(1)
+        .filter(
+          (value: unknown) =>
+            typeof value === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4/.test(value),
+        );
+      expect(pivots).toHaveLength(2);
+      expect(pivots[0]).toBe(pivots[1]);
+    });
+
+    it('starts from a different point each time', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.getDiscoverRoads(null, 5);
+      await service.getDiscoverRoads(null, 5);
+
+      const pivotOf = (call: unknown[]) =>
+        call
+          .slice(1)
+          .find(
+            (value) =>
+              typeof value === 'string' &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-4/.test(value),
+          );
+      expect(pivotOf(prisma.$queryRaw.mock.calls[0])).not.toBe(
+        pivotOf(prisma.$queryRaw.mock.calls[1]),
+      );
+    });
+
     it('hydrates the randomly drawn ids and keeps their order', async () => {
       prisma.$queryRaw.mockResolvedValue([
         { id: OTHER_ROAD_ID },
@@ -1001,12 +1049,12 @@ describe('RoadService', () => {
   });
 
   describe('getOwnRoadsSummary', () => {
+    const summarySql = () => prisma.$queryRaw.mock.calls[0][0].join('?');
+
     beforeEach(() => {
-      prisma.road.count
-        .mockResolvedValueOnce(42)
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(3);
-      prisma.stop.count.mockResolvedValue(311);
+      prisma.$queryRaw.mockResolvedValue([
+        { routes: 42, publicRoutes: 5, stops: 311, favorites: 3 },
+      ]);
     });
 
     it('counts every route and stop, not just the page on screen', async () => {
@@ -1020,19 +1068,40 @@ describe('RoadService', () => {
     it('counts exactly the routes the list shows, removed ones left out', async () => {
       await service.getOwnRoadsSummary('user-1');
 
-      const owned = { userId: 'user-1', archivedAt: null };
-      expect(prisma.road.count).toHaveBeenCalledWith({ where: owned });
-      expect(prisma.stop.count).toHaveBeenCalledWith({
-        where: { road: owned },
-      });
+      expect(summarySql()).toMatch(
+        /r."userId" = \?\s+AND r."archivedAt" IS NULL/,
+      );
+      expect(prisma.$queryRaw.mock.calls[0]).toContain('user-1');
+    });
+
+    it('counts a favourite only when it is the caller’s own', async () => {
+      await service.getOwnRoadsSummary('user-1');
+
+      expect(summarySql()).toMatch(/f."userId" = \? AND f."roadId" = r."id"/);
     });
 
     it('takes no page size: totals are never cut short', async () => {
       await service.getOwnRoadsSummary('user-1');
 
-      for (const [args] of prisma.road.count.mock.calls) {
-        expect(args).not.toHaveProperty('take');
-      }
+      expect(summarySql()).not.toMatch(/LIMIT|OFFSET/i);
+    });
+
+    it('answers in one round trip', async () => {
+      await service.getOwnRoadsSummary('user-1');
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.road.count).not.toHaveBeenCalled();
+      expect(prisma.stop.count).not.toHaveBeenCalled();
+    });
+
+    it('reports zeros for someone with no routes', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await expect(service.getOwnRoadsSummary('user-1')).resolves.toEqual(
+        expect.objectContaining({
+          data: { routes: 0, publicRoutes: 0, stops: 0, favorites: 0 },
+        }),
+      );
     });
   });
 });

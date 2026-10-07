@@ -190,28 +190,51 @@ describe('FavoritesService', () => {
   });
 
   describe('getAllFavorites', () => {
-    const emptyPage = () => {
-      prisma.favoriteRoad.findMany.mockResolvedValue([]);
-      prisma.favoriteRoad.count.mockResolvedValue(0);
-      prisma.favoriteStop.findMany.mockResolvedValue([]);
-      prisma.favoriteStop.count.mockResolvedValue(0);
-    };
+    const favoritesSql = () => prisma.$queryRaw.mock.calls[0][0].join('?');
 
-    it('scopes every query to the caller', async () => {
-      emptyPage();
+    const roadRow = (id: string, ownerId: string) => ({
+      id,
+      title: null,
+      description: null,
+      road: {
+        id: `road-of-${id}`,
+        title: 'T',
+        description: 'D',
+        userId: ownerId,
+        archivedAt: null,
+      },
+    });
+
+    const stopRow = (id: string, isOwn: boolean) => ({
+      id,
+      title: null,
+      description: 'note',
+      stop: { id: `stop-of-${id}`, latitude: 1, longitude: 2, address: 'A' },
+      isOwn,
+    });
+
+    const answer = (overrides: Record<string, unknown> = {}) => [
+      { roads: [], stops: [], roadTotal: 0, stopTotal: 0, ...overrides },
+    ];
+
+    it('scopes every part of the query to the caller', async () => {
+      prisma.$queryRaw.mockResolvedValue(answer());
 
       await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
-      for (const call of [
-        ...prisma.favoriteRoad.findMany.mock.calls,
-        ...prisma.favoriteStop.findMany.mock.calls,
-      ]) {
-        expect(call[0].where).toMatchObject({ userId: USER_ID });
-      }
+      const sql = favoritesSql();
+      expect(sql.match(/f."userId" = \?/g)).toHaveLength(2);
+      expect(sql.match(/WHERE "userId" = \?/g)).toHaveLength(2);
+      expect(sql).toMatch(/r."userId" = \? AS "isOwn"/);
+      expect(
+        prisma.$queryRaw.mock.calls[0]
+          .slice(1)
+          .filter((value: unknown) => value === USER_ID).length,
+      ).toBe(5);
     });
 
     it('returns the four buckets the client expects', async () => {
-      emptyPage();
+      prisma.$queryRaw.mockResolvedValue(answer());
 
       const result = await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
@@ -223,13 +246,74 @@ describe('FavoritesService', () => {
       });
     });
 
+    it('sorts favourites into the caller’s own and other people’s', async () => {
+      prisma.$queryRaw.mockResolvedValue(
+        answer({
+          roads: [roadRow('fr-1', USER_ID), roadRow('fr-2', 'someone-else')],
+          stops: [stopRow('fs-1', false), stopRow('fs-2', true)],
+        }),
+      );
+
+      const { data } = await service.getAllFavorites(USER_ID, FIRST_PAGE);
+
+      expect(data!.ownRoads.map((f) => f.id)).toEqual(['fr-1']);
+      expect(data!.othersRoads.map((f) => f.id)).toEqual(['fr-2']);
+      expect(data!.ownStops.map((f) => f.id)).toEqual(['fs-2']);
+      expect(data!.othersStops.map((f) => f.id)).toEqual(['fs-1']);
+    });
+
+    it('keeps the shape the client reads, without the ownership flag', async () => {
+      prisma.$queryRaw.mockResolvedValue(
+        answer({ stops: [stopRow('fs-1', true)] }),
+      );
+
+      const { data } = await service.getAllFavorites(USER_ID, FIRST_PAGE);
+
+      expect(data!.ownStops[0]).toEqual({
+        id: 'fs-1',
+        title: null,
+        description: 'note',
+        stop: { id: 'stop-of-fs-1', latitude: 1, longitude: 2, address: 'A' },
+      });
+    });
+
+    it('reads json columns whether the driver parsed them or not', async () => {
+      prisma.$queryRaw.mockResolvedValue(
+        answer({ roads: JSON.stringify([roadRow('fr-1', USER_ID)]) }),
+      );
+
+      const { data } = await service.getAllFavorites(USER_ID, FIRST_PAGE);
+
+      expect(data!.ownRoads.map((f) => f.id)).toEqual(['fr-1']);
+    });
+
     it('does not load the stops of a favourited route', async () => {
-      emptyPage();
+      prisma.$queryRaw.mockResolvedValue(answer());
 
       await service.getAllFavorites(USER_ID, FIRST_PAGE);
 
-      const { select } = prisma.favoriteRoad.findMany.mock.calls[0][0];
-      expect(select.road.select.stops).toBeUndefined();
+      const roadsPart = favoritesSql().split('stops AS')[0];
+      expect(roadsPart).not.toMatch(/"Stop"/);
+    });
+
+    it('pages both lists and counts their totals in one round trip', async () => {
+      prisma.$queryRaw.mockResolvedValue(
+        answer({ roadTotal: 120, stopTotal: 7 }),
+      );
+
+      const result = await service.getAllFavorites(USER_ID, {
+        limit: 50,
+        offset: 50,
+      });
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.favoriteRoad.findMany).not.toHaveBeenCalled();
+      expect(prisma.favoriteStop.findMany).not.toHaveBeenCalled();
+      expect(favoritesSql().match(/LIMIT \? OFFSET \?/g)).toHaveLength(2);
+      expect(result.meta).toEqual({
+        roads: { total: 120, limit: 50, offset: 50, hasMore: true },
+        stops: { total: 7, limit: 50, offset: 50, hasMore: false },
+      });
     });
   });
 

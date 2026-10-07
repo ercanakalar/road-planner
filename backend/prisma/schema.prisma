@@ -265,6 +265,7 @@ model Road {
 
   @@index([userId, createdAt, id])
   @@index([isPublic, createdAt, id])
+  @@index([isPublic, id])
 }
 
 model Stop {

@@ -54,6 +54,13 @@ interface OwnRoadRow {
   total: number;
 }
 
+interface OwnRoadsSummaryRow {
+  routes: number;
+  publicRoutes: number;
+  stops: number;
+  favorites: number;
+}
+
 function withRoadStopMetrics<
   T extends {
     stops: { latitude: number; longitude: number; elevation: number | null }[];
@@ -217,28 +224,57 @@ export class RoadService {
 
   // The totals for the person's own routes, counted in the database: the
   // list is fetched a page at a time, so it cannot be summed on the phone.
+  // All four in one pass over the person's live routes (the same rows as
+  // visibility.ownedBy), rather than four counts that each took a pooled
+  // connection: stops through Stop(roadId, order), favourites through
+  // FavoriteRoad(userId, roadId).
   async getOwnRoadsSummary(userId: string) {
-    const where = this.visibility.ownedBy(userId);
+    const [row] = await this.prisma.$queryRaw<OwnRoadsSummaryRow[]>`
+      SELECT COUNT(*)::int AS "routes",
+             (COUNT(*) FILTER (WHERE r."isPublic"))::int AS "publicRoutes",
+             COALESCE(SUM((
+               SELECT COUNT(*) FROM "Stop" s WHERE s."roadId" = r."id"
+             )), 0)::int AS "stops",
+             (COUNT(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM "FavoriteRoad" f
+                WHERE f."userId" = ${userId} AND f."roadId" = r."id"
+             )))::int AS "favorites"
+        FROM "Road" r
+       WHERE r."userId" = ${userId}
+         AND r."archivedAt" IS NULL`;
 
-    const [routes, publicRoutes, stops, favorites] = await Promise.all([
-      this.prisma.road.count({ where }),
-      this.prisma.road.count({ where: { ...where, isPublic: true } }),
-      this.prisma.stop.count({ where: { road: where } }),
-      this.prisma.road.count({
-        where: { ...where, favoriteRoads: { some: { userId } } },
-      }),
-    ]);
+    const {
+      routes = 0,
+      publicRoutes = 0,
+      stops = 0,
+      favorites = 0,
+    } = row ?? {};
 
     return ok({ data: { routes, publicRoutes, stops, favorites } });
   }
 
+  // Ids are random v4 UUIDs, so the published routes from a random id onward
+  // are a random pick. Read through Road(isPublic, id), wrapping round to the
+  // start when the pivot lands near the end, this touches about `limit` rows;
+  // ORDER BY random() sorted every published route on each request.
   async getDiscoverRoads(userId: string | null, limit: number) {
+    const pivot = randomUUID();
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "Road"
-      WHERE "isPublic" = true
-        AND "archivedAt" IS NULL
-        AND ("userId" <> ${userId ?? ''} OR ${userId === null})
-      ORDER BY random()
+      (SELECT "id" FROM "Road"
+        WHERE "isPublic" = true
+          AND "archivedAt" IS NULL
+          AND ("userId" <> ${userId ?? ''} OR ${userId === null})
+          AND "id" >= ${pivot}
+        ORDER BY "id"
+        LIMIT ${limit})
+      UNION ALL
+      (SELECT "id" FROM "Road"
+        WHERE "isPublic" = true
+          AND "archivedAt" IS NULL
+          AND ("userId" <> ${userId ?? ''} OR ${userId === null})
+          AND "id" < ${pivot}
+        ORDER BY "id"
+        LIMIT ${limit})
       LIMIT ${limit}
     `;
 

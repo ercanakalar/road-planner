@@ -123,74 +123,79 @@ export class FavoritesService {
     }
   }
 
+  // One statement, one round trip. Prisma's version took seven — each
+  // favourite list, then its roads, stops and the stops' roads, then two
+  // counts — and on a pool of three connections the screen's other requests
+  // queued behind them. Each page is read through the (userId, createdAt, id)
+  // index of its table and joined to its targets by primary key.
   async getAllFavorites(userId: string, pagination: PaginationQueryDto) {
-    const page = {
-      take: pagination.limit,
-      skip: pagination.offset,
-      orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
-    };
+    const [row] = await this.prisma.$queryRaw<FavoritesRow[]>`
+      WITH roads AS (
+        SELECT f."id", f."title", f."description", f."createdAt",
+               json_build_object(
+                 'id', r."id",
+                 'title', r."title",
+                 'description', r."description",
+                 'userId', r."userId",
+                 'archivedAt', to_char(r."archivedAt",
+                                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+               ) AS "road"
+          FROM "FavoriteRoad" f
+          JOIN "Road" r ON r."id" = f."roadId"
+         WHERE f."userId" = ${userId}
+         ORDER BY f."createdAt" DESC, f."id" DESC
+         LIMIT ${pagination.limit} OFFSET ${pagination.offset}
+      ),
+      stops AS (
+        SELECT f."id", f."title", f."description", f."createdAt",
+               json_build_object(
+                 'id', s."id",
+                 'latitude', s."latitude",
+                 'longitude', s."longitude",
+                 'address', s."address"
+               ) AS "stop",
+               r."userId" = ${userId} AS "isOwn"
+          FROM "FavoriteStop" f
+          JOIN "Stop" s ON s."id" = f."stopId"
+          JOIN "Road" r ON r."id" = s."roadId"
+         WHERE f."userId" = ${userId}
+         ORDER BY f."createdAt" DESC, f."id" DESC
+         LIMIT ${pagination.limit} OFFSET ${pagination.offset}
+      )
+      SELECT
+        COALESCE((
+          SELECT json_agg(json_build_object(
+                   'id', "id", 'title', "title",
+                   'description', "description", 'road', "road")
+                 ORDER BY "createdAt" DESC, "id" DESC)
+            FROM roads
+        ), '[]'::json) AS "roads",
+        COALESCE((
+          SELECT json_agg(json_build_object(
+                   'id', "id", 'title', "title",
+                   'description', "description", 'stop', "stop",
+                   'isOwn', "isOwn")
+                 ORDER BY "createdAt" DESC, "id" DESC)
+            FROM stops
+        ), '[]'::json) AS "stops",
+        (SELECT COUNT(*) FROM "FavoriteRoad" WHERE "userId" = ${userId})::int
+          AS "roadTotal",
+        (SELECT COUNT(*) FROM "FavoriteStop" WHERE "userId" = ${userId})::int
+          AS "stopTotal"`;
 
-    const [roads, roadTotal, stops, stopTotal] = await Promise.all([
-      this.prisma.favoriteRoad.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          road: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              userId: true,
-              archivedAt: true,
-            },
-          },
-        },
-        ...page,
-      }),
-      this.prisma.favoriteRoad.count({ where: { userId } }),
-
-      this.prisma.favoriteStop.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          stop: {
-            select: {
-              id: true,
-              latitude: true,
-              longitude: true,
-              road: { select: { userId: true } },
-              address: true,
-            },
-          },
-        },
-        ...page,
-      }),
-      this.prisma.favoriteStop.count({ where: { userId } }),
-    ]);
+    const roads = parseJson<FavoriteRoadRow[]>(row?.roads);
+    const stops = parseJson<FavoriteStopRow[]>(row?.stops);
+    const roadTotal = row?.roadTotal ?? 0;
+    const stopTotal = row?.stopTotal ?? 0;
 
     const ownRoads = roads.filter((f) => f.road.userId === userId);
     const othersRoads = roads.filter((f) => f.road.userId !== userId);
 
-    const stripRoad = (favorite: (typeof stops)[number]) => ({
-      ...favorite,
-      stop: {
-        id: favorite.stop.id,
-        latitude: favorite.stop.latitude,
-        longitude: favorite.stop.longitude,
-        address: favorite.stop.address,
-      },
-    });
+    const withoutOwner = ({ isOwn: _isOwn, ...favorite }: FavoriteStopRow) =>
+      favorite;
 
-    const ownStops = stops
-      .filter((f) => f.stop.road.userId === userId)
-      .map(stripRoad);
-    const othersStops = stops
-      .filter((f) => f.stop.road.userId !== userId)
-      .map(stripRoad);
+    const ownStops = stops.filter((f) => f.isOwn).map(withoutOwner);
+    const othersStops = stops.filter((f) => !f.isOwn).map(withoutOwner);
 
     return ok({
       header: 'favorite.allHeader',
@@ -256,6 +261,40 @@ export class FavoritesService {
       data: updated,
     });
   }
+}
+
+type FavoriteRoadRow = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  road: {
+    id: string;
+    title: string;
+    description: string;
+    userId: string;
+    archivedAt: string | null;
+  };
+};
+
+type FavoriteStopRow = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  stop: { id: string; latitude: number; longitude: number; address: string };
+  isOwn: boolean;
+};
+
+type FavoritesRow = {
+  roads: unknown;
+  stops: unknown;
+  roadTotal: number;
+  stopTotal: number;
+};
+
+// json columns arrive parsed from some drivers and as text from others.
+function parseJson<T>(value: unknown): T {
+  if (value === null || value === undefined) return [] as T;
+  return (typeof value === 'string' ? JSON.parse(value) : value) as T;
 }
 
 function pickAnnotation(body: UpdateFavoriteAnnotationDto) {
