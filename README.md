@@ -1,8 +1,14 @@
-z# Road Planner 🗺️
+# Road Planner 🗺️
 
 Plan, organize and share your journeys with ease.
 
 Road Planner is a route planning application that helps users create, manage, and explore travel routes. Whether you're preparing for a road trip, discovering new places, or organizing waypoints for future adventures, Road Planner keeps everything in one place.
+
+<p align="center">
+  <img src="mobile-react-native/store-assets/demo.gif"
+       alt="Planning a route, comparing travel modes, following it, and discovering routes other travellers have published"
+       width="300">
+</p>
 
 <img width="854" height="480" alt="clideo_editor_24bdcdeaefa3433f972368068762873a" src="https://github.com/user-attachments/assets/63db0398-5e8e-4eed-bcbe-2c204160e3bf" />
 

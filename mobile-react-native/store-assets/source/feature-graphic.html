@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Feature graphic</title>
+<style>
+  @font-face { font-family: 'Jakarta'; font-weight: 500; src: url(fonts/PlusJakartaSans-500.ttf); }
+  @font-face { font-family: 'Jakarta'; font-weight: 700; src: url(fonts/PlusJakartaSans-700.ttf); }
+  @font-face { font-family: 'Jakarta'; font-weight: 800; src: url(fonts/PlusJakartaSans-800.ttf); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+
+  body {
+    position: relative;
+    font-family: 'Jakarta', sans-serif;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(700px 500px at 0% 0%, rgba(255,255,255,.20), transparent 60%),
+      radial-gradient(600px 500px at 100% 100%, rgba(5,25,80,.5), transparent 60%),
+      linear-gradient(150deg, #4C8DF6 0%, #1A73E8 38%, #1557B0 72%, #0D3B85 100%);
+  }
+
+  .motif { position: absolute; inset: 0; }
+  .motif path, .motif circle { fill: none; stroke: rgba(255,255,255,.09); }
+
+  .brand {
+    position: absolute;
+    left: 72px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 470px;
+  }
+  .icon {
+    width: 96px; height: 96px;
+    border-radius: 24px;
+    display: block;
+    box-shadow: 0 18px 40px -12px rgba(3,18,60,.55), 0 0 0 1.5px rgba(255,255,255,.18);
+    margin-bottom: 30px;
+  }
+  .name {
+    font-weight: 800;
+    font-size: 66px;
+    line-height: 1;
+    letter-spacing: -1.6px;
+  }
+  .tagline {
+    margin-top: 18px;
+    font-weight: 500;
+    font-size: 27px;
+    line-height: 1.35;
+    color: rgba(255,255,255,.86);
+  }
+  .tagline em { font-style: normal; color: #BBD3FB; font-weight: 700; }
+
+  .phone {
+    position: absolute;
+    left: 640px;
+    top: 52px;
+    width: 300px;
+    padding: 8px;
+    border-radius: 40px;
+    background: linear-gradient(145deg, #2b2d31, #0f1013 40%, #1c1d21);
+    box-shadow:
+      0 0 0 1.5px rgba(255,255,255,.10),
+      0 40px 80px -20px rgba(3,18,60,.7);
+  }
+  .screen {
+    position: relative;
+    border-radius: 26px;
+    overflow: hidden;
+    aspect-ratio: 1344 / 2992;
+  }
+  .screen img { display: block; width: 100%; }
+  .cam {
+    position: absolute; top: 1.05%; left: 50%;
+    width: 4.2%; aspect-ratio: 1; transform: translateX(-50%);
+    border-radius: 50%; background: #050506;
+  }
+
+  .card {
+    position: absolute;
+    left: 520px;
+    top: 418px;
+    width: 330px;
+    height: calc(330px * 255 / 1344);
+    border-radius: 18px;
+    background-repeat: no-repeat;
+    background-size: 330px auto;
+    box-shadow: 0 0 0 1px rgba(16,40,90,.08), 0 26px 50px -14px rgba(3,18,60,.6);
+  }
+</style>
+</head>
+<body>
+  <svg class="motif" viewBox="0 0 1024 500">
+    <g transform="translate(-60 40) scale(1.25)">
+      <path d="M88 374 C88 276 184 300 256 256 C328 212 424 186 424 88" stroke-width="46" stroke-linecap="round"/>
+      <circle cx="88" cy="424" r="36" stroke-width="28"/>
+    </g>
+  </svg>
+
+  <div class="brand">
+    <img class="icon" src="../play-store-icon.png" alt="">
+    <div class="name">Travel Routes</div>
+    <p class="tagline" id="tagline"></p>
+  </div>
+
+  <div class="phone">
+    <div class="screen"><img id="shot" alt=""><div class="cam"></div></div>
+  </div>
+  <div class="card" id="card"></div>
+
+  <script>
+    const lang = new URLSearchParams(location.search).get('lang') || 'en';
+    document.documentElement.lang = lang;
+    const TAGLINE = {
+      en: 'Plan every stop of the trip.<br>Find <em>what’s on the way.</em>',
+      tr: 'Yolculuğun her durağını planlayın.<br><em>Yol üzerindekileri</em> keşfedin.',
+    };
+    document.getElementById('tagline').innerHTML = TAGLINE[lang];
+    document.getElementById('shot').src = `out/prep/${lang}/01-plan.png`;
+
+    // The top-rated result from the along-the-way search, as on slide 3.
+    const card = document.getElementById('card');
+    card.style.backgroundImage = `url(out/prep/${lang}/03-along.png)`;
+    card.style.backgroundPosition = `0 ${-1020 * 330 / 1344}px`;
+  </script>
+</body>
+</html>

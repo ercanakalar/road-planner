@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Store screenshot</title>
+<style>
+  @font-face { font-family: 'Jakarta'; font-weight: 500; src: url(fonts/PlusJakartaSans-500.ttf); }
+  @font-face { font-family: 'Jakarta'; font-weight: 600; src: url(fonts/PlusJakartaSans-600.ttf); }
+  @font-face { font-family: 'Jakarta'; font-weight: 700; src: url(fonts/PlusJakartaSans-700.ttf); }
+  @font-face { font-family: 'Jakarta'; font-weight: 800; src: url(fonts/PlusJakartaSans-800.ttf); }
+
+  :root {
+    --blue-light: #4C8DF6;
+    --blue: #1A73E8;
+    --blue-deep: #1557B0;
+    --navy: #0D3B85;
+    --red: #EA4335;
+    --sky: #BBD3FB;
+    --W: 1080px;
+    --H: 1920px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { width: var(--W); height: var(--H); overflow: hidden; }
+
+  body {
+    font-family: 'Jakarta', sans-serif;
+    color: #fff;
+    background:
+      radial-gradient(1200px 900px at 12% -8%, rgba(255,255,255,.22), transparent 60%),
+      radial-gradient(900px 900px at 110% 105%, rgba(5,25,80,.55), transparent 60%),
+      linear-gradient(162deg, var(--blue-light) 0%, var(--blue) 34%, var(--blue-deep) 68%, var(--navy) 100%);
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The brand mark's route line, blown up and faded into the background. */
+  .motif { position: absolute; inset: 0; pointer-events: none; }
+  .motif path, .motif circle.ring { fill: none; stroke: rgba(255,255,255,.09); }
+
+  .copy {
+    position: absolute;
+    left: 0; right: 0;
+    top: var(--copy-top, 118px);
+    padding: 0 84px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-weight: 700;
+    font-size: 27px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.92);
+    padding: 13px 26px 13px 22px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.14);
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.22);
+    margin-bottom: 34px;
+  }
+  .eyebrow i {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 0 5px rgba(234,67,53,.25);
+  }
+
+  h1 {
+    font-weight: 800;
+    font-size: var(--h1, 88px);
+    line-height: 1.06;
+    letter-spacing: -1.5px;
+    text-wrap: balance;
+  }
+  h1 em { font-style: normal; color: var(--sky); }
+
+  p.sub {
+    margin: 30px auto 0;
+    max-width: 860px;
+    font-weight: 500;
+    font-size: 37px;
+    line-height: 1.36;
+    color: rgba(255,255,255,.84);
+    text-wrap: balance;
+  }
+
+  /* Device: Pixel-style frame around a 1344x2992 capture. */
+  .phone {
+    position: absolute;
+    left: 50%;
+    top: var(--phone-top, 610px);
+    width: var(--phone-w, 620px);
+    transform: translateX(-50%);
+    padding: 13px;
+    border-radius: 60px;
+    background: linear-gradient(145deg, #2b2d31, #0f1013 40%, #1c1d21);
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,.10),
+      0 60px 120px -30px rgba(3,18,60,.65),
+      0 30px 60px -20px rgba(0,0,0,.45);
+  }
+  .phone::before, .phone::after {
+    /* power and volume keys */
+    content: '';
+    position: absolute;
+    right: -6px;
+    width: 6px;
+    border-radius: 0 4px 4px 0;
+    background: #1d1e22;
+  }
+  .phone::before { top: 21%; height: 7%; }
+  .phone::after { top: 31%; height: 13%; }
+
+  .screen {
+    position: relative;
+    border-radius: 48px;
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 1344 / 2992;
+  }
+  .screen img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .screen .cam {
+    position: absolute;
+    top: 1.05%;
+    left: 50%;
+    width: 4.2%;
+    aspect-ratio: 1;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #2a2f3a, #050506 70%);
+  }
+
+  /* A piece of the capture, enlarged, floating over the frame edge. */
+  .callout {
+    position: absolute;
+    border-radius: 30px;
+    overflow: hidden;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    box-shadow:
+      0 0 0 1px rgba(16,40,90,.08),
+      0 40px 80px -20px rgba(3,18,60,.55),
+      0 18px 36px -12px rgba(3,18,60,.35);
+  }
+  /* A round magnifier over the device, ringed like a lens. */
+  .callout.lens {
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 10px #fff,
+      0 0 0 11px rgba(16,40,90,.10),
+      0 40px 80px -10px rgba(3,18,60,.6);
+  }
+</style>
+</head>
+<body>
+  <svg class="motif" viewBox="0 0 1080 1920" preserveAspectRatio="none" id="motif"></svg>
+
+  <div class="copy">
+    <div class="eyebrow" id="eyebrow"><i></i><span></span></div>
+    <h1 id="title"></h1>
+    <p class="sub" id="sub"></p>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="screen"><img id="shot" alt=""><div class="cam"></div></div>
+  </div>
+
+  <script src="slides.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const lang = params.get('lang') || 'en';
+    const index = Number(params.get('slide') || 1) - 1;
+    const canvas = params.get('canvas') || 'phone';
+    const slide = SLIDES[index];
+    const text = slide[lang];
+
+    document.documentElement.lang = lang; // Turkish uppercase: i -> İ
+    const C = CANVASES[canvas];
+    const root = document.documentElement.style;
+    root.setProperty('--W', C.w + 'px');
+    root.setProperty('--H', C.h + 'px');
+    root.setProperty('--phone-w', C.phoneW + 'px');
+    root.setProperty('--phone-top', C.phoneTop + 'px');
+    root.setProperty('--copy-top', C.copyTop + 'px');
+    root.setProperty('--h1', (text.h1Size || C.h1) + 'px');
+
+    document.querySelector('#eyebrow span').textContent = text.eyebrow;
+    const [line1, line2] = text.title;
+    document.getElementById('title').innerHTML = `${line1}<br><em>${line2}</em>`;
+    document.getElementById('sub').textContent = text.sub;
+    document.getElementById('shot').src = `out/prep/${lang}/${slide.shot}.png`;
+
+    // Background motif: the route line of the app icon, placed per slide.
+    const m = slide.motif || { x: -140, y: 980, s: 2.6, flip: false };
+    const sx = m.flip ? -m.s : m.s;
+    document.getElementById('motif').innerHTML = `
+      <g transform="translate(${m.flip ? C.w - m.x : m.x} ${m.y}) scale(${sx} ${m.s})">
+        <path d="M88 374 C88 276 184 300 256 256 C328 212 424 186 424 88" stroke-width="46" stroke-linecap="round"/>
+        <circle class="ring" cx="88" cy="424" r="36" stroke-width="28"/>
+      </g>`;
+
+    // Callouts are given in capture pixels (1344 wide) and placed in canvas pixels.
+    // `src` takes the crop from another capture of the same flow.
+    const shotScale = (C.phoneW - 26) / 1344;
+    for (const c of slide.callouts || []) {
+      const el = document.createElement('div');
+      el.className = 'callout' + (c.lens ? ' lens' : '');
+      const z = c.zoom * shotScale;
+      el.style.width = c.w * z + 'px';
+      el.style.height = c.h * z + 'px';
+      el.style.backgroundImage = `url(out/prep/${lang}/${c.src || slide.shot}.png)`;
+      el.style.backgroundSize = `${1344 * z}px ${2992 * z}px`;
+      el.style.backgroundPosition = `${-c.x * z}px ${-c.y * z}px`;
+      if (c.radius != null) el.style.borderRadius = c.radius + 'px';
+      // Anchor: centre of the cropped region, nudged by dx/dy, in canvas space.
+      const phoneLeft = (C.w - C.phoneW) / 2 + 13;
+      const cx = phoneLeft + (c.x + c.w / 2) * shotScale + (c.dx || 0);
+      const cy = C.phoneTop + 13 + (c.y + c.h / 2) * shotScale + (c.dy || 0);
+      el.style.left = cx - (c.w * z) / 2 + 'px';
+      el.style.top = cy - (c.h * z) / 2 + 'px';
+      document.body.appendChild(el);
+    }
+
+    const img = document.getElementById('shot');
+    Promise.all([document.fonts.ready, img.decode()]).then(() => {
+      document.body.dataset.ready = '1';
+    });
+  </script>
+</body>
+</html>

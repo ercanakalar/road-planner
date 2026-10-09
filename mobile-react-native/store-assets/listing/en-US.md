@@ -1,86 +1,97 @@
-# Play Store listing — English (en-US, default)
+# Play Store listing — English (en-US, default language)
 
-Character limits are Google's. Counts are given so nothing gets truncated.
+Paste each block into the matching field of the *Main store listing* in Play Console (English, en-US, as the default language). Counts are against Google's limits and were checked when this file was generated. The full description is plain text on purpose: Play shows it as written, and plain text reads the same on every device.
 
-## App name (30 max)
+## App name (27/30)
 
-    Travel Routes
+```text
+Travel Routes: Trip Planner
+```
 
-(13)
+The name on the phone's home screen stays *Travel Routes*. The store name adds a short descriptor so people searching for a trip planner find it; it is allowed because it describes what the app does. If you prefer the plain name, use `Travel Routes` (13/30).
 
-## Short description (80 max)
+## Short description (77/80)
 
-    Plan multi-stop routes, compare travel times, find places on the way.
+```text
+Plan multi-stop trips, compare travel times and find places along your route.
+```
 
-(70)
+## Full description (2713/4000)
 
-## Full description (4000 max)
+```text
+Travel Routes is a trip planner for journeys with more than one stop. Add the places you want to see, put them in order and the route draws itself. Then see how long each part takes on foot, by car or by public transport.
 
-Travel Routes is a route planner for trips with more than one stop.
+Plan every stop
+• Search for a place, or press and hold on the map to drop a stop
+• Drag stops into a new order and the route redraws itself
+• See the distance, gradient and turn between each pair of stops
+• Tap any two stops to see just that part of the journey
 
-Search a place, add it, add the next one — the route redraws itself and shows how long it takes on foot, by car and by public transport. Tap two stops to compare a single leg. Drag stops to reorder them, and see the distance, grade and turns between each pair.
+Walk, drive or take transit
+• Walking, driving and public transport times side by side for any section of your trip
+• Walking and driving times for the whole trip at a glance
 
-PLAN THE WHOLE TRIP
-• Add as many stops as the day needs and put them in order
-• Walking, driving and transit times side by side — for the whole route or any single leg
-• Distance, elevation grade and turn direction between stops
-• Works without an account: routes stay on your phone until you decide otherwise
+Find places along the way
+• Search the road you will actually travel, not just the area around a point on the map
+• Coffee, food, fuel, places to stay and groceries, or type anything: sushi, a car wash, a playground
+• Choose how far off your route you are willing to go, from 500 m to 10 km
+• See ratings, how far each place is from your route and whether it is open now
+• Add a place with one tap and it joins your route where you pass it, not at the end
 
-FIND PLACES ON THE WAY
-• Search along the road you will actually drive, not around a point on the map
-• Coffee, food, fuel, groceries, places to stay — or type anything: sushi, car wash, playground
-• Pick how far off the route you are willing to go, from 500 m to 10 km
-• Every result shows its rating, how far off the route it is, and whether it is open now
-• One tap adds a place as a stop exactly where you pass it, not at the end of the trip
-
-FOLLOW THE ROUTE
-• Turn on follow mode and the map keeps up with you as you go
-• The road already driven fades out, so the road ahead is what you see
+Follow the route as you go
+• Turn on follow mode and the map moves with you
+• The road behind you fades, so the way ahead stands out
 • Hand the whole route to Google Maps for turn-by-turn navigation
 
-KEEP AND SHARE
-• Sign in and your routes and favourites are on every device you use
-• Share a route as a link — whoever opens it sees it, with or without an account
-• Publish a route to the community, or keep it private
-• Paste a Google Maps link and its stops become a route you can edit here
+Discover and follow travellers
+• Browse routes others have published, from city walks to week-long road trips
+• Search routes and people; sort by newest or most saved, filter by number of stops
+• Save a route to your favourites, or make a copy and change it however you like
+• Follow travellers and hear about it, in the app or by email, when they publish a new route
 
-MADE TO BE TRUSTED
-• Location is used only while the app is open, only to show you on the map and follow a route — never in the background
-• No ads, no tracking SDKs, no selling of data
-• Light and dark themes; English and Turkish
+Keep and share
+• Sign in and your routes, favourite routes and favourite places are on every device you use
+• Share a route as a link that opens straight in the app
+• Publish your own routes to the community, or keep them private
+• Paste a Google Maps link and turn it into a route you can edit
+• Keep a travel map of the countries and cities you have been to, stored only on your phone
 
-Travel Routes uses Google Maps for the map, place search and directions.
+Start without an account
+The map works without signing in. Plan straight away and your routes stay on your phone; if you create an account later, move them across in one step.
 
-## What's new (release notes, 500 max)
+Built with privacy in mind
+• Location is used only while the app is open, to show where you are and to follow a route, never in the background
+• No ads, and no third-party analytics, tracking or advertising SDKs
+• Delete your account and everything attached to it at any time, from inside the app
 
-    First release.
-    • Multi-stop route planning with walking, driving and transit times
-    • Search for places along the route and add them as stops
-    • Follow mode while you travel
-    • Save routes to your account, share them by link, publish to the community
-    • Import routes from Google Maps links
-    • Light and dark theme, English and Turkish
+Light and dark themes. English and Turkish.
 
-## Store settings
+Travel Routes uses Google Maps for the map, place search and directions; ratings and opening hours come from Google.
+```
 
-| Field | Value |
-| --- | --- |
-| App category | Maps & Navigation |
-| Tags | Route planner, Trip planner, Maps, Navigation, Travel |
-| Contact email | (required, shown publicly) — e.g. support@travelroutes.net |
-| Website | optional |
-| Privacy policy URL | see `../privacy-policy.html` — must be hosted at a public URL |
-| Pricing | Free |
-| Contains ads | No |
-| In-app purchases | No |
+## Release notes (What's new) (396/500)
 
-## Screenshot captions (already rendered into the images)
+```text
+First release of Travel Routes.
+• Plan multi-stop routes with walking, driving and public transport times
+• Find places along your route and add them as stops
+• Follow mode while you travel, or continue in Google Maps
+• Discover routes from other travellers, follow them and get notified
+• Save, share and publish routes; import from Google Maps links
+• Light and dark themes, English and Turkish
+```
 
-1. Plan every stop of the trip
-2. See the road between stops
-3. Walk, drive or take transit
-4. Find places on the way
-5. Ratings and how far off route
-6. Follow the route as you go
-7. Keep routes on every device
-8. Bring routes from Google Maps
+## Screenshot captions
+
+Already rendered into `../screenshots/phone/en/`. Listed here for review and for the alt text Play asks for.
+
+| # | File | Label | Headline | Line under it |
+| --- | --- | --- | --- | --- |
+| 1 | `01-plan-every-stop.png` | Plan | Plan every stop of your trip | Add places, put them in order and the route draws itself. |
+| 2 | `02-compare-travel-modes.png` | Compare | Walk, drive or take transit | See travel times for the whole trip, or for any part of it. |
+| 3 | `03-places-along-the-way.png` | Explore | Find places along the way | Coffee, food or fuel, but only what is actually on your route. |
+| 4 | `04-follow-the-route.png` | Navigate | Follow the route as you go | The map moves with you, and the road behind you fades away. |
+| 5 | `05-discover-routes.png` | Discover | Discover trips by other travellers | Browse routes the community has shared and keep the ones you like. |
+| 6 | `06-make-it-your-own.png` | Reuse | Make any route your own | Save it to your favourites, or copy it and change the stops. |
+| 7 | `07-follow-travellers.png` | Follow | Never miss a new route | Follow travellers and hear about it when they publish. |
+| 8 | `08-on-every-device.png` | Keep | Your routes, on every device | The routes and places you save stay with your account. |

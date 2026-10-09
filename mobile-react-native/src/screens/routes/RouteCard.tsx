@@ -183,7 +183,7 @@ const RouteCard = ({
                             color={colors.primary}
                         />
                         <Text style={styles.metaText}>
-                            {stopCount} stop{stopCount === 1 ? '' : 's'}
+                            {t('routes.stopCount', { count: stopCount })}
                         </Text>
                     </View>
 

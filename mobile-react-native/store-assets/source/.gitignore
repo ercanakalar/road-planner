@@ -1,0 +1,4 @@
+# Re-created by render.sh
+out/
+# The emulator captures, ~13 MB: kept locally for re-rendering, not committed
+raw/

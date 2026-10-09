@@ -212,8 +212,9 @@ const VerifyResetCodeScreen = ({ navigation, route }: Props) => {
 
           {attemptsRemaining !== null && attemptsRemaining > 0 && !error ? (
             <Text style={styles.warning}>
-              {attemptsRemaining} attempt{attemptsRemaining === 1 ? '' : 's'}{' '}
-              remaining.
+              {t('resetPassword.attemptsRemaining', {
+                count: attemptsRemaining,
+              })}
             </Text>
           ) : null}
 

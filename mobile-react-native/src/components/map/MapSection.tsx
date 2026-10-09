@@ -466,7 +466,7 @@ const MapSectionComponent = ({
           <Text style={styles.summaryLabel}>{summary.distance}</Text>
           <View style={styles.summaryDivider} />
           <Text style={styles.summaryLabel}>
-            {stops.length} stop{stops.length === 1 ? '' : 's'}
+            {t('routes.stopCount', { count: stops.length })}
           </Text>
         </View>
       ) : null}

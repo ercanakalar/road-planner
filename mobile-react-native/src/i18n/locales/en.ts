@@ -348,6 +348,10 @@ const en = {
         stopSharing: 'Stop sharing {{title}}',
         shareWithEveryone: 'Share {{title}} with everyone',
         sharedBy: 'Shared by {{name}}',
+        copyHint:
+            'A copy becomes your own route, so you can add and reorder stops. The original stays as its author left it.',
+        signedOutHint:
+            'You can look at this route without an account. Create one to keep it in your favourites or make a copy you can edit.',
     },
 
     searchScreen: {
@@ -360,6 +364,8 @@ const en = {
         tabPeople: 'People',
         routeCount_one: '{{count}} route',
         routeCount_other: '{{count}} routes',
+        publishedRouteCount_one: '{{count}} published route',
+        publishedRouteCount_other: '{{count}} published routes',
         personCount_one: '{{count}} person',
         personCount_other: '{{count}} people',
         authorNoPublic: '{{name}} has no public routes right now.',
@@ -408,6 +414,8 @@ const en = {
         codeSentTo: 'We have sent a {{length}}-digit code to {{email}}.',
         changedHeader: 'Password changed',
         changedMessage: 'Sign in with your new password.',
+        attemptsRemaining_one: '{{count}} attempt remaining.',
+        attemptsRemaining_other: '{{count}} attempts remaining.',
     },
 
     mapUi: {
@@ -468,6 +476,8 @@ const en = {
         namePlaceholder: 'Route name',
         nameAccessibility: 'Route name',
         add: 'Add to my routes',
+        stopsFound_one: '{{count}} stop found',
+        stopsFound_other: '{{count}} stops found',
     },
 
     editDetails: {

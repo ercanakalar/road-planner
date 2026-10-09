@@ -53,8 +53,9 @@ const AuthorRow = ({ author, onSelect, onOpenProfile }: Props) => {
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.meta}>
-            {author.publicRouteCount} published route
-            {author.publicRouteCount === 1 ? '' : 's'}
+            {t('searchScreen.publishedRouteCount', {
+              count: author.publicRouteCount,
+            })}
           </Text>
 
           {author.isFollowed ? (

@@ -97,9 +97,9 @@ const AuthorScreen = ({ route }: Props) => {
       <Text style={styles.name}>{name}</Text>
       <Text style={styles.meta}>
         {author
-          ? `${author.publicRouteCount} published route${
-              author.publicRouteCount === 1 ? '' : 's'
-            }`
+          ? t('searchScreen.publishedRouteCount', {
+              count: author.publicRouteCount,
+            })
           : t('defaults.publishedRoutes')}
       </Text>
 
@@ -151,7 +151,7 @@ const AuthorScreen = ({ route }: Props) => {
           length={length}
           onLengthChange={setLength}
           summary={
-            isLoading ? null : `${total} route${total === 1 ? '' : 's'}`
+            isLoading ? null : t('searchScreen.routeCount', { count: total })
           }
           isSummaryStale={isFetching}
         />

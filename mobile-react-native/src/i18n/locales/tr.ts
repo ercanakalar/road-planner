@@ -352,6 +352,10 @@ const tr: Translations = {
         stopSharing: '“{{title}}” rotasının paylaşımını durdur',
         shareWithEveryone: '“{{title}}” rotasını herkesle paylaş',
         sharedBy: 'Paylaşan: {{name}}',
+        copyHint:
+            'Kopya sizin rotanız olur; durak ekleyebilir ve sıralarını değiştirebilirsiniz. Asıl rota, yazarının bıraktığı gibi kalır.',
+        signedOutHint:
+            'Bu rotaya hesap olmadan bakabilirsiniz. Favorilerinizde saklamak ya da düzenlenebilir bir kopyasını oluşturmak için hesap açın.',
     },
 
     searchScreen: {
@@ -364,6 +368,8 @@ const tr: Translations = {
         tabPeople: 'Kişiler',
         routeCount_one: '{{count}} rota',
         routeCount_other: '{{count}} rota',
+        publishedRouteCount_one: '{{count}} yayımlanmış rota',
+        publishedRouteCount_other: '{{count}} yayımlanmış rota',
         personCount_one: '{{count}} kişi',
         personCount_other: '{{count}} kişi',
         authorNoPublic: '{{name}} şu anda herkese açık bir rota paylaşmıyor.',
@@ -412,6 +418,8 @@ const tr: Translations = {
         codeSentTo: '{{email}} adresine {{length}} haneli bir kod gönderdik.',
         changedHeader: 'Parola değiştirildi',
         changedMessage: 'Yeni parolanızla giriş yapın.',
+        attemptsRemaining_one: '{{count}} deneme hakkınız kaldı.',
+        attemptsRemaining_other: '{{count}} deneme hakkınız kaldı.',
     },
 
     mapUi: {
@@ -476,6 +484,8 @@ const tr: Translations = {
         namePlaceholder: 'Rota adı',
         nameAccessibility: 'Rota adı',
         add: 'Rotalarıma ekle',
+        stopsFound_one: '{{count}} durak bulundu',
+        stopsFound_other: '{{count}} durak bulundu',
     },
 
     editDetails: {

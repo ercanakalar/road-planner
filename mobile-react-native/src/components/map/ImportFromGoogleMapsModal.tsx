@@ -127,8 +127,9 @@ const ImportFromGoogleMapsModal = ({ visible, onClose }: Props) => {
           {preview ? (
             <>
               <Text style={styles.foundLabel}>
-                {preview.resolved.length} stop
-                {preview.resolved.length === 1 ? '' : 's'} found
+                {t('importModal.stopsFound', {
+                  count: preview.resolved.length,
+                })}
               </Text>
 
               <ScrollView

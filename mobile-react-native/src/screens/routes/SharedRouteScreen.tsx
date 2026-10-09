@@ -137,7 +137,7 @@ const SharedRouteScreen = () => {
         <View style={styles.metaRow}>
           <Ionicons name='location-outline' size={14} color={colors.primary} />
           <Text style={styles.meta}>
-            {stops.length} stop{stops.length === 1 ? '' : 's'}
+            {t('routes.stopCount', { count: stops.length })}
           </Text>
           <Text style={styles.readOnly}>{t('routes.readOnly')}</Text>
         </View>
@@ -161,10 +161,7 @@ const SharedRouteScreen = () => {
           </>
         ) : (
           <>
-            <Text style={styles.signedOut}>
-              You can look at this route without an account. Create one to keep
-              it in your favourites or make a copy you can edit.
-            </Text>
+            <Text style={styles.signedOut}>{t('routes.signedOutHint')}</Text>
             <PrimaryButton
               label={t('common.signIn')}
               variant='secondary'

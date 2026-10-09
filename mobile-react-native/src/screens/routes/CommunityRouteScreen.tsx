@@ -130,7 +130,7 @@ const CommunityRouteScreen = () => {
         <View style={styles.metaRow}>
           <Ionicons name='location-outline' size={14} color={colors.primary} />
           <Text style={styles.meta}>
-            {stops.length} stop{stops.length === 1 ? '' : 's'}
+            {t('routes.stopCount', { count: stops.length })}
           </Text>
           {route.isFavorite ? (
             <View style={styles.savedPill}>
@@ -157,17 +157,11 @@ const CommunityRouteScreen = () => {
               onPress={handleClone}
               isLoading={isCloning}
             />
-            <Text style={styles.cloneHint}>
-              A copy becomes your own route, so you can add and reorder stops.
-              The original stays as its author left it.
-            </Text>
+            <Text style={styles.cloneHint}>{t('routes.copyHint')}</Text>
           </>
         ) : (
           <>
-            <Text style={styles.signedOut}>
-              You can look at this route without an account. Create one to keep
-              it in your favourites or make a copy you can edit.
-            </Text>
+            <Text style={styles.signedOut}>{t('routes.signedOutHint')}</Text>
             <PrimaryButton
               label={t('common.signIn')}
               variant='secondary'

@@ -40,6 +40,7 @@ const Row = memo(
     onSelect: (routeId: string) => void;
   }) => {
     const { colors } = useTheme();
+    const { t } = useTranslation();
     const styles = useThemedStyles(createStyles);
 
     const handlePress = useCallback(
@@ -59,7 +60,7 @@ const Row = memo(
             {route.title}
           </Text>
           <Text style={styles.rowMeta}>
-            {route.stops.length} stop{route.stops.length === 1 ? '' : 's'}
+            {t('routes.stopCount', { count: route.stops.length })}
           </Text>
         </View>
 
