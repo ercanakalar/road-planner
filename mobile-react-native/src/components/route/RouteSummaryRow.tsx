@@ -9,206 +9,195 @@ import { StopWithAddress } from 'types/map-screen-type';
 import { addressLocality, addressName } from 'utils/address';
 
 export interface RouteSummary {
-    id: string;
-    title: string;
-    author: string;
-    authorId?: string;
-    stopCount: number;
-    isFavorite: boolean;
-    stops: StopWithAddress[];
+  id: string;
+  title: string;
+  author: string;
+  authorId?: string;
+  stopCount: number;
+  isFavorite: boolean;
+  stops: StopWithAddress[];
 }
 
 interface Props {
-    route: RouteSummary;
-    canFavorite?: boolean;
-    isSaving?: boolean;
-    onOpen: (routeId: string) => void;
-    onToggleFavorite: (routeId: string) => void;
-    onOpenAuthor?: (route: RouteSummary) => void;
+  route: RouteSummary;
+  canFavorite?: boolean;
+  isSaving?: boolean;
+  onOpen: (routeId: string) => void;
+  onToggleFavorite: (routeId: string) => void;
+  onOpenAuthor?: (route: RouteSummary) => void;
 }
 
 const placeOf = (stops: StopWithAddress[], index: number) => {
-    const stop = stops[index];
-    return addressLocality(stop?.address) || addressName(stop?.address) || null;
+  const stop = stops[index];
+  return addressLocality(stop?.address) || addressName(stop?.address) || null;
 };
 
 const RouteSummaryRow = ({
-    route,
-    canFavorite = true,
-    isSaving,
-    onOpen,
-    onToggleFavorite,
-    onOpenAuthor,
+  route,
+  canFavorite = true,
+  isSaving,
+  onOpen,
+  onToggleFavorite,
+  onOpenAuthor,
 }: Props) => {
-    const { colors } = useTheme();
-    const styles = useThemedStyles(createStyles);
-    const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
-    const handleOpen = useCallback(() => onOpen(route.id), [onOpen, route.id]);
+  const handleOpen = useCallback(() => onOpen(route.id), [onOpen, route.id]);
 
-    const handleToggleFavorite = useCallback(
-        () => onToggleFavorite(route.id),
-        [onToggleFavorite, route.id],
-    );
+  const handleToggleFavorite = useCallback(
+    () => onToggleFavorite(route.id),
+    [onToggleFavorite, route.id],
+  );
 
-    const handleOpenAuthor = useCallback(
-        () => onOpenAuthor?.(route),
-        [onOpenAuthor, route],
-    );
+  const handleOpenAuthor = useCallback(
+    () => onOpenAuthor?.(route),
+    [onOpenAuthor, route],
+  );
 
-    const leg = useMemo(() => {
-        const from = placeOf(route.stops, 0);
-        const to = placeOf(route.stops, route.stopCount - 1);
-        if (!from || !to || route.stopCount < 2) return null;
-        return `${from} → ${to}`;
-    }, [route.stops]);
+  const leg = useMemo(() => {
+    const from = placeOf(route.stops, 0);
+    const to = placeOf(route.stops, route.stopCount - 1);
+    if (!from || !to || route.stopCount < 2) return null;
+    return `${from} → ${to}`;
+  }, [route.stops]);
 
-    return (
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      onPress={handleOpen}
+      accessibilityRole='button'
+      accessibilityLabel={t('routes.openBy', {
+        title: route.title,
+        author: route.author,
+      })}
+    >
+      <View style={styles.body}>
+        <Text style={styles.title} numberOfLines={1}>
+          {route.title}
+        </Text>
+
+        <View style={styles.metaRow}>
+          <Pressable
+            onPress={onOpenAuthor ? handleOpenAuthor : handleOpen}
+            hitSlop={6}
+            disabled={!onOpenAuthor}
+            accessibilityRole={onOpenAuthor ? 'button' : undefined}
+            accessibilityLabel={
+              onOpenAuthor
+                ? t('routes.seeRoutesBy', { name: route.author })
+                : undefined
+            }
+          >
+            <Text
+              style={[styles.author, onOpenAuthor && styles.authorLink]}
+              numberOfLines={1}
+            >
+              {route.author}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.dot}>·</Text>
+
+          <Text style={styles.meta}>
+            {t('routes.stopCount', { count: route.stopCount })}
+          </Text>
+        </View>
+        {leg ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {leg}
+          </Text>
+        ) : null}
+      </View>
+
+      {canFavorite ? (
         <Pressable
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-            onPress={handleOpen}
-            accessibilityRole='button'
-            accessibilityLabel={t('routes.openBy', {
-                title: route.title,
-                author: route.author,
-            })}
+          onPress={handleToggleFavorite}
+          disabled={isSaving}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.heart,
+            pressed && styles.heartPressed,
+          ]}
+          accessibilityRole='button'
+          accessibilityState={{
+            selected: route.isFavorite,
+            busy: !!isSaving,
+          }}
+          accessibilityLabel={
+            route.isFavorite
+              ? t('routes.removeFromFavourites', {
+                  title: route.title,
+                })
+              : t('routes.saveToFavourites', {
+                  title: route.title,
+                })
+          }
         >
-            <View style={styles.body}>
-                <Text style={styles.title} numberOfLines={1}>
-                    {route.title}
-                </Text>
-
-                <View style={styles.metaRow}>
-                    <Pressable
-                        onPress={onOpenAuthor ? handleOpenAuthor : handleOpen}
-                        hitSlop={6}
-                        disabled={!onOpenAuthor}
-                        accessibilityRole={onOpenAuthor ? 'button' : undefined}
-                        accessibilityLabel={
-                            onOpenAuthor
-                                ? t('routes.seeRoutesBy', { name: route.author })
-                                : undefined
-                        }
-                    >
-                        <Text
-                            style={[
-                                styles.author,
-                                onOpenAuthor && styles.authorLink,
-                            ]}
-                            numberOfLines={1}
-                        >
-                            {route.author}
-                        </Text>
-                    </Pressable>
-
-                    <Text style={styles.dot}>·</Text>
-
-                    <Text style={styles.meta}>
-                        {t('routes.stopCount', { count: route.stopCount })}
-                    </Text>
-
-                    {leg ? (
-                        <>
-                            <Text style={styles.dot}>·</Text>
-                            <Text style={styles.meta} numberOfLines={1}>
-                                {leg}
-                            </Text>
-                        </>
-                    ) : null}
-                </View>
-            </View>
-
-            {canFavorite ? (
-                <Pressable
-                    onPress={handleToggleFavorite}
-                    disabled={isSaving}
-                    hitSlop={10}
-                    style={({ pressed }) => [
-                        styles.heart,
-                        pressed && styles.heartPressed,
-                    ]}
-                    accessibilityRole='button'
-                    accessibilityState={{
-                        selected: route.isFavorite,
-                        busy: !!isSaving,
-                    }}
-                    accessibilityLabel={
-                        route.isFavorite
-                            ? t('routes.removeFromFavourites', {
-                                  title: route.title,
-                              })
-                            : t('routes.saveToFavourites', {
-                                  title: route.title,
-                              })
-                    }
-                >
-                    <Ionicons
-                        name={route.isFavorite ? 'heart' : 'heart-outline'}
-                        size={20}
-                        color={
-                            route.isFavorite
-                                ? colors.primary
-                                : colors.textSubtle
-                        }
-                    />
-                </Pressable>
-            ) : null}
+          <Ionicons
+            name={route.isFavorite ? 'heart' : 'heart-outline'}
+            size={20}
+            color={route.isFavorite ? colors.primary : colors.textSubtle}
+          />
         </Pressable>
-    );
+      ) : null}
+    </Pressable>
+  );
 };
 
 const createStyles = (colors: ThemeColors) =>
-    StyleSheet.create({
-        row: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.md,
-            paddingVertical: spacing.md,
-            paddingHorizontal: spacing.lg,
-            backgroundColor: colors.surface,
-            borderRadius: radius.md,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.border,
-        },
-        rowPressed: { backgroundColor: colors.surfaceAlt },
-        body: { flex: 1, gap: spacing.xxs },
-        title: {
-            ...typography.label,
-            fontSize: 15,
-            lineHeight: 20,
-            color: colors.text,
-        },
-        metaRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.xs,
-        },
-        author: {
-            ...typography.caption,
-            fontSize: 12,
-            color: colors.textMuted,
-            maxWidth: 120,
-        },
-        authorLink: { color: colors.primary },
-        dot: {
-            ...typography.caption,
-            fontSize: 12,
-            color: colors.textSubtle,
-        },
-        meta: {
-            ...typography.caption,
-            fontSize: 12,
-            color: colors.textMuted,
-            flexShrink: 1,
-        },
-        heart: {
-            width: 34,
-            height: 34,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: radius.pill,
-        },
-        heartPressed: { backgroundColor: colors.surfaceAlt },
-    });
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    rowPressed: { backgroundColor: colors.surfaceAlt },
+    body: { flex: 1, gap: spacing.xxs },
+    title: {
+      ...typography.label,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.text,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    author: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textMuted,
+      maxWidth: 120,
+    },
+    authorLink: { color: colors.primary },
+    dot: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSubtle,
+    },
+    meta: {
+      ...typography.caption,
+      fontSize: 10,
+      color: colors.textMuted,
+      flexShrink: 1,
+    },
+    heart: {
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.pill,
+    },
+    heartPressed: { backgroundColor: colors.surfaceAlt },
+  });
 
 export default memo(RouteSummaryRow);
