@@ -25,7 +25,8 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "test:integration": "jest --config ./test/jest-integration.json",
-    "users:play-testers": "ts-node prisma/seeds/play-testers.ts"
+    "users:play-testers": "ts-node prisma/seeds/play-testers.ts",
+    "seed:user-roads": "ts-node prisma/seeds/user-roads.ts"
   },
   "overrides": {
     "mysql2": "^3.24.5"
