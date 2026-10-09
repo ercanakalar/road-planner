@@ -4,6 +4,7 @@ services:
             context: ./mobile-react-native
             dockerfile: Dockerfile.android
         image: road-planner-android-builder
+        entrypoint: ['bash', '/app/scripts/build-android.sh']
         environment:
             BUILD_TYPE: ${BUILD_TYPE:-release}
             # apk (default) or aab — Play only accepts the bundle
